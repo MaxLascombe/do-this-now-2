@@ -8,7 +8,7 @@ If I remember to update this, this is the timestamp I left off: 9:37
 ## To Do
 
 - [x] Make it deploy
-- [ ] Scaffold UI
+- [ ] Scaffold UI with mock data
 - [ ] Set up database
 - [ ] Attach db to UI
 - [ ] Add authentication
