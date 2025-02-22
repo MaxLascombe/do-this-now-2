@@ -3,7 +3,7 @@
 I'm following along this tutorial to recreate do this now in a modern stack:
 https://www.youtube.com/watch?v=d5x0JCZbAJs
 
-If I remember to update this, this is the timestamp I left off: 9:10
+If I remember to update this, this is the timestamp I left off: 9:37
 
 ## To Do
 
