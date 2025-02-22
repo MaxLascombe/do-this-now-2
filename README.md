@@ -7,7 +7,7 @@ If I remember to update this, this is the timestamp I left off: 9:37
 
 ## To Do
 
-- [ ] Make it deploy
+- [x] Make it deploy
 - [ ] Scaffold UI
 - [ ] Set up database
 - [ ] Attach db to UI
