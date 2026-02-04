@@ -16,13 +16,19 @@ The old version in `old-version/` uses:
 - React (Vite)
 - AWS Amplify (backend)
 - Lambda functions
+- DynamoDB
 - Tailwind CSS
 
 ### New Stack
 
-**Status: NOT YET DECIDED**
-
-The new stack needs to be determined through discussion with the project owner.
+| Layer     | Choice          |
+| --------- | --------------- |
+| Framework | TanStack Start  |
+| Database  | Vercel Postgres |
+| ORM       | Drizzle         |
+| Auth      | Clerk           |
+| Styling   | Tailwind CSS    |
+| Hosting   | Vercel          |
 
 ---
 
@@ -31,45 +37,109 @@ The new stack needs to be determined through discussion with the project owner.
 This file serves as the central context document for AI agents working on this project. Each agent session should:
 
 1. Read this file to understand the project state
-2. Complete the current task (marked with `[CURRENT]`)
-3. Update this file with progress and mark the next task as current
-4. Provide a summary of what was accomplished
+2. Review all pending tasks and pick the most important one (based on dependencies and priority)
+3. Complete the chosen task
+4. Update this file with progress and mark the task as done
+
+**Note:** Tasks are unordered. Pick the most impactful task to work on, not necessarily the first one listed.
 
 ---
 
 ## Tasks
 
-### Task 1: Determine the New Technology Stack `[CURRENT]`
+### Scaffold TanStack Start project
 
-**Objective:** Have a conversation with the project owner to determine what technologies should be used for the new version.
+- [ ] Initialize a new TanStack Start project in the root directory
+- [ ] Ensure it builds and runs locally
+- [ ] Basic Tailwind CSS setup
 
-**Instructions for Agent:**
+### Deploy to Vercel
 
-1. Review the old version's structure in `old-version/` to understand the application's requirements
-2. Ask the project owner questions about:
-   - Frontend framework preferences (React, Vue, Svelte, etc.)
-   - Backend/API preferences (serverless, traditional server, edge functions, etc.)
-   - Database preferences (SQL, NoSQL, local-first, etc.)
-   - Hosting preferences (Vercel, AWS, Cloudflare, self-hosted, etc.)
-   - Authentication requirements
-   - Any specific technologies they want to try or avoid
-3. Document the chosen stack in the "New Stack" section above
-4. Create the next task for initial project setup
+- [ ] Connect the repo to Vercel
+- [ ] Get a successful deployment of the base TanStack Start app (even with no custom code)
+- [ ] Verify the deployed URL works
 
-**Completion Criteria:**
+### Set up Drizzle with Vercel Postgres
 
-- [ ] New stack is documented in this file
-- [ ] Project owner has confirmed the technology choices
-- [ ] Next task is created for project scaffolding
+- [ ] Install Drizzle and required dependencies
+- [ ] Create database schema for tasks and history tables
+- [ ] Set up Drizzle config and migrations
+- [ ] Connect to Vercel Postgres (use environment variables)
+
+### Set up Clerk authentication
+
+- [ ] Install Clerk SDK
+- [ ] Configure Clerk provider in the app
+- [ ] Create sign-in/sign-out flow
+- [ ] Protect routes that require authentication
+
+### Implement task data model
+
+- [ ] Define Task type/schema matching old version (title, due, repeat, timeFrame, strictDeadline, subtasks, snooze)
+- [ ] Define History type/schema
+- [ ] Create Drizzle migrations
+
+### Implement task sorting algorithm
+
+- [ ] Port the sorting logic from `old-version/shared-logic/task-sorting.ts`
+- [ ] Create server function to fetch and sort tasks
+- [ ] Return top 3 tasks to the client
+
+### Build home page UI
+
+- [ ] Display top 3 prioritized tasks
+- [ ] Task selection (click or keyboard shortcuts 1/2/3)
+- [ ] Action buttons: Complete, Snooze, Edit, Delete
+- [ ] Progress indicator for today
+
+### Build task list page
+
+- [ ] Display all tasks
+- [ ] Link to edit each task
+
+### Build task form (create/edit)
+
+- [ ] Form fields for all task properties
+- [ ] Validation with Zod
+- [ ] Create and update server functions
+
+### Implement task actions
+
+- [ ] Complete task (handle repeat logic, update history)
+- [ ] Snooze task
+- [ ] Delete task
+
+### Build history page
+
+- [ ] Display tasks completed today
+- [ ] Option to view past days
+
+### Add keyboard shortcuts
+
+- [ ] Port keyboard navigation from old version
+- [ ] d=done, n=new, s=snooze, u=update, t=tasks, h=history, etc.
+
+### Add sound effect on task completion
+
+- [ ] Port the "ding" sound from old version
+
+### Polish and testing
+
+- [ ] Responsive design
+- [ ] Error handling
+- [ ] Loading states
 
 ---
 
 ## Completed Tasks
 
-(None yet)
+- [x] Determine the new technology stack (2024-02-03)
+  - Decided on: TanStack Start, Vercel Postgres, Drizzle, Clerk, Tailwind CSS, Vercel hosting
 
 ---
 
 ## Notes & Decisions
 
-(Add important decisions and context here as the project progresses)
+- **2024-02-03:** Stack decision made. Chose TanStack Start to explore the new framework. Vercel Postgres chosen for simplicity (same as Neon under the hood). Drizzle for ORM (T3-approved, lightweight for serverless). Clerk for auth (modern DX). Continuing with Tailwind for styling.
+- The old app has simple database needs: ~2 tables, no complex joins, low volume personal use.
+- Task sorting algorithm prioritizes: not snoozed > due today/past due > strict deadline > won't repeat tomorrow > won't repeat today > earlier due date > shorter time frame.
