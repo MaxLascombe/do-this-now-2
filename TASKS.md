@@ -40,18 +40,13 @@ This file serves as the central context document for AI agents working on this p
 2. Review all pending tasks and pick the most important one (based on dependencies and priority)
 3. Complete the chosen task
 4. Update this file with progress and mark the task as done
+5. Provide a short, one-line commit message for the user to use
 
 **Note:** Tasks are unordered. Pick the most impactful task to work on, not necessarily the first one listed.
 
 ---
 
 ## Tasks
-
-### Scaffold TanStack Start project
-
-- [ ] Initialize a new TanStack Start project in the root directory
-- [ ] Ensure it builds and runs locally
-- [ ] Basic Tailwind CSS setup
 
 ### Deploy to Vercel
 
@@ -131,10 +126,12 @@ This file serves as the central context document for AI agents working on this p
 
 ---
 
-## Completed Tasks
+## Already Built
 
-- [x] Determine the new technology stack (2024-02-03)
-  - Decided on: TanStack Start, Vercel Postgres, Drizzle, Clerk, Tailwind CSS, Vercel hosting
+- TanStack Start project scaffolded with Tailwind CSS 4.0
+- ESLint + Prettier configured (ignores `old-version/` submodule)
+- Project builds successfully with `pnpm build`
+- Note: Dev server may require `ulimit -n 10000` on macOS
 
 ---
 
