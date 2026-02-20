@@ -12,7 +12,6 @@ Tasks below are unordered. Pick one by priority (see PROMPT.md).
 - Get a successful deployment of the base TanStack Start app (even with no custom code)
 - Verify the deployed URL works
   Create database schema for tasks and history tables
-- Set up Drizzle config and migrations
 - Connect to Neon (use environment variables, e.g. DATABASE_URL)
 - Install Clerk SDK
 - Configure Clerk provider in the app

@@ -28,9 +28,10 @@ This file describes the current architecture and what exists in the codebase. It
 
 - Tailwind CSS 4.0 via `@tailwindcss/vite`. Global styles in `src/styles.css`.
 
-**Data layer (dependencies only)**
+**Data layer**
 
-- Drizzle ORM and Neon serverless driver are installed: `drizzle-orm`, `@neondatabase/serverless`, and `dotenv` (runtime); `drizzle-kit` and `tsx` (dev) for schema and migrations. No schema, config, or database connection yet.
+- Drizzle ORM and Neon serverless driver are installed: `drizzle-orm`, `@neondatabase/serverless`, and `dotenv` (runtime); `drizzle-kit` and `tsx` (dev) for schema and migrations.
+- Drizzle config lives in `drizzle.config.ts`: loads `DATABASE_URL` from env (via `dotenv/config`), uses dialect `postgresql`, schema at `./src/db/schema.ts`, migrations output at `./drizzle`. Scripts `pnpm db:generate` and `pnpm db:migrate` run Drizzle Kit. `.env.example` documents the required `DATABASE_URL`. Placeholder `src/db/schema.ts` exists (no tables yet); schema and DB connection will be added in later tasks.
 
 **Tooling and quality**
 
@@ -45,7 +46,7 @@ This file describes the current architecture and what exists in the codebase. It
 ## Not Yet in Place
 
 - No deployment (repo not connected to Vercel, no deployed URL).
-- No database or schema (no Drizzle config, no migrations, no Neon connection).
+- No database or schema yet (no tables in schema, no Neon connection in app code).
 - No auth (no Clerk).
 - No task domain: no data model, API, or UI for tasks, history, or “do this now” behavior.
 
