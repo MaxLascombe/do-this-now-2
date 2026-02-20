@@ -1,142 +1,46 @@
-# Do-This-Now 2.0 - Task Context & Progress
+# Pending Tasks
 
-## Project Overview
+Do-This-Now 2.0: we’re rebuilding the “do-this-now” task manager (the app tells you what to work on now) with a new stack. See `CURRENT_STATE.md` for what exists today and `PROMPT.md` for how to work on this list.
 
-We are recreating the "do-this-now" task manager application with a completely new technology stack. The original version is preserved in the `old-version/` folder as a Git submodule for reference.
+**Stack:** TanStack Start, Neon, Drizzle, Clerk, Tailwind CSS, Vercel.
 
-### What is Do-This-Now?
-
-Do-This-Now is a task manager with one key feature: **it tells the user what they should work on now**. All tasks are prioritized automatically based on certain parameters, and the top task is served to the user. The user doesn't choose what to work on—the app decides for them.
-
-### Original Stack (for reference)
-
-The old version in `old-version/` uses:
-
-- TypeScript/JavaScript
-- React (Vite)
-- AWS Amplify (backend)
-- Lambda functions
-- DynamoDB
-- Tailwind CSS
-
-### New Stack
-
-| Layer     | Choice          |
-| --------- | --------------- |
-| Framework | TanStack Start  |
-| Database  | Vercel Postgres |
-| ORM       | Drizzle         |
-| Auth      | Clerk           |
-| Styling   | Tailwind CSS    |
-| Hosting   | Vercel          |
+Tasks below are unordered. Pick one by priority (see PROMPT.md).
 
 ---
 
-## How This File Works
-
-This file serves as the central context document for AI agents working on this project. Each agent session should:
-
-1. Read this file to understand the project state
-2. Review all pending tasks and pick the most important one (based on dependencies and priority)
-3. Complete the chosen task
-4. Update this file with progress and mark the task as done
-5. Provide a short, one-line commit message for the user to use
-
-**Note:** Tasks are unordered. Pick the most impactful task to work on, not necessarily the first one listed.
-
----
-
-## Tasks
-
-### Deploy to Vercel
-
-- [ ] Connect the repo to Vercel
-- [ ] Get a successful deployment of the base TanStack Start app (even with no custom code)
-- [ ] Verify the deployed URL works
-
-### Set up Drizzle with Vercel Postgres
-
-- [ ] Install Drizzle and required dependencies
-- [ ] Create database schema for tasks and history tables
-- [ ] Set up Drizzle config and migrations
-- [ ] Connect to Vercel Postgres (use environment variables)
-
-### Set up Clerk authentication
-
-- [ ] Install Clerk SDK
-- [ ] Configure Clerk provider in the app
-- [ ] Create sign-in/sign-out flow
-- [ ] Protect routes that require authentication
-
-### Implement task data model
-
-- [ ] Define Task type/schema matching old version (title, due, repeat, timeFrame, strictDeadline, subtasks, snooze)
-- [ ] Define History type/schema
-- [ ] Create Drizzle migrations
-
-### Implement task sorting algorithm
-
-- [ ] Port the sorting logic from `old-version/shared-logic/task-sorting.ts`
-- [ ] Create server function to fetch and sort tasks
-- [ ] Return top 3 tasks to the client
-
-### Build home page UI
-
-- [ ] Display top 3 prioritized tasks
-- [ ] Task selection (click or keyboard shortcuts 1/2/3)
-- [ ] Action buttons: Complete, Snooze, Edit, Delete
-- [ ] Progress indicator for today
-
-### Build task list page
-
-- [ ] Display all tasks
-- [ ] Link to edit each task
-
-### Build task form (create/edit)
-
-- [ ] Form fields for all task properties
-- [ ] Validation with Zod
-- [ ] Create and update server functions
-
-### Implement task actions
-
-- [ ] Complete task (handle repeat logic, update history)
-- [ ] Snooze task
-- [ ] Delete task
-
-### Build history page
-
-- [ ] Display tasks completed today
-- [ ] Option to view past days
-
-### Add keyboard shortcuts
-
-- [ ] Port keyboard navigation from old version
-- [ ] d=done, n=new, s=snooze, u=update, t=tasks, h=history, etc.
-
-### Add sound effect on task completion
-
-- [ ] Port the "ding" sound from old version
-
-### Polish and testing
-
-- [ ] Responsive design
-- [ ] Error handling
-- [ ] Loading states
-
----
-
-## Already Built
-
-- TanStack Start project scaffolded with Tailwind CSS 4.0
-- ESLint + Prettier configured (ignores `old-version/` submodule)
-- Project builds successfully with `pnpm build`
-- Note: Dev server may require `ulimit -n 10000` on macOS
-
----
-
-## Notes & Decisions
-
-- **2024-02-03:** Stack decision made. Chose TanStack Start to explore the new framework. Vercel Postgres chosen for simplicity (same as Neon under the hood). Drizzle for ORM (T3-approved, lightweight for serverless). Clerk for auth (modern DX). Continuing with Tailwind for styling.
-- The old app has simple database needs: ~2 tables, no complex joins, low volume personal use.
-- Task sorting algorithm prioritizes: not snoozed > due today/past due > strict deadline > won't repeat tomorrow > won't repeat today > earlier due date > shorter time frame.
+- Connect the repo to Vercel
+- Get a successful deployment of the base TanStack Start app (even with no custom code)
+- Verify the deployed URL works
+  Create database schema for tasks and history tables
+- Set up Drizzle config and migrations
+- Connect to Neon (use environment variables, e.g. DATABASE_URL)
+- Install Clerk SDK
+- Configure Clerk provider in the app
+- Create sign-in/sign-out flow
+- Protect routes that require authentication
+- Define Task type/schema matching old version (title, due, repeat, timeFrame, strictDeadline, subtasks, snooze)
+- Define History type/schema
+- Create Drizzle migrations for task/history
+- Port the sorting logic from `old-version/shared-logic/task-sorting.ts`
+- Create server function to fetch and sort tasks
+- Return top 3 tasks to the client
+- Display top 3 prioritized tasks on home page
+- Task selection on home (click or keyboard shortcuts 1/2/3)
+- Action buttons on home: Complete, Snooze, Edit, Delete
+- Progress indicator for today on home
+- Display all tasks on task list page
+- Link to edit each task from task list
+- Form fields for all task properties (create/edit)
+- Validation with Zod for task form
+- Create and update server functions for tasks
+- Complete task (handle repeat logic, update history)
+- Snooze task
+- Delete task
+- Display tasks completed today on history page
+- Option to view past days on history page
+- Port keyboard navigation from old version (d=done, n=new, s=snooze, u=update, t=tasks, h=history, etc.)
+- Port the "ding" sound from old version on task completion
+- Responsive design
+- Error handling
+- Loading states
+- Add knip to the project (dead code, unused deps, etc.)
