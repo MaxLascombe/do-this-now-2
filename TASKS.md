@@ -21,8 +21,6 @@ Tasks below are unordered. Pick one by priority (see PROMPT.md).
   `<ClerkProvider>`)
 - Create sign-in/sign-out flow on the frontend
 - Protect frontend routes that require authentication
-- Port the sorting logic from `old-version/shared-logic/task-sorting.ts` into
-  `server/src/lib/task-sorting.ts`
 - Create Express route `GET /tasks` that fetches, sorts, and returns top 3 tasks
   for the authenticated user
 - Create Express routes for task CRUD: `POST /tasks`, `PUT /tasks/:id`,

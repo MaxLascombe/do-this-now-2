@@ -29,6 +29,8 @@ server/              ← Express API (Railway)
       index.ts       ← drizzle client (postgres driver)
       schema.ts      ← placeholder, no tables yet
     routes/          ← empty, routes added per task
+    lib/
+      task-sorting.ts ← sortTasks, isSnoozed, nextDueDate, newSafeDate, dateString
   drizzle.config.ts
   package.json
   tsconfig.json
@@ -64,7 +66,8 @@ server/              ← Express API (Railway)
 
 - No Drizzle migrations yet (schema defined but `db:generate` not run against a live DB).
 - No auth (Clerk not yet installed on either side).
-- No task domain: no data model, API routes, or UI for tasks, history, or "do this now" behavior.
+- No task domain API routes or UI yet, but sorting logic is in place.
+- Sorting: `server/src/lib/task-sorting.ts` exports `sortTasks(tasks, today)` (mutates array in-place), `isSnoozed`, `nextDueDate`, `newSafeDate`, `dateString`. Implements the priority order: not-snoozed > due today/past-due > strict deadline > won't repeat tomorrow > won't repeat today > earlier due date > shorter time frame.
 - No deployment (neither Railway nor Vercel connected yet).
 
 ---

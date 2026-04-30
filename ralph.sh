@@ -79,7 +79,8 @@ while [[ $ITERATION -le $MAX_ITERATIONS ]]; do
   if ! git diff --quiet || ! git diff --staged --quiet; then
     git add -A
     git commit -m "chore: ralph iteration $ITERATION" 2>/dev/null || true
-    echo "✔ Committed changes for iteration $ITERATION"
+    git push 2>/dev/null || true
+    echo "✔ Committed and pushed changes for iteration $ITERATION"
   else
     echo "  (no changes to commit)"
   fi
