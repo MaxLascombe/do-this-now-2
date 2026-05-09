@@ -6,74 +6,107 @@ This file describes the current architecture and what exists in the codebase. It
 
 ## Stack
 
-| Layer     | Choice                                      |
-| --------- | ------------------------------------------- |
-| Frontend  | TanStack Start (React + Vite), Vercel       |
-| Backend   | Express 5, Railway                          |
-| Database  | PostgreSQL (Railway), Drizzle ORM + postgres driver |
-| Auth      | Clerk (`@clerk/express` on server, `@clerk/react` on client) |
-| Styling   | Tailwind CSS 4                              |
+| Layer    | Choice                                                            |
+| -------- | ----------------------------------------------------------------- |
+| App      | TanStack Start (React + Vite + Nitro server), Railway             |
+| Database | PostgreSQL (Railway plugin), Drizzle ORM + `postgres` driver      |
+| Auth     | Clerk (planned: `@clerk/tanstack-react-start`)                    |
+| Styling  | Tailwind CSS 4                                                    |
+
+Single Railway service hosts both the React frontend (SSR via Nitro) and the
+server-side data layer. There is no separate Express backend.
 
 ---
 
 ## Repository Layout
 
 ```
-/                    ← frontend (TanStack Start, Vercel)
+/
   src/
-  package.json
-server/              ← Express API (Railway)
-  src/
-    index.ts         ← app entry, Express setup, /health route
+    routes/          ← TanStack Router file-based routes
+      __root.tsx     ← root layout, Header, devtools
+      index.tsx
+      demo/          ← scaffolded TanStack demos (delete when no longer useful)
+    components/
+      Header.tsx
     db/
-      index.ts       ← drizzle client (postgres driver)
-      schema.ts      ← placeholder, no tables yet
-    routes/          ← empty, routes added per task
+      index.ts       ← drizzle client (postgres-js), reads DATABASE_URL from env
+      schema.ts      ← tasks + history tables, repeat enums, exported types
     lib/
       task-sorting.ts ← sortTasks, isSnoozed, nextDueDate, newSafeDate, dateString
-  drizzle.config.ts
-  package.json
-  tsconfig.json
-  .env.example       ← DATABASE_URL, CLERK_SECRET_KEY, PORT
+    router.tsx, styles.css, …
+  drizzle.config.ts  ← schema path + DATABASE_URL credentials
+  railway.json       ← Nixpacks build, `pnpm db:push && pnpm start` on deploy
+  vite.config.ts     ← @tanstack/react-start, nitro, tailwind, react plugins
+  package.json       ← pnpm@9.15.9, Node 22.x, drizzle/postgres deps
+  .env.example       ← DATABASE_URL, CLERK_SECRET_KEY
 ```
 
 ---
 
 ## What Exists
 
-**Frontend shell**
+**App shell**
 
-- TanStack Start app built with Vite. Entry and routing under `src/`: `router.tsx` creates the router; `routes/__root.tsx` is the root layout with a shared `Header` and TanStack devtools.
-- Routes: root layout, index route, demo routes under `routes/demo/`. No app-specific routes yet.
-- Tailwind CSS 4.0 via `@tailwindcss/vite`. Global styles in `src/styles.css`.
+- TanStack Start app built with Vite + Nitro. Router under `src/`: `router.tsx`
+  creates the router; `routes/__root.tsx` is the root layout with a shared
+  `Header` and TanStack devtools.
+- Routes: root layout, index route, scaffolded demo routes under `routes/demo/`.
+  No app-specific routes yet.
+- Tailwind CSS 4 via `@tailwindcss/vite`. Global styles in `src/styles.css`.
 
-**Backend shell (`server/`)**
+**Database**
 
-- Express 5 server. `src/index.ts` sets up CORS, JSON body parsing, and a `GET /health` route.
-- Drizzle ORM with `postgres` driver. Client initialized in `src/db/index.ts` from `DATABASE_URL`.
-- Schema defined in `src/db/schema.ts`: `tasks` and `history` tables with Drizzle pg-core. `tasks` has all fields from old-version (title, due, strictDeadline, repeat/repeatInterval/repeatUnit/repeatWeekdays, timeFrame, snooze, subtasks as jsonb, userId for Clerk, timestamps). `history` stores a snapshot of the completed task as jsonb plus a reference `taskId` and `completedAt`. Two pg enums: `repeat_option` and `repeat_unit`. TypeScript types exported: `Task`, `NewTask`, `HistoryEntry`, `NewHistoryEntry`.
-- Scripts: `pnpm dev` (tsx watch), `pnpm build` (tsc), `pnpm db:generate`, `pnpm db:migrate`.
-- Deploy target: Railway (deploy from `server/` subdirectory).
+- Drizzle ORM with `postgres` driver. Client initialized in `src/db/index.ts`
+  from `DATABASE_URL` (injected by Railway from the linked Postgres plugin).
+- Schema in `src/db/schema.ts`: `tasks` and `history` tables.
+  - `tasks`: title, due, strictDeadline, repeat / repeatInterval / repeatUnit /
+    repeatWeekdays, timeFrame, snooze, subtasks (jsonb), userId, timestamps.
+  - `history`: snapshot of completed task as jsonb, taskId, completedAt.
+  - Two pg enums: `repeat_option`, `repeat_unit`.
+  - Exported types: `Task`, `NewTask`, `HistoryEntry`, `NewHistoryEntry`.
+- No committed migration files. Schema is synced on every Railway deploy via
+  `drizzle-kit push --force`.
+
+**Sorting logic**
+
+- `src/lib/task-sorting.ts`: `sortTasks(tasks, today)` (mutates array in-place),
+  `isSnoozed`, `nextDueDate`, `newSafeDate`, `dateString`. Priority order:
+  not-snoozed > due today/past-due > strict deadline > won't repeat tomorrow >
+  won't repeat today > earlier due date > shorter time frame.
+
+**Deployment**
+
+- Railway project: `fortunate-gentleness`. One service `do-this-now-2` (TanStack
+  Start app) plus the `Postgres` plugin. `DATABASE_URL` reference variable
+  injected automatically.
+- `railway.json` pins Nixpacks builder; build runs
+  `pnpm install --frozen-lockfile && pnpm build`; start runs
+  `pnpm db:push && pnpm start` so schema syncs before each boot.
+- Public domain assigned to the service.
 
 **Tooling**
 
-- ESLint and Prettier configured at repo root. `old-version/` submodule ignored by both.
-- Vitest installed for frontend tests.
+- ESLint and Prettier at repo root. `old-version/` submodule ignored by both.
+- Vitest installed for tests.
+- pnpm 9.15.9 pinned via `packageManager`. Node 22.x via `engines`.
 
 ---
 
 ## Not Yet in Place
 
-- No Drizzle migrations yet (schema defined but `db:generate` not run against a live DB).
-- No auth (Clerk not yet installed on either side).
-- No task domain API routes or UI yet, but sorting logic is in place.
-- Sorting: `server/src/lib/task-sorting.ts` exports `sortTasks(tasks, today)` (mutates array in-place), `isSnoozed`, `nextDueDate`, `newSafeDate`, `dateString`. Implements the priority order: not-snoozed > due today/past-due > strict deadline > won't repeat tomorrow > won't repeat today > earlier due date > shorter time frame.
-- No deployment (neither Railway nor Vercel connected yet).
+- No auth (Clerk not yet installed). All routes/data are unauthenticated.
+- No task domain server functions or UI yet, though schema and sorting logic
+  are ready.
+- No `dotenv` import in `src/db/index.ts` — local dev needs `DATABASE_URL` set
+  via the shell or a `.env` file the runtime already loads.
 
 ---
 
 ## Notes
 
-- Dev: run `pnpm dev` (frontend, port 3000) and `cd server && pnpm dev` (backend, port 4000) in parallel.
-- Dev server on macOS may require `ulimit -n 10000` if you hit file descriptor limits.
-- Task sorting reference (old app): not snoozed > due today/past due > strict deadline > won't repeat tomorrow > won't repeat today > earlier due date > shorter time frame.
+- Dev: `pnpm dev` (port 3000) runs the full app — frontend and server.
+- macOS dev may need `ulimit -n 10000` for file descriptor limits.
+- Task sorting reference (old app): not snoozed > due today/past due > strict
+  deadline > won't repeat tomorrow > won't repeat today > earlier due date >
+  shorter time frame.
