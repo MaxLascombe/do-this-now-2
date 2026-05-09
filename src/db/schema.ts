@@ -4,6 +4,7 @@ import {
   jsonb,
   pgEnum,
   pgTable,
+  primaryKey,
   text,
   timestamp,
   uuid,
@@ -63,7 +64,20 @@ export const history = pgTable('history', {
     .defaultNow(),
 })
 
+export const dailyProgress = pgTable(
+  'daily_progress',
+  {
+    userId: text('user_id').notNull(),
+    date: text('date').notNull(), // YYYY-M-D, matches old format
+    streakBeforeToday: integer('streak_before_today').notNull().default(0),
+    lives: integer('lives').notNull().default(0),
+  },
+  (t) => [primaryKey({ columns: [t.userId, t.date] })],
+)
+
 export type Task = typeof tasks.$inferSelect
 export type NewTask = typeof tasks.$inferInsert
 export type HistoryEntry = typeof history.$inferSelect
 export type NewHistoryEntry = typeof history.$inferInsert
+export type DailyProgress = typeof dailyProgress.$inferSelect
+export type NewDailyProgress = typeof dailyProgress.$inferInsert

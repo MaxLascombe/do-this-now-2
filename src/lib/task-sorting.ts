@@ -1,55 +1,5 @@
 import type { Task, SubTask } from '../db/schema'
-
-// Parses a 'YYYY-M-D' date string into a local-time Date (avoids UTC offset issues)
-export const newSafeDate = (str: string): Date => {
-  const [year, month, day] = str.split('-').map(s => parseInt(s))
-  return new Date(year, month - 1, day)
-}
-
-export const dateString = (date: Date): string =>
-  `${date.getFullYear()}-${date.getMonth() + 1}-${date.getDate()}`
-
-export const nextDueDate = (task: Task): Date | undefined => {
-  if (task.repeat === 'No Repeat' || task.due === 'No Due Date') return undefined
-  const date = newSafeDate(task.due)
-  if (task.repeat === 'Daily') {
-    date.setDate(date.getDate() + 1)
-  } else if (task.repeat === 'Weekdays') {
-    const daysToAdd = date.getDay() === 5 ? 3 : 1
-    date.setDate(date.getDate() + daysToAdd)
-  } else if (task.repeat === 'Weekly') {
-    date.setDate(date.getDate() + 7)
-  } else if (task.repeat === 'Monthly') {
-    date.setMonth(date.getMonth() + 1)
-  } else if (task.repeat === 'Yearly') {
-    date.setFullYear(date.getFullYear() + 1)
-  } else if (task.repeat === 'Custom') {
-    if (task.repeatUnit === 'day') {
-      date.setDate(date.getDate() + task.repeatInterval)
-    } else if (task.repeatUnit === 'week') {
-      const weekdays = task.repeatWeekdays
-      if (!weekdays.some(x => x)) {
-        date.setDate(date.getDate() + 7 * task.repeatInterval)
-      } else {
-        let i = (date.getDay() + 1) % 7
-        while (!weekdays[i]) i = (i + 1) % 7
-        if (i > date.getDay()) {
-          date.setDate(date.getDate() + i - date.getDay())
-        } else {
-          date.setDate(date.getDate() + 7 * task.repeatInterval)
-          date.setDate(date.getDate() + i - date.getDay())
-        }
-      }
-    } else if (task.repeatUnit === 'month') {
-      date.setMonth(date.getMonth() + task.repeatInterval)
-    } else if (task.repeatUnit === 'year') {
-      date.setFullYear(date.getFullYear() + task.repeatInterval)
-    }
-  }
-  // shift by 2 hours to avoid midnight DST edge cases, then re-parse as local date
-  date.setHours(date.getHours() + 2)
-  return newSafeDate(dateString(date))
-}
+import { newSafeDate, nextDueDate } from './helpers'
 
 const subtaskIsSnoozed = (s: SubTask) =>
   !!s.snooze && new Date(s.snooze) >= new Date()
