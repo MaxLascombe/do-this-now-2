@@ -1,4 +1,4 @@
-import type { Task, SubTask } from '../db/schema'
+import type { Task, SubTask } from './schema'
 import { newSafeDate, nextDueDate } from './helpers'
 
 const subtaskIsSnoozed = (s: SubTask) =>
