@@ -16,4 +16,16 @@ config.resolver.nodeModulesPaths = [
 ]
 config.resolver.disableHierarchicalLookup = true
 
+// Inject polyfills before any other module loads. Hermes doesn't expose
+// SharedArrayBuffer, and Clerk Expo (via @clerk/clerk-js/headless) references
+// it as a bare identifier, throwing ReferenceError at boot.
+const baseGetPolyfills = config.serializer?.getPolyfills
+config.serializer = {
+  ...config.serializer,
+  getPolyfills: (opts) => [
+    ...(baseGetPolyfills ? baseGetPolyfills(opts) : []),
+    path.resolve(projectRoot, 'polyfills/sab.js'),
+  ],
+}
+
 module.exports = withNativeWind(config, { input: './global.css' })
