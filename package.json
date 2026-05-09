@@ -2,6 +2,7 @@
   "name": "do-this-now-2",
   "private": true,
   "type": "module",
+  "packageManager": "pnpm@11.0.9",
   "scripts": {
     "dev": "vite dev --port 3000",
     "build": "vite build",
@@ -46,5 +47,11 @@
     "vite": "^7.1.7",
     "vitest": "^3.0.5",
     "web-vitals": "^5.1.0"
+  },
+  "pnpm": {
+    "onlyBuiltDependencies": [
+      "esbuild",
+      "unrs-resolver"
+    ]
   }
 }
