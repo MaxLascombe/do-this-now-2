@@ -13,7 +13,14 @@ import { Route as NewTaskRouteImport } from './routes/new-task'
 import { Route as HistoryRouteImport } from './routes/history'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as TasksIndexRouteImport } from './routes/tasks.index'
+import { Route as ApiTasksRouteImport } from './routes/api/tasks'
 import { Route as TasksIdEditRouteImport } from './routes/tasks.$id.edit'
+import { Route as ApiTasksTopRouteImport } from './routes/api/tasks.top'
+import { Route as ApiTasksIdRouteImport } from './routes/api/tasks.$id'
+import { Route as ApiProgressTodayRouteImport } from './routes/api/progress.today'
+import { Route as ApiHistoryDateRouteImport } from './routes/api/history.$date'
+import { Route as ApiTasksIdSnoozeRouteImport } from './routes/api/tasks.$id.snooze'
+import { Route as ApiTasksIdCompleteRouteImport } from './routes/api/tasks.$id.complete'
 
 const NewTaskRoute = NewTaskRouteImport.update({
   id: '/new-task',
@@ -35,53 +42,143 @@ const TasksIndexRoute = TasksIndexRouteImport.update({
   path: '/tasks/',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiTasksRoute = ApiTasksRouteImport.update({
+  id: '/api/tasks',
+  path: '/api/tasks',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const TasksIdEditRoute = TasksIdEditRouteImport.update({
   id: '/tasks/$id/edit',
   path: '/tasks/$id/edit',
   getParentRoute: () => rootRouteImport,
+} as any)
+const ApiTasksTopRoute = ApiTasksTopRouteImport.update({
+  id: '/top',
+  path: '/top',
+  getParentRoute: () => ApiTasksRoute,
+} as any)
+const ApiTasksIdRoute = ApiTasksIdRouteImport.update({
+  id: '/$id',
+  path: '/$id',
+  getParentRoute: () => ApiTasksRoute,
+} as any)
+const ApiProgressTodayRoute = ApiProgressTodayRouteImport.update({
+  id: '/api/progress/today',
+  path: '/api/progress/today',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiHistoryDateRoute = ApiHistoryDateRouteImport.update({
+  id: '/api/history/$date',
+  path: '/api/history/$date',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiTasksIdSnoozeRoute = ApiTasksIdSnoozeRouteImport.update({
+  id: '/snooze',
+  path: '/snooze',
+  getParentRoute: () => ApiTasksIdRoute,
+} as any)
+const ApiTasksIdCompleteRoute = ApiTasksIdCompleteRouteImport.update({
+  id: '/complete',
+  path: '/complete',
+  getParentRoute: () => ApiTasksIdRoute,
 } as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/history': typeof HistoryRoute
   '/new-task': typeof NewTaskRoute
+  '/api/tasks': typeof ApiTasksRouteWithChildren
   '/tasks/': typeof TasksIndexRoute
+  '/api/history/$date': typeof ApiHistoryDateRoute
+  '/api/progress/today': typeof ApiProgressTodayRoute
+  '/api/tasks/$id': typeof ApiTasksIdRouteWithChildren
+  '/api/tasks/top': typeof ApiTasksTopRoute
   '/tasks/$id/edit': typeof TasksIdEditRoute
+  '/api/tasks/$id/complete': typeof ApiTasksIdCompleteRoute
+  '/api/tasks/$id/snooze': typeof ApiTasksIdSnoozeRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/history': typeof HistoryRoute
   '/new-task': typeof NewTaskRoute
+  '/api/tasks': typeof ApiTasksRouteWithChildren
   '/tasks': typeof TasksIndexRoute
+  '/api/history/$date': typeof ApiHistoryDateRoute
+  '/api/progress/today': typeof ApiProgressTodayRoute
+  '/api/tasks/$id': typeof ApiTasksIdRouteWithChildren
+  '/api/tasks/top': typeof ApiTasksTopRoute
   '/tasks/$id/edit': typeof TasksIdEditRoute
+  '/api/tasks/$id/complete': typeof ApiTasksIdCompleteRoute
+  '/api/tasks/$id/snooze': typeof ApiTasksIdSnoozeRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/history': typeof HistoryRoute
   '/new-task': typeof NewTaskRoute
+  '/api/tasks': typeof ApiTasksRouteWithChildren
   '/tasks/': typeof TasksIndexRoute
+  '/api/history/$date': typeof ApiHistoryDateRoute
+  '/api/progress/today': typeof ApiProgressTodayRoute
+  '/api/tasks/$id': typeof ApiTasksIdRouteWithChildren
+  '/api/tasks/top': typeof ApiTasksTopRoute
   '/tasks/$id/edit': typeof TasksIdEditRoute
+  '/api/tasks/$id/complete': typeof ApiTasksIdCompleteRoute
+  '/api/tasks/$id/snooze': typeof ApiTasksIdSnoozeRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/history' | '/new-task' | '/tasks/' | '/tasks/$id/edit'
+  fullPaths:
+    | '/'
+    | '/history'
+    | '/new-task'
+    | '/api/tasks'
+    | '/tasks/'
+    | '/api/history/$date'
+    | '/api/progress/today'
+    | '/api/tasks/$id'
+    | '/api/tasks/top'
+    | '/tasks/$id/edit'
+    | '/api/tasks/$id/complete'
+    | '/api/tasks/$id/snooze'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/history' | '/new-task' | '/tasks' | '/tasks/$id/edit'
+  to:
+    | '/'
+    | '/history'
+    | '/new-task'
+    | '/api/tasks'
+    | '/tasks'
+    | '/api/history/$date'
+    | '/api/progress/today'
+    | '/api/tasks/$id'
+    | '/api/tasks/top'
+    | '/tasks/$id/edit'
+    | '/api/tasks/$id/complete'
+    | '/api/tasks/$id/snooze'
   id:
     | '__root__'
     | '/'
     | '/history'
     | '/new-task'
+    | '/api/tasks'
     | '/tasks/'
+    | '/api/history/$date'
+    | '/api/progress/today'
+    | '/api/tasks/$id'
+    | '/api/tasks/top'
     | '/tasks/$id/edit'
+    | '/api/tasks/$id/complete'
+    | '/api/tasks/$id/snooze'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   HistoryRoute: typeof HistoryRoute
   NewTaskRoute: typeof NewTaskRoute
+  ApiTasksRoute: typeof ApiTasksRouteWithChildren
   TasksIndexRoute: typeof TasksIndexRoute
+  ApiHistoryDateRoute: typeof ApiHistoryDateRoute
+  ApiProgressTodayRoute: typeof ApiProgressTodayRoute
   TasksIdEditRoute: typeof TasksIdEditRoute
 }
 
@@ -115,6 +212,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof TasksIndexRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/tasks': {
+      id: '/api/tasks'
+      path: '/api/tasks'
+      fullPath: '/api/tasks'
+      preLoaderRoute: typeof ApiTasksRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/tasks/$id/edit': {
       id: '/tasks/$id/edit'
       path: '/tasks/$id/edit'
@@ -122,14 +226,87 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof TasksIdEditRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/tasks/top': {
+      id: '/api/tasks/top'
+      path: '/top'
+      fullPath: '/api/tasks/top'
+      preLoaderRoute: typeof ApiTasksTopRouteImport
+      parentRoute: typeof ApiTasksRoute
+    }
+    '/api/tasks/$id': {
+      id: '/api/tasks/$id'
+      path: '/$id'
+      fullPath: '/api/tasks/$id'
+      preLoaderRoute: typeof ApiTasksIdRouteImport
+      parentRoute: typeof ApiTasksRoute
+    }
+    '/api/progress/today': {
+      id: '/api/progress/today'
+      path: '/api/progress/today'
+      fullPath: '/api/progress/today'
+      preLoaderRoute: typeof ApiProgressTodayRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/history/$date': {
+      id: '/api/history/$date'
+      path: '/api/history/$date'
+      fullPath: '/api/history/$date'
+      preLoaderRoute: typeof ApiHistoryDateRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/tasks/$id/snooze': {
+      id: '/api/tasks/$id/snooze'
+      path: '/snooze'
+      fullPath: '/api/tasks/$id/snooze'
+      preLoaderRoute: typeof ApiTasksIdSnoozeRouteImport
+      parentRoute: typeof ApiTasksIdRoute
+    }
+    '/api/tasks/$id/complete': {
+      id: '/api/tasks/$id/complete'
+      path: '/complete'
+      fullPath: '/api/tasks/$id/complete'
+      preLoaderRoute: typeof ApiTasksIdCompleteRouteImport
+      parentRoute: typeof ApiTasksIdRoute
+    }
   }
 }
+
+interface ApiTasksIdRouteChildren {
+  ApiTasksIdCompleteRoute: typeof ApiTasksIdCompleteRoute
+  ApiTasksIdSnoozeRoute: typeof ApiTasksIdSnoozeRoute
+}
+
+const ApiTasksIdRouteChildren: ApiTasksIdRouteChildren = {
+  ApiTasksIdCompleteRoute: ApiTasksIdCompleteRoute,
+  ApiTasksIdSnoozeRoute: ApiTasksIdSnoozeRoute,
+}
+
+const ApiTasksIdRouteWithChildren = ApiTasksIdRoute._addFileChildren(
+  ApiTasksIdRouteChildren,
+)
+
+interface ApiTasksRouteChildren {
+  ApiTasksIdRoute: typeof ApiTasksIdRouteWithChildren
+  ApiTasksTopRoute: typeof ApiTasksTopRoute
+}
+
+const ApiTasksRouteChildren: ApiTasksRouteChildren = {
+  ApiTasksIdRoute: ApiTasksIdRouteWithChildren,
+  ApiTasksTopRoute: ApiTasksTopRoute,
+}
+
+const ApiTasksRouteWithChildren = ApiTasksRoute._addFileChildren(
+  ApiTasksRouteChildren,
+)
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   HistoryRoute: HistoryRoute,
   NewTaskRoute: NewTaskRoute,
+  ApiTasksRoute: ApiTasksRouteWithChildren,
   TasksIndexRoute: TasksIndexRoute,
+  ApiHistoryDateRoute: ApiHistoryDateRoute,
+  ApiProgressTodayRoute: ApiProgressTodayRoute,
   TasksIdEditRoute: TasksIdEditRoute,
 }
 export const routeTree = rootRouteImport
