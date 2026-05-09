@@ -1,7 +1,7 @@
 import { useAuth } from '@clerk/clerk-expo'
 import { useCallback } from 'react'
 
-import type { HistoryEntry, Task } from '@dtn/shared/schema'
+import type { HistoryEntry, Task } from '@dtn/shared/types'
 import type { TaskInput } from './task-input'
 
 const BASE_URL = process.env.EXPO_PUBLIC_API_URL!

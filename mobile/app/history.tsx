@@ -13,7 +13,7 @@ import { Loading } from '../components/Loading'
 import { Progress } from '../components/Progress'
 import { TaskBox } from '../components/TaskBox'
 import { dateString } from '@dtn/shared/helpers'
-import type { Task } from '@dtn/shared/schema'
+import type { Task } from '@dtn/shared/types'
 import { useHistory } from '../lib/queries'
 
 export default function History() {

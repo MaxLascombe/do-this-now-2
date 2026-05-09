@@ -1,6 +1,6 @@
 import { Text, TouchableOpacity, View } from 'react-native'
 
-import type { Task } from '@dtn/shared/schema'
+import type { Task } from '@dtn/shared/types'
 import { DateTag, Repeat, Strict, TimeFrame } from './Tags'
 
 export function TaskBox({

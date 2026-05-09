@@ -1,4 +1,4 @@
-import type { Task } from './schema'
+import type { Task } from './types'
 
 export const newSafeDate = (str: string): Date => {
   if (str === 'No Due Date') return new Date(8640000000000000)

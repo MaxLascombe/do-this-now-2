@@ -27,7 +27,19 @@ export const repeatUnitEnum = pgEnum('repeat_unit', [
   'year',
 ])
 
-export type SubTask = { title: string; done: boolean; snooze?: string }
+import type { SubTask } from './types'
+export type {
+  DailyProgress,
+  HistoryEntry,
+  NewDailyProgress,
+  NewHistoryEntry,
+  NewTask,
+  RepeatOption,
+  RepeatUnit,
+  RepeatWeekdays,
+  SubTask,
+  Task,
+} from './types'
 
 export const tasks = pgTable('tasks', {
   id: uuid('id').primaryKey().defaultRandom(),
@@ -75,9 +87,3 @@ export const dailyProgress = pgTable(
   (t) => [primaryKey({ columns: [t.userId, t.date] })],
 )
 
-export type Task = typeof tasks.$inferSelect
-export type NewTask = typeof tasks.$inferInsert
-export type HistoryEntry = typeof history.$inferSelect
-export type NewHistoryEntry = typeof history.$inferInsert
-export type DailyProgress = typeof dailyProgress.$inferSelect
-export type NewDailyProgress = typeof dailyProgress.$inferInsert
