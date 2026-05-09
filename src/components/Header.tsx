@@ -1,4 +1,9 @@
 import { Link } from '@tanstack/react-router'
+import {
+  Show,
+  SignInButton,
+  UserButton,
+} from '@clerk/tanstack-react-start'
 
 import { useState } from 'react'
 import {
@@ -37,6 +42,18 @@ export default function Header() {
             />
           </Link>
         </h1>
+        <div className="ml-auto flex items-center gap-2">
+          <Show when="signed-out">
+            <SignInButton mode="modal">
+              <button className="px-3 py-1.5 rounded-md bg-cyan-600 hover:bg-cyan-700 text-sm font-medium transition-colors">
+                Sign in
+              </button>
+            </SignInButton>
+          </Show>
+          <Show when="signed-in">
+            <UserButton afterSignOutUrl="/" />
+          </Show>
+        </div>
       </header>
 
       <aside

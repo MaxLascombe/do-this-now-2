@@ -20,17 +20,18 @@
     "db:push": "drizzle-kit push --force"
   },
   "dependencies": {
+    "@clerk/tanstack-react-start": "^1.2.3",
     "@tailwindcss/vite": "^4.0.6",
-    "drizzle-orm": "^0.45.1",
-    "postgres": "^3.4.5",
     "@tanstack/react-devtools": "^0.7.0",
     "@tanstack/react-router": "^1.132.0",
     "@tanstack/react-router-devtools": "^1.132.0",
     "@tanstack/react-router-ssr-query": "^1.131.7",
     "@tanstack/react-start": "^1.132.0",
     "@tanstack/router-plugin": "^1.132.0",
+    "drizzle-orm": "^0.45.1",
     "lucide-react": "^0.561.0",
     "nitro": "npm:nitro-nightly@latest",
+    "postgres": "^3.4.5",
     "react": "^19.2.0",
     "react-dom": "^19.2.0",
     "tailwindcss": "^4.0.6",
@@ -38,8 +39,6 @@
   },
   "devDependencies": {
     "@tanstack/devtools-vite": "^0.3.11",
-    "drizzle-kit": "^0.31.9",
-    "dotenv": "^17.3.1",
     "@tanstack/eslint-config": "^0.3.0",
     "@testing-library/dom": "^10.4.0",
     "@testing-library/react": "^16.2.0",
@@ -47,6 +46,8 @@
     "@types/react": "^19.2.0",
     "@types/react-dom": "^19.2.0",
     "@vitejs/plugin-react": "^5.0.4",
+    "dotenv": "^17.3.1",
+    "drizzle-kit": "^0.31.9",
     "jsdom": "^27.0.0",
     "prettier": "^3.5.3",
     "prettier-plugin-organize-imports": "^4.3.0",
@@ -59,6 +60,7 @@
   },
   "pnpm": {
     "onlyBuiltDependencies": [
+      "@clerk/shared",
       "esbuild",
       "unrs-resolver"
     ]
