@@ -7,10 +7,18 @@ import { getHistoryForDateAction } from '../../server/lib/actions'
 export const Route = createFileRoute('/api/history/$date')({
   server: {
     handlers: {
-      GET: async ({ params }: { params: { date: string } }) => {
+      GET: async ({
+        params,
+        request,
+      }: {
+        params: { date: string }
+        request: Request
+      }) => {
         const { userId } = await auth()
         if (!userId) return json({ error: 'unauthenticated' }, { status: 401 })
-        return json(await getHistoryForDateAction(userId, params.date))
+        const url = new URL(request.url)
+        const tz = parseInt(url.searchParams.get('tzOffsetMin') ?? '0', 10)
+        return json(await getHistoryForDateAction(userId, params.date, tz))
       },
     },
   },

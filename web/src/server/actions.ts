@@ -24,7 +24,11 @@ export const snoozeTask = createServerFn({ method: 'POST' })
   )
 
 export const getHistoryForDate = createServerFn({ method: 'GET' })
-  .inputValidator((d: { date: string }) => d)
+  .inputValidator((d: { date: string; tzOffsetMin: number }) => d)
   .handler(async ({ data }) =>
-    getHistoryForDateAction(await requireUserId(), data.date),
+    getHistoryForDateAction(
+      await requireUserId(),
+      data.date,
+      data.tzOffsetMin,
+    ),
   )

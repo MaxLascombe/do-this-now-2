@@ -2,7 +2,12 @@ import { and, eq, gte, lt } from 'drizzle-orm'
 
 import { db } from '../../db'
 import { dailyProgress, history, tasks, type Task } from '@dtn/shared/schema'
-import { dateString, nextDueDate, newSafeDate } from '@dtn/shared/helpers'
+import {
+  dateString,
+  getUserToday,
+  nextDueDate,
+  newSafeDate,
+} from '@dtn/shared/helpers'
 
 const MS_PER_DAY = 24 * 60 * 60 * 1000
 const TODO_FLOOR_MIN = 15.5 * 60
@@ -154,10 +159,10 @@ function findMinutesOnTargetDay(
 
 export async function getProgressTodayAction(
   userId: string,
+  tzOffsetMin: number,
 ): Promise<ProgressTodayResult> {
-  const now = new Date()
-  const today = new Date(now.getFullYear(), now.getMonth(), now.getDate())
-  const todayKey = dateString(today)
+  const { todayDate: today, todayKey, todayUtcStart, tomorrowUtcStart } =
+    getUserToday(tzOffsetMin)
   const tomorrowKey = dateString(
     new Date(today.getFullYear(), today.getMonth(), today.getDate() + 1),
   )
@@ -168,11 +173,8 @@ export async function getProgressTodayAction(
     .where(
       and(
         eq(history.userId, userId),
-        gte(history.completedAt, today),
-        lt(
-          history.completedAt,
-          new Date(today.getFullYear(), today.getMonth(), today.getDate() + 1),
-        ),
+        gte(history.completedAt, todayUtcStart),
+        lt(history.completedAt, tomorrowUtcStart),
       ),
     )
 

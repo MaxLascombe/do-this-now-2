@@ -124,10 +124,16 @@ export async function snoozeTaskAction(
   return { ok: true, scope: 'task' }
 }
 
-export async function getHistoryForDateAction(userId: string, date: string) {
+export async function getHistoryForDateAction(
+  userId: string,
+  date: string,
+  tzOffsetMin: number,
+) {
   const [year, month, day] = date.split('-').map((s) => parseInt(s))
-  const start = new Date(year, month - 1, day, 0, 0, 0)
-  const end = new Date(year, month - 1, day + 1, 0, 0, 0)
+  // Bracket the user's local day in UTC.
+  const startMs = Date.UTC(year, month - 1, day) + tzOffsetMin * 60000
+  const start = new Date(startMs)
+  const end = new Date(startMs + 24 * 60 * 60 * 1000)
   return db
     .select()
     .from(history)

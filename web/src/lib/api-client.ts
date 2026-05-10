@@ -5,6 +5,7 @@ import type {
   ProgressTodayResult,
   SnoozeTaskResult,
 } from '@dtn/shared/api-client'
+import { getTzOffsetMin } from '@dtn/shared/time'
 import type { HistoryEntry, Task } from '@dtn/shared/types'
 
 import {
@@ -40,6 +41,11 @@ export const webApiClient: ApiClient = {
   snoozeTask: (id, allSubtasks = false) =>
     snoozeTask({ data: { id, allSubtasks } }) as Promise<SnoozeTaskResult>,
   getHistory: (date) =>
-    getHistoryForDate({ data: { date } }) as Promise<HistoryEntry[]>,
-  getProgressToday: () => getProgressToday() as Promise<ProgressTodayResult>,
+    getHistoryForDate({
+      data: { date, tzOffsetMin: getTzOffsetMin() },
+    }) as Promise<HistoryEntry[]>,
+  getProgressToday: () =>
+    getProgressToday({
+      data: { tzOffsetMin: getTzOffsetMin() },
+    }) as Promise<ProgressTodayResult>,
 }
