@@ -3,7 +3,7 @@ import {
   faForward,
   faHome,
 } from '@fortawesome/free-solid-svg-icons'
-import { useQuery } from '@tanstack/react-query'
+import { useHistory } from '@dtn/shared/queries'
 import { createFileRoute, useNavigate } from '@tanstack/react-router'
 import { useState } from 'react'
 
@@ -14,7 +14,6 @@ import { Progress } from '../components/Progress'
 import { TaskBox } from '../components/TaskBox'
 import useKeyAction, { type KeyAction } from '../hooks/useKeyAction'
 import { dateString } from '../lib/helpers'
-import { useHistoryOpts } from '../lib/mutations'
 import type { Task } from '../db/schema'
 
 export const Route = createFileRoute('/history')({
@@ -33,7 +32,7 @@ function History() {
     ),
   )
 
-  const { data, isLoading } = useQuery(useHistoryOpts(date))
+  const { data, isLoading } = useHistory(date)
 
   const keyActions: KeyAction[] = [
     { key: 'escape', description: 'Home', action: () => navigate({ to: '/' }) },

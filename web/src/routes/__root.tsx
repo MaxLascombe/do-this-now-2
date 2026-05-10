@@ -1,7 +1,9 @@
 import { ClerkProvider, Show, SignInButton } from '@clerk/tanstack-react-start'
+import { ApiProvider } from '@dtn/shared/api-client'
 import { HeadContent, Scripts, createRootRoute } from '@tanstack/react-router'
 import { type ReactNode } from 'react'
 
+import { webApiClient } from '../lib/api-client'
 import { QueryProvider } from '../lib/query-client'
 
 import appCss from '../styles.css?url'
@@ -27,10 +29,12 @@ function RootDocument({ children }: { children: ReactNode }) {
         </head>
         <body className="bg-black text-white">
           <QueryProvider>
-            <Show when="signed-in">{children}</Show>
-            <Show when="signed-out">
-              <SignedOutScreen />
-            </Show>
+            <ApiProvider value={webApiClient}>
+              <Show when="signed-in">{children}</Show>
+              <Show when="signed-out">
+                <SignedOutScreen />
+              </Show>
+            </ApiProvider>
           </QueryProvider>
           <Scripts />
         </body>

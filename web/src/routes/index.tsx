@@ -9,7 +9,12 @@ import {
   faTrash,
 } from '@fortawesome/free-solid-svg-icons'
 import { useClerk } from '@clerk/tanstack-react-start'
-import { useQuery } from '@tanstack/react-query'
+import {
+  useCompleteTask,
+  useDeleteTask,
+  useSnoozeTask,
+  useTopTasks,
+} from '@dtn/shared/queries'
 import { Link, createFileRoute, useNavigate } from '@tanstack/react-router'
 import { Fragment, useState } from 'react'
 
@@ -21,12 +26,6 @@ import { Progress } from '../components/Progress'
 import { TaskBox } from '../components/TaskBox'
 import useDing from '../hooks/useDing'
 import useKeyAction, { type KeyAction } from '../hooks/useKeyAction'
-import {
-  useCompleteTask,
-  useDeleteTask,
-  useSnoozeTask,
-  useTopTasks,
-} from '../lib/mutations'
 import { isSnoozed } from '../lib/task-sorting'
 
 export const Route = createFileRoute('/')({
@@ -37,8 +36,7 @@ function Home() {
   const navigate = useNavigate()
   const ding = useDing()
   const { signOut } = useClerk()
-  const topTasksOpts = useTopTasks()
-  const topTasksQuery = useQuery(topTasksOpts)
+  const topTasksQuery = useTopTasks()
 
   const tasks = (topTasksQuery.data ?? []).filter((t) => !isSnoozed(t))
 

@@ -1,8 +1,7 @@
 import { useAuth } from '@clerk/clerk-expo'
-import { useCallback } from 'react'
-
+import { ApiProvider, type ApiClient } from '@dtn/shared/api-client'
 import type { HistoryEntry, Task } from '@dtn/shared/types'
-import type { TaskInput } from './task-input'
+import { type ReactNode, useMemo } from 'react'
 
 const BASE_URL = process.env.EXPO_PUBLIC_API_URL!
 if (!BASE_URL) {
@@ -32,51 +31,43 @@ async function jsonFetch<T>(
   return res.json() as Promise<T>
 }
 
-export type ProgressTodayResult = {
-  done: number
-  lives: number
-  todo: number
-  streak: number
-  streakIsActive: boolean
-  theoreticalMinimum: number
-  daysUntilAllDone: number
-  minutesToReduceTomorrowDays: number
-}
-
-export function useApi() {
-  const { getToken } = useAuth()
-
-  const call = useCallback(
-    async <T,>(path: string, init?: FetchInit): Promise<T> => {
-      const token = await getToken()
-      return jsonFetch<T>(token, path, init)
-    },
-    [getToken],
-  )
+function createMobileApi(
+  getToken: () => Promise<string | null>,
+): ApiClient {
+  const call = async <T,>(path: string, init?: FetchInit): Promise<T> => {
+    const token = await getToken()
+    return jsonFetch<T>(token, path, init)
+  }
+  const tzOffsetMin = new Date().getTimezoneOffset()
+  const tz = `?tzOffsetMin=${tzOffsetMin}`
 
   return {
     listTasks: () => call<Task[]>('/api/tasks'),
-    listTopTasks: () => call<Task[]>('/api/tasks/top'),
-    getTask: (id: string) => call<Task>(`/api/tasks/${id}`),
-    createTask: (input: TaskInput) =>
+    listTopTasks: () => call<Task[]>(`/api/tasks/top${tz}`),
+    getTask: (id) => call<Task>(`/api/tasks/${id}`),
+    createTask: (input) =>
       call<Task>('/api/tasks', { method: 'POST', body: input }),
-    updateTask: (id: string, input: TaskInput) =>
+    updateTask: (id, input) =>
       call<Task>(`/api/tasks/${id}`, { method: 'PUT', body: input }),
-    deleteTask: (id: string) =>
+    deleteTask: (id) =>
       call<{ ok: true }>(`/api/tasks/${id}`, { method: 'DELETE' }),
-    completeTask: (id: string) =>
+    completeTask: (id) =>
       call<{ ok: true; advanced: boolean }>(
         `/api/tasks/${id}/complete`,
         { method: 'POST' },
       ),
-    snoozeTask: (id: string, allSubtasks: boolean = false) =>
+    snoozeTask: (id, allSubtasks = false) =>
       call<{ ok: true; scope: 'subtask' | 'task' }>(
         `/api/tasks/${id}/snooze`,
         { method: 'POST', body: { allSubtasks } },
       ),
-    getHistory: (date: string) =>
-      call<HistoryEntry[]>(`/api/history/${date}`),
-    getProgressToday: () =>
-      call<ProgressTodayResult>('/api/progress/today'),
+    getHistory: (date) => call<HistoryEntry[]>(`/api/history/${date}${tz}`),
+    getProgressToday: () => call(`/api/progress/today${tz}`),
   }
+}
+
+export function MobileApiProvider({ children }: { children: ReactNode }) {
+  const { getToken } = useAuth()
+  const api = useMemo(() => createMobileApi(getToken), [getToken])
+  return <ApiProvider value={api}>{children}</ApiProvider>
 }

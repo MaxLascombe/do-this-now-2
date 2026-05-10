@@ -11,10 +11,17 @@
     "./types": "./src/types.ts",
     "./helpers": "./src/helpers.ts",
     "./task-sorting": "./src/task-sorting.ts",
-    "./time": "./src/time.ts"
+    "./time": "./src/time.ts",
+    "./task-input": "./src/task-input.ts",
+    "./api-client": "./src/api-client.ts",
+    "./queries": "./src/queries.ts"
   },
   "dependencies": {
     "drizzle-orm": "^0.45.1",
     "zod": "^4.4.3"
+  },
+  "peerDependencies": {
+    "@tanstack/react-query": "^5",
+    "react": "^19"
   }
 }

@@ -4,7 +4,7 @@ import { createFileRoute, useRouter } from '@tanstack/react-router'
 import { Button } from '../components/Button'
 import { Loading } from '../components/Loading'
 import TaskForm, { type TaskFormInput } from '../components/TaskForm'
-import { useCreateTask } from '../lib/mutations'
+import { useCreateTask } from '@dtn/shared/queries'
 
 export const Route = createFileRoute('/new-task')({
   component: NewTask,

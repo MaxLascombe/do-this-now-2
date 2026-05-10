@@ -6,7 +6,12 @@ import {
   faPlusCircle,
   faTrash,
 } from '@fortawesome/free-solid-svg-icons'
-import { useQuery } from '@tanstack/react-query'
+import {
+  useAllTasks,
+  useCompleteTask,
+  useDeleteTask,
+  useTopTasks,
+} from '@dtn/shared/queries'
 import { createFileRoute, useNavigate } from '@tanstack/react-router'
 import { format } from 'date-fns'
 import { Fragment, useRef, useState } from 'react'
@@ -19,12 +24,6 @@ import { TaskBox } from '../components/TaskBox'
 import useDing from '../hooks/useDing'
 import useKeyAction, { type KeyAction } from '../hooks/useKeyAction'
 import { newSafeDate } from '../lib/helpers'
-import {
-  useAllTasks,
-  useCompleteTask,
-  useDeleteTask,
-  useTopTasks,
-} from '../lib/mutations'
 import { sortTasks } from '../lib/task-sorting'
 
 export const Route = createFileRoute('/tasks/')({
@@ -38,10 +37,8 @@ function TasksList() {
   const [sort, setSort] = useState<'CHRON' | 'TOP'>('CHRON')
   const taskElems = useRef<HTMLElement[]>([])
 
-  const allTasksOpts = useAllTasks()
-  const allTasks = useQuery(allTasksOpts)
-  const topTasksOpts = useTopTasks()
-  const topTasks = useQuery(topTasksOpts)
+  const allTasks = useAllTasks()
+  const topTasks = useTopTasks()
 
   const data = allTasks.data ?? []
   const dataTop = topTasks.data ?? []

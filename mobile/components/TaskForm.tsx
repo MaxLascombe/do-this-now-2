@@ -1,25 +1,28 @@
 import {
-  faArrowRight,
-  faMinus,
-  faPlus,
+  faChevronRight,
   faPlusCircle,
   faTrash,
+  faXmark,
 } from '@fortawesome/free-solid-svg-icons'
+import { FontAwesomeIcon } from '@fortawesome/react-native-fontawesome'
 import DateTimePicker from '@react-native-community/datetimepicker'
 import { format } from 'date-fns'
-import { useState } from 'react'
+import { type ReactNode, useState } from 'react'
 import {
+  ActivityIndicator,
   Alert,
+  Modal,
   Platform,
   Pressable,
+  ScrollView,
+  Switch as RNSwitch,
   Text,
   TextInput,
   View,
 } from 'react-native'
+import { SafeAreaView } from 'react-native-safe-area-context'
 
 import { dateString, newSafeDate } from '@dtn/shared/helpers'
-import { Button } from './Button'
-import { Switch } from './Switch'
 import {
   type RepeatOption,
   type RepeatUnit,
@@ -81,7 +84,6 @@ export function TaskForm({
       ? new Date(initial.dueYear, initial.dueMonth - 1, initial.dueDay)
       : newSafeDate(dateString(new Date())),
   )
-  const [showDatePicker, setShowDatePicker] = useState(Platform.OS === 'ios')
   const [strictDeadline, setStrictDeadline] = useState(
     initial.strictDeadline ?? false,
   )
@@ -102,6 +104,10 @@ export function TaskForm({
   const [hasSubtasks, setHasSubtasks] = useState(subtasks.length > 0)
   const [errors, setErrors] = useState<Record<string, string>>({})
 
+  const [openSheet, setOpenSheet] = useState<
+    null | 'date' | 'time' | 'repeat'
+  >(null)
+
   const dayDiff = Math.round(
     (dueDate.getTime() - newSafeDate(dateString(new Date())).getTime()) /
       (1000 * 60 * 60 * 24),
@@ -114,6 +120,20 @@ export function TaskForm({
         : dayDiff === 1
           ? 'tomorrow'
           : `in ${dayDiff} days`
+
+  const repeatSummary =
+    repeat === 'No Repeat'
+      ? 'Never'
+      : repeat === 'Custom'
+        ? `Every ${repeatInterval} ${repeatUnit}${
+            repeatInterval === 1 ? '' : 's'
+          }`
+        : repeat
+
+  const timeSummary =
+    timeFrame === 0
+      ? 'None'
+      : `${Math.floor(timeFrame / 60)}h ${timeFrame % 60}m`
 
   const submit = () => {
     const parsed = taskInputSchema.safeParse({
@@ -130,9 +150,10 @@ export function TaskForm({
     if (!parsed.success) {
       const flat: Record<string, string> = {}
       for (const issue of parsed.error.issues) {
-        const k = String(issue.path[0])
+        const k = issue.path.join('.') || '_'
         if (!flat[k]) flat[k] = issue.message
       }
+      console.warn('TaskForm validation failed', flat, parsed.error.issues)
       setErrors(flat)
       return
     }
@@ -140,256 +161,406 @@ export function TaskForm({
     onSubmit(parsed.data)
   }
 
+  const errorList = Object.entries(errors)
+
   return (
-    <View className="gap-4 p-5">
-      {errorMessage && (
-        <Text className="text-red-500">{errorMessage}</Text>
-      )}
-
-      <Field label="Title">
-        <TextInput
-          value={title}
-          onChangeText={setTitle}
-          placeholder="Do this thing"
-          placeholderTextColor="#666"
-          className="rounded border border-gray-800 bg-black p-3 text-white"
-        />
-        {errors.title && (
-          <Text className="text-sm text-red-500">{errors.title}</Text>
+    <View className="flex-1">
+      <ScrollView contentContainerStyle={{ paddingBottom: 32 }}>
+        {errorMessage && (
+          <Text className="px-4 pt-3 text-red-500">{errorMessage}</Text>
         )}
-      </Field>
 
-      <Field label="Due Date">
-        <View className="flex-row items-center gap-2">
-          <Button
-            icon={faMinus}
-            onPress={() => {
-              const d = new Date(dueDate)
-              d.setDate(d.getDate() - 1)
-              setDueDate(d)
-            }}
+        <Section>
+          <TextInput
+            value={title}
+            onChangeText={setTitle}
+            placeholder="Task title"
+            placeholderTextColor="#6b7280"
+            className="min-h-[48px] px-4 py-2 text-lg text-white"
+            autoFocus={!initial.title}
           />
-          <Pressable
-            onPress={() => setShowDatePicker((s) => !s)}
-            className="flex-1 rounded border border-gray-800 bg-black p-3"
-          >
-            <Text className="text-center text-white">
-              {format(dueDate, 'EEEE, LLLL do, u')} ({dayDiffPhrase})
+          {errors.title && (
+            <Text className="px-4 pb-2 text-xs text-red-500">
+              {errors.title}
             </Text>
-          </Pressable>
-          <Button
-            icon={faPlus}
-            onPress={() => {
-              const d = new Date(dueDate)
-              d.setDate(d.getDate() + 1)
-              setDueDate(d)
+          )}
+        </Section>
+
+        <SectionHeader>Schedule</SectionHeader>
+        <Section>
+          <Row
+            label="Due"
+            value={`${format(dueDate, 'EEE, LLL d')} · ${dayDiffPhrase}`}
+            onPress={() => setOpenSheet('date')}
+          />
+          <Divider />
+          <Row
+            label="Time frame"
+            value={timeSummary}
+            onPress={() => setOpenSheet('time')}
+          />
+          <Divider />
+          <ToggleRow
+            label="Strict deadline"
+            value={strictDeadline}
+            onValueChange={setStrictDeadline}
+          />
+        </Section>
+
+        <SectionHeader>Repeat</SectionHeader>
+        <Section>
+          <Row
+            label="Repeat"
+            value={repeatSummary}
+            onPress={() => setOpenSheet('repeat')}
+          />
+          {repeat === 'Custom' && repeatUnit === 'week' && (
+            <>
+              <Divider />
+              <View className="px-4 py-3">
+                <View className="flex-row justify-between">
+                  {days.map((d, i) => (
+                    <Pressable
+                      key={d}
+                      onPress={() =>
+                        setRepeatWeekdays(
+                          (s) =>
+                            s.map((v, idx) =>
+                              idx === i ? !v : v,
+                            ) as RepeatWeekdays,
+                        )
+                      }
+                      className={
+                        'h-9 w-9 items-center justify-center rounded-full ' +
+                        (repeatWeekdays[i] ? 'bg-white' : 'bg-gray-800')
+                      }
+                    >
+                      <Text
+                        className={
+                          'text-xs ' +
+                          (repeatWeekdays[i]
+                            ? 'font-semibold text-black'
+                            : 'text-white')
+                        }
+                      >
+                        {d[0]}
+                      </Text>
+                    </Pressable>
+                  ))}
+                </View>
+              </View>
+            </>
+          )}
+        </Section>
+
+        <SectionHeader>Subtasks</SectionHeader>
+        <Section>
+          <ToggleRow
+            label="Use subtasks"
+            value={hasSubtasks}
+            onValueChange={(v) => {
+              if (!v && subtasks.length > 0) {
+                Alert.alert(
+                  'Remove subtasks?',
+                  'This will clear all subtasks.',
+                  [
+                    { text: 'Cancel', style: 'cancel' },
+                    {
+                      text: 'Remove',
+                      style: 'destructive',
+                      onPress: () => {
+                        setSubtasks([])
+                        setHasSubtasks(false)
+                      },
+                    },
+                  ],
+                )
+                return
+              }
+              if (!v) setSubtasks([])
+              else if (subtasks.length === 0)
+                setSubtasks([{ done: false, title: '' }])
+              setHasSubtasks(v)
             }}
           />
-        </View>
-        {showDatePicker && (
-          <DateTimePicker
-            value={dueDate}
-            mode="date"
-            display={Platform.OS === 'ios' ? 'inline' : 'default'}
-            themeVariant="dark"
-            onChange={(_, selected) => {
-              if (Platform.OS !== 'ios') setShowDatePicker(false)
-              if (selected) setDueDate(selected)
-            }}
-          />
+          {hasSubtasks &&
+            subtasks.map((s, i) => (
+              <View key={i}>
+                <Divider />
+                <View className="flex-row items-center gap-2 px-4 py-2">
+                  <Pressable
+                    onPress={() =>
+                      setSubtasks((arr) =>
+                        arr.map((x, idx) =>
+                          idx === i ? { ...x, done: !x.done } : x,
+                        ),
+                      )
+                    }
+                    className={
+                      'h-5 w-5 rounded-full border ' +
+                      (s.done
+                        ? 'border-green-700 bg-green-700'
+                        : 'border-gray-600 bg-black')
+                    }
+                  />
+                  <TextInput
+                    value={s.title}
+                    onChangeText={(text) =>
+                      setSubtasks((arr) =>
+                        arr.map((x, idx) =>
+                          idx === i ? { ...x, title: text } : x,
+                        ),
+                      )
+                    }
+                    placeholder={`Subtask ${i + 1}`}
+                    placeholderTextColor="#6b7280"
+                    className="flex-1 text-white"
+                  />
+                  <Pressable
+                    onPress={() =>
+                      setSubtasks((arr) => arr.filter((_, idx) => idx !== i))
+                    }
+                    hitSlop={8}
+                  >
+                    <FontAwesomeIcon
+                      icon={faTrash}
+                      size={14}
+                      color="#6b7280"
+                    />
+                  </Pressable>
+                </View>
+              </View>
+            ))}
+          {hasSubtasks && (
+            <>
+              <Divider />
+              <Pressable
+                onPress={() =>
+                  setSubtasks((s) => [...s, { done: false, title: '' }])
+                }
+                className="flex-row items-center gap-2 px-4 py-3"
+              >
+                <FontAwesomeIcon
+                  icon={faPlusCircle}
+                  size={16}
+                  color="#3b82f6"
+                />
+                <Text className="text-blue-400">Add subtask</Text>
+              </Pressable>
+            </>
+          )}
+        </Section>
+
+        {errorList.length > 0 && (
+          <View className="mx-4 mt-4 rounded-lg border border-red-900/60 bg-red-950/30 px-3 py-2">
+            {errorList.map(([k, msg]) => (
+              <Text key={k} className="text-xs text-red-400">
+                {k}: {msg}
+              </Text>
+            ))}
+          </View>
         )}
-      </Field>
 
-      <Field label="Strict deadline">
-        <Switch checked={strictDeadline} onChange={setStrictDeadline} />
-      </Field>
+        <View className="px-4 pt-6">
+          <Pressable
+            onPress={submit}
+            disabled={isSaving}
+            className="items-center justify-center rounded-xl bg-white py-4 active:opacity-80 disabled:opacity-50"
+          >
+            {isSaving ? (
+              <ActivityIndicator color="#000" />
+            ) : (
+              <Text className="text-base font-semibold text-black">Save</Text>
+            )}
+          </Pressable>
+        </View>
+      </ScrollView>
 
-      <Field label="Repeat">
-        <View className="flex-row flex-wrap gap-2">
+      <Sheet open={openSheet === 'date'} onClose={() => setOpenSheet(null)} title="Due date">
+        <DateTimePicker
+          value={dueDate}
+          mode="date"
+          display={Platform.OS === 'ios' ? 'inline' : 'default'}
+          themeVariant="dark"
+          onChange={(_, selected) => {
+            if (Platform.OS !== 'ios') setOpenSheet(null)
+            if (selected) setDueDate(selected)
+          }}
+        />
+      </Sheet>
+
+      <Sheet open={openSheet === 'time'} onClose={() => setOpenSheet(null)} title="Time frame">
+        <View className="items-center gap-4 px-6 py-6">
+          <Text className="text-3xl font-semibold text-white">
+            {Math.floor(timeFrame / 60)}h {timeFrame % 60}m
+          </Text>
+          <View className="flex-row gap-3">
+            {[15, 30, 60, -15].map((delta) => (
+              <Pressable
+                key={delta}
+                onPress={() => setTimeFrame(Math.max(0, timeFrame + delta))}
+                className="rounded-full border border-gray-700 bg-gray-900 px-4 py-2"
+              >
+                <Text className="text-white">
+                  {delta > 0 ? `+${delta}m` : `${delta}m`}
+                </Text>
+              </Pressable>
+            ))}
+            <Pressable
+              onPress={() => setTimeFrame(0)}
+              className="rounded-full border border-gray-700 bg-gray-900 px-4 py-2"
+            >
+              <Text className="text-white">Clear</Text>
+            </Pressable>
+          </View>
+        </View>
+      </Sheet>
+
+      <Sheet
+        open={openSheet === 'repeat'}
+        onClose={() => setOpenSheet(null)}
+        title="Repeat"
+      >
+        <View className="px-4 pb-4">
           {repeatOptions.map((opt) => (
             <Pressable
               key={opt}
               onPress={() => setRepeat(opt)}
-              className={
-                'rounded-full border px-3 py-2 ' +
-                (repeat === opt
-                  ? 'border-gray-500 bg-gray-700'
-                  : 'border-gray-800 bg-black')
-              }
+              className="flex-row items-center justify-between border-b border-gray-800 py-3"
             >
-              <Text className="text-sm text-white">{opt}</Text>
+              <Text className="text-base text-white">{opt}</Text>
+              {repeat === opt && (
+                <View className="h-2 w-2 rounded-full bg-white" />
+              )}
             </Pressable>
           ))}
-        </View>
-        {repeat === 'Custom' && (
-          <View className="mt-3 gap-3">
-            <View className="flex-row items-center gap-2">
-              <Text className="text-white">Every</Text>
-              <TextInput
-                keyboardType="numeric"
-                value={String(repeatInterval)}
-                onChangeText={(t) =>
-                  setRepeatInterval(Math.max(1, parseInt(t) || 1))
-                }
-                className="w-16 rounded border border-gray-800 bg-black p-2 text-center text-white"
-              />
-              <View className="flex-row gap-1">
-                {repeatUnits.map((u) => (
-                  <Pressable
-                    key={u}
-                    onPress={() => setRepeatUnit(u)}
-                    className={
-                      'rounded-full border px-3 py-2 ' +
-                      (repeatUnit === u
-                        ? 'border-gray-500 bg-gray-700'
-                        : 'border-gray-800 bg-black')
-                    }
-                  >
-                    <Text className="text-sm text-white">{u}s</Text>
-                  </Pressable>
-                ))}
-              </View>
-            </View>
-            {repeatUnit === 'week' && (
-              <View className="flex-row justify-between">
-                {days.map((d, i) => (
-                  <Pressable
-                    key={d}
-                    onPress={() =>
-                      setRepeatWeekdays(
-                        (s) =>
-                          s.map((v, idx) => (idx === i ? !v : v)) as RepeatWeekdays,
-                      )
-                    }
-                    className={
-                      'items-center rounded-lg border px-2 py-2 ' +
-                      (repeatWeekdays[i]
-                        ? 'border-gray-500 bg-gray-700'
-                        : 'border-gray-800 bg-black')
-                    }
-                  >
-                    <Text className="text-xs text-white">{d}</Text>
-                  </Pressable>
-                ))}
-              </View>
-            )}
-          </View>
-        )}
-      </Field>
-
-      <Field label="Expected time">
-        <View className="flex-row items-center gap-2">
-          <Button
-            icon={faMinus}
-            onPress={() => setTimeFrame(Math.max(0, timeFrame - 15))}
-          />
-          <Text className="flex-1 text-center text-white">
-            {Math.floor(timeFrame / 60)}h {timeFrame % 60}m
-          </Text>
-          <Button
-            icon={faPlus}
-            onPress={() => setTimeFrame(timeFrame + 15)}
-          />
-        </View>
-      </Field>
-
-      <Field label="Subtasks">
-        <Switch
-          checked={hasSubtasks}
-          onChange={(v) => {
-            if (
-              !v &&
-              subtasks.length > 0
-            ) {
-              Alert.alert('Remove subtasks?', 'This will clear all subtasks.', [
-                { text: 'Cancel', style: 'cancel' },
-                {
-                  text: 'Remove',
-                  style: 'destructive',
-                  onPress: () => {
-                    setSubtasks([])
-                    setHasSubtasks(false)
-                  },
-                },
-              ])
-              return
-            }
-            if (!v) setSubtasks([])
-            else setSubtasks([{ done: false, title: '' }])
-            setHasSubtasks(v)
-          }}
-        />
-        {hasSubtasks && (
-          <View className="mt-3 gap-2">
-            {subtasks.map((s, i) => (
-              <View key={i} className="flex-row items-center gap-2">
+          {repeat === 'Custom' && (
+            <View className="mt-4 gap-3">
+              <View className="flex-row items-center gap-2">
+                <Text className="text-white">Every</Text>
                 <TextInput
-                  value={s.title}
-                  onChangeText={(text) =>
-                    setSubtasks((arr) =>
-                      arr.map((x, idx) =>
-                        idx === i ? { ...x, title: text } : x,
-                      ),
-                    )
+                  keyboardType="numeric"
+                  value={String(repeatInterval)}
+                  onChangeText={(t) =>
+                    setRepeatInterval(Math.max(1, parseInt(t) || 1))
                   }
-                  placeholder={`Subtask ${i + 1}`}
-                  placeholderTextColor="#666"
-                  className="flex-1 rounded border border-gray-800 bg-black p-2 text-white"
+                  className="w-16 rounded border border-gray-800 bg-black p-2 text-center text-white"
                 />
-                <Switch
-                  checked={s.done}
-                  onChange={(v) =>
-                    setSubtasks((arr) =>
-                      arr.map((x, idx) =>
-                        idx === i ? { ...x, done: v } : x,
-                      ),
-                    )
-                  }
-                />
-                <Button
-                  icon={faTrash}
-                  onPress={() =>
-                    setSubtasks((arr) => arr.filter((_, idx) => idx !== i))
-                  }
-                />
+                <View className="flex-row gap-1">
+                  {repeatUnits.map((u) => (
+                    <Pressable
+                      key={u}
+                      onPress={() => setRepeatUnit(u)}
+                      className={
+                        'rounded-full border px-3 py-1.5 ' +
+                        (repeatUnit === u
+                          ? 'border-gray-500 bg-gray-700'
+                          : 'border-gray-800 bg-black')
+                      }
+                    >
+                      <Text className="text-sm text-white">{u}s</Text>
+                    </Pressable>
+                  ))}
+                </View>
               </View>
-            ))}
-            <View className="items-center">
-              <Button
-                icon={faPlusCircle}
-                text="New subtask"
-                onPress={() =>
-                  setSubtasks((s) => [...s, { done: false, title: '' }])
-                }
-              />
             </View>
-          </View>
-        )}
-      </Field>
-
-      <View className="items-center pt-4">
-        <Button
-          icon={faArrowRight}
-          text="Submit"
-          onPress={submit}
-          loading={isSaving}
-        />
-      </View>
+          )}
+        </View>
+      </Sheet>
     </View>
   )
 }
 
-function Field({
+function SectionHeader({ children }: { children: ReactNode }) {
+  return (
+    <Text className="px-4 pb-1 pt-5 text-xs uppercase tracking-wide text-gray-500">
+      {children}
+    </Text>
+  )
+}
+
+function Section({ children }: { children: ReactNode }) {
+  return (
+    <View className="border-y border-gray-800 bg-[#0a0a0a]">{children}</View>
+  )
+}
+
+function Divider() {
+  return <View className="ml-4 h-px bg-gray-900" />
+}
+
+function Row({
   label,
-  children,
+  value,
+  onPress,
 }: {
   label: string
-  children: React.ReactNode
+  value: string
+  onPress: () => void
 }) {
   return (
-    <View className="border-t border-gray-800 pt-4">
-      <Text className="mb-2 text-sm font-medium text-white">{label}</Text>
-      {children}
+    <Pressable
+      onPress={onPress}
+      className="min-h-[44px] flex-row items-center justify-between px-4 py-2"
+    >
+      <Text className="text-base text-white">{label}</Text>
+      <View className="flex-row items-center gap-2">
+        <Text className="text-sm text-gray-400">{value}</Text>
+        <FontAwesomeIcon icon={faChevronRight} size={12} color="#4b5563" />
+      </View>
+    </Pressable>
+  )
+}
+
+function ToggleRow({
+  label,
+  value,
+  onValueChange,
+}: {
+  label: string
+  value: boolean
+  onValueChange: (v: boolean) => void
+}) {
+  return (
+    <View className="min-h-[44px] flex-row items-center justify-between px-4 py-1">
+      <Text className="text-base text-white">{label}</Text>
+      <RNSwitch
+        value={value}
+        onValueChange={onValueChange}
+        trackColor={{ false: '#374151', true: '#22c55e' }}
+        thumbColor="#fff"
+      />
     </View>
+  )
+}
+
+function Sheet({
+  open,
+  onClose,
+  title,
+  children,
+}: {
+  open: boolean
+  onClose: () => void
+  title: string
+  children: ReactNode
+}) {
+  return (
+    <Modal
+      visible={open}
+      animationType="slide"
+      presentationStyle="pageSheet"
+      onRequestClose={onClose}
+    >
+      <SafeAreaView className="flex-1 bg-black">
+        <View className="flex-row items-center justify-between border-b border-gray-800 px-4 py-3">
+          <Text className="text-lg font-semibold text-white">{title}</Text>
+          <Pressable onPress={onClose} hitSlop={10}>
+            <FontAwesomeIcon icon={faXmark} size={20} color="#9ca3af" />
+          </Pressable>
+        </View>
+        <ScrollView>{children}</ScrollView>
+      </SafeAreaView>
+    </Modal>
   )
 }

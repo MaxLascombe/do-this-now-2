@@ -1,51 +1,18 @@
 import { and, eq } from 'drizzle-orm'
-import { z } from 'zod'
 
 import { db } from '../../db'
 import { type Task, tasks } from '@dtn/shared/schema'
+import { type TaskInput } from '@dtn/shared/task-input'
 import { sortTasks } from '@dtn/shared/task-sorting'
 
-export const subTaskSchema = z.object({
-  title: z.string(),
-  done: z.boolean(),
-  snooze: z.string().optional(),
-})
-
-export const repeatWeekdaysSchema = z.tuple([
-  z.boolean(),
-  z.boolean(),
-  z.boolean(),
-  z.boolean(),
-  z.boolean(),
-  z.boolean(),
-  z.boolean(),
-])
-
-export const repeatOptionSchema = z.enum([
-  'No Repeat',
-  'Daily',
-  'Weekdays',
-  'Weekly',
-  'Monthly',
-  'Yearly',
-  'Custom',
-])
-
-export const repeatUnitSchema = z.enum(['day', 'week', 'month', 'year'])
-
-export const taskInputSchema = z.object({
-  title: z.string().min(1, 'Title is required'),
-  due: z.string(),
-  strictDeadline: z.boolean(),
-  repeat: repeatOptionSchema,
-  repeatInterval: z.number().int().positive(),
-  repeatUnit: repeatUnitSchema,
-  repeatWeekdays: repeatWeekdaysSchema,
-  timeFrame: z.number().int().nonnegative(),
-  subtasks: z.array(subTaskSchema),
-})
-
-export type TaskInput = z.infer<typeof taskInputSchema>
+export {
+  repeatOptionSchema,
+  repeatUnitSchema,
+  repeatWeekdaysSchema,
+  subTaskSchema,
+  taskInputSchema,
+  type TaskInput,
+} from '@dtn/shared/task-input'
 
 export async function listTasks(userId: string): Promise<Task[]> {
   return db.select().from(tasks).where(eq(tasks.userId, userId))

@@ -4,11 +4,10 @@ import {
   faHeart,
   faStar,
 } from '@fortawesome/free-solid-svg-icons'
-import { useQuery } from '@tanstack/react-query'
+import { useProgressToday } from '@dtn/shared/queries'
 
 import { useDate } from '../hooks/useDate'
 import { minutesToHours } from '../lib/time'
-import { getProgressToday } from '../server/progress'
 import { Tag } from './Tags'
 
 const START_OF_DAY = 8 * 60 + 30 // 8:30 in minutes
@@ -16,10 +15,7 @@ const MINUTES_IN_DAY = 24 * 60
 
 export const Progress = () => {
   const now = useDate()
-  const progress = useQuery({
-    queryKey: ['progresstoday'],
-    queryFn: () => getProgressToday(),
-  })
+  const progress = useProgressToday()
 
   if (!progress.data) return null
 

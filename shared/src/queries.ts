@@ -1,17 +1,31 @@
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
+import {
+  useMutation,
+  useQuery,
+  useQueryClient,
+  type QueryClient,
+} from '@tanstack/react-query'
 
-import { useApi } from './api'
+import { useApi } from './api-client'
 import type { TaskInput } from './task-input'
 
-const invalidateAll = (qc: ReturnType<typeof useQueryClient>) => {
-  qc.invalidateQueries({ queryKey: ['tasks'] })
-  qc.invalidateQueries({ queryKey: ['progresstoday'] })
+export const taskKeys = {
+  all: ['tasks'] as const,
+  top: ['tasks', 'top'] as const,
+  list: ['tasks', 'all'] as const,
+  one: (id: string) => ['tasks', 'get', id] as const,
+}
+export const historyKey = (date: string) => ['history', date] as const
+export const progressTodayKey = ['progresstoday'] as const
+
+export const invalidateTaskCaches = (qc: QueryClient) => {
+  qc.invalidateQueries({ queryKey: taskKeys.all })
+  qc.invalidateQueries({ queryKey: progressTodayKey })
 }
 
 export function useTopTasks() {
   const api = useApi()
   return useQuery({
-    queryKey: ['tasks', 'top'],
+    queryKey: taskKeys.top,
     queryFn: () => api.listTopTasks(),
   })
 }
@@ -19,7 +33,7 @@ export function useTopTasks() {
 export function useAllTasks() {
   const api = useApi()
   return useQuery({
-    queryKey: ['tasks', 'all'],
+    queryKey: taskKeys.list,
     queryFn: () => api.listTasks(),
   })
 }
@@ -27,7 +41,7 @@ export function useAllTasks() {
 export function useTask(id: string) {
   const api = useApi()
   return useQuery({
-    queryKey: ['tasks', 'get', id],
+    queryKey: taskKeys.one(id),
     queryFn: () => api.getTask(id),
     enabled: !!id,
   })
@@ -36,7 +50,7 @@ export function useTask(id: string) {
 export function useHistory(date: string) {
   const api = useApi()
   return useQuery({
-    queryKey: ['history', date],
+    queryKey: historyKey(date),
     queryFn: () => api.getHistory(date),
   })
 }
@@ -44,7 +58,7 @@ export function useHistory(date: string) {
 export function useProgressToday() {
   const api = useApi()
   return useQuery({
-    queryKey: ['progresstoday'],
+    queryKey: progressTodayKey,
     queryFn: () => api.getProgressToday(),
   })
 }
@@ -54,7 +68,7 @@ export function useCreateTask() {
   const qc = useQueryClient()
   return useMutation({
     mutationFn: (input: TaskInput) => api.createTask(input),
-    onSettled: () => invalidateAll(qc),
+    onSettled: () => invalidateTaskCaches(qc),
   })
 }
 
@@ -64,7 +78,7 @@ export function useUpdateTask() {
   return useMutation({
     mutationFn: ({ id, input }: { id: string; input: TaskInput }) =>
       api.updateTask(id, input),
-    onSettled: () => invalidateAll(qc),
+    onSettled: () => invalidateTaskCaches(qc),
   })
 }
 
@@ -73,7 +87,7 @@ export function useDeleteTask() {
   const qc = useQueryClient()
   return useMutation({
     mutationFn: (id: string) => api.deleteTask(id),
-    onSettled: () => invalidateAll(qc),
+    onSettled: () => invalidateTaskCaches(qc),
   })
 }
 
@@ -82,7 +96,7 @@ export function useCompleteTask() {
   const qc = useQueryClient()
   return useMutation({
     mutationFn: (id: string) => api.completeTask(id),
-    onSettled: () => invalidateAll(qc),
+    onSettled: () => invalidateTaskCaches(qc),
   })
 }
 
@@ -92,6 +106,6 @@ export function useSnoozeTask() {
   return useMutation({
     mutationFn: (vars: { id: string; allSubtasks?: boolean }) =>
       api.snoozeTask(vars.id, vars.allSubtasks ?? false),
-    onSettled: () => invalidateAll(qc),
+    onSettled: () => invalidateTaskCaches(qc),
   })
 }

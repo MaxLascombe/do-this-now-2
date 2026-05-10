@@ -1,12 +1,11 @@
 import { faArrowLeft } from '@fortawesome/free-solid-svg-icons'
-import { useQuery } from '@tanstack/react-query'
+import { useTask, useUpdateTask } from '@dtn/shared/queries'
 import { createFileRoute, useRouter } from '@tanstack/react-router'
 
 import { Button } from '../components/Button'
 import { Loading } from '../components/Loading'
 import TaskForm, { type TaskFormInput } from '../components/TaskForm'
 import { newSafeDate } from '../lib/helpers'
-import { useGetTaskOpts, useUpdateTask } from '../lib/mutations'
 
 export const Route = createFileRoute('/tasks/$id/edit')({
   component: EditTask,
@@ -15,7 +14,7 @@ export const Route = createFileRoute('/tasks/$id/edit')({
 function EditTask() {
   const { id } = Route.useParams()
   const router = useRouter()
-  const taskQuery = useQuery(useGetTaskOpts(id))
+  const taskQuery = useTask(id)
   const mutation = useUpdateTask()
 
   const task = taskQuery.data
@@ -56,15 +55,17 @@ function EditTask() {
             mutation.mutate(
               {
                 id,
-                title: input.title,
-                due,
-                strictDeadline: input.strictDeadline,
-                repeat: input.repeat,
-                repeatInterval: input.repeatInterval,
-                repeatUnit: input.repeatUnit,
-                repeatWeekdays: input.repeatWeekdays,
-                timeFrame: Number(input.timeFrame),
-                subtasks: input.subtasks,
+                input: {
+                  title: input.title,
+                  due,
+                  strictDeadline: input.strictDeadline,
+                  repeat: input.repeat,
+                  repeatInterval: input.repeatInterval,
+                  repeatUnit: input.repeatUnit,
+                  repeatWeekdays: input.repeatWeekdays,
+                  timeFrame: Number(input.timeFrame),
+                  subtasks: input.subtasks,
+                },
               },
               { onSuccess: () => router.history.back() },
             )
