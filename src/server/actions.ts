@@ -126,12 +126,15 @@ export const snoozeTask = createServerFn({ method: 'POST' })
   })
 
 export const getHistoryForDate = createServerFn({ method: 'GET' })
-  .inputValidator((d: { date: string }) => d)
+  .inputValidator((d: { date: string; tzOffsetMin: number }) => d)
   .handler(async ({ data }) => {
     const userId = await requireUserId()
     const [year, month, day] = data.date.split('-').map((s) => parseInt(s))
-    const start = new Date(year, month - 1, day, 0, 0, 0)
-    const end = new Date(year, month - 1, day + 1, 0, 0, 0)
+    // Bracket the user's local day in UTC.
+    const startMs =
+      Date.UTC(year, month - 1, day) + data.tzOffsetMin * 60000
+    const start = new Date(startMs)
+    const end = new Date(startMs + 24 * 60 * 60 * 1000)
     const rows = await db
       .select()
       .from(history)

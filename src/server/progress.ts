@@ -1,9 +1,15 @@
 import { createServerFn } from '@tanstack/react-start'
 import { and, eq, gte, lt } from 'drizzle-orm'
+import { z } from 'zod'
 
 import { db } from '../db'
 import { dailyProgress, history, tasks, type Task } from '../db/schema'
-import { dateString, nextDueDate, newSafeDate } from '../lib/helpers'
+import {
+  dateString,
+  getUserToday,
+  nextDueDate,
+  newSafeDate,
+} from '../lib/helpers'
 import { requireUserId } from './auth'
 
 const MS_PER_DAY = 24 * 60 * 60 * 1000
@@ -156,12 +162,15 @@ function findMinutesOnTargetDay(
   return minutes
 }
 
-export const getProgressToday = createServerFn({ method: 'GET' }).handler(
-  async (): Promise<ProgressTodayResult> => {
+export const getProgressToday = createServerFn({ method: 'GET' })
+  .inputValidator((d: unknown) =>
+    z.object({ tzOffsetMin: z.number().int() }).parse(d),
+  )
+  .handler(
+    async ({ data }): Promise<ProgressTodayResult> => {
     const userId = await requireUserId()
-    const now = new Date()
-    const today = new Date(now.getFullYear(), now.getMonth(), now.getDate())
-    const todayKey = dateString(today)
+    const { todayDate: today, todayKey, todayUtcStart, tomorrowUtcStart } =
+      getUserToday(data.tzOffsetMin)
     const tomorrowKey = dateString(
       new Date(today.getFullYear(), today.getMonth(), today.getDate() + 1),
     )
@@ -173,15 +182,8 @@ export const getProgressToday = createServerFn({ method: 'GET' }).handler(
       .where(
         and(
           eq(history.userId, userId),
-          gte(history.completedAt, today),
-          lt(
-            history.completedAt,
-            new Date(
-              today.getFullYear(),
-              today.getMonth(),
-              today.getDate() + 1,
-            ),
-          ),
+          gte(history.completedAt, todayUtcStart),
+          lt(history.completedAt, tomorrowUtcStart),
         ),
       )
     let done = 0

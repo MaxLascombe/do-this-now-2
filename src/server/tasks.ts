@@ -4,7 +4,7 @@ import { z } from 'zod'
 
 import { db } from '../db'
 import { type Task, tasks } from '../db/schema'
-import { dateString } from '../lib/helpers'
+import { dateString, getUserToday } from '../lib/helpers'
 import { sortTasks } from '../lib/task-sorting'
 import { requireUserId } from './auth'
 
@@ -55,19 +55,17 @@ export const getAllTasks = createServerFn({ method: 'GET' }).handler(
   },
 )
 
-export const getTopTasks = createServerFn({ method: 'GET' }).handler(
-  async (): Promise<Task[]> => {
+export const getTopTasks = createServerFn({ method: 'GET' })
+  .inputValidator((d: unknown) =>
+    z.object({ tzOffsetMin: z.number().int() }).parse(d),
+  )
+  .handler(async ({ data }): Promise<Task[]> => {
     const userId = await requireUserId()
     const all = await db.select().from(tasks).where(eq(tasks.userId, userId))
-    const today = new Date(
-      new Date().getFullYear(),
-      new Date().getMonth(),
-      new Date().getDate(),
-    )
-    sortTasks(all, today)
+    const { todayDate } = getUserToday(data.tzOffsetMin)
+    sortTasks(all, todayDate)
     return all
-  },
-)
+  })
 
 export const getTask = createServerFn({ method: 'GET' })
   .inputValidator((d: { id: string }) => d)

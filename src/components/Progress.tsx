@@ -7,7 +7,7 @@ import {
 import { useQuery } from '@tanstack/react-query'
 
 import { useDate } from '../hooks/useDate'
-import { minutesToHours } from '../lib/time'
+import { getTzOffsetMin, minutesToHours } from '../lib/time'
 import { getProgressToday } from '../server/progress'
 import { Tag } from './Tags'
 
@@ -18,7 +18,8 @@ export const Progress = () => {
   const now = useDate()
   const progress = useQuery({
     queryKey: ['progresstoday'],
-    queryFn: () => getProgressToday(),
+    queryFn: () =>
+      getProgressToday({ data: { tzOffsetMin: getTzOffsetMin() } }),
   })
 
   if (!progress.data) return null

@@ -13,6 +13,7 @@ import {
   getTopTasks,
   updateTask,
 } from '../server/tasks'
+import { getTzOffsetMin } from './time'
 
 const invalidateTasks = (qc: ReturnType<typeof useQueryClient>) => {
   qc.invalidateQueries({ queryKey: ['tasks'] })
@@ -22,7 +23,7 @@ const invalidateTasks = (qc: ReturnType<typeof useQueryClient>) => {
 export const useTopTasks = () => {
   return {
     queryKey: ['tasks', 'top'] as const,
-    queryFn: () => getTopTasks(),
+    queryFn: () => getTopTasks({ data: { tzOffsetMin: getTzOffsetMin() } }),
   }
 }
 
@@ -39,7 +40,8 @@ export const useGetTaskOpts = (id: string) => ({
 
 export const useHistoryOpts = (date: string) => ({
   queryKey: ['history', date] as const,
-  queryFn: () => getHistoryForDate({ data: { date } }),
+  queryFn: () =>
+    getHistoryForDate({ data: { date, tzOffsetMin: getTzOffsetMin() } }),
 })
 
 export function useCreateTask() {

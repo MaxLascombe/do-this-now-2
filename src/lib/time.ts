@@ -4,3 +4,5 @@ export const minutesToHours = (minutes: number): string => {
   const minutesLeft = minutes % 60
   return `${hours}h${minutesLeft > 0 ? twoDigit(minutesLeft) : ''}`
 }
+
+export const getTzOffsetMin = (): number => new Date().getTimezoneOffset()

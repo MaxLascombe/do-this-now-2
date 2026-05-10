@@ -9,6 +9,37 @@ export const newSafeDate = (str: string): Date => {
 export const dateString = (date: Date): string =>
   `${date.getFullYear()}-${date.getMonth() + 1}-${date.getDate()}`
 
+// Resolves "today" from the user's perspective given the client-supplied TZ
+// offset (matches Date.prototype.getTimezoneOffset(): minutes west of UTC,
+// e.g. +300 for EST). The server runs in UTC, so the naive new Date() trick
+// flips dates once the user crosses into UTC tomorrow.
+export const getUserToday = (
+  tzOffsetMin: number,
+  now: Date = new Date(),
+) => {
+  // Shift `now` so its UTC getters return the user's local Y/M/D.
+  const localAsUtc = new Date(now.getTime() - tzOffsetMin * 60000)
+  const year = localAsUtc.getUTCFullYear()
+  const month = localAsUtc.getUTCMonth()
+  const day = localAsUtc.getUTCDate()
+  // todayDate uses server-local midnight (UTC midnight in prod) so it's
+  // consistent with newSafeDate-parsed `due` values for arithmetic.
+  const todayDate = new Date(year, month, day)
+  const todayKey = `${year}-${month + 1}-${day}`
+  // UTC instant of the user's local midnight (correct boundary for the
+  // completed_at SQL filter).
+  const utcStartMs = Date.UTC(year, month, day) + tzOffsetMin * 60000
+  return {
+    year,
+    month,
+    day,
+    todayDate,
+    todayKey,
+    todayUtcStart: new Date(utcStartMs),
+    tomorrowUtcStart: new Date(utcStartMs + 24 * 60 * 60 * 1000),
+  }
+}
+
 export const nextDueDate = (task: Task): Date | undefined => {
   if (task.repeat === 'No Repeat') return undefined
   if (task.due === 'No Due Date') return undefined
