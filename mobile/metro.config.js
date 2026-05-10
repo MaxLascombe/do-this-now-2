@@ -15,6 +15,9 @@ config.resolver.nodeModulesPaths = [
   path.resolve(workspaceRoot, 'node_modules'),
 ]
 config.resolver.disableHierarchicalLookup = true
+// pnpm uses symlinks; Metro needs to follow them to resolve files inside
+// pnpm-managed packages (which live in node_modules/.pnpm/<pkg>@<v>/...).
+config.resolver.unstable_enableSymlinks = true
 
 // Inject polyfills before any other module loads. Hermes doesn't expose
 // SharedArrayBuffer, and Clerk Expo (via @clerk/clerk-js/headless) references
