@@ -7,21 +7,12 @@ const workspaceRoot = path.resolve(projectRoot, '..')
 
 const config = getDefaultConfig(projectRoot)
 
-// Watch the workspace root for changes (so /shared updates trigger rebuild)
+// Watch the workspace root so /shared updates trigger rebuilds.
 config.watchFolders = [workspaceRoot]
-// Resolve modules from both the app's node_modules and the workspace root's
-config.resolver.nodeModulesPaths = [
-  path.resolve(projectRoot, 'node_modules'),
-  path.resolve(workspaceRoot, 'node_modules'),
-]
-config.resolver.disableHierarchicalLookup = true
-// pnpm uses symlinks; Metro needs to follow them to resolve files inside
-// pnpm-managed packages (which live in node_modules/.pnpm/<pkg>@<v>/...).
-config.resolver.unstable_enableSymlinks = true
 
-// Inject polyfills before any other module loads. Hermes doesn't expose
-// SharedArrayBuffer, and Clerk Expo (via @clerk/clerk-js/headless) references
-// it as a bare identifier, throwing ReferenceError at boot.
+// Inject a Hermes polyfill before any user module loads. Some packages
+// (Clerk Expo via @clerk/clerk-js/headless) reference SharedArrayBuffer as
+// a bare identifier; Hermes throws ReferenceError without this stub.
 const baseGetPolyfills = config.serializer?.getPolyfills
 config.serializer = {
   ...config.serializer,
