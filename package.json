@@ -1,82 +1,14 @@
 {
-  "name": "do-this-now-2",
+  "name": "do-this-now-2-monorepo",
   "private": true,
-  "type": "module",
   "packageManager": "pnpm@9.15.9",
   "engines": {
     "node": "22.x"
   },
   "scripts": {
-    "dev": "vite dev --port 3000",
-    "build": "drizzle-kit push --force && vite build",
-    "preview": "vite preview",
-    "test": "vitest run",
-    "lint": "eslint",
-    "format": "prettier",
-    "check": "prettier --write . && eslint --fix",
-    "db:generate": "drizzle-kit generate",
-    "db:migrate": "drizzle-kit migrate",
-    "db:push": "drizzle-kit push --force"
-  },
-  "dependencies": {
-    "@clerk/tanstack-react-start": "^1.2.3",
-    "@fortawesome/fontawesome-svg-core": "^7.2.0",
-    "@fortawesome/free-solid-svg-icons": "^7.2.0",
-    "@fortawesome/react-fontawesome": "^3.3.1",
-    "@headlessui/react": "^2.2.10",
-    "@neondatabase/serverless": "^1.1.0",
-    "@tailwindcss/vite": "^4.0.6",
-    "@tanstack/query-sync-storage-persister": "^5.100.9",
-    "@tanstack/react-devtools": "^0.7.0",
-    "@tanstack/react-query": "^5.100.9",
-    "@tanstack/react-query-persist-client": "^5.100.9",
-    "@tanstack/react-router": "^1.132.0",
-    "@tanstack/react-router-devtools": "^1.132.0",
-    "@tanstack/react-router-ssr-query": "^1.131.7",
-    "@tanstack/react-start": "^1.132.0",
-    "@tanstack/router-plugin": "^1.132.0",
-    "date-fns": "^4.1.0",
-    "drizzle-orm": "^0.45.1",
-    "keycode": "^2.2.1",
-    "lucide-react": "^0.561.0",
-    "nitro": "npm:nitro-nightly@latest",
-    "react": "^19.2.0",
-    "react-dom": "^19.2.0",
-    "s-ago": "^2.2.0",
-    "tailwind-merge": "^3.5.0",
-    "tailwindcss": "^4.0.6",
-    "use-sound": "^5.0.0",
-    "vite-tsconfig-paths": "^6.0.2",
-    "zod": "^4.4.3"
-  },
-  "devDependencies": {
-    "@aws-sdk/client-dynamodb": "^3.1045.0",
-    "@aws-sdk/util-dynamodb": "^3.996.2",
-    "@tanstack/devtools-vite": "^0.3.11",
-    "@tanstack/eslint-config": "^0.3.0",
-    "@testing-library/dom": "^10.4.0",
-    "@testing-library/react": "^16.2.0",
-    "@types/node": "^22.10.2",
-    "@types/react": "^19.2.0",
-    "@types/react-dom": "^19.2.0",
-    "@vitejs/plugin-react": "^5.0.4",
-    "dotenv": "^17.3.1",
-    "drizzle-kit": "^0.31.9",
-    "jsdom": "^27.0.0",
-    "prettier": "^3.5.3",
-    "prettier-plugin-organize-imports": "^4.3.0",
-    "prettier-plugin-tailwindcss": "^0.7.2",
-    "tsx": "^4.21.0",
-    "typescript": "^5.7.2",
-    "vite": "^7.1.7",
-    "vitest": "^3.0.5",
-    "web-vitals": "^5.1.0"
-  },
-  "pnpm": {
-    "onlyBuiltDependencies": [
-      "@clerk/shared",
-      "esbuild",
-      "unrs-resolver"
-    ]
+    "web:dev": "pnpm --filter web dev",
+    "web:build": "pnpm --filter web build",
+    "mobile:start": "pnpm --filter mobile start",
+    "mobile:ios": "pnpm --filter mobile ios"
   }
 }

@@ -1,0 +1,111 @@
+import {
+  useMutation,
+  useQuery,
+  useQueryClient,
+  type QueryClient,
+} from '@tanstack/react-query'
+
+import { useApi } from './api-client'
+import type { TaskInput } from './task-input'
+
+export const taskKeys = {
+  all: ['tasks'] as const,
+  top: ['tasks', 'top'] as const,
+  list: ['tasks', 'all'] as const,
+  one: (id: string) => ['tasks', 'get', id] as const,
+}
+export const historyKey = (date: string) => ['history', date] as const
+export const progressTodayKey = ['progresstoday'] as const
+
+export const invalidateTaskCaches = (qc: QueryClient) => {
+  qc.invalidateQueries({ queryKey: taskKeys.all })
+  qc.invalidateQueries({ queryKey: progressTodayKey })
+}
+
+export function useTopTasks() {
+  const api = useApi()
+  return useQuery({
+    queryKey: taskKeys.top,
+    queryFn: () => api.listTopTasks(),
+  })
+}
+
+export function useAllTasks() {
+  const api = useApi()
+  return useQuery({
+    queryKey: taskKeys.list,
+    queryFn: () => api.listTasks(),
+  })
+}
+
+export function useTask(id: string) {
+  const api = useApi()
+  return useQuery({
+    queryKey: taskKeys.one(id),
+    queryFn: () => api.getTask(id),
+    enabled: !!id,
+  })
+}
+
+export function useHistory(date: string) {
+  const api = useApi()
+  return useQuery({
+    queryKey: historyKey(date),
+    queryFn: () => api.getHistory(date),
+  })
+}
+
+export function useProgressToday() {
+  const api = useApi()
+  return useQuery({
+    queryKey: progressTodayKey,
+    queryFn: () => api.getProgressToday(),
+  })
+}
+
+export function useCreateTask() {
+  const api = useApi()
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: (input: TaskInput) => api.createTask(input),
+    onSettled: () => invalidateTaskCaches(qc),
+  })
+}
+
+export function useUpdateTask() {
+  const api = useApi()
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: ({ id, input }: { id: string; input: TaskInput }) =>
+      api.updateTask(id, input),
+    onSettled: () => invalidateTaskCaches(qc),
+  })
+}
+
+export function useDeleteTask() {
+  const api = useApi()
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: (id: string) => api.deleteTask(id),
+    onSettled: () => invalidateTaskCaches(qc),
+  })
+}
+
+export function useCompleteTask() {
+  const api = useApi()
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: (id: string) => api.completeTask(id),
+    onSettled: () => invalidateTaskCaches(qc),
+  })
+}
+
+export function useSnoozeTask() {
+  const api = useApi()
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: (vars: { id: string; allSubtasks?: boolean }) =>
+      api.snoozeTask(vars.id, vars.allSubtasks ?? false),
+    onSettled: () => invalidateTaskCaches(qc),
+  })
+}
