@@ -47,7 +47,7 @@ export function SignInScreen() {
   return (
     <KeyboardAvoidingView
       behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-      className="flex-1 bg-black"
+      className="absolute inset-0 z-50 bg-black"
     >
       <View className="flex-1 items-center justify-center px-8">
         <Text className="mb-6 text-2xl font-bold text-white">Do This Now</Text>

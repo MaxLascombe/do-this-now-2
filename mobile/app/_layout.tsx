@@ -1,19 +1,12 @@
-import {
-  ClerkProvider,
-  SignedIn,
-  SignedOut,
-  useOAuth,
-  useSignIn,
-  useUser,
-} from '@clerk/clerk-expo'
+import { ClerkProvider, SignedOut } from '@clerk/clerk-expo'
 import { Stack } from 'expo-router'
 import { StatusBar } from 'expo-status-bar'
 import { GestureHandlerRootView } from 'react-native-gesture-handler'
 import { SafeAreaProvider } from 'react-native-safe-area-context'
 
+import { SignInScreen } from '../components/SignInScreen'
 import { QueryProvider } from '../lib/query-client'
 import { tokenCache } from '../lib/token-cache'
-import { SignInScreen } from '../components/SignInScreen'
 
 import '../global.css'
 
@@ -29,16 +22,16 @@ export default function RootLayout() {
         <GestureHandlerRootView style={{ flex: 1, backgroundColor: '#000' }}>
           <QueryProvider>
             <StatusBar style="light" />
-            <SignedIn>
-              <Stack
-                screenOptions={{
-                  contentStyle: { backgroundColor: '#000' },
-                  headerStyle: { backgroundColor: '#000' },
-                  headerTintColor: '#fff',
-                  headerTitleStyle: { color: '#fff' },
-                }}
-              />
-            </SignedIn>
+            {/* Stack must always be mounted so expo-router can match routes. */}
+            <Stack
+              screenOptions={{
+                contentStyle: { backgroundColor: '#000' },
+                headerStyle: { backgroundColor: '#000' },
+                headerTintColor: '#fff',
+                headerTitleStyle: { color: '#fff' },
+              }}
+            />
+            {/* Overlay the sign-in screen on top when signed out. */}
             <SignedOut>
               <SignInScreen />
             </SignedOut>
@@ -48,9 +41,3 @@ export default function RootLayout() {
     </ClerkProvider>
   )
 }
-
-// Force-include hooks so tree-shaking doesn't drop them — Clerk Expo's
-// useOAuth is needed by the SignInScreen later.
-void useOAuth
-void useSignIn
-void useUser
