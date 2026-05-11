@@ -5,9 +5,18 @@ import {
   faRepeat,
 } from '@fortawesome/free-solid-svg-icons'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
-import { Popover, PopoverButton, PopoverPanel } from '@headlessui/react'
+import {
+  Dialog,
+  DialogPanel,
+  DialogTitle,
+} from '@headlessui/react'
 import { format } from 'date-fns'
-import { type MouseEvent, useState } from 'react'
+import {
+  type MouseEvent,
+  type ReactNode,
+  useEffect,
+  useState,
+} from 'react'
 
 import { newSafeDate } from '../lib/helpers'
 import { minutesToHours } from '../lib/time'
@@ -75,7 +84,7 @@ export const DateTag = ({ due }: { due: string }) => {
   return <Tag text={text} icon={faCalendar} />
 }
 
-// Editable date tag — clicking opens a popover with a date input.
+// Editable date tag — clicking opens a small modal with a date input.
 export const EditableDateTag = ({
   due,
   onChange,
@@ -83,37 +92,58 @@ export const EditableDateTag = ({
   due: string
   onChange: (next: string) => void
 }) => {
+  const [open, setOpen] = useState(false)
+  const [draft, setDraft] = useState(due)
+
+  useEffect(() => {
+    if (open) setDraft(due)
+  }, [open, due])
+
   const text = dueLabel(due) ?? 'Set date'
-  // <input type="date"> wants YYYY-MM-DD with zero-padded month/day.
-  const inputValue =
-    due === 'No Due Date' ? '' : isoFromDueString(due)
+  const inputValue = draft === 'No Due Date' ? '' : isoFromDueString(draft)
+
+  const save = () => {
+    if (draft && draft !== 'No Due Date') onChange(draft)
+    setOpen(false)
+  }
 
   return (
-    <Popover className="relative">
-      <PopoverButton as="span" className={triggerClasses} onClick={stop}>
-        <Tag text={text} icon={faCalendar} />
-      </PopoverButton>
-      <PopoverPanel
-        anchor={{ to: 'bottom start', gap: 6 }}
-        onClick={stop}
-        className="z-20 rounded-md border border-gray-800 bg-black p-1 shadow-xl"
+    <>
+      <button
+        type="button"
+        onClick={(e) => {
+          stop(e)
+          setOpen(true)
+        }}
+        className={triggerClasses}
       >
-        {({ close }) => (
-          <input
-            type="date"
-            value={inputValue}
-            autoFocus
-            onChange={(e) => {
-              if (!e.target.value) return
-              const [y, m, d] = e.target.value.split('-').map((x) => parseInt(x))
-              onChange(`${y}-${m}-${d}`)
-              close()
-            }}
-            className="bg-transparent px-2 py-1 text-xs text-white outline-none [color-scheme:dark]"
-          />
-        )}
-      </PopoverPanel>
-    </Popover>
+        <Tag text={text} icon={faCalendar} />
+      </button>
+      <EditModal
+        open={open}
+        title="Due date"
+        onClose={() => setOpen(false)}
+        onSave={save}
+      >
+        <input
+          type="date"
+          value={inputValue}
+          autoFocus
+          onChange={(e) => {
+            if (!e.target.value) return
+            const [y, m, d] = e.target.value.split('-').map((x) => parseInt(x))
+            setDraft(`${y}-${m}-${d}`)
+          }}
+          onKeyDown={(e) => {
+            if (e.key === 'Enter') {
+              e.preventDefault()
+              save()
+            }
+          }}
+          className="w-full rounded border border-gray-700 bg-black px-3 py-2 text-sm text-white outline-none [color-scheme:dark] focus:border-gray-500"
+        />
+      </EditModal>
+    </>
   )
 }
 
@@ -129,7 +159,8 @@ export const TimeFrame = ({ timeFrame }: { timeFrame?: number }) => {
   return <Tag icon={faClock} text={minutesToHours(timeFrame)} />
 }
 
-// Editable time-frame tag — clicking opens a popover with hour/min inputs.
+// Editable time-frame tag — clicking opens a small modal with hour/min
+// inputs.
 export const EditableTimeFrame = ({
   timeFrame,
   onChange,
@@ -137,87 +168,157 @@ export const EditableTimeFrame = ({
   timeFrame: number
   onChange: (next: number) => void
 }) => {
+  const [open, setOpen] = useState(false)
   const [hours, setHours] = useState(Math.floor(timeFrame / 60))
   const [mins, setMins] = useState(timeFrame % 60)
 
+  useEffect(() => {
+    if (open) {
+      setHours(Math.floor(timeFrame / 60))
+      setMins(timeFrame % 60)
+    }
+  }, [open, timeFrame])
+
   const text = timeFrame ? minutesToHours(timeFrame) : 'Set time'
 
+  const save = () => {
+    onChange(Math.max(0, hours * 60 + mins))
+    setOpen(false)
+  }
+
   return (
-    <Popover className="relative">
-      <PopoverButton as="span" className={triggerClasses} onClick={stop}>
-        <Tag text={text} icon={faClock} />
-      </PopoverButton>
-      <PopoverPanel
-        anchor={{ to: 'bottom start', gap: 6 }}
-        onClick={stop}
-        className="z-20 rounded-md border border-gray-800 bg-black p-1 shadow-xl"
-      >
-        {({ close }) => {
-          const commit = () => {
-            onChange(Math.max(0, hours * 60 + mins))
-            close()
-          }
-          return (
-            <form
-              onSubmit={(e) => {
-                e.preventDefault()
-                commit()
-              }}
-              className="flex items-center gap-0.5 px-1 text-xs text-white"
-            >
-              <TimeNumberField
-                value={hours}
-                onChange={setHours}
-                min={0}
-                max={99}
-                autoFocus
-              />
-              <span className="text-gray-500">h</span>
-              <TimeNumberField
-                value={mins}
-                onChange={setMins}
-                min={0}
-                max={59}
-              />
-              <span className="text-gray-500">m</span>
-              <button type="submit" className="sr-only">
-                Save
-              </button>
-            </form>
-          )
+    <>
+      <button
+        type="button"
+        onClick={(e) => {
+          stop(e)
+          setOpen(true)
         }}
-      </PopoverPanel>
-    </Popover>
+        className={triggerClasses}
+      >
+        <Tag text={text} icon={faClock} />
+      </button>
+      <EditModal
+        open={open}
+        title="Time frame"
+        onClose={() => setOpen(false)}
+        onSave={save}
+      >
+        <div className="flex items-center justify-center gap-3 py-2">
+          <NumberField
+            value={hours}
+            onChange={setHours}
+            min={0}
+            max={99}
+            label="hours"
+            autoFocus
+            onEnter={save}
+          />
+          <NumberField
+            value={mins}
+            onChange={setMins}
+            min={0}
+            max={59}
+            label="minutes"
+            onEnter={save}
+          />
+        </div>
+      </EditModal>
+    </>
   )
 }
 
-function TimeNumberField({
+function NumberField({
   value,
   onChange,
   min,
   max,
+  label,
   autoFocus,
+  onEnter,
 }: {
   value: number
   onChange: (n: number) => void
   min: number
   max: number
+  label: string
   autoFocus?: boolean
+  onEnter?: () => void
 }) {
   return (
-    <input
-      type="number"
-      value={value}
-      min={min}
-      max={max}
-      autoFocus={autoFocus}
-      onFocus={(e) => e.target.select()}
-      onChange={(e) => {
-        const n = parseInt(e.target.value)
-        onChange(isNaN(n) ? 0 : Math.max(min, Math.min(max, n)))
-      }}
-      className="w-8 bg-transparent text-right text-xs text-white outline-none [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
-    />
+    <label className="flex flex-col items-center gap-1">
+      <input
+        type="number"
+        value={value}
+        min={min}
+        max={max}
+        autoFocus={autoFocus}
+        onFocus={(e) => e.target.select()}
+        onKeyDown={(e) => {
+          if (e.key === 'Enter' && onEnter) {
+            e.preventDefault()
+            onEnter()
+          }
+        }}
+        onChange={(e) => {
+          const n = parseInt(e.target.value)
+          onChange(isNaN(n) ? 0 : Math.max(min, Math.min(max, n)))
+        }}
+        className="w-20 rounded border border-gray-700 bg-black py-2 text-center text-lg text-white outline-none focus:border-gray-500"
+      />
+      <span className="text-xs text-gray-500">{label}</span>
+    </label>
+  )
+}
+
+function EditModal({
+  open,
+  title,
+  onClose,
+  onSave,
+  children,
+}: {
+  open: boolean
+  title: string
+  onClose: () => void
+  onSave: () => void
+  children: ReactNode
+}) {
+  return (
+    <Dialog open={open} onClose={onClose} className="relative z-50">
+      <div
+        className="fixed inset-0 bg-black/60"
+        aria-hidden="true"
+        onClick={stop}
+      />
+      <div
+        className="fixed inset-0 flex items-center justify-center p-4"
+        onClick={stop}
+      >
+        <DialogPanel className="w-full max-w-xs rounded-lg border border-gray-700 bg-gray-950 p-4 shadow-2xl">
+          <DialogTitle className="mb-3 text-sm font-medium text-white">
+            {title}
+          </DialogTitle>
+          <div>{children}</div>
+          <div className="mt-4 flex justify-end gap-2">
+            <button
+              type="button"
+              onClick={onClose}
+              className="rounded px-3 py-1.5 text-xs text-gray-400 hover:text-white"
+            >
+              Cancel
+            </button>
+            <button
+              type="button"
+              onClick={onSave}
+              className="rounded bg-white px-3 py-1.5 text-xs font-medium text-black hover:bg-gray-200"
+            >
+              Save
+            </button>
+          </div>
+        </DialogPanel>
+      </div>
+    </Dialog>
   )
 }
 
