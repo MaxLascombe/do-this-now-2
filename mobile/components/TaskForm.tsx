@@ -30,7 +30,7 @@ import {
   type SubTask,
   type TaskInput,
   taskInputSchema,
-} from '../lib/task-input'
+} from '@dtn/shared/task-input'
 
 const days = [
   'Sun',

@@ -1,14 +1,15 @@
-import { Audio } from 'expo-av'
+import { createAudioPlayer, type AudioPlayer } from 'expo-audio'
 import { useEffect, useRef } from 'react'
 
-let sound: Audio.Sound | null = null
+// One module-level player shared across the app — the ding is identical
+// every time so we don't need per-component state. expo-av's Audio.Sound
+// (deprecated in SDK 54) used the same pattern.
+let player: AudioPlayer | null = null
 
-async function ensureSound() {
-  if (sound) return sound
-  const created = new Audio.Sound()
-  await created.loadAsync(require('../assets/ding.mp3'))
-  sound = created
-  return sound
+function ensurePlayer(): AudioPlayer {
+  if (player) return player
+  player = createAudioPlayer(require('../assets/ding.mp3'))
+  return player
 }
 
 export function useDing() {
@@ -16,13 +17,14 @@ export function useDing() {
   useEffect(() => {
     if (fired.current) return
     fired.current = true
-    void ensureSound()
+    ensurePlayer()
   }, [])
 
   return async () => {
     try {
-      const s = await ensureSound()
-      await s.replayAsync()
+      const p = ensurePlayer()
+      p.seekTo(0)
+      p.play()
     } catch (e) {
       console.warn('ding failed', e)
     }
