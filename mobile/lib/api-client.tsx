@@ -46,7 +46,7 @@ function createMobileApi(
   return {
     tasks: {
       list: () => call<Task[]>('/api/tasks'),
-      listTop: () => call<Task[]>('/api/tasks/top'),
+      listTop: () => call<Task[]>('/api/tasks?sort=top'),
       get: (id) => call<Task>(`/api/tasks/${id}`),
       create: (input) =>
         call<Task>('/api/tasks', { method: 'POST', body: input }),
