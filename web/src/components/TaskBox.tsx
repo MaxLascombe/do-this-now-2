@@ -1,6 +1,6 @@
 import { type LegacyRef } from 'react'
 
-import { type Task } from '../db/schema'
+import { type Task } from '@dtn/shared/types'
 import { DateTag, Repeat, Strict, TimeFrame } from './Tags'
 
 export const TaskBox = ({
