@@ -11,7 +11,9 @@ import {
   useCompleteTask,
   useDeleteTask,
   useTopTasks,
+  useUpdateTask,
 } from '@dtn/shared/queries'
+import { taskToInput } from '@dtn/shared/task-input'
 import { createFileRoute, useNavigate } from '@tanstack/react-router'
 import { format } from 'date-fns'
 import { Fragment, useRef, useState } from 'react'
@@ -64,6 +66,7 @@ function TasksList() {
 
   const doneMutation = useCompleteTask()
   const deleteMutation = useDeleteTask()
+  const updateMutation = useUpdateTask()
 
   const completeAction = () => {
     if (!tasks[selectedTask]) return
@@ -221,11 +224,17 @@ function TasksList() {
                   {dateTasks.map((task) => (
                     <Fragment key={task.id}>
                       <TaskBox
-                        innerRef={(e: HTMLButtonElement) => {
+                        innerRef={(e: HTMLDivElement) => {
                           taskElems.current[tasks.indexOf(task)] = e
                         }}
                         isSelected={tasks.indexOf(task) === selectedTask}
                         onClick={() => setSelectedTask(tasks.indexOf(task))}
+                        onUpdate={(update) =>
+                          updateMutation.mutate({
+                            id: task.id,
+                            input: { ...taskToInput(task), ...update },
+                          })
+                        }
                         task={task}
                       />
                       {tasks.indexOf(task) === selectedTask && (
@@ -271,11 +280,17 @@ function TasksList() {
                   </div>
                 )}
                 <TaskBox
-                  innerRef={(e: HTMLButtonElement) => {
+                  innerRef={(e: HTMLDivElement) => {
                     taskElems.current[i] = e
                   }}
                   isSelected={i === selectedTask}
                   onClick={() => setSelectedTask(i)}
+                  onUpdate={(update) =>
+                    updateMutation.mutate({
+                      id: task.id,
+                      input: { ...taskToInput(task), ...update },
+                    })
+                  }
                   task={task}
                 />
                 {i === selectedTask && (

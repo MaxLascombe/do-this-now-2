@@ -50,6 +50,7 @@
   },
   "devDependencies": {
     "@babel/core": "^7.29.0",
+    "@clerk/types": "^4.101.20",
     "@types/react": "~19.1.17",
     "tailwindcss": "3",
     "typescript": "~5.9.2"
