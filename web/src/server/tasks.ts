@@ -16,9 +16,13 @@ export const getAllTasks = createServerFn({ method: 'GET' }).handler(
   async () => listTasks(await requireUserId()),
 )
 
-export const getTopTasks = createServerFn({ method: 'GET' }).handler(
-  async () => listTopTasks(await requireUserId()),
-)
+export const getTopTasks = createServerFn({ method: 'GET' })
+  .inputValidator((d: unknown) =>
+    z.object({ tzOffsetMin: z.number().int() }).parse(d),
+  )
+  .handler(async ({ data }) =>
+    listTopTasks(await requireUserId(), data.tzOffsetMin),
+  )
 
 export const getTask = createServerFn({ method: 'GET' })
   .inputValidator((d: { id: string }) => d)

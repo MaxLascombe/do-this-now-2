@@ -29,7 +29,10 @@ import {
 // shapes mobile produces over REST.
 export const webApiClient: ApiClient = {
   listTasks: () => getAllTasks() as Promise<Task[]>,
-  listTopTasks: () => getTopTasks() as Promise<Task[]>,
+  listTopTasks: () =>
+    getTopTasks({ data: { tzOffsetMin: getTzOffsetMin() } }) as Promise<
+      Task[]
+    >,
   getTask: (id) => getTask({ data: { id } }) as Promise<Task>,
   createTask: (input) => createTask({ data: input }) as Promise<Task>,
   updateTask: (id, input) =>

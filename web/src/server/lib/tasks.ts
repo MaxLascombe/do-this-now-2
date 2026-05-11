@@ -1,6 +1,7 @@
 import { and, eq } from 'drizzle-orm'
 
 import { db } from '../../db'
+import { getUserToday } from '@dtn/shared/helpers'
 import { type Task, tasks } from '@dtn/shared/schema'
 import { type TaskInput } from '@dtn/shared/task-input'
 import { sortTasks } from '@dtn/shared/task-sorting'
@@ -18,14 +19,13 @@ export async function listTasks(userId: string): Promise<Task[]> {
   return db.select().from(tasks).where(eq(tasks.userId, userId))
 }
 
-export async function listTopTasks(userId: string): Promise<Task[]> {
+export async function listTopTasks(
+  userId: string,
+  tzOffsetMin: number,
+): Promise<Task[]> {
   const all = await listTasks(userId)
-  const today = new Date(
-    new Date().getFullYear(),
-    new Date().getMonth(),
-    new Date().getDate(),
-  )
-  sortTasks(all, today)
+  const { todayDate } = getUserToday(tzOffsetMin)
+  sortTasks(all, todayDate)
   return all
 }
 
