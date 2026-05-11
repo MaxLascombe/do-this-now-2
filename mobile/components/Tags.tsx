@@ -8,6 +8,7 @@ import { FontAwesomeIcon } from '@fortawesome/react-native-fontawesome'
 import { format } from 'date-fns'
 import { Text, View } from 'react-native'
 
+import { formatRepeat } from '@dtn/shared/format'
 import { newSafeDate } from '@dtn/shared/helpers'
 import { minutesToHours } from '@dtn/shared/time'
 
@@ -79,26 +80,9 @@ export function Repeat({
   repeatUnit: string
   repeatWeekdays: readonly boolean[]
 }) {
-  if (repeat === 'No Repeat') return null
-  if (repeat === 'Custom') {
-    let suffix = ''
-    if (repeatUnit === 'week' && repeatWeekdays.some((x) => x)) {
-      suffix =
-        ': ' +
-        repeatWeekdays
-          .map((x, i) =>
-            x ? ['su', 'mo', 'tu', 'we', 'th', 'fr', 'sa'][i] : '',
-          )
-          .filter((x) => x)
-          .join(', ')
-    }
-    const base =
-      repeatInterval > 1
-        ? `${repeatInterval} ${repeatUnit}s`
-        : `${repeatUnit}ly`
-    return <Tag icon={faRepeat} text={(base + suffix).toLowerCase()} />
-  }
-  return <Tag icon={faRepeat} text={repeat.toLowerCase()} />
+  const text = formatRepeat(repeat, repeatInterval, repeatUnit, repeatWeekdays)
+  if (!text) return null
+  return <Tag icon={faRepeat} text={text} />
 }
 
 export function Strict({ strictDeadline }: { strictDeadline?: boolean }) {
