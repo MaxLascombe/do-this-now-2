@@ -69,7 +69,9 @@ export const tasks = pgTable('tasks', {
 export const history = pgTable('history', {
   id: uuid('id').primaryKey().defaultRandom(),
   userId: text('user_id').notNull(),
-  taskId: uuid('task_id'),
+  // SET NULL on task delete: the history row stays (taskSnapshot keeps the
+  // displayable copy) but the live-task back-reference clears.
+  taskId: uuid('task_id').references(() => tasks.id, { onDelete: 'set null' }),
   taskSnapshot: jsonb('task_snapshot').$type<Task>().notNull(),
   completedAt: timestamp('completed_at', { withTimezone: true })
     .notNull()
