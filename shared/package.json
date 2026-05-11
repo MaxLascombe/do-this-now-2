@@ -5,6 +5,10 @@
   "type": "module",
   "main": "./src/index.ts",
   "types": "./src/index.ts",
+  "scripts": {
+    "test": "vitest run",
+    "test:watch": "vitest"
+  },
   "exports": {
     ".": "./src/index.ts",
     "./schema": "./src/schema.ts",
@@ -27,6 +31,7 @@
     "react": "^19"
   },
   "devDependencies": {
-    "@types/react": "^19.2.0"
+    "@types/react": "^19.2.0",
+    "vitest": "^3.0.5"
   }
 }

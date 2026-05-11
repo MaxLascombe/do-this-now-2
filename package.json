@@ -9,7 +9,8 @@
     "web:dev": "pnpm --filter web dev",
     "web:build": "pnpm --filter web build",
     "mobile:start": "pnpm --filter mobile start",
-    "mobile:ios": "pnpm --filter mobile ios"
+    "mobile:ios": "pnpm --filter mobile ios",
+    "test": "pnpm --filter @dtn/shared test && pnpm --filter web test"
   },
   "pnpm": {
     "onlyBuiltDependencies": [

@@ -34,10 +34,9 @@ export function formatRepeat(
           .filter((x) => x)
           .join(', ')
     }
+    const singular = repeatUnit === 'day' ? 'daily' : `${repeatUnit}ly`
     const base =
-      repeatInterval > 1
-        ? `${repeatInterval} ${repeatUnit}s`
-        : `${repeatUnit}ly`
+      repeatInterval > 1 ? `${repeatInterval} ${repeatUnit}s` : singular
     return (base + suffix).toLowerCase()
   }
 
