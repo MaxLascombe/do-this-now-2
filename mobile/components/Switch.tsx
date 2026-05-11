@@ -1,3 +1,6 @@
+// Intentionally platform-specific: this is the mobile (react-native Switch)
+// variant. Web's counterpart wraps Headless UI — different render targets,
+// can't be shared.
 import { Switch as RNSwitch } from 'react-native'
 
 export function Switch({

@@ -1,3 +1,6 @@
+// Intentionally platform-specific: this is the mobile (react-native
+// TouchableOpacity) variant. Web's counterpart lives at
+// web/src/components/Button.tsx — different render target, can't be shared.
 import { faSpinner } from '@fortawesome/free-solid-svg-icons'
 import { FontAwesomeIcon } from '@fortawesome/react-native-fontawesome'
 import {

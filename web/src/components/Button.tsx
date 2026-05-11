@@ -1,3 +1,6 @@
+// Intentionally platform-specific: this is the web (DOM <button>) variant.
+// Mobile's counterpart lives at mobile/components/Button.tsx and renders a
+// react-native Pressable — different render target, can't be shared.
 import { faSpinner } from '@fortawesome/free-solid-svg-icons'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
 import { type ComponentProps } from 'react'

@@ -1,3 +1,6 @@
+// Intentionally platform-specific: this is the web variant (Headless UI).
+// Mobile's counterpart wraps react-native's Switch — different render
+// targets, can't be shared.
 import { Switch as HSwitch } from '@headlessui/react'
 
 export const Switch = ({
