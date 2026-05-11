@@ -6,4 +6,8 @@ UPDATE "history" SET "task_id" = NULL
 WHERE "task_id" IS NOT NULL
   AND "task_id" NOT IN (SELECT "id" FROM "tasks");
 --> statement-breakpoint
-ALTER TABLE "history" ADD CONSTRAINT "history_task_id_tasks_id_fk" FOREIGN KEY ("task_id") REFERENCES "public"."tasks"("id") ON DELETE set null ON UPDATE no action;
+DO $$ BEGIN
+ ALTER TABLE "history" ADD CONSTRAINT "history_task_id_tasks_id_fk" FOREIGN KEY ("task_id") REFERENCES "public"."tasks"("id") ON DELETE set null ON UPDATE no action;
+EXCEPTION
+ WHEN duplicate_object THEN null;
+END $$;
