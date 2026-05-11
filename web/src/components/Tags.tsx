@@ -62,8 +62,10 @@ const dueLabel = (due: string): string | null => {
 
 const stop = (e: MouseEvent) => e.stopPropagation()
 
-const tagPillClasses =
-  'rounded px-1.5 py-0.5 -mx-1.5 -my-0.5 hover:bg-gray-800 focus:bg-gray-800 outline-none cursor-pointer'
+// Editable tag affordance: subtle dotted underline on hover/focus, no
+// padding/background so the row layout stays identical to the read-only tags.
+const triggerClasses =
+  'cursor-pointer outline-none hover:underline focus:underline decoration-dotted decoration-gray-500 underline-offset-4'
 
 // Read-only date tag (used in history etc.)
 export const DateTag = ({ due }: { due: string }) => {
@@ -88,13 +90,13 @@ export const EditableDateTag = ({
 
   return (
     <Popover className="relative">
-      <PopoverButton as="span" className={tagPillClasses} onClick={stop}>
+      <PopoverButton as="span" className={triggerClasses} onClick={stop}>
         <Tag text={text} icon={faCalendar} />
       </PopoverButton>
       <PopoverPanel
-        anchor={{ to: 'bottom start', gap: 4 }}
+        anchor={{ to: 'bottom start', gap: 6 }}
         onClick={stop}
-        className="z-20 rounded-md border border-gray-700 bg-gray-900 p-2 shadow-lg"
+        className="z-20 rounded-md border border-gray-800 bg-black p-1 shadow-xl"
       >
         {({ close }) => (
           <input
@@ -107,7 +109,7 @@ export const EditableDateTag = ({
               onChange(`${y}-${m}-${d}`)
               close()
             }}
-            className="rounded border border-gray-700 bg-black px-2 py-1 text-sm text-white outline-none"
+            className="bg-transparent px-2 py-1 text-xs text-white outline-none [color-scheme:dark]"
           />
         )}
       </PopoverPanel>
@@ -142,18 +144,17 @@ export const EditableTimeFrame = ({
 
   return (
     <Popover className="relative">
-      <PopoverButton as="span" className={tagPillClasses} onClick={stop}>
+      <PopoverButton as="span" className={triggerClasses} onClick={stop}>
         <Tag text={text} icon={faClock} />
       </PopoverButton>
       <PopoverPanel
-        anchor={{ to: 'bottom start', gap: 4 }}
+        anchor={{ to: 'bottom start', gap: 6 }}
         onClick={stop}
-        className="z-20 rounded-md border border-gray-700 bg-gray-900 p-2 shadow-lg"
+        className="z-20 rounded-md border border-gray-800 bg-black p-1 shadow-xl"
       >
         {({ close }) => {
           const commit = () => {
-            const total = Math.max(0, hours * 60 + mins)
-            onChange(total)
+            onChange(Math.max(0, hours * 60 + mins))
             close()
           }
           return (
@@ -162,26 +163,24 @@ export const EditableTimeFrame = ({
                 e.preventDefault()
                 commit()
               }}
-              className="flex items-center gap-2"
+              className="flex items-center gap-0.5 px-1 text-xs text-white"
             >
-              <NumberField
+              <TimeNumberField
                 value={hours}
                 onChange={setHours}
-                label="h"
                 min={0}
                 max={99}
+                autoFocus
               />
-              <NumberField
+              <span className="text-gray-500">h</span>
+              <TimeNumberField
                 value={mins}
                 onChange={setMins}
-                label="m"
                 min={0}
                 max={59}
               />
-              <button
-                type="submit"
-                className="rounded border border-gray-700 bg-gray-800 px-2 py-1 text-xs text-white hover:bg-gray-700"
-              >
+              <span className="text-gray-500">m</span>
+              <button type="submit" className="sr-only">
                 Save
               </button>
             </form>
@@ -192,34 +191,33 @@ export const EditableTimeFrame = ({
   )
 }
 
-function NumberField({
+function TimeNumberField({
   value,
   onChange,
-  label,
   min,
   max,
+  autoFocus,
 }: {
   value: number
   onChange: (n: number) => void
-  label: string
   min: number
   max: number
+  autoFocus?: boolean
 }) {
   return (
-    <label className="flex items-center gap-1 text-xs text-gray-300">
-      <input
-        type="number"
-        value={value}
-        min={min}
-        max={max}
-        onChange={(e) => {
-          const n = parseInt(e.target.value)
-          onChange(isNaN(n) ? 0 : Math.max(min, Math.min(max, n)))
-        }}
-        className="w-14 rounded border border-gray-700 bg-black px-1 py-1 text-center text-sm text-white outline-none"
-      />
-      {label}
-    </label>
+    <input
+      type="number"
+      value={value}
+      min={min}
+      max={max}
+      autoFocus={autoFocus}
+      onFocus={(e) => e.target.select()}
+      onChange={(e) => {
+        const n = parseInt(e.target.value)
+        onChange(isNaN(n) ? 0 : Math.max(min, Math.min(max, n)))
+      }}
+      className="w-8 bg-transparent text-right text-xs text-white outline-none [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
+    />
   )
 }
 

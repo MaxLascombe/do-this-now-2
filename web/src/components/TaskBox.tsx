@@ -78,7 +78,7 @@ export const TaskBox = ({
       <div
         className={
           (isSelected ? 'text-gray-300 ' : 'text-gray-600 ') +
-          'flex flex-wrap items-center gap-x-4 gap-y-1'
+          'flex flex-wrap gap-x-4'
         }
       >
         {onUpdate ? (
