@@ -24,16 +24,22 @@ export type SnoozeTaskResult = { scope: 'subtask' | 'task' }
 export type DeleteTaskResult = Record<string, never>
 
 export interface ApiClient {
-  listTasks(): Promise<Task[]>
-  listTopTasks(): Promise<Task[]>
-  getTask(id: string): Promise<Task>
-  createTask(input: TaskInput): Promise<Task>
-  updateTask(id: string, input: TaskInput): Promise<Task>
-  deleteTask(id: string): Promise<DeleteTaskResult>
-  completeTask(id: string): Promise<CompleteTaskResult>
-  snoozeTask(id: string, allSubtasks?: boolean): Promise<SnoozeTaskResult>
-  getHistory(date: string): Promise<HistoryEntry[]>
-  getProgressToday(): Promise<ProgressTodayResult>
+  tasks: {
+    list(): Promise<Task[]>
+    listTop(): Promise<Task[]>
+    get(id: string): Promise<Task>
+    create(input: TaskInput): Promise<Task>
+    update(id: string, input: TaskInput): Promise<Task>
+    delete(id: string): Promise<DeleteTaskResult>
+    complete(id: string): Promise<CompleteTaskResult>
+    snooze(id: string, allSubtasks?: boolean): Promise<SnoozeTaskResult>
+  }
+  history: {
+    forDate(date: string): Promise<HistoryEntry[]>
+  }
+  progress: {
+    today(): Promise<ProgressTodayResult>
+  }
 }
 
 const ApiContext = createContext<ApiClient | null>(null)

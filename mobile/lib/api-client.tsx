@@ -44,26 +44,32 @@ function createMobileApi(
   }
 
   return {
-    listTasks: () => call<Task[]>('/api/tasks'),
-    listTopTasks: () => call<Task[]>('/api/tasks/top'),
-    getTask: (id) => call<Task>(`/api/tasks/${id}`),
-    createTask: (input) =>
-      call<Task>('/api/tasks', { method: 'POST', body: input }),
-    updateTask: (id, input) =>
-      call<Task>(`/api/tasks/${id}`, { method: 'PUT', body: input }),
-    deleteTask: (id) =>
-      call<Record<string, never>>(`/api/tasks/${id}`, { method: 'DELETE' }),
-    completeTask: (id) =>
-      call<{ advanced: boolean }>(`/api/tasks/${id}/complete`, {
-        method: 'POST',
-      }),
-    snoozeTask: (id, allSubtasks = false) =>
-      call<{ scope: 'subtask' | 'task' }>(`/api/tasks/${id}/snooze`, {
-        method: 'POST',
-        body: { allSubtasks },
-      }),
-    getHistory: (date) => call<HistoryEntry[]>(`/api/history/${date}`),
-    getProgressToday: () => call(`/api/progress/today`),
+    tasks: {
+      list: () => call<Task[]>('/api/tasks'),
+      listTop: () => call<Task[]>('/api/tasks/top'),
+      get: (id) => call<Task>(`/api/tasks/${id}`),
+      create: (input) =>
+        call<Task>('/api/tasks', { method: 'POST', body: input }),
+      update: (id, input) =>
+        call<Task>(`/api/tasks/${id}`, { method: 'PUT', body: input }),
+      delete: (id) =>
+        call<Record<string, never>>(`/api/tasks/${id}`, { method: 'DELETE' }),
+      complete: (id) =>
+        call<{ advanced: boolean }>(`/api/tasks/${id}/complete`, {
+          method: 'POST',
+        }),
+      snooze: (id, allSubtasks = false) =>
+        call<{ scope: 'subtask' | 'task' }>(`/api/tasks/${id}/snooze`, {
+          method: 'POST',
+          body: { allSubtasks },
+        }),
+    },
+    history: {
+      forDate: (date) => call<HistoryEntry[]>(`/api/history/${date}`),
+    },
+    progress: {
+      today: () => call(`/api/progress/today`),
+    },
   }
 }
 

@@ -28,12 +28,16 @@ export const createTask = createServerFn({ method: 'POST' })
 
 export const updateTask = createServerFn({ method: 'POST' })
   .inputValidator((d: unknown) =>
-    tasksLib.taskInputSchema.extend({ id: z.string().uuid() }).parse(d),
+    z
+      .object({
+        id: z.string().uuid(),
+        input: tasksLib.taskInputSchema,
+      })
+      .parse(d),
   )
-  .handler(async ({ data }) => {
-    const { id, ...rest } = data
-    return tasksLib.updateTask(await requireUserId(), id, rest)
-  })
+  .handler(async ({ data }) =>
+    tasksLib.updateTask(await requireUserId(), data.id, data.input),
+  )
 
 export const deleteTask = createServerFn({ method: 'POST' })
   .inputValidator((d: { id: string }) => d)

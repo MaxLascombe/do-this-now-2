@@ -26,7 +26,7 @@ export function useTopTasks() {
   const api = useApi()
   return useQuery({
     queryKey: taskKeys.top,
-    queryFn: () => api.listTopTasks(),
+    queryFn: () => api.tasks.listTop(),
   })
 }
 
@@ -34,7 +34,7 @@ export function useAllTasks() {
   const api = useApi()
   return useQuery({
     queryKey: taskKeys.list,
-    queryFn: () => api.listTasks(),
+    queryFn: () => api.tasks.list(),
   })
 }
 
@@ -42,7 +42,7 @@ export function useTask(id: string) {
   const api = useApi()
   return useQuery({
     queryKey: taskKeys.one(id),
-    queryFn: () => api.getTask(id),
+    queryFn: () => api.tasks.get(id),
     enabled: !!id,
   })
 }
@@ -51,7 +51,7 @@ export function useHistory(date: string) {
   const api = useApi()
   return useQuery({
     queryKey: historyKey(date),
-    queryFn: () => api.getHistory(date),
+    queryFn: () => api.history.forDate(date),
   })
 }
 
@@ -59,7 +59,7 @@ export function useProgressToday() {
   const api = useApi()
   return useQuery({
     queryKey: progressTodayKey,
-    queryFn: () => api.getProgressToday(),
+    queryFn: () => api.progress.today(),
   })
 }
 
@@ -67,7 +67,7 @@ export function useCreateTask() {
   const api = useApi()
   const qc = useQueryClient()
   return useMutation({
-    mutationFn: (input: TaskInput) => api.createTask(input),
+    mutationFn: (input: TaskInput) => api.tasks.create(input),
     onSettled: () => invalidateTaskCaches(qc),
   })
 }
@@ -77,7 +77,7 @@ export function useUpdateTask() {
   const qc = useQueryClient()
   return useMutation({
     mutationFn: ({ id, input }: { id: string; input: TaskInput }) =>
-      api.updateTask(id, input),
+      api.tasks.update(id, input),
     onSettled: () => invalidateTaskCaches(qc),
   })
 }
@@ -86,7 +86,7 @@ export function useDeleteTask() {
   const api = useApi()
   const qc = useQueryClient()
   return useMutation({
-    mutationFn: (id: string) => api.deleteTask(id),
+    mutationFn: (id: string) => api.tasks.delete(id),
     onSettled: () => invalidateTaskCaches(qc),
   })
 }
@@ -95,7 +95,7 @@ export function useCompleteTask() {
   const api = useApi()
   const qc = useQueryClient()
   return useMutation({
-    mutationFn: (id: string) => api.completeTask(id),
+    mutationFn: (id: string) => api.tasks.complete(id),
     onSettled: () => invalidateTaskCaches(qc),
   })
 }
@@ -105,7 +105,7 @@ export function useSnoozeTask() {
   const qc = useQueryClient()
   return useMutation({
     mutationFn: (vars: { id: string; allSubtasks?: boolean }) =>
-      api.snoozeTask(vars.id, vars.allSubtasks ?? false),
+      api.tasks.snooze(vars.id, vars.allSubtasks ?? false),
     onSettled: () => invalidateTaskCaches(qc),
   })
 }
