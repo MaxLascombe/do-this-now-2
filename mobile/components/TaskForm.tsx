@@ -7,7 +7,7 @@ import {
 import { FontAwesomeIcon } from '@fortawesome/react-native-fontawesome'
 import DateTimePicker from '@react-native-community/datetimepicker'
 import { format } from 'date-fns'
-import { type ReactNode, useState } from 'react'
+import { type ReactNode, useRef, useState } from 'react'
 import {
   ActivityIndicator,
   Alert,
@@ -100,7 +100,13 @@ export function TaskForm({
     initial.repeatWeekdays ?? [false, false, false, false, false, false, false],
   )
   const [timeFrame, setTimeFrame] = useState(initial.timeFrame ?? 0)
-  const [subtasks, setSubtasks] = useState<SubTask[]>(initial.subtasks ?? [])
+  // Stable per-row key so reorder doesn't shuffle DOM nodes; stripped by
+  // zod at submit since subTaskSchema doesn't declare _key.
+  const nextSubtaskKey = useRef(0)
+  const newKey = () => `s${++nextSubtaskKey.current}`
+  const [subtasks, setSubtasks] = useState<Array<SubTask & { _key: string }>>(
+    () => (initial.subtasks ?? []).map((s) => ({ ...s, _key: newKey() })),
+  )
   const [hasSubtasks, setHasSubtasks] = useState(subtasks.length > 0)
   const [errors, setErrors] = useState<Record<string, string>>({})
 
@@ -279,13 +285,13 @@ export function TaskForm({
               }
               if (!v) setSubtasks([])
               else if (subtasks.length === 0)
-                setSubtasks([{ done: false, title: '' }])
+                setSubtasks([{ done: false, title: '', _key: newKey() }])
               setHasSubtasks(v)
             }}
           />
           {hasSubtasks &&
             subtasks.map((s, i) => (
-              <View key={i}>
+              <View key={s._key}>
                 <Divider />
                 <View className="flex-row items-center gap-2 px-4 py-2">
                   <Pressable
@@ -336,7 +342,10 @@ export function TaskForm({
               <Divider />
               <Pressable
                 onPress={() =>
-                  setSubtasks((s) => [...s, { done: false, title: '' }])
+                  setSubtasks((s) => [
+                    ...s,
+                    { done: false, title: '', _key: newKey() },
+                  ])
                 }
                 className="flex-row items-center gap-2 px-4 py-3"
               >

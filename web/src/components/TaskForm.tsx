@@ -108,7 +108,15 @@ const TaskForm = ({
   const [timeFrame, setTimeFrame] = useState(initialTimeFrame ?? 0)
   const timeFrameMinutesRef = useRef<HTMLInputElement>(null)
   const timeFrameHoursRef = useRef<HTMLInputElement>(null)
-  const [subtasks, setSubtasks] = useState<SubTask[]>(initialSubtasks ?? [])
+  // Stable client-side key per subtask so React can keep the right DOM
+  // node attached after a drag-reorder. Stripped by zod at submit since
+  // the schema doesn't declare _key.
+  const nextSubtaskKey = useRef(0)
+  const newKey = () => `s${++nextSubtaskKey.current}`
+  const [subtasks, setSubtasks] = useState<Array<SubTask & { _key: string }>>(
+    () =>
+      (initialSubtasks ?? []).map((s) => ({ ...s, _key: newKey() })),
+  )
 
   const [hasSubtasks, setHasSubtasks] = useState((subtasks.length ?? 0) > 0)
   if ((subtasks.length ?? 0) > 0 && !hasSubtasks) setHasSubtasks(true)
@@ -124,14 +132,15 @@ const TaskForm = ({
   )
 
   // Drag-and-drop reorder for subtasks
-  const [draggedSubtask, setDraggedSubtask] = useState<SubTask | undefined>()
-  const handleDragStart = (e: React.DragEvent, item: SubTask) => {
+  type FormSub = SubTask & { _key: string }
+  const [draggedSubtask, setDraggedSubtask] = useState<FormSub | undefined>()
+  const handleDragStart = (e: React.DragEvent, item: FormSub) => {
     setDraggedSubtask(item)
     e.dataTransfer?.setData('text/plain', '')
   }
   const handleDragEnd = () => setDraggedSubtask(undefined)
   const handleDragOver = (e: React.DragEvent) => e.preventDefault()
-  const handleDrop = (e: React.DragEvent, target: SubTask) => {
+  const handleDrop = (e: React.DragEvent, target: FormSub) => {
     e.preventDefault()
     if (!draggedSubtask) return
     const currentIndex = subtasks.indexOf(draggedSubtask)
@@ -357,7 +366,7 @@ const TaskForm = ({
                 )
                   return
                 if (!e) setSubtasks([])
-                else setSubtasks([{ done: false, title: '' }])
+                else setSubtasks([{ done: false, title: '', _key: newKey() }])
                 setHasSubtasks(e)
               }}
             />
@@ -366,7 +375,7 @@ const TaskForm = ({
             <>
               {subtasks.map((subtask, i) => (
                 <div
-                  key={i}
+                  key={subtask._key}
                   draggable
                   onDragStart={(e) => handleDragStart(e, subtask)}
                   onDragEnd={handleDragEnd}
@@ -411,7 +420,10 @@ const TaskForm = ({
                   icon={faPlusCircle}
                   text="New Subtask"
                   onClick={() =>
-                    setSubtasks([...subtasks, { done: false, title: '' }])
+                    setSubtasks([
+                      ...subtasks,
+                      { done: false, title: '', _key: newKey() },
+                    ])
                   }
                   type="button"
                 />
