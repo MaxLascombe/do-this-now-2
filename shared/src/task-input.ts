@@ -37,7 +37,8 @@ export const repeatUnitSchema = z.enum(['day', 'week', 'month', 'year'])
 // Date is stored / transmitted as YYYY-M-D (no zero padding). Reject any
 // other string — in particular the legacy 'No Due Date' sentinel which the
 // app no longer supports. The parsed year/month/day must form a real date.
-const dueDateSchema = z
+// Exported so REST routes can validate `:date` path params with the same rule.
+export const ymdSchema = z
   .string()
   .refine(
     (s) => {
@@ -51,8 +52,10 @@ const dueDateSchema = z
       if (d < 1 || d > 31) return false
       return true
     },
-    { message: 'Due date must be a valid YYYY-M-D string' },
+    { message: 'Date must be a valid YYYY-M-D string' },
   )
+
+const dueDateSchema = ymdSchema
 
 export const taskInputSchema = z
   .object({

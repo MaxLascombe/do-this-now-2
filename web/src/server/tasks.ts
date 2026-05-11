@@ -4,6 +4,8 @@ import { z } from 'zod'
 import { requireUserId } from './auth'
 import * as tasksLib from './lib/tasks'
 
+const idSchema = z.object({ id: z.string().uuid() })
+
 export const listTasks = createServerFn({ method: 'GET' }).handler(
   async () => tasksLib.listTasks(await requireUserId()),
 )
@@ -17,7 +19,7 @@ export const listTopTasks = createServerFn({ method: 'GET' })
   )
 
 export const getTask = createServerFn({ method: 'GET' })
-  .inputValidator((d: { id: string }) => d)
+  .inputValidator((d: unknown) => idSchema.parse(d))
   .handler(async ({ data }) => tasksLib.getTask(await requireUserId(), data.id))
 
 export const createTask = createServerFn({ method: 'POST' })
@@ -40,7 +42,7 @@ export const updateTask = createServerFn({ method: 'POST' })
   )
 
 export const deleteTask = createServerFn({ method: 'POST' })
-  .inputValidator((d: { id: string }) => d)
+  .inputValidator((d: unknown) => idSchema.parse(d))
   .handler(async ({ data }) => {
     await tasksLib.deleteTask(await requireUserId(), data.id)
     return {}

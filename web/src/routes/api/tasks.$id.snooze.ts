@@ -5,6 +5,8 @@ import { z } from 'zod'
 import { snoozeTask } from '../../server/lib/actions'
 import { invalid, withAuth } from '../../server/lib/http'
 
+type Params = { id: string }
+
 const snoozeBodySchema = z
   .object({ allSubtasks: z.boolean().optional() })
   .optional()
@@ -13,7 +15,7 @@ const snoozeBodySchema = z
 export const Route = createFileRoute('/api/tasks/$id/snooze')({
   server: {
     handlers: {
-      POST: withAuth<{ id: string }>(async ({ userId, params, request }) => {
+      POST: withAuth<Params>(async ({ userId, params, request }) => {
         const raw = await request.text()
         const candidate = raw.length === 0 ? {} : safeJsonParse(raw)
         if (candidate === undefined)

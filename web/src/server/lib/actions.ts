@@ -103,39 +103,43 @@ export async function snoozeTask(
   id: string,
   allSubtasks: boolean = false,
 ): Promise<{ scope: 'subtask' | 'task' }> {
-  const task = await loadTask(db, userId, id)
-  if (!task) throw new Error('Task not found')
+  // Load-then-update sequence — wrap in a transaction so two concurrent
+  // snoozes on the same task (e.g. a fast double-tap) can't read the same
+  // baseline and clobber each other's subtask write. Same exposure that
+  // motivated wrapping completeTask in a tx.
+  return db.transaction(async (tx) => {
+    const task = await loadTask(tx, userId, id)
+    if (!task) throw new Error('Task not found')
 
-  const newSnooze = new Date(Date.now() + HOUR_MS).toISOString()
+    const newSnooze = new Date(Date.now() + HOUR_MS).toISOString()
 
-  const hasUnsnoozedSubtask =
-    !allSubtasks &&
-    task.subtasks.length > 0 &&
-    task.subtasks.some(
-      (s) =>
-        !s.done && (!s.snooze || new Date(s.snooze) < new Date()),
-    )
+    const hasUnsnoozedSubtask =
+      !allSubtasks &&
+      task.subtasks.length > 0 &&
+      task.subtasks.some(
+        (s) => !s.done && (!s.snooze || new Date(s.snooze) < new Date()),
+      )
 
-  if (hasUnsnoozedSubtask) {
-    const idx = task.subtasks.findIndex(
-      (s) =>
-        !s.done && (!s.snooze || new Date(s.snooze) < new Date()),
-    )
-    const newSubtasks: SubTask[] = task.subtasks.map((s, i) =>
-      i === idx ? { ...s, snooze: newSnooze } : s,
-    )
-    await db
+    if (hasUnsnoozedSubtask) {
+      const idx = task.subtasks.findIndex(
+        (s) => !s.done && (!s.snooze || new Date(s.snooze) < new Date()),
+      )
+      const newSubtasks: SubTask[] = task.subtasks.map((s, i) =>
+        i === idx ? { ...s, snooze: newSnooze } : s,
+      )
+      await tx
+        .update(tasks)
+        .set({ subtasks: newSubtasks, updatedAt: new Date() })
+        .where(and(eq(tasks.userId, userId), eq(tasks.id, task.id)))
+      return { scope: 'subtask' }
+    }
+
+    await tx
       .update(tasks)
-      .set({ subtasks: newSubtasks, updatedAt: new Date() })
+      .set({ snooze: newSnooze, updatedAt: new Date() })
       .where(and(eq(tasks.userId, userId), eq(tasks.id, task.id)))
-    return { scope: 'subtask' }
-  }
-
-  await db
-    .update(tasks)
-    .set({ snooze: newSnooze, updatedAt: new Date() })
-    .where(and(eq(tasks.userId, userId), eq(tasks.id, task.id)))
-  return { scope: 'task' }
+    return { scope: 'task' }
+  })
 }
 
 export async function getHistory(
