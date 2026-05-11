@@ -11,13 +11,14 @@ import { useState } from 'react'
 import { Modal, Pressable, Text, View } from 'react-native'
 import { SafeAreaView } from 'react-native-safe-area-context'
 
-import { minutesToHours } from '@dtn/shared/time'
+import {
+  MINUTES_IN_DAY,
+  START_OF_DAY_MINUTES,
+  minutesToHours,
+} from '@dtn/shared/time'
 import { useDate } from '../hooks/useDate'
 import { useProgressToday } from '@dtn/shared/queries'
 import { Tag } from './Tags'
-
-const START_OF_DAY = 8 * 60 + 30
-const MINUTES_IN_DAY = 24 * 60
 
 export function Progress() {
   const now = useDate()
@@ -40,7 +41,11 @@ export function Progress() {
   const timeOfDay = now.getHours() * 60 + now.getMinutes()
   const percentageOfDay = Math.max(
     0,
-    Math.min(1, (timeOfDay - START_OF_DAY) / (MINUTES_IN_DAY - START_OF_DAY)),
+    Math.min(
+      1,
+      (timeOfDay - START_OF_DAY_MINUTES) /
+        (MINUTES_IN_DAY - START_OF_DAY_MINUTES),
+    ),
   )
   const shouldBeDone = maxTodo * percentageOfDay
   const diff = done - shouldBeDone
@@ -116,7 +121,11 @@ function ProgressDetail({
   const timeOfDay = now.getHours() * 60 + now.getMinutes()
   const percentageOfDay = Math.max(
     0,
-    Math.min(1, (timeOfDay - START_OF_DAY) / (MINUTES_IN_DAY - START_OF_DAY)),
+    Math.min(
+      1,
+      (timeOfDay - START_OF_DAY_MINUTES) /
+        (MINUTES_IN_DAY - START_OF_DAY_MINUTES),
+    ),
   )
   const shouldBeDone = maxTodo * percentageOfDay
   const diff = done - shouldBeDone

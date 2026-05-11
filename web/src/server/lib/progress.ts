@@ -8,8 +8,8 @@ import {
   nextDueDate,
   newSafeDate,
 } from '@dtn/shared/helpers'
+import { DAY_MS } from '@dtn/shared/time'
 
-const MS_PER_DAY = 24 * 60 * 60 * 1000
 const TODO_FLOOR_MIN = 15.5 * 60
 const TODO_BUFFER_MIN = 60
 
@@ -135,7 +135,7 @@ function findMinutesOnTargetDay(
     else if (task.repeat === 'Custom') {
       if (task.repeatUnit === 'day') {
         const daysDiff = Math.floor(
-          (target.getTime() - due.getTime()) / MS_PER_DAY,
+          (target.getTime() - due.getTime()) / DAY_MS,
         )
         isDueOnTarget = daysDiff >= 0 && daysDiff % task.repeatInterval === 0
       } else if (task.repeatUnit === 'week') {

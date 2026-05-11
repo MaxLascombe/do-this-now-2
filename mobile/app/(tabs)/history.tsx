@@ -8,8 +8,8 @@ import { Loading } from '../../components/Loading'
 import { TaskBox } from '../../components/TaskBox'
 import { dateString } from '@dtn/shared/helpers'
 import { useHistory } from '@dtn/shared/queries'
+import { DAY_MS } from '@dtn/shared/time'
 
-const DAY_MS = 24 * 60 * 60 * 1000
 const SWIPE_THRESHOLD = 50
 
 export default function History() {

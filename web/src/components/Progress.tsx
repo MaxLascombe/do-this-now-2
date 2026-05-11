@@ -5,13 +5,14 @@ import {
   faStar,
 } from '@fortawesome/free-solid-svg-icons'
 import { useProgressToday } from '@dtn/shared/queries'
-import { minutesToHours } from '@dtn/shared/time'
+import {
+  MINUTES_IN_DAY,
+  START_OF_DAY_MINUTES,
+  minutesToHours,
+} from '@dtn/shared/time'
 
 import { useDate } from '../hooks/useDate'
 import { Tag } from './Tags'
-
-const START_OF_DAY = 8 * 60 + 30 // 8:30 in minutes
-const MINUTES_IN_DAY = 24 * 60
 
 export const Progress = () => {
   const now = useDate()
@@ -34,7 +35,11 @@ export const Progress = () => {
   const timeOfDay = now.getHours() * 60 + now.getMinutes()
   const percentageOfDay = Math.max(
     0,
-    Math.min(1, (timeOfDay - START_OF_DAY) / (MINUTES_IN_DAY - START_OF_DAY)),
+    Math.min(
+      1,
+      (timeOfDay - START_OF_DAY_MINUTES) /
+        (MINUTES_IN_DAY - START_OF_DAY_MINUTES),
+    ),
   )
   const shouldBeDone = maxTodo * percentageOfDay
   const diff = done - shouldBeDone

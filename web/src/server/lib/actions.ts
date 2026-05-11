@@ -8,8 +8,8 @@ import {
   tasks,
 } from '@dtn/shared/schema'
 import { dateString, nextDueDate } from '@dtn/shared/helpers'
+import { HOUR_MS } from '@dtn/shared/time'
 
-const HOUR_MS = 60 * 60 * 1000
 
 async function loadTask(userId: string, id: string): Promise<Task | null> {
   const rows = await db
