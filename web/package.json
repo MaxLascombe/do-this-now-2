@@ -8,7 +8,7 @@
   },
   "scripts": {
     "dev": "vite dev --port 3000",
-    "build": "drizzle-kit push --force && vite build",
+    "build": "drizzle-kit migrate && vite build",
     "preview": "vite preview",
     "test": "vitest run",
     "lint": "eslint",
@@ -16,7 +16,7 @@
     "check": "prettier --write . && eslint --fix",
     "db:generate": "drizzle-kit generate",
     "db:migrate": "drizzle-kit migrate",
-    "db:push": "drizzle-kit push --force"
+    "db:push": "drizzle-kit push"
   },
   "dependencies": {
     "@clerk/tanstack-react-start": "^1.2.3",
