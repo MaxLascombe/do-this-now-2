@@ -1,4 +1,5 @@
 import { faArrowLeft } from '@fortawesome/free-solid-svg-icons'
+import { newSafeDate } from '@dtn/shared/helpers'
 import { useStats } from '@dtn/shared/queries'
 import type { StatsResult } from '@dtn/shared/types'
 import { createFileRoute, useNavigate } from '@tanstack/react-router'
@@ -135,18 +136,17 @@ function StreakSummary({ data }: { data: StatsResult }) {
 function Heatmap({ data }: { data: StatsResult }) {
   // 12 columns × 7 rows. The rightmost column is the current week; topmost
   // row is Sunday. Find each cell's (col, row) from its date.
-  const cells: Array<{ date: string; hit: boolean; col: number; row: number }> = []
-  // Anchor: today is in the rightmost column. Its dow gives us today's row.
-  const today = new Date(data.heatmap[data.heatmap.length - 1].date)
-  // newSafeDate semantics: just rely on Date(YYYY-M-D) here — slight UTC
-  // drift won't shift the grid by more than one cell, and ordering is
-  // preserved.
+  const last = data.heatmap[data.heatmap.length - 1]
+  if (!last) return null
+  // newSafeDate handles our YYYY-M-D format (unpadded). `new Date(...)`
+  // returns Invalid Date for unpadded ISO strings on V8, which would
+  // silently NaN the whole grid.
+  const today = newSafeDate(last.date)
   const todayCol = 11
   const todayDow = today.getDay() // 0..6
+  const cells: Array<{ date: string; hit: boolean; col: number; row: number }> = []
   for (let i = 0; i < data.heatmap.length; i++) {
-    // i counts from oldest (0) to today (83). Today is at position 83.
     const offsetFromToday = data.heatmap.length - 1 - i
-    // Each step back in time is one cell back; cells wrap row→col.
     const dowOffset = todayDow - offsetFromToday
     const colsBack = Math.ceil(-dowOffset / 7)
     const col = todayCol - colsBack

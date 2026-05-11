@@ -9,6 +9,7 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context'
 
 import { Loading } from '../../components/Loading'
+import { newSafeDate } from '@dtn/shared/helpers'
 import { useStats } from '@dtn/shared/queries'
 import type { StatsResult } from '@dtn/shared/types'
 
@@ -132,7 +133,9 @@ function Heatmap({ data }: { data: StatsResult }) {
   // the rightmost column, walk backward.
   const last = data.heatmap[data.heatmap.length - 1]
   if (!last) return null
-  const today = new Date(last.date)
+  // newSafeDate parses YYYY-M-D — Date(...) returns Invalid Date for
+  // unpadded ISO strings on V8/Hermes.
+  const today = newSafeDate(last.date)
   const todayDow = today.getDay()
   const cellSize = 12
   const gap = 3
