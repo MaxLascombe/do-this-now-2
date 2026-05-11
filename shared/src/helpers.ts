@@ -69,6 +69,12 @@ export const nextDueDate = (task: Task): Date | undefined => {
   else if (task.repeat === 'Yearly') date.setFullYear(date.getFullYear() + 1)
   else if (task.repeat === 'Custom' && task.repeatUnit === 'year')
     date.setFullYear(date.getFullYear() + task.repeatInterval)
+  // DST safety: shift past 02:00 before round-tripping through dateString +
+  // newSafeDate. If the previous arithmetic lands on a spring-forward day,
+  // local midnight can be a non-existent instant and JS shifts the Date
+  // backward by an hour, which would roll the calendar date back too. The
+  // round-trip strips time-of-day, so we only need to be past 02:00 to be
+  // safe regardless of timezone.
   date.setHours(date.getHours() + 2)
   return newSafeDate(dateString(date))
 }

@@ -236,7 +236,11 @@ const TaskForm = ({
             <FormSelect
               id="repeat"
               value={repeat}
-              onChange={(e) => setRepeat(e.target.value as RepeatOption)}
+              onChange={(e) => {
+                const v = e.target.value
+                if ((repeatOptions as readonly string[]).includes(v))
+                  setRepeat(v as RepeatOption)
+              }}
             >
               {repeatOptions.map((opt) => (
                 <option key={opt}>{opt}</option>
@@ -257,7 +261,11 @@ const TaskForm = ({
                 />
                 <FormSelect
                   defaultValue={repeatUnit}
-                  onChange={(e) => setRepeatUnit(e.target.value as RepeatUnit)}
+                  onChange={(e) => {
+                    const v = e.target.value
+                    if ((repeatUnits as readonly string[]).includes(v))
+                      setRepeatUnit(v as RepeatUnit)
+                  }}
                 >
                   {repeatUnits.map((u) => (
                     <option key={u} value={u}>

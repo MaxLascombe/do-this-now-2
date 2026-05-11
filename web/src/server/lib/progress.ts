@@ -10,8 +10,14 @@ import {
 } from '@dtn/shared/helpers'
 import { DAY_MS } from '@dtn/shared/time'
 
+// "todo" target floor: never report less than this many minutes of work for
+// the day even if the actual due tasks total less — keeps the bar moving.
 const TODO_FLOOR_MIN = 15.5 * 60
+// Buffer subtracted from the rolling todo to smooth out a perfect-zero day.
 const TODO_BUFFER_MIN = 60
+// Rolling-horizon window for the per-day todo target. Longer = smoother
+// daily target but slower to react to changes; shorter = reactive but noisy.
+const TODO_HORIZON_DAYS = 14
 
 export type ProgressTodayResult = {
   done: number
@@ -199,7 +205,7 @@ export async function getProgressToday(
 
   const { todo, theoreticalMinimum } = calculateTodoForDays(
     today,
-    14,
+    TODO_HORIZON_DAYS,
     allTasks,
     done,
   )

@@ -99,13 +99,13 @@ export async function snoozeTask(
     task.subtasks.length > 0 &&
     task.subtasks.some(
       (s) =>
-        !s.done && (!s.snooze || new Date(s.snooze) <= new Date()),
+        !s.done && (!s.snooze || new Date(s.snooze) < new Date()),
     )
 
   if (hasUnsnoozedSubtask) {
     const idx = task.subtasks.findIndex(
       (s) =>
-        !s.done && (!s.snooze || new Date(s.snooze) <= new Date()),
+        !s.done && (!s.snooze || new Date(s.snooze) < new Date()),
     )
     const newSubtasks: SubTask[] = task.subtasks.map((s, i) =>
       i === idx ? { ...s, snooze: newSnooze } : s,
