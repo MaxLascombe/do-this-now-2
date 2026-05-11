@@ -161,6 +161,129 @@ function findMinutesOnTargetDay(
   return minutes
 }
 
+// --- internal helpers -------------------------------------------------
+
+type ProgressInputs = {
+  completedTodayMin: number
+  streakBeforeToday: number
+  lives: number
+  allTasks: Task[]
+}
+
+async function loadProgressInputs(
+  userId: string,
+  todayKey: string,
+  todayUtcStart: Date,
+  tomorrowUtcStart: Date,
+): Promise<ProgressInputs> {
+  const [completedToday, [todayProgress], allTasks] = await Promise.all([
+    db
+      .select()
+      .from(history)
+      .where(
+        and(
+          eq(history.userId, userId),
+          gte(history.completedAt, todayUtcStart),
+          lt(history.completedAt, tomorrowUtcStart),
+        ),
+      ),
+    db
+      .select()
+      .from(dailyProgress)
+      .where(
+        and(
+          eq(dailyProgress.userId, userId),
+          eq(dailyProgress.date, todayKey),
+        ),
+      ),
+    db.select().from(tasks).where(eq(tasks.userId, userId)),
+  ])
+
+  const completedTodayMin = completedToday.reduce(
+    (acc, row) => acc + (row.taskSnapshot.timeFrame ?? 0),
+    0,
+  )
+
+  return {
+    completedTodayMin,
+    streakBeforeToday: todayProgress?.streakBeforeToday ?? 0,
+    lives: todayProgress?.lives ?? 0,
+    allTasks,
+  }
+}
+
+type ProgressComputation = {
+  result: ProgressTodayResult
+  rolloverLives: number | null // not null = streak hit, persist for tomorrow
+  rolloverStreak: number
+}
+
+function computeProgress(
+  today: Date,
+  inputs: ProgressInputs,
+): ProgressComputation {
+  const { completedTodayMin: done, streakBeforeToday, lives, allTasks } =
+    inputs
+
+  const { todo, theoreticalMinimum } = calculateTodoForDays(
+    today,
+    TODO_HORIZON_DAYS,
+    allTasks,
+    done,
+  )
+  const cappedTodo = Math.min(
+    todo,
+    Math.max(theoreticalMinimum + TODO_BUFFER_MIN, TODO_FLOOR_MIN),
+  )
+  const daysUntilAllDone = findMinimumDaysNeeded(
+    today,
+    allTasks,
+    done,
+    cappedTodo,
+  )
+  const minutesOnTargetDay = findMinutesOnTargetDay(
+    today,
+    allTasks,
+    daysUntilAllDone,
+  )
+
+  const hitTarget = done + lives >= cappedTodo
+  const streak = hitTarget ? streakBeforeToday + 1 : streakBeforeToday
+  const rolloverLives = hitTarget ? done + lives - cappedTodo : null
+
+  return {
+    result: {
+      done,
+      lives,
+      todo: cappedTodo,
+      streak,
+      streakIsActive: hitTarget,
+      theoreticalMinimum,
+      daysUntilAllDone,
+      minutesToReduceTomorrowDays: minutesOnTargetDay,
+    },
+    rolloverLives,
+    rolloverStreak: streak,
+  }
+}
+
+async function persistStreakRollover(
+  userId: string,
+  tomorrowKey: string,
+  streak: number,
+  lives: number,
+): Promise<void> {
+  await db
+    .insert(dailyProgress)
+    .values({ userId, date: tomorrowKey, streakBeforeToday: streak, lives })
+    .onConflictDoUpdate({
+      target: [dailyProgress.userId, dailyProgress.date],
+      set: { streakBeforeToday: streak, lives },
+    })
+}
+
+// --- public entry point -----------------------------------------------
+
 export async function getProgressToday(
   userId: string,
   tzOffsetMin: number,
@@ -171,90 +294,18 @@ export async function getProgressToday(
     new Date(today.getFullYear(), today.getMonth(), today.getDate() + 1),
   )
 
-  const completedToday = await db
-    .select()
-    .from(history)
-    .where(
-      and(
-        eq(history.userId, userId),
-        gte(history.completedAt, todayUtcStart),
-        lt(history.completedAt, tomorrowUtcStart),
-      ),
-    )
-
-  let done = 0
-  for (const row of completedToday) {
-    done += row.taskSnapshot.timeFrame ?? 0
-  }
-
-  const [todayProgress] = await db
-    .select()
-    .from(dailyProgress)
-    .where(
-      and(eq(dailyProgress.userId, userId), eq(dailyProgress.date, todayKey)),
-    )
-  const streakBeforeToday = todayProgress?.streakBeforeToday ?? 0
-  const lives = todayProgress?.lives ?? 0
-
-  const allTasks = await db
-    .select()
-    .from(tasks)
-    .where(eq(tasks.userId, userId))
-
-  const { todo, theoreticalMinimum } = calculateTodoForDays(
+  const inputs = await loadProgressInputs(
+    userId,
+    todayKey,
+    todayUtcStart,
+    tomorrowUtcStart,
+  )
+  const { result, rolloverLives, rolloverStreak } = computeProgress(
     today,
-    TODO_HORIZON_DAYS,
-    allTasks,
-    done,
+    inputs,
   )
-
-  const cappedTodo = Math.min(
-    todo,
-    Math.max(theoreticalMinimum + TODO_BUFFER_MIN, TODO_FLOOR_MIN),
-  )
-
-  const daysUntilAllDone = findMinimumDaysNeeded(
-    today,
-    allTasks,
-    done,
-    cappedTodo,
-  )
-
-  const minutesOnTargetDay = findMinutesOnTargetDay(
-    today,
-    allTasks,
-    daysUntilAllDone,
-  )
-
-  let streak = streakBeforeToday
-  let streakIsActive = false
-
-  if (done + lives >= cappedTodo) {
-    streak += 1
-    streakIsActive = true
-    const newLives = done + lives - cappedTodo
-    await db
-      .insert(dailyProgress)
-      .values({
-        userId,
-        date: tomorrowKey,
-        streakBeforeToday: streak,
-        lives: newLives,
-      })
-      .onConflictDoUpdate({
-        target: [dailyProgress.userId, dailyProgress.date],
-        set: { streakBeforeToday: streak, lives: newLives },
-      })
+  if (rolloverLives !== null) {
+    await persistStreakRollover(userId, tomorrowKey, rolloverStreak, rolloverLives)
   }
-
-  return {
-    done,
-    lives,
-    todo: cappedTodo,
-    streak,
-    streakIsActive,
-    theoreticalMinimum,
-    daysUntilAllDone,
-    minutesToReduceTomorrowDays: minutesOnTargetDay,
-  }
+  return result
 }
