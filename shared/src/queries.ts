@@ -7,6 +7,7 @@ import {
 
 import { useApi } from './api-client'
 import type { TaskInput } from './task-input'
+import type { Task } from './types'
 
 export const taskKeys = {
   all: ['tasks'] as const,
@@ -21,6 +22,40 @@ export const invalidateTaskCaches = (qc: QueryClient) => {
   qc.invalidateQueries({ queryKey: taskKeys.all })
   qc.invalidateQueries({ queryKey: progressTodayKey })
 }
+
+// Optimistic helpers ----------------------------------------------------
+// Each of complete/snooze/delete reads as "remove this task from the
+// active lists right now". Repeating tasks will reappear with a future
+// due date once the refetch lands (onSettled invalidates); snoozed/
+// completed/deleted tasks won't.
+
+type OptimisticSnapshot = {
+  prevTop: Task[] | undefined
+  prevList: Task[] | undefined
+}
+
+async function optimisticRemove(
+  qc: QueryClient,
+  id: string,
+): Promise<OptimisticSnapshot> {
+  await qc.cancelQueries({ queryKey: taskKeys.all })
+  const prevTop = qc.getQueryData<Task[]>(taskKeys.top)
+  const prevList = qc.getQueryData<Task[]>(taskKeys.list)
+  const remove = (xs: Task[] | undefined) =>
+    xs?.filter((t) => t.id !== id)
+  qc.setQueryData<Task[]>(taskKeys.top, remove)
+  qc.setQueryData<Task[]>(taskKeys.list, remove)
+  return { prevTop, prevList }
+}
+
+function rollback(qc: QueryClient, snap: OptimisticSnapshot | undefined) {
+  if (!snap) return
+  if (snap.prevTop !== undefined) qc.setQueryData(taskKeys.top, snap.prevTop)
+  if (snap.prevList !== undefined)
+    qc.setQueryData(taskKeys.list, snap.prevList)
+}
+
+// ----------------------------------------------------------------------
 
 export function useTopTasks() {
   const api = useApi()
@@ -87,6 +122,8 @@ export function useDeleteTask() {
   const qc = useQueryClient()
   return useMutation({
     mutationFn: (id: string) => api.tasks.delete(id),
+    onMutate: (id) => optimisticRemove(qc, id),
+    onError: (_e, _id, ctx) => rollback(qc, ctx),
     onSettled: () => invalidateTaskCaches(qc),
   })
 }
@@ -96,6 +133,8 @@ export function useCompleteTask() {
   const qc = useQueryClient()
   return useMutation({
     mutationFn: (id: string) => api.tasks.complete(id),
+    onMutate: (id) => optimisticRemove(qc, id),
+    onError: (_e, _id, ctx) => rollback(qc, ctx),
     onSettled: () => invalidateTaskCaches(qc),
   })
 }
@@ -106,6 +145,8 @@ export function useSnoozeTask() {
   return useMutation({
     mutationFn: (vars: { id: string; allSubtasks?: boolean }) =>
       api.tasks.snooze(vars.id, vars.allSubtasks ?? false),
+    onMutate: (vars) => optimisticRemove(qc, vars.id),
+    onError: (_e, _vars, ctx) => rollback(qc, ctx),
     onSettled: () => invalidateTaskCaches(qc),
   })
 }
