@@ -50,7 +50,7 @@ export type HistoryEntry = {
   id: string
   userId: string
   taskId: string | null
-  taskSnapshot: unknown
+  taskSnapshot: Task
   completedAt: Date
 }
 

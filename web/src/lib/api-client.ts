@@ -1,12 +1,5 @@
-import type {
-  ApiClient,
-  CompleteTaskResult,
-  DeleteTaskResult,
-  ProgressTodayResult,
-  SnoozeTaskResult,
-} from '@dtn/shared/api-client'
+import type { ApiClient } from '@dtn/shared/api-client'
 import { getTzOffsetMin } from '@dtn/shared/time'
-import type { HistoryEntry, Task } from '@dtn/shared/types'
 
 import {
   completeTask,
@@ -23,32 +16,29 @@ import {
   updateTask,
 } from '../server/tasks'
 
-// Server functions return values that include Date / unknown shapes;
-// TanStack Start narrows them to SerializationError stand-ins in this repo's
-// type setup. We cast at the boundary so the rest of the app sees the same
-// shapes mobile produces over REST.
 export const webApiClient: ApiClient = {
-  listTasks: () => getAllTasks() as Promise<Task[]>,
+  listTasks: () => getAllTasks(),
   listTopTasks: () =>
-    getTopTasks({ data: { tzOffsetMin: getTzOffsetMin() } }) as Promise<
-      Task[]
-    >,
-  getTask: (id) => getTask({ data: { id } }) as Promise<Task>,
-  createTask: (input) => createTask({ data: input }) as Promise<Task>,
-  updateTask: (id, input) =>
-    updateTask({ data: { id, ...input } }) as Promise<Task>,
-  deleteTask: (id) =>
-    deleteTask({ data: { id } }) as Promise<DeleteTaskResult>,
-  completeTask: (id) =>
-    completeTask({ data: { id } }) as Promise<CompleteTaskResult>,
+    getTopTasks({ data: { tzOffsetMin: getTzOffsetMin() } }),
+  getTask: async (id) => {
+    const t = await getTask({ data: { id } })
+    if (!t) throw new Error(`Task ${id} not found`)
+    return t
+  },
+  createTask: (input) => createTask({ data: input }),
+  updateTask: async (id, input) => {
+    const t = await updateTask({ data: { id, ...input } })
+    if (!t) throw new Error(`Task ${id} not found`)
+    return t
+  },
+  deleteTask: (id) => deleteTask({ data: { id } }),
+  completeTask: (id) => completeTask({ data: { id } }),
   snoozeTask: (id, allSubtasks = false) =>
-    snoozeTask({ data: { id, allSubtasks } }) as Promise<SnoozeTaskResult>,
+    snoozeTask({ data: { id, allSubtasks } }),
   getHistory: (date) =>
     getHistoryForDate({
       data: { date, tzOffsetMin: getTzOffsetMin() },
-    }) as Promise<HistoryEntry[]>,
+    }),
   getProgressToday: () =>
-    getProgressToday({
-      data: { tzOffsetMin: getTzOffsetMin() },
-    }) as Promise<ProgressTodayResult>,
+    getProgressToday({ data: { tzOffsetMin: getTzOffsetMin() } }),
 }

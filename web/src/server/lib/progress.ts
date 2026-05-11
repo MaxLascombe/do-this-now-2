@@ -180,8 +180,7 @@ export async function getProgressTodayAction(
 
   let done = 0
   for (const row of completedToday) {
-    const snap = row.taskSnapshot as Task
-    done += snap.timeFrame ?? 0
+    done += row.taskSnapshot.timeFrame ?? 0
   }
 
   const [todayProgress] = await db

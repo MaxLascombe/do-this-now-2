@@ -14,7 +14,6 @@ import { Progress } from '../components/Progress'
 import { TaskBox } from '../components/TaskBox'
 import useKeyAction, { type KeyAction } from '../hooks/useKeyAction'
 import { dateString } from '../lib/helpers'
-import type { Task } from '../db/schema'
 
 export const Route = createFileRoute('/history')({
   component: History,
@@ -69,16 +68,13 @@ function History() {
           <Loading />
         ) : (
           <div className="mt-2 flex flex-col gap-1">
-            {(data ?? []).map((row) => {
-              const t = row.taskSnapshot as Task
-              return (
-                <TaskBox
-                  key={row.id}
-                  isSelected={false}
-                  task={t}
-                />
-              )
-            })}
+            {(data ?? []).map((row) => (
+              <TaskBox
+                key={row.id}
+                isSelected={false}
+                task={row.taskSnapshot}
+              />
+            ))}
             {(data ?? []).length === 0 && (
               <div className="text-gray-400">Nothing completed.</div>
             )}

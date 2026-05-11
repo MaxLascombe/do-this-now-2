@@ -7,7 +7,6 @@ import { SafeAreaView } from 'react-native-safe-area-context'
 import { Loading } from '../../components/Loading'
 import { TaskBox } from '../../components/TaskBox'
 import { dateString } from '@dtn/shared/helpers'
-import type { Task } from '@dtn/shared/types'
 import { useHistory } from '@dtn/shared/queries'
 
 const DAY_MS = 24 * 60 * 60 * 1000
@@ -93,7 +92,7 @@ export default function History() {
               </Text>
             ) : (
               (data ?? []).map((row) => (
-                <TaskBox key={row.id} task={row.taskSnapshot as Task} />
+                <TaskBox key={row.id} task={row.taskSnapshot} />
               ))
             )}
           </ScrollView>

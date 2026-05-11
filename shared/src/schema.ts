@@ -27,7 +27,7 @@ export const repeatUnitEnum = pgEnum('repeat_unit', [
   'year',
 ])
 
-import type { SubTask } from './types'
+import type { SubTask, Task } from './types'
 export type {
   DailyProgress,
   HistoryEntry,
@@ -70,7 +70,7 @@ export const history = pgTable('history', {
   id: uuid('id').primaryKey().defaultRandom(),
   userId: text('user_id').notNull(),
   taskId: uuid('task_id'),
-  taskSnapshot: jsonb('task_snapshot').notNull(),
+  taskSnapshot: jsonb('task_snapshot').$type<Task>().notNull(),
   completedAt: timestamp('completed_at', { withTimezone: true })
     .notNull()
     .defaultNow(),
