@@ -5,11 +5,16 @@ import {
   faRepeat,
 } from '@fortawesome/free-solid-svg-icons'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
+import {
+  Dialog,
+  DialogPanel,
+  DialogTitle,
+} from '@headlessui/react'
 import { format } from 'date-fns'
 import {
-  type FocusEvent,
-  type KeyboardEvent,
   type MouseEvent,
+  type ReactNode,
+  useEffect,
   useState,
 } from 'react'
 
@@ -79,8 +84,7 @@ export const DateTag = ({ due }: { due: string }) => {
   return <Tag text={text} icon={faCalendar} />
 }
 
-// Editable date tag — clicking turns the tag into an inline date input.
-// Enter or blur commits, Esc cancels.
+// Editable date tag — clicking opens a small modal with a date input.
 export const EditableDateTag = ({
   due,
   onChange,
@@ -88,56 +92,58 @@ export const EditableDateTag = ({
   due: string
   onChange: (next: string) => void
 }) => {
-  const [editing, setEditing] = useState(false)
-  const text = dueLabel(due) ?? 'Set date'
+  const [open, setOpen] = useState(false)
+  const [draft, setDraft] = useState(due)
 
-  if (editing) {
-    const inputValue = due === 'No Due Date' ? '' : isoFromDueString(due)
-    const commit = (raw: string) => {
-      setEditing(false)
-      if (!raw) return
-      const [y, m, d] = raw.split('-').map((x) => parseInt(x))
-      const next = `${y}-${m}-${d}`
-      if (next !== due) onChange(next)
-    }
-    return (
-      <span
-        className="inline-flex items-center gap-1 whitespace-nowrap text-xs font-light"
-        onClick={stop}
-        onMouseDown={stop}
-      >
-        <FontAwesomeIcon icon={faCalendar} className="block h-3" />
-        <input
-          type="date"
-          defaultValue={inputValue}
-          autoFocus
-          onBlur={(e) => commit(e.currentTarget.value)}
-          onKeyDown={(e) => {
-            if (e.key === 'Enter') {
-              e.preventDefault()
-              commit(e.currentTarget.value)
-            } else if (e.key === 'Escape') {
-              e.preventDefault()
-              setEditing(false)
-            }
-          }}
-          className="bg-transparent text-xs text-white outline-none [color-scheme:dark]"
-        />
-      </span>
-    )
+  useEffect(() => {
+    if (open) setDraft(due)
+  }, [open, due])
+
+  const text = dueLabel(due) ?? 'Set date'
+  const inputValue = draft === 'No Due Date' ? '' : isoFromDueString(draft)
+
+  const save = () => {
+    if (draft && draft !== 'No Due Date') onChange(draft)
+    setOpen(false)
   }
 
   return (
-    <button
-      type="button"
-      onClick={(e) => {
-        stop(e)
-        setEditing(true)
-      }}
-      className={triggerClasses}
-    >
-      <Tag text={text} icon={faCalendar} />
-    </button>
+    <>
+      <button
+        type="button"
+        onClick={(e) => {
+          stop(e)
+          setOpen(true)
+        }}
+        className={triggerClasses}
+      >
+        <Tag text={text} icon={faCalendar} />
+      </button>
+      <EditModal
+        open={open}
+        title="Due date"
+        onClose={() => setOpen(false)}
+        onSave={save}
+      >
+        <input
+          type="date"
+          value={inputValue}
+          autoFocus
+          onChange={(e) => {
+            if (!e.target.value) return
+            const [y, m, d] = e.target.value.split('-').map((x) => parseInt(x))
+            setDraft(`${y}-${m}-${d}`)
+          }}
+          onKeyDown={(e) => {
+            if (e.key === 'Enter') {
+              e.preventDefault()
+              save()
+            }
+          }}
+          className="w-full rounded border border-gray-700 bg-black px-3 py-2 text-sm text-white outline-none [color-scheme:dark] focus:border-gray-500"
+        />
+      </EditModal>
+    </>
   )
 }
 
@@ -153,9 +159,8 @@ export const TimeFrame = ({ timeFrame }: { timeFrame?: number }) => {
   return <Tag icon={faClock} text={minutesToHours(timeFrame)} />
 }
 
-// Editable time-frame tag — clicking turns the tag into two inline number
-// inputs ([hh]h [mm]m). Tab between fields stays in edit mode; clicking out
-// or pressing Enter commits, Esc cancels.
+// Editable time-frame tag — clicking opens a small modal with hour/min
+// inputs.
 export const EditableTimeFrame = ({
   timeFrame,
   onChange,
@@ -163,116 +168,157 @@ export const EditableTimeFrame = ({
   timeFrame: number
   onChange: (next: number) => void
 }) => {
-  const [editing, setEditing] = useState(false)
+  const [open, setOpen] = useState(false)
   const [hours, setHours] = useState(Math.floor(timeFrame / 60))
   const [mins, setMins] = useState(timeFrame % 60)
 
+  useEffect(() => {
+    if (open) {
+      setHours(Math.floor(timeFrame / 60))
+      setMins(timeFrame % 60)
+    }
+  }, [open, timeFrame])
+
   const text = timeFrame ? minutesToHours(timeFrame) : 'Set time'
 
-  const startEdit = () => {
-    setHours(Math.floor(timeFrame / 60))
-    setMins(timeFrame % 60)
-    setEditing(true)
-  }
-
-  const commit = () => {
-    setEditing(false)
-    const next = Math.max(0, hours * 60 + mins)
-    if (next !== timeFrame) onChange(next)
-  }
-
-  const cancel = () => setEditing(false)
-
-  const onContainerBlur = (e: FocusEvent<HTMLSpanElement>) => {
-    // Stay in edit mode if focus moved to a sibling within the editor.
-    if (e.currentTarget.contains(e.relatedTarget as Node | null)) return
-    commit()
-  }
-
-  const onKey = (e: KeyboardEvent<HTMLInputElement>) => {
-    if (e.key === 'Enter') {
-      e.preventDefault()
-      commit()
-    } else if (e.key === 'Escape') {
-      e.preventDefault()
-      cancel()
-    }
-  }
-
-  if (editing) {
-    return (
-      <span
-        className="inline-flex items-center gap-1 whitespace-nowrap text-xs font-light"
-        onClick={stop}
-        onMouseDown={stop}
-        onBlur={onContainerBlur}
-      >
-        <FontAwesomeIcon icon={faClock} className="block h-3" />
-        <InlineNumber
-          value={hours}
-          onChange={setHours}
-          min={0}
-          max={99}
-          autoFocus
-          onKeyDown={onKey}
-        />
-        <span className="text-gray-500">h</span>
-        <InlineNumber
-          value={mins}
-          onChange={setMins}
-          min={0}
-          max={59}
-          onKeyDown={onKey}
-        />
-        <span className="text-gray-500">m</span>
-      </span>
-    )
+  const save = () => {
+    onChange(Math.max(0, hours * 60 + mins))
+    setOpen(false)
   }
 
   return (
-    <button
-      type="button"
-      onClick={(e) => {
-        stop(e)
-        startEdit()
-      }}
-      className={triggerClasses}
-    >
-      <Tag text={text} icon={faClock} />
-    </button>
+    <>
+      <button
+        type="button"
+        onClick={(e) => {
+          stop(e)
+          setOpen(true)
+        }}
+        className={triggerClasses}
+      >
+        <Tag text={text} icon={faClock} />
+      </button>
+      <EditModal
+        open={open}
+        title="Time frame"
+        onClose={() => setOpen(false)}
+        onSave={save}
+      >
+        <div className="flex items-center justify-center gap-3 py-2">
+          <NumberField
+            value={hours}
+            onChange={setHours}
+            min={0}
+            max={99}
+            label="hours"
+            autoFocus
+            onEnter={save}
+          />
+          <NumberField
+            value={mins}
+            onChange={setMins}
+            min={0}
+            max={59}
+            label="minutes"
+            onEnter={save}
+          />
+        </div>
+      </EditModal>
+    </>
   )
 }
 
-function InlineNumber({
+function NumberField({
   value,
   onChange,
   min,
   max,
+  label,
   autoFocus,
-  onKeyDown,
+  onEnter,
 }: {
   value: number
   onChange: (n: number) => void
   min: number
   max: number
+  label: string
   autoFocus?: boolean
-  onKeyDown?: (e: KeyboardEvent<HTMLInputElement>) => void
+  onEnter?: () => void
 }) {
   return (
-    <input
-      type="number"
-      value={value}
-      min={min}
-      max={max}
-      autoFocus={autoFocus}
-      onFocus={(e) => e.target.select()}
-      onKeyDown={onKeyDown}
-      onChange={(e) => {
-        const n = parseInt(e.target.value)
-        onChange(isNaN(n) ? 0 : Math.max(min, Math.min(max, n)))
-      }}
-      className="w-7 bg-transparent text-right text-xs text-white outline-none [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
-    />
+    <label className="flex flex-col items-center gap-1">
+      <input
+        type="number"
+        value={value}
+        min={min}
+        max={max}
+        autoFocus={autoFocus}
+        onFocus={(e) => e.target.select()}
+        onKeyDown={(e) => {
+          if (e.key === 'Enter' && onEnter) {
+            e.preventDefault()
+            onEnter()
+          }
+        }}
+        onChange={(e) => {
+          const n = parseInt(e.target.value)
+          onChange(isNaN(n) ? 0 : Math.max(min, Math.min(max, n)))
+        }}
+        className="w-20 rounded border border-gray-700 bg-black py-2 text-center text-lg text-white outline-none focus:border-gray-500"
+      />
+      <span className="text-xs text-gray-500">{label}</span>
+    </label>
+  )
+}
+
+function EditModal({
+  open,
+  title,
+  onClose,
+  onSave,
+  children,
+}: {
+  open: boolean
+  title: string
+  onClose: () => void
+  onSave: () => void
+  children: ReactNode
+}) {
+  return (
+    <Dialog open={open} onClose={onClose} className="relative z-50">
+      <div
+        className="fixed inset-0 bg-black/60"
+        aria-hidden="true"
+        onClick={stop}
+      />
+      <div
+        className="fixed inset-0 flex items-center justify-center p-4"
+        onClick={stop}
+      >
+        <DialogPanel className="w-full max-w-xs rounded-lg border border-gray-700 bg-gray-950 p-4 shadow-2xl">
+          <DialogTitle className="mb-3 text-sm font-medium text-white">
+            {title}
+          </DialogTitle>
+          <div>{children}</div>
+          <div className="mt-4 flex justify-end gap-2">
+            <button
+              type="button"
+              onClick={onClose}
+              className="rounded px-3 py-1.5 text-xs text-gray-400 hover:text-white"
+            >
+              Cancel
+            </button>
+            <button
+              type="button"
+              onClick={onSave}
+              className="rounded bg-white px-3 py-1.5 text-xs font-medium text-black hover:bg-gray-200"
+            >
+              Save
+            </button>
+          </div>
+        </DialogPanel>
+      </div>
+    </Dialog>
   )
 }
 
