@@ -2,6 +2,7 @@ import { format } from 'date-fns'
 
 import { newSafeDate } from './helpers'
 import type { RepeatOption, RepeatUnit, RepeatWeekdays } from './task-input'
+import { minutesToHours } from './time'
 
 const WEEKDAY_SHORT = ['su', 'mo', 'tu', 'we', 'th', 'fr', 'sa'] as const
 
@@ -41,6 +42,31 @@ export function formatRepeat(
   }
 
   return repeat.toLowerCase()
+}
+
+/**
+ * Status text for the progress bar:
+ *   - before 8:30am with nothing done → 'Ahead of schedule' (the workday
+ *     hasn't started; "on schedule" misreads as neutral when it should be
+ *     positive)
+ *   - done > shouldBeDone → 'Xh Ym ahead of schedule'
+ *   - done < shouldBeDone → 'Xh Ym behind schedule'
+ *   - exact tie during the workday → 'On schedule'
+ */
+export function formatScheduleStatus(opts: {
+  done: number
+  shouldBeDone: number
+  isBeforeWorkday: boolean
+  /** Drop the trailing " of schedule" for tight spaces (e.g. a status pill). */
+  short?: boolean
+}): string {
+  const { done, shouldBeDone, isBeforeWorkday, short } = opts
+  const diff = done - shouldBeDone
+  const suffix = short ? '' : ' of schedule'
+  if (isBeforeWorkday && diff === 0) return short ? 'Ahead' : 'Ahead of schedule'
+  if (diff > 0) return `${minutesToHours(Math.floor(diff))} ahead${suffix}`
+  if (diff < 0) return `${minutesToHours(Math.ceil(-diff))} behind${suffix}`
+  return 'On schedule'
 }
 
 /**

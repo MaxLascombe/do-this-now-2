@@ -11,13 +11,14 @@ import { useState } from 'react'
 import { Modal, Pressable, Text, View } from 'react-native'
 import { SafeAreaView } from 'react-native-safe-area-context'
 
+import { formatScheduleStatus } from '@dtn/shared/format'
+import { useProgressToday } from '@dtn/shared/queries'
 import {
   MINUTES_IN_DAY,
   START_OF_DAY_MINUTES,
   minutesToHours,
 } from '@dtn/shared/time'
 import { useDate } from '../hooks/useDate'
-import { useProgressToday } from '@dtn/shared/queries'
 import { Tag } from './Tags'
 
 export function Progress() {
@@ -48,17 +49,17 @@ export function Progress() {
     ),
   )
   const shouldBeDone = maxTodo * percentageOfDay
-  const diff = done - shouldBeDone
+  const isBeforeWorkday = timeOfDay < START_OF_DAY_MINUTES
   const livesUsed = Math.min(lives, Math.max(0, todo - done))
   const donePct = Math.min((done / todo) * 100, 100)
   const usedPct = Math.min(((done + livesUsed) / todo) * 100, 100)
 
-  const summary =
-    diff > 0
-      ? `${minutesToHours(Math.floor(diff))} ahead`
-      : diff < 0
-        ? `${minutesToHours(Math.ceil(-diff))} behind`
-        : 'On schedule'
+  const summary = formatScheduleStatus({
+    done,
+    shouldBeDone,
+    isBeforeWorkday,
+    short: true,
+  })
 
   return (
     <>
@@ -128,7 +129,12 @@ function ProgressDetail({
     ),
   )
   const shouldBeDone = maxTodo * percentageOfDay
-  const diff = done - shouldBeDone
+  const isBeforeWorkday = timeOfDay < START_OF_DAY_MINUTES
+  const statusText = formatScheduleStatus({
+    done,
+    shouldBeDone,
+    isBeforeWorkday,
+  })
 
   const livesUsed = Math.min(lives, Math.max(0, todo - done))
   const livesLeft = lives - livesUsed
@@ -151,13 +157,7 @@ function ProgressDetail({
       </View>
 
       <View className="px-4 py-6">
-        <Text className="mb-2 text-center text-sm text-white">
-          {diff > 0
-            ? `${minutesToHours(Math.floor(diff))} ahead of schedule`
-            : diff < 0
-              ? `${minutesToHours(Math.ceil(-diff))} behind schedule`
-              : 'On schedule'}
-        </Text>
+        <Text className="mb-2 text-center text-sm text-white">{statusText}</Text>
 
         <View className="mt-3 h-3 overflow-hidden rounded-full border border-gray-700">
           <View

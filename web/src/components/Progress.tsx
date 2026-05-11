@@ -4,6 +4,7 @@ import {
   faHeart,
   faStar,
 } from '@fortawesome/free-solid-svg-icons'
+import { formatScheduleStatus } from '@dtn/shared/format'
 import { useProgressToday } from '@dtn/shared/queries'
 import {
   MINUTES_IN_DAY,
@@ -42,7 +43,12 @@ export const Progress = () => {
     ),
   )
   const shouldBeDone = maxTodo * percentageOfDay
-  const diff = done - shouldBeDone
+  const isBeforeWorkday = timeOfDay < START_OF_DAY_MINUTES
+  const statusText = formatScheduleStatus({
+    done,
+    shouldBeDone,
+    isBeforeWorkday,
+  })
 
   const livesUsed = Math.min(lives, Math.max(0, todo - done))
   const livesLeft = lives - livesUsed
@@ -58,13 +64,7 @@ export const Progress = () => {
     <div className="mx-5 flex justify-center">
       <div className="max-w-screen flex flex-col items-center gap-1 text-xs font-light">
         <div className="flex w-full justify-center gap-5 text-white">
-          {diff > 0 ? (
-            <>{minutesToHours(Math.floor(diff))} ahead of schedule</>
-          ) : diff < 0 ? (
-            <>{minutesToHours(Math.ceil(-diff))} behind schedule</>
-          ) : (
-            <>On schedule</>
-          )}
+          {statusText}
         </div>
 
         <div className="mx-5 flex flex-wrap justify-center gap-5 gap-y-1 text-white">
