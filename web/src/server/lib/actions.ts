@@ -20,7 +20,7 @@ async function loadTask(userId: string, id: string): Promise<Task | null> {
   return rows[0] ?? null
 }
 
-export async function completeTaskAction(
+export async function completeTask(
   userId: string,
   id: string,
 ): Promise<{ ok: true; advanced: boolean }> {
@@ -84,7 +84,7 @@ export async function completeTaskAction(
   return { ok: true, advanced: true }
 }
 
-export async function snoozeTaskAction(
+export async function snoozeTask(
   userId: string,
   id: string,
   allSubtasks: boolean = false,
@@ -124,7 +124,7 @@ export async function snoozeTaskAction(
   return { ok: true, scope: 'task' }
 }
 
-export async function getHistoryForDateAction(
+export async function getHistory(
   userId: string,
   date: string,
   tzOffsetMin: number,

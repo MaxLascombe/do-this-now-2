@@ -2,7 +2,7 @@ import { auth } from '@clerk/tanstack-react-start/server'
 import { createFileRoute } from '@tanstack/react-router'
 import { json } from '@tanstack/react-start'
 
-import { getHistoryForDateAction } from '../../server/lib/actions'
+import { getHistory } from '../../server/lib/actions'
 
 export const Route = createFileRoute('/api/history/$date')({
   server: {
@@ -18,7 +18,7 @@ export const Route = createFileRoute('/api/history/$date')({
         if (!userId) return json({ error: 'unauthenticated' }, { status: 401 })
         const url = new URL(request.url)
         const tz = parseInt(url.searchParams.get('tzOffsetMin') ?? '0', 10)
-        return json(await getHistoryForDateAction(userId, params.date, tz))
+        return json(await getHistory(userId, params.date, tz))
       },
     },
   },

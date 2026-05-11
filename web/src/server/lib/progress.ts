@@ -157,7 +157,7 @@ function findMinutesOnTargetDay(
   return minutes
 }
 
-export async function getProgressTodayAction(
+export async function getProgressToday(
   userId: string,
   tzOffsetMin: number,
 ): Promise<ProgressTodayResult> {

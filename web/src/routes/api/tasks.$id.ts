@@ -3,10 +3,10 @@ import { createFileRoute } from '@tanstack/react-router'
 import { json } from '@tanstack/react-start'
 
 import {
-  deleteTaskRow,
-  getTaskById,
+  deleteTask,
+  getTask,
   taskInputSchema,
-  updateTaskRow,
+  updateTask,
 } from '../../server/lib/tasks'
 
 export const Route = createFileRoute('/api/tasks/$id')({
@@ -15,7 +15,7 @@ export const Route = createFileRoute('/api/tasks/$id')({
       GET: async ({ params }: { params: { id: string } }) => {
         const { userId } = await auth()
         if (!userId) return json({ error: 'unauthenticated' }, { status: 401 })
-        const task = await getTaskById(userId, params.id)
+        const task = await getTask(userId, params.id)
         if (!task) return json({ error: 'not found' }, { status: 404 })
         return json(task)
       },
@@ -35,14 +35,14 @@ export const Route = createFileRoute('/api/tasks/$id')({
             { error: 'invalid', details: parsed.error.flatten() },
             { status: 400 },
           )
-        const updated = await updateTaskRow(userId, params.id, parsed.data)
+        const updated = await updateTask(userId, params.id, parsed.data)
         if (!updated) return json({ error: 'not found' }, { status: 404 })
         return json(updated)
       },
       DELETE: async ({ params }: { params: { id: string } }) => {
         const { userId } = await auth()
         if (!userId) return json({ error: 'unauthenticated' }, { status: 401 })
-        await deleteTaskRow(userId, params.id)
+        await deleteTask(userId, params.id)
         return json({ ok: true })
       },
     },

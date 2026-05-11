@@ -2,7 +2,7 @@ import { auth } from '@clerk/tanstack-react-start/server'
 import { createFileRoute } from '@tanstack/react-router'
 import { json } from '@tanstack/react-start'
 
-import { getProgressTodayAction } from '../../server/lib/progress'
+import { getProgressToday } from '../../server/lib/progress'
 
 export const Route = createFileRoute('/api/progress/today')({
   server: {
@@ -12,7 +12,7 @@ export const Route = createFileRoute('/api/progress/today')({
         if (!userId) return json({ error: 'unauthenticated' }, { status: 401 })
         const url = new URL(request.url)
         const tz = parseInt(url.searchParams.get('tzOffsetMin') ?? '0', 10)
-        return json(await getProgressTodayAction(userId, tz))
+        return json(await getProgressToday(userId, tz))
       },
     },
   },

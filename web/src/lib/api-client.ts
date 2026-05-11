@@ -1,44 +1,33 @@
 import type { ApiClient } from '@dtn/shared/api-client'
 import { getTzOffsetMin } from '@dtn/shared/time'
 
-import {
-  completeTask,
-  getHistoryForDate,
-  snoozeTask,
-} from '../server/actions'
-import { getProgressToday } from '../server/progress'
-import {
-  createTask,
-  deleteTask,
-  getAllTasks,
-  getTask,
-  getTopTasks,
-  updateTask,
-} from '../server/tasks'
+import * as actionFns from '../server/actions'
+import * as progressFns from '../server/progress'
+import * as taskFns from '../server/tasks'
 
 export const webApiClient: ApiClient = {
-  listTasks: () => getAllTasks(),
+  listTasks: () => taskFns.listTasks(),
   listTopTasks: () =>
-    getTopTasks({ data: { tzOffsetMin: getTzOffsetMin() } }),
+    taskFns.listTopTasks({ data: { tzOffsetMin: getTzOffsetMin() } }),
   getTask: async (id) => {
-    const t = await getTask({ data: { id } })
+    const t = await taskFns.getTask({ data: { id } })
     if (!t) throw new Error(`Task ${id} not found`)
     return t
   },
-  createTask: (input) => createTask({ data: input }),
+  createTask: (input) => taskFns.createTask({ data: input }),
   updateTask: async (id, input) => {
-    const t = await updateTask({ data: { id, ...input } })
+    const t = await taskFns.updateTask({ data: { id, ...input } })
     if (!t) throw new Error(`Task ${id} not found`)
     return t
   },
-  deleteTask: (id) => deleteTask({ data: { id } }),
-  completeTask: (id) => completeTask({ data: { id } }),
+  deleteTask: (id) => taskFns.deleteTask({ data: { id } }),
+  completeTask: (id) => actionFns.completeTask({ data: { id } }),
   snoozeTask: (id, allSubtasks = false) =>
-    snoozeTask({ data: { id, allSubtasks } }),
+    actionFns.snoozeTask({ data: { id, allSubtasks } }),
   getHistory: (date) =>
-    getHistoryForDate({
+    actionFns.getHistory({
       data: { date, tzOffsetMin: getTzOffsetMin() },
     }),
   getProgressToday: () =>
-    getProgressToday({ data: { tzOffsetMin: getTzOffsetMin() } }),
+    progressFns.getProgressToday({ data: { tzOffsetMin: getTzOffsetMin() } }),
 }

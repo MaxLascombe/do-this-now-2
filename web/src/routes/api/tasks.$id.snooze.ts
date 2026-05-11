@@ -2,7 +2,7 @@ import { auth } from '@clerk/tanstack-react-start/server'
 import { createFileRoute } from '@tanstack/react-router'
 import { json } from '@tanstack/react-start'
 
-import { snoozeTaskAction } from '../../server/lib/actions'
+import { snoozeTask } from '../../server/lib/actions'
 
 export const Route = createFileRoute('/api/tasks/$id/snooze')({
   server: {
@@ -23,7 +23,7 @@ export const Route = createFileRoute('/api/tasks/$id/snooze')({
         } catch {
           // no body, use default
         }
-        return json(await snoozeTaskAction(userId, params.id, allSubtasks))
+        return json(await snoozeTask(userId, params.id, allSubtasks))
       },
     },
   },

@@ -29,7 +29,7 @@ export async function listTopTasks(
   return all
 }
 
-export async function getTaskById(
+export async function getTask(
   userId: string,
   id: string,
 ): Promise<Task | null> {
@@ -41,7 +41,7 @@ export async function getTaskById(
   return rows[0] ?? null
 }
 
-export async function createTaskRow(
+export async function createTask(
   userId: string,
   input: TaskInput,
 ): Promise<Task> {
@@ -52,7 +52,7 @@ export async function createTaskRow(
   return row
 }
 
-export async function updateTaskRow(
+export async function updateTask(
   userId: string,
   id: string,
   input: TaskInput,
@@ -65,6 +65,6 @@ export async function updateTaskRow(
   return row ?? null
 }
 
-export async function deleteTaskRow(userId: string, id: string): Promise<void> {
+export async function deleteTask(userId: string, id: string): Promise<void> {
   await db.delete(tasks).where(and(eq(tasks.userId, userId), eq(tasks.id, id)))
 }

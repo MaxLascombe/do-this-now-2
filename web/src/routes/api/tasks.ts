@@ -3,7 +3,7 @@ import { createFileRoute } from '@tanstack/react-router'
 import { json } from '@tanstack/react-start'
 
 import {
-  createTaskRow,
+  createTask,
   listTasks,
   taskInputSchema,
 } from '../../server/lib/tasks'
@@ -29,7 +29,7 @@ export const Route = createFileRoute('/api/tasks')({
         const parsed = taskInputSchema.safeParse(body)
         if (!parsed.success)
           return json({ error: 'invalid', details: parsed.error.flatten() }, { status: 400 })
-        return json(await createTaskRow(userId, parsed.data))
+        return json(await createTask(userId, parsed.data))
       },
     },
   },
