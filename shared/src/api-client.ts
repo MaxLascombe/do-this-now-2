@@ -8,6 +8,29 @@ import {
 import type { HistoryEntry, Task } from './types'
 import type { TaskInput } from './task-input'
 
+// Structured error thrown by both web and mobile API adapters when the
+// server returns a non-2xx. `code` matches the REST envelope shape from
+// web/src/server/lib/http.ts (`'unauthenticated' | 'not_found' | 'invalid'`
+// | future values). Consumers can branch on `err.code` instead of parsing
+// a stringified message.
+export class ApiError extends Error {
+  code: string
+  status: number
+  details?: unknown
+  constructor(opts: {
+    code: string
+    status: number
+    message?: string
+    details?: unknown
+  }) {
+    super(opts.message ?? opts.code)
+    this.name = 'ApiError'
+    this.code = opts.code
+    this.status = opts.status
+    this.details = opts.details
+  }
+}
+
 export type ProgressTodayResult = {
   done: number
   lives: number

@@ -1,5 +1,10 @@
 import { useAuth } from '@clerk/clerk-expo'
-import { ApiProvider, type ApiClient } from '@dtn/shared/api-client'
+import {
+  ApiError,
+  ApiProvider,
+  type ApiClient,
+} from '@dtn/shared/api-client'
+import { getTzOffsetMin } from '@dtn/shared/time'
 import type { HistoryEntry, Task } from '@dtn/shared/types'
 import { type ReactNode, useMemo } from 'react'
 
@@ -22,15 +27,29 @@ async function jsonFetch<T>(
       // Send the client's local TZ on every request so the server can bracket
       // "today" / day boundaries correctly without each route accepting it as
       // a separate parameter.
-      'X-Tz-Offset': String(new Date().getTimezoneOffset()),
+      'X-Tz-Offset': String(getTzOffsetMin()),
       ...(token ? { Authorization: `Bearer ${token}` } : {}),
       ...(init.headers ?? {}),
     },
     body: init.body !== undefined ? JSON.stringify(init.body) : undefined,
   })
   if (!res.ok) {
+    // Server uses the uniform { code, message?, details? } envelope. Parse
+    // it back into a typed ApiError so consumers can branch on err.code.
+    // Fall back to a generic 'http_error' if the body wasn't JSON.
     const text = await res.text()
-    throw new Error(`${res.status} ${res.statusText}: ${text}`)
+    let body: { code?: string; message?: string; details?: unknown } | null = null
+    try {
+      body = text.length > 0 ? JSON.parse(text) : null
+    } catch {
+      // not JSON; keep body null
+    }
+    throw new ApiError({
+      code: body?.code ?? 'http_error',
+      status: res.status,
+      message: body?.message ?? res.statusText,
+      details: body?.details,
+    })
   }
   return res.json() as Promise<T>
 }
