@@ -10,5 +10,12 @@
     "web:build": "pnpm --filter web build",
     "mobile:start": "pnpm --filter mobile start",
     "mobile:ios": "pnpm --filter mobile ios"
+  },
+  "pnpm": {
+    "onlyBuiltDependencies": [
+      "@clerk/shared",
+      "esbuild",
+      "unrs-resolver"
+    ]
   }
 }

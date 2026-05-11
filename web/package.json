@@ -1,5 +1,5 @@
 {
-  "name": "do-this-now-2",
+  "name": "web",
   "private": true,
   "type": "module",
   "packageManager": "pnpm@9.15.9",
@@ -70,12 +70,5 @@
     "vite": "^7.1.7",
     "vitest": "^3.0.5",
     "web-vitals": "^5.1.0"
-  },
-  "pnpm": {
-    "onlyBuiltDependencies": [
-      "@clerk/shared",
-      "esbuild",
-      "unrs-resolver"
-    ]
   }
 }
