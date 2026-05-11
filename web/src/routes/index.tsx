@@ -26,7 +26,7 @@ import { Progress } from '../components/Progress'
 import { TaskBox } from '../components/TaskBox'
 import useDing from '../hooks/useDing'
 import useKeyAction, { type KeyAction } from '../hooks/useKeyAction'
-import { isSnoozed } from '../lib/task-sorting'
+import { isSnoozed } from '@dtn/shared/task-sorting'
 
 export const Route = createFileRoute('/')({
   component: Home,

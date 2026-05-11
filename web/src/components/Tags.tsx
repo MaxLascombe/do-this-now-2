@@ -5,10 +5,9 @@ import {
   faRepeat,
 } from '@fortawesome/free-solid-svg-icons'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
+import { newSafeDate } from '@dtn/shared/helpers'
+import { minutesToHours } from '@dtn/shared/time'
 import { format } from 'date-fns'
-
-import { newSafeDate } from '../lib/helpers'
-import { minutesToHours } from '../lib/time'
 
 export const Tag = ({
   icon,

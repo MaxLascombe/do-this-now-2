@@ -5,9 +5,9 @@ import {
   faStar,
 } from '@fortawesome/free-solid-svg-icons'
 import { useProgressToday } from '@dtn/shared/queries'
+import { minutesToHours } from '@dtn/shared/time'
 
 import { useDate } from '../hooks/useDate'
-import { minutesToHours } from '../lib/time'
 import { Tag } from './Tags'
 
 const START_OF_DAY = 8 * 60 + 30 // 8:30 in minutes

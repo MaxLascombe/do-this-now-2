@@ -23,8 +23,8 @@ import { Progress } from '../components/Progress'
 import { TaskBox } from '../components/TaskBox'
 import useDing from '../hooks/useDing'
 import useKeyAction, { type KeyAction } from '../hooks/useKeyAction'
-import { newSafeDate } from '../lib/helpers'
-import { sortTasks } from '../lib/task-sorting'
+import { newSafeDate } from '@dtn/shared/helpers'
+import { sortTasks } from '@dtn/shared/task-sorting'
 
 export const Route = createFileRoute('/tasks/')({
   component: TasksList,

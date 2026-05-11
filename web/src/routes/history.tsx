@@ -13,7 +13,7 @@ import { Loading } from '../components/Loading'
 import { Progress } from '../components/Progress'
 import { TaskBox } from '../components/TaskBox'
 import useKeyAction, { type KeyAction } from '../hooks/useKeyAction'
-import { dateString } from '../lib/helpers'
+import { dateString } from '@dtn/shared/helpers'
 
 export const Route = createFileRoute('/history')({
   component: History,
