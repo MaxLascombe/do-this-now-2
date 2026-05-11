@@ -44,7 +44,6 @@ function calculateTodoForDays(
 
   for (const task of allTasks) {
     const time = task.timeFrame
-    if (task.due === 'No Due Date') continue
     let due: Date | undefined = newSafeDate(task.due)
 
     if (task.repeat !== 'No Repeat') {
@@ -118,7 +117,6 @@ function findMinutesOnTargetDay(
   let minutes = 0
 
   for (const task of allTasks) {
-    if (task.due === 'No Due Date') continue
     const time = task.timeFrame
     const due = newSafeDate(task.due)
 

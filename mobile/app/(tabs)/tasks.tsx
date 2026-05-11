@@ -32,12 +32,8 @@ export default function TasksList() {
     sort === 'CHRON' ? [...(allTasks.data ?? [])] : [...(topTasks.data ?? [])]
 
   if (sort === 'CHRON') {
-    tasks.sort((a, b) =>
-      a.due === 'No Due Date'
-        ? -1
-        : b.due === 'No Due Date'
-          ? 1
-          : newSafeDate(a.due).getTime() - newSafeDate(b.due).getTime(),
+    tasks.sort(
+      (a, b) => newSafeDate(a.due).getTime() - newSafeDate(b.due).getTime(),
     )
   } else {
     const today = new Date(
@@ -88,17 +84,12 @@ export default function TasksList() {
   if (sort === 'CHRON') {
     const groups: Record<string, typeof tasks> = {}
     for (const task of tasks) {
-      const dateKey =
-        task.due === 'No Due Date'
-          ? 'No Due Date'
-          : formatGroupDate(newSafeDate(task.due))
+      const dateKey = formatGroupDate(newSafeDate(task.due))
       if (!groups[dateKey]) groups[dateKey] = []
       groups[dateKey].push(task)
     }
     for (const [dateLabel, dateTasks] of Object.entries(groups)) {
-      const isPastDue =
-        dateTasks[0].due !== 'No Due Date' &&
-        newSafeDate(dateTasks[0].due) < today0
+      const isPastDue = newSafeDate(dateTasks[0].due) < today0
       stickyIndices.push(children.length)
       children.push(<SectionHeader key={`h-${dateLabel}`} label={dateLabel} pastDue={isPastDue} />)
       for (const task of dateTasks) {
@@ -116,7 +107,7 @@ export default function TasksList() {
     }
   } else {
     const firstAfterToday = tasks.findIndex(
-      (t) => t.due !== 'No Due Date' && newSafeDate(t.due) > new Date(),
+      (t) => newSafeDate(t.due) > new Date(),
     )
     const firstSnoozed = tasks.findIndex(
       (t) => t.snooze && new Date(t.snooze) > new Date(),

@@ -45,7 +45,7 @@ export const tasks = pgTable('tasks', {
   id: uuid('id').primaryKey().defaultRandom(),
   userId: text('user_id').notNull(),
   title: text('title').notNull(),
-  due: text('due').notNull().default('No Due Date'),
+  due: text('due').notNull(),
   strictDeadline: boolean('strict_deadline').notNull().default(false),
   repeat: repeatOptionEnum('repeat').notNull().default('No Repeat'),
   repeatInterval: integer('repeat_interval').notNull().default(1),

@@ -1,7 +1,6 @@
 import type { Task } from './types'
 
 export const newSafeDate = (str: string): Date => {
-  if (str === 'No Due Date') return new Date(8640000000000000)
   const [year, month, day] = str.split('-').map((s) => parseInt(s))
   return new Date(year, month - 1, day)
 }
@@ -42,7 +41,6 @@ export const getUserToday = (
 
 export const nextDueDate = (task: Task): Date | undefined => {
   if (task.repeat === 'No Repeat') return undefined
-  if (task.due === 'No Due Date') return undefined
   const date = newSafeDate(task.due)
   if (task.repeat === 'Daily') date.setDate(date.getDate() + 1)
   else if (task.repeat === 'Custom' && task.repeatUnit === 'day')

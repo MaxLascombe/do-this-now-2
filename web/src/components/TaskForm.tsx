@@ -47,7 +47,6 @@ const repeatUnits: RepeatUnit[] = ['day', 'week', 'month', 'year']
 // HTML <input type="date"> uses YYYY-MM-DD (zero-padded); our shared schema
 // uses YYYY-M-D. Convert at the input boundary.
 const toIso = (due: string): string => {
-  if (due === 'No Due Date') return ''
   const [y, m, d] = due.split('-').map((s) => parseInt(s))
   const pad = (n: number) => (n < 10 ? '0' + n : '' + n)
   return `${y}-${pad(m)}-${pad(d)}`

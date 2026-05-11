@@ -46,12 +46,8 @@ function TasksList() {
   let tasks = sort === 'CHRON' ? [...data] : [...dataTop]
 
   if (sort === 'CHRON') {
-    tasks.sort((a, b) =>
-      a.due === 'No Due Date'
-        ? -1
-        : b.due === 'No Due Date'
-          ? 1
-          : newSafeDate(a.due).getTime() - newSafeDate(b.due).getTime(),
+    tasks.sort(
+      (a, b) => newSafeDate(a.due).getTime() - newSafeDate(b.due).getTime(),
     )
   } else {
     const today = new Date(

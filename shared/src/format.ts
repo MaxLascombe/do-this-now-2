@@ -70,16 +70,16 @@ export function formatScheduleStatus(opts: {
 }
 
 /**
- * Human-readable label for a task's due date.
+ * Human-readable label for a task's due date. Returns null if `due` can't
+ * be parsed (shouldn't happen — schema enforces YYYY-M-D, but the History
+ * page renders archived snapshots that may predate the constraint).
  *
- *   'No Due Date' → null
- *   today         → 'Today'
- *   today+1       → 'Tomorrow'
- *   today-1       → 'Yesterday'
- *   otherwise     → 'Wed Mar 5' (date-fns `iii LLL d`)
+ *   today    → 'Today'
+ *   today+1  → 'Tomorrow'
+ *   today-1  → 'Yesterday'
+ *   other    → 'Wed Mar 5' (date-fns `iii LLL d`)
  */
 export function formatDueLabel(due: string): string | null {
-  if (due === 'No Due Date') return null
   try {
     const dueDate = newSafeDate(due)
     const today = new Date(

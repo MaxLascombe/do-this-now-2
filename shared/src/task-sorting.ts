@@ -6,12 +6,16 @@ const subtaskIsSnoozed = (s: SubTask) =>
 
 export const isSnoozed = (t: Task): boolean => {
   if (t.snooze && new Date(t.snooze) >= new Date()) return true
-  if (t.subtasks.length > 0 && !t.subtasks.some(s => !s.done && !subtaskIsSnoozed(s))) return true
+  if (
+    t.subtasks.length > 0 &&
+    !t.subtasks.some((s) => !s.done && !subtaskIsSnoozed(s))
+  )
+    return true
   return false
 }
 
 const dueOrPastDue = (t: Task, today: Date): boolean =>
-  t.due !== 'No Due Date' && newSafeDate(t.due) <= today
+  newSafeDate(t.due) <= today
 
 export const sortTasks = (tasks: Task[], today: Date): void => {
   const tmrw = new Date(today)
@@ -21,23 +25,23 @@ export const sortTasks = (tasks: Task[], today: Date): void => {
 
   const sortFlags: Array<(t: Task) => boolean> = [
     // not snoozed (true = higher priority)
-    t => !isSnoozed(t),
+    (t) => !isSnoozed(t),
 
     // due today or past due
-    t => dueOrPastDue(t, today),
+    (t) => dueOrPastDue(t, today),
 
     // strict deadline and due today or past due
-    t => dueOrPastDue(t, today) && t.strictDeadline,
+    (t) => dueOrPastDue(t, today) && t.strictDeadline,
 
     // completing this task means it won't come back for at least 2 days
-    t => {
+    (t) => {
       if (!dueOrPastDue(t, today)) return false
       const next = nextDueDate(t)
       return next === undefined || next >= in2Days
     },
 
     // completing this task means it won't come back today
-    t => {
+    (t) => {
       if (!dueOrPastDue(t, today)) return false
       const next = nextDueDate(t)
       return next === undefined || next >= tmrw
@@ -53,14 +57,8 @@ export const sortTasks = (tasks: Task[], today: Date): void => {
     }
 
     // sort by due date
-    if (a.due !== 'No Due Date' && b.due !== 'No Due Date') {
-      const diff = newSafeDate(a.due).getTime() - newSafeDate(b.due).getTime()
-      if (diff !== 0) return diff
-    } else if (a.due !== 'No Due Date') {
-      return -1
-    } else if (b.due !== 'No Due Date') {
-      return 1
-    }
+    const diff = newSafeDate(a.due).getTime() - newSafeDate(b.due).getTime()
+    if (diff !== 0) return diff
 
     // sort by time frame (0 = no estimate, goes last)
     if (a.timeFrame !== b.timeFrame) {
