@@ -39,5 +39,5 @@ export const deleteTask = createServerFn({ method: 'POST' })
   .inputValidator((d: { id: string }) => d)
   .handler(async ({ data }) => {
     await tasksLib.deleteTask(await requireUserId(), data.id)
-    return { ok: true as const }
+    return {}
   })

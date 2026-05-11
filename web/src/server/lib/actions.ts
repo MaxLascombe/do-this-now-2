@@ -23,7 +23,7 @@ async function loadTask(userId: string, id: string): Promise<Task | null> {
 export async function completeTask(
   userId: string,
   id: string,
-): Promise<{ ok: true; advanced: boolean }> {
+): Promise<{ advanced: boolean }> {
   const task = await loadTask(userId, id)
   if (!task) throw new Error('Task not found')
 
@@ -46,7 +46,7 @@ export async function completeTask(
           .update(tasks)
           .set({ subtasks: newSubtasks, updatedAt: now })
           .where(and(eq(tasks.userId, userId), eq(tasks.id, task.id)))
-        return { ok: true, advanced: false }
+        return { advanced: false }
       }
 
       task.subtasks = newSubtasks
@@ -81,14 +81,14 @@ export async function completeTask(
       .where(and(eq(tasks.userId, userId), eq(tasks.id, task.id)))
   }
 
-  return { ok: true, advanced: true }
+  return { advanced: true }
 }
 
 export async function snoozeTask(
   userId: string,
   id: string,
   allSubtasks: boolean = false,
-): Promise<{ ok: true; scope: 'subtask' | 'task' }> {
+): Promise<{ scope: 'subtask' | 'task' }> {
   const task = await loadTask(userId, id)
   if (!task) throw new Error('Task not found')
 
@@ -114,14 +114,14 @@ export async function snoozeTask(
       .update(tasks)
       .set({ subtasks: newSubtasks, updatedAt: new Date() })
       .where(and(eq(tasks.userId, userId), eq(tasks.id, task.id)))
-    return { ok: true, scope: 'subtask' }
+    return { scope: 'subtask' }
   }
 
   await db
     .update(tasks)
     .set({ snooze: newSnooze, updatedAt: new Date() })
     .where(and(eq(tasks.userId, userId), eq(tasks.id, task.id)))
-  return { ok: true, scope: 'task' }
+  return { scope: 'task' }
 }
 
 export async function getHistory(

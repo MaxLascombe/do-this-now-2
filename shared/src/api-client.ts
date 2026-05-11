@@ -19,9 +19,9 @@ export type ProgressTodayResult = {
   minutesToReduceTomorrowDays: number
 }
 
-export type CompleteTaskResult = { ok: true; advanced: boolean }
-export type SnoozeTaskResult = { ok: true; scope: 'subtask' | 'task' }
-export type DeleteTaskResult = { ok: true }
+export type CompleteTaskResult = { advanced: boolean }
+export type SnoozeTaskResult = { scope: 'subtask' | 'task' }
+export type DeleteTaskResult = Record<string, never>
 
 export interface ApiClient {
   listTasks(): Promise<Task[]>

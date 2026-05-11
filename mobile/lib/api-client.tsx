@@ -50,17 +50,16 @@ function createMobileApi(
     updateTask: (id, input) =>
       call<Task>(`/api/tasks/${id}`, { method: 'PUT', body: input }),
     deleteTask: (id) =>
-      call<{ ok: true }>(`/api/tasks/${id}`, { method: 'DELETE' }),
+      call<Record<string, never>>(`/api/tasks/${id}`, { method: 'DELETE' }),
     completeTask: (id) =>
-      call<{ ok: true; advanced: boolean }>(
-        `/api/tasks/${id}/complete`,
-        { method: 'POST' },
-      ),
+      call<{ advanced: boolean }>(`/api/tasks/${id}/complete`, {
+        method: 'POST',
+      }),
     snoozeTask: (id, allSubtasks = false) =>
-      call<{ ok: true; scope: 'subtask' | 'task' }>(
-        `/api/tasks/${id}/snooze`,
-        { method: 'POST', body: { allSubtasks } },
-      ),
+      call<{ scope: 'subtask' | 'task' }>(`/api/tasks/${id}/snooze`, {
+        method: 'POST',
+        body: { allSubtasks },
+      }),
     getHistory: (date) => call<HistoryEntry[]>(`/api/history/${date}${tz}`),
     getProgressToday: () => call(`/api/progress/today${tz}`),
   }

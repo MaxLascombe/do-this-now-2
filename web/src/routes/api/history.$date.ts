@@ -3,6 +3,7 @@ import { createFileRoute } from '@tanstack/react-router'
 import { json } from '@tanstack/react-start'
 
 import { getHistory } from '../../server/lib/actions'
+import { unauthenticated } from '../../server/lib/http'
 
 export const Route = createFileRoute('/api/history/$date')({
   server: {
@@ -15,7 +16,7 @@ export const Route = createFileRoute('/api/history/$date')({
         request: Request
       }) => {
         const { userId } = await auth()
-        if (!userId) return json({ error: 'unauthenticated' }, { status: 401 })
+        if (!userId) return unauthenticated()
         const url = new URL(request.url)
         const tz = parseInt(url.searchParams.get('tzOffsetMin') ?? '0', 10)
         return json(await getHistory(userId, params.date, tz))
