@@ -1,3 +1,4 @@
+import { auth } from '@clerk/tanstack-react-start/server'
 import { json } from '@tanstack/react-start'
 
 // Uniform error envelope for REST routes.
@@ -21,3 +22,31 @@ export const notFound = (message?: string) =>
   errorJson({ code: 'not_found', message }, 404)
 export const invalid = (details: unknown) =>
   errorJson({ code: 'invalid', details }, 400)
+
+// Wraps a REST handler with Clerk auth. The wrapped handler receives `userId`
+// directly and never has to inline the 401 check. Forwards TanStack Start's
+// route ctx (params + request) through unchanged.
+type RouteCtx<P> = { params: P; request: Request }
+export function withAuth<P = Record<string, never>>(
+  handler: (
+    ctx: { userId: string } & RouteCtx<P>,
+  ) => Promise<Response> | Response,
+) {
+  return async (ctx: RouteCtx<P>) => {
+    const { userId } = await auth()
+    if (!userId) return unauthenticated()
+    return handler({ userId, ...ctx })
+  }
+}
+
+// Read the user's TZ offset (minutes west of UTC, matching
+// Date.prototype.getTimezoneOffset()) from the request header set by the
+// client adapter. Falls back to 0 (UTC) when missing — server-side day
+// boundaries will be wrong, so this is a soft failure rather than a hard 400.
+// If we want stricter, switch to throwing invalid().
+export function getTzFromRequest(request: Request): number {
+  const v = request.headers.get('x-tz-offset')
+  if (v === null) return 0
+  const n = parseInt(v, 10)
+  return Number.isNaN(n) ? 0 : n
+}

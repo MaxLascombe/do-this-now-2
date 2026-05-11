@@ -19,6 +19,10 @@ async function jsonFetch<T>(
     ...init,
     headers: {
       'Content-Type': 'application/json',
+      // Send the client's local TZ on every request so the server can bracket
+      // "today" / day boundaries correctly without each route accepting it as
+      // a separate parameter.
+      'X-Tz-Offset': String(new Date().getTimezoneOffset()),
       ...(token ? { Authorization: `Bearer ${token}` } : {}),
       ...(init.headers ?? {}),
     },
@@ -38,12 +42,10 @@ function createMobileApi(
     const token = await getToken()
     return jsonFetch<T>(token, path, init)
   }
-  const tzOffsetMin = new Date().getTimezoneOffset()
-  const tz = `?tzOffsetMin=${tzOffsetMin}`
 
   return {
     listTasks: () => call<Task[]>('/api/tasks'),
-    listTopTasks: () => call<Task[]>(`/api/tasks/top${tz}`),
+    listTopTasks: () => call<Task[]>('/api/tasks/top'),
     getTask: (id) => call<Task>(`/api/tasks/${id}`),
     createTask: (input) =>
       call<Task>('/api/tasks', { method: 'POST', body: input }),
@@ -60,8 +62,8 @@ function createMobileApi(
         method: 'POST',
         body: { allSubtasks },
       }),
-    getHistory: (date) => call<HistoryEntry[]>(`/api/history/${date}${tz}`),
-    getProgressToday: () => call(`/api/progress/today${tz}`),
+    getHistory: (date) => call<HistoryEntry[]>(`/api/history/${date}`),
+    getProgressToday: () => call(`/api/progress/today`),
   }
 }
 

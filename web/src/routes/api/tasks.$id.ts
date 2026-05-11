@@ -1,8 +1,7 @@
-import { auth } from '@clerk/tanstack-react-start/server'
 import { createFileRoute } from '@tanstack/react-router'
 import { json } from '@tanstack/react-start'
 
-import { invalid, notFound, unauthenticated } from '../../server/lib/http'
+import { invalid, notFound, withAuth } from '../../server/lib/http'
 import {
   deleteTask,
   getTask,
@@ -10,37 +9,27 @@ import {
   updateTask,
 } from '../../server/lib/tasks'
 
+type Params = { id: string }
+
 export const Route = createFileRoute('/api/tasks/$id')({
   server: {
     handlers: {
-      GET: async ({ params }: { params: { id: string } }) => {
-        const { userId } = await auth()
-        if (!userId) return unauthenticated()
+      GET: withAuth<Params>(async ({ userId, params }) => {
         const task = await getTask(userId, params.id)
         if (!task) return notFound()
         return json(task)
-      },
-      PUT: async ({
-        request,
-        params,
-      }: {
-        request: Request
-        params: { id: string }
-      }) => {
-        const { userId } = await auth()
-        if (!userId) return unauthenticated()
+      }),
+      PUT: withAuth<Params>(async ({ userId, params, request }) => {
         const parsed = taskInputSchema.safeParse(await request.json())
         if (!parsed.success) return invalid(parsed.error.flatten())
         const updated = await updateTask(userId, params.id, parsed.data)
         if (!updated) return notFound()
         return json(updated)
-      },
-      DELETE: async ({ params }: { params: { id: string } }) => {
-        const { userId } = await auth()
-        if (!userId) return unauthenticated()
+      }),
+      DELETE: withAuth<Params>(async ({ userId, params }) => {
         await deleteTask(userId, params.id)
         return json({})
-      },
+      }),
     },
   },
 })
