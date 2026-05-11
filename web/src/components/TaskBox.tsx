@@ -1,31 +1,18 @@
-import { type LegacyRef, type KeyboardEvent } from 'react'
+import { type LegacyRef } from 'react'
 
 import { type Task } from '../db/schema'
-import {
-  DateTag,
-  EditableDateTag,
-  EditableTimeFrame,
-  Repeat,
-  Strict,
-  TimeFrame,
-} from './Tags'
-
-export type TaskFieldUpdate =
-  | { due: string }
-  | { timeFrame: number }
+import { DateTag, Repeat, Strict, TimeFrame } from './Tags'
 
 export const TaskBox = ({
   innerRef,
   isSelected,
   onClick,
-  onUpdate,
   task,
   title,
 }: {
-  innerRef?: LegacyRef<HTMLDivElement>
+  innerRef?: LegacyRef<HTMLButtonElement>
   isSelected: boolean
   onClick?: () => void
-  onUpdate?: (update: TaskFieldUpdate) => void
   task: Task
   title?: string
 }) => {
@@ -35,20 +22,9 @@ export const TaskBox = ({
     0,
   )
 
-  const onKey = (e: KeyboardEvent<HTMLDivElement>) => {
-    if (!onClick) return
-    if (e.key === 'Enter' || e.key === ' ') {
-      e.preventDefault()
-      onClick()
-    }
-  }
-
   return (
-    <div
+    <button
       onClick={onClick}
-      onKeyDown={onKey}
-      role={onClick ? 'button' : undefined}
-      tabIndex={onClick ? 0 : undefined}
       className={
         (isSelected
           ? 'border-gray-700 bg-gray-900 text-white '
@@ -78,25 +54,11 @@ export const TaskBox = ({
       <div
         className={
           (isSelected ? 'text-gray-300 ' : 'text-gray-600 ') +
-          'flex flex-wrap items-center gap-x-4 gap-y-1'
+          'flex flex-wrap gap-x-4'
         }
       >
-        {onUpdate ? (
-          <EditableDateTag
-            due={task.due}
-            onChange={(due) => onUpdate({ due })}
-          />
-        ) : (
-          <DateTag due={task.due} />
-        )}
-        {onUpdate ? (
-          <EditableTimeFrame
-            timeFrame={task.timeFrame}
-            onChange={(timeFrame) => onUpdate({ timeFrame })}
-          />
-        ) : (
-          <TimeFrame timeFrame={task.timeFrame} />
-        )}
+        <DateTag due={task.due} />
+        <TimeFrame timeFrame={task.timeFrame} />
         <Repeat
           repeat={task.repeat}
           repeatInterval={task.repeatInterval}
@@ -105,6 +67,6 @@ export const TaskBox = ({
         />
         <Strict strictDeadline={task.strictDeadline} />
       </div>
-    </div>
+    </button>
   )
 }

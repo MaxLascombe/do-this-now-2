@@ -1,7 +1,5 @@
 import { z } from 'zod'
 
-import type { Task } from './types'
-
 export const subTaskSchema = z.object({
   title: z.string(),
   done: z.boolean(),
@@ -51,20 +49,3 @@ export type RepeatOption = z.infer<typeof repeatOptionSchema>
 export type RepeatUnit = z.infer<typeof repeatUnitSchema>
 export type RepeatWeekdays = z.infer<typeof repeatWeekdaysSchema>
 export type SubTask = z.infer<typeof subTaskSchema>
-
-// Project a stored Task back to a TaskInput so callers can update one field
-// without losing the rest. Strips server-managed fields (id, userId, snooze,
-// timestamps).
-export function taskToInput(task: Task): TaskInput {
-  return {
-    title: task.title,
-    due: task.due,
-    strictDeadline: task.strictDeadline,
-    repeat: task.repeat,
-    repeatInterval: task.repeatInterval,
-    repeatUnit: task.repeatUnit,
-    repeatWeekdays: task.repeatWeekdays,
-    timeFrame: task.timeFrame,
-    subtasks: task.subtasks,
-  }
-}

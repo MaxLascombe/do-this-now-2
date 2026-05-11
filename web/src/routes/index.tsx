@@ -14,9 +14,7 @@ import {
   useDeleteTask,
   useSnoozeTask,
   useTopTasks,
-  useUpdateTask,
 } from '@dtn/shared/queries'
-import { taskToInput } from '@dtn/shared/task-input'
 import { Link, createFileRoute, useNavigate } from '@tanstack/react-router'
 import { Fragment, useState } from 'react'
 
@@ -52,7 +50,6 @@ function Home() {
   const doneMutation = useCompleteTask()
   const deleteMutation = useDeleteTask()
   const snoozeMutation = useSnoozeTask()
-  const updateMutation = useUpdateTask()
 
   const completeTaskAction = () => {
     if (!selectedTask) return
@@ -226,12 +223,6 @@ function Home() {
                   onClick={() =>
                     (i === 0 || i === 1 || i === 2) &&
                     setSelectedTaskIndex(i as 0 | 1 | 2)
-                  }
-                  onUpdate={(update) =>
-                    updateMutation.mutate({
-                      id: task.id,
-                      input: { ...taskToInput(task), ...update },
-                    })
                   }
                   task={task}
                   title={`(Shortcut: ${i + 1})`}

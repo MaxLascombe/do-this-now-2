@@ -128,9 +128,6 @@ importers:
       '@babel/core':
         specifier: ^7.29.0
         version: 7.29.0
-      '@clerk/types':
-        specifier: ^4.101.20
-        version: 4.101.20(react@19.1.0)
       '@types/react':
         specifier: ~19.1.17
         version: 19.1.17
