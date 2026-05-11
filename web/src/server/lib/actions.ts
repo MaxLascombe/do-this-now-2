@@ -9,6 +9,7 @@ import {
 } from '@dtn/shared/schema'
 import { dateString, nextDueDate } from '@dtn/shared/helpers'
 import { HOUR_MS } from '@dtn/shared/time'
+import { finalizeTodayProgress } from './progress'
 
 // `loadTask` accepts either the top-level `db` or a `tx` handle so the
 // caller can run it inside a transaction. The transaction param type is
@@ -31,12 +32,13 @@ async function loadTask(
 export async function completeTask(
   userId: string,
   id: string,
+  tzOffsetMin: number,
 ): Promise<{ advanced: boolean }> {
   // The history insert + task update/delete must be atomic — without a
   // transaction, a double-tap on "Done" can race: two history rows for
   // the same completion, or insert succeeds and the follow-up update is
   // lost.
-  return db.transaction(async (tx) => {
+  const result = await db.transaction(async (tx) => {
     const task = await loadTask(tx, userId, id)
     if (!task) throw new Error('Task not found')
 
@@ -96,6 +98,20 @@ export async function completeTask(
 
     return { advanced: true }
   })
+
+  // Persist tomorrow's streak/lives rollover now that `done` has changed.
+  // Was previously done inside getProgressToday on every GET — moved here
+  // so REST GETs stay side-effect-free. Errors don't roll back the
+  // completion: a failed rollover write just means the GET next refresh
+  // will see the recomputed (correct) values and the persist will be
+  // re-attempted on the next completion.
+  try {
+    await finalizeTodayProgress(userId, tzOffsetMin)
+  } catch (err) {
+    console.error('finalizeTodayProgress failed after completeTask', err)
+  }
+
+  return result
 }
 
 export async function snoozeTask(

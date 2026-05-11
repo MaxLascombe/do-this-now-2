@@ -37,8 +37,10 @@ function TasksList() {
   const [sort, setSort] = useState<'CHRON' | 'TOP'>('CHRON')
   const taskElems = useRef<HTMLElement[]>([])
 
-  const allTasks = useAllTasks()
-  const topTasks = useTopTasks()
+  // Only fetch the active list — switching sort lazily fetches the other.
+  // Saves a network round-trip and a full sort pass on every Tasks mount.
+  const allTasks = useAllTasks({ enabled: sort === 'CHRON' })
+  const topTasks = useTopTasks({ enabled: sort === 'TOP' })
 
   const data = allTasks.data ?? []
   const dataTop = topTasks.data ?? []

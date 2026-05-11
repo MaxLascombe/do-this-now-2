@@ -47,8 +47,10 @@ export default function TasksList() {
   const ding = useDing()
   const [sort, setSort] = useState<Sort>('CHRON')
 
-  const allTasks = useAllTasks()
-  const topTasks = useTopTasks()
+  // Only fetch the active list. Pull-to-refresh below also only refetches
+  // the active query.
+  const allTasks = useAllTasks({ enabled: sort === 'CHRON' })
+  const topTasks = useTopTasks({ enabled: sort === 'TOP' })
 
   const doneMutation = useCompleteTask()
   const deleteMutation = useDeleteTask()
@@ -172,10 +174,7 @@ export default function TasksList() {
         refreshControl={
           <RefreshControl
             refreshing={isFetching}
-            onRefresh={() => {
-              allTasks.refetch()
-              topTasks.refetch()
-            }}
+            onRefresh={() => activeQuery.refetch()}
             tintColor="#fff"
             colors={['#fff']}
           />

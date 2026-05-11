@@ -29,7 +29,10 @@ export const webApiClient: ApiClient = {
       return t
     },
     delete: (id) => taskFns.deleteTask({ data: { id } }),
-    complete: (id) => actionFns.completeTask({ data: { id } }),
+    complete: (id) =>
+      actionFns.completeTask({
+        data: { id, tzOffsetMin: getTzOffsetMin() },
+      }),
     snooze: (id, allSubtasks = false) =>
       actionFns.snoozeTask({ data: { id, allSubtasks } }),
   },

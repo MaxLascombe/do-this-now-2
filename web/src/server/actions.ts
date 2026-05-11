@@ -7,10 +7,16 @@ import * as actionsLib from './lib/actions'
 
 export const completeTask = createServerFn({ method: 'POST' })
   .inputValidator((d: unknown) =>
-    z.object({ id: z.string().uuid() }).parse(d),
+    z
+      .object({ id: z.string().uuid(), tzOffsetMin: z.number().int() })
+      .parse(d),
   )
   .handler(async ({ data }) =>
-    actionsLib.completeTask(await requireUserId(), data.id),
+    actionsLib.completeTask(
+      await requireUserId(),
+      data.id,
+      data.tzOffsetMin,
+    ),
   )
 
 export const snoozeTask = createServerFn({ method: 'POST' })

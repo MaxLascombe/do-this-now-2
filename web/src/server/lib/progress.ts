@@ -282,30 +282,52 @@ async function persistStreakRollover(
     })
 }
 
-// --- public entry point -----------------------------------------------
+// --- public entry points ----------------------------------------------
 
 export async function getProgressToday(
   userId: string,
   tzOffsetMin: number,
 ): Promise<ProgressTodayResult> {
+  // Read-only. Streak/lives rollover is persisted by finalizeTodayProgress
+  // (called from completeTask), not from this GET path — REST GETs must not
+  // have side effects, and the previous design wrote on every refresh while
+  // the target was hit.
   const { todayDate: today, todayKey, todayUtcStart, tomorrowUtcStart } =
     getUserToday(tzOffsetMin)
-  const tomorrowKey = dateString(
-    new Date(today.getFullYear(), today.getMonth(), today.getDate() + 1),
-  )
-
   const inputs = await loadProgressInputs(
     userId,
     todayKey,
     todayUtcStart,
     tomorrowUtcStart,
   )
-  const { result, rolloverLives, rolloverStreak } = computeProgress(
-    today,
-    inputs,
+  return computeProgress(today, inputs).result
+}
+
+// Called by completeTask after a successful completion so the streak/lives
+// rollover for "tomorrow's start state" is captured at the moment `done`
+// changes, not on the next GET. Idempotent via the upsert.
+export async function finalizeTodayProgress(
+  userId: string,
+  tzOffsetMin: number,
+): Promise<void> {
+  const { todayDate: today, todayKey, todayUtcStart, tomorrowUtcStart } =
+    getUserToday(tzOffsetMin)
+  const tomorrowKey = dateString(
+    new Date(today.getFullYear(), today.getMonth(), today.getDate() + 1),
   )
+  const inputs = await loadProgressInputs(
+    userId,
+    todayKey,
+    todayUtcStart,
+    tomorrowUtcStart,
+  )
+  const { rolloverLives, rolloverStreak } = computeProgress(today, inputs)
   if (rolloverLives !== null) {
-    await persistStreakRollover(userId, tomorrowKey, rolloverStreak, rolloverLives)
+    await persistStreakRollover(
+      userId,
+      tomorrowKey,
+      rolloverStreak,
+      rolloverLives,
+    )
   }
-  return result
 }
