@@ -65,3 +65,28 @@ export type DailyProgress = {
 }
 
 export type NewDailyProgress = DailyProgress
+
+// Shape returned by GET /api/stats. Mirrors the lib's StatsResult — kept
+// here so mobile + shared client code can type-import without depending
+// on web's server tree.
+export type StatsResult = {
+  heatmap: Array<{ date: string; hit: boolean }>
+  currentStreak: number
+  longestStreak: number
+  totalDaysHit: number
+  last30Days: Array<{ date: string; minutes: number }>
+  hourOfDay: number[]
+  dayOfWeek: number[]
+  topTasks: Array<{ title: string; emoji: string; count: number }>
+  emojiFreq: Array<{ emoji: string; count: number }>
+  onTimeRate: number | null
+  avgLatencyDays: number | null
+  totalAllTime: number
+  totalThisMonth: number
+  totalThisWeek: number
+  totalToday: number
+  snoozesAllTime: number
+  snoozesThisWeek: number
+  abandonedCount: number
+  abandonmentRate: number | null
+}

@@ -5,6 +5,7 @@ import {
   history,
   type SubTask,
   type Task,
+  taskEvents,
   tasks,
 } from '@dtn/shared/schema'
 import { dateString, nextDueDate } from '@dtn/shared/helpers'
@@ -126,6 +127,10 @@ export async function snoozeTask(
   return db.transaction(async (tx) => {
     const task = await loadTask(tx, userId, id)
     if (!task) throw new Error('Task not found')
+
+    await tx
+      .insert(taskEvents)
+      .values({ userId, taskId: task.id, kind: 'snoozed' })
 
     const newSnooze = new Date(Date.now() + HOUR_MS).toISOString()
 

@@ -5,7 +5,7 @@ import {
   useContext,
 } from 'react'
 
-import type { HistoryEntry, Task } from './types'
+import type { HistoryEntry, StatsResult, Task } from './types'
 import type { TaskInput } from './task-input'
 
 // Structured error thrown by both web and mobile API adapters when the
@@ -63,6 +63,9 @@ export interface ApiClient {
   }
   progress: {
     today(): Promise<ProgressTodayResult>
+  }
+  stats: {
+    get(): Promise<StatsResult>
   }
 }
 

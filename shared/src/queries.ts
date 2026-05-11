@@ -18,6 +18,7 @@ export const taskKeys = {
 }
 export const historyKey = (date: string) => ['history', date] as const
 export const progressTodayKey = ['progresstoday'] as const
+export const statsKey = ['stats'] as const
 
 export const invalidateTaskCaches = (qc: QueryClient) => {
   // Prefix-match: invalidates taskKeys.top, taskKeys.list, and every
@@ -133,6 +134,14 @@ export function useProgressToday() {
   return useQuery({
     queryKey: progressTodayKey,
     queryFn: () => api.progress.today(),
+  })
+}
+
+export function useStats() {
+  const api = useApi()
+  return useQuery({
+    queryKey: statsKey,
+    queryFn: () => api.stats.get(),
   })
 }
 

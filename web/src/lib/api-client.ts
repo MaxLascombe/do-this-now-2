@@ -3,6 +3,7 @@ import { getTzOffsetMin } from '@dtn/shared/time'
 
 import * as actionFns from '../server/actions'
 import * as progressFns from '../server/progress'
+import * as statsFns from '../server/stats'
 import * as taskFns from '../server/tasks'
 
 const notFound = (id: string) =>
@@ -49,5 +50,9 @@ export const webApiClient: ApiClient = {
       progressFns.getProgressToday({
         data: { tzOffsetMin: getTzOffsetMin() },
       }),
+  },
+  stats: {
+    get: () =>
+      statsFns.getStats({ data: { tzOffsetMin: getTzOffsetMin() } }),
   },
 }

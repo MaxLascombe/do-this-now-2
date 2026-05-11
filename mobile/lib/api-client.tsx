@@ -5,7 +5,7 @@ import {
   type ApiClient,
 } from '@dtn/shared/api-client'
 import { getTzOffsetMin } from '@dtn/shared/time'
-import type { HistoryEntry, Task } from '@dtn/shared/types'
+import type { HistoryEntry, StatsResult, Task } from '@dtn/shared/types'
 import { type ReactNode, useMemo } from 'react'
 
 const BASE_URL = process.env.EXPO_PUBLIC_API_URL!
@@ -93,6 +93,9 @@ function createMobileApi(
     },
     progress: {
       today: () => call(`/api/progress/today`),
+    },
+    stats: {
+      get: () => call<StatsResult>(`/api/stats`),
     },
   }
 }

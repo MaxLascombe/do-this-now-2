@@ -2,7 +2,7 @@ import { and, eq } from 'drizzle-orm'
 
 import { db } from '../../db'
 import { getUserToday } from '@dtn/shared/helpers'
-import { type Task, tasks } from '@dtn/shared/schema'
+import { type Task, taskEvents, tasks } from '@dtn/shared/schema'
 import { type TaskInput } from '@dtn/shared/task-input'
 import { sortTasks } from '@dtn/shared/task-sorting'
 
@@ -66,5 +66,16 @@ export async function updateTask(
 }
 
 export async function deleteTask(userId: string, id: string): Promise<void> {
-  await db.delete(tasks).where(and(eq(tasks.userId, userId), eq(tasks.id, id)))
+  // Record the 'deleted' event BEFORE the actual DELETE — the FK on
+  // task_events.task_id sets to NULL on cascade, so the event row
+  // survives, but inserting before keeps the link populated while the
+  // task exists.
+  await db.transaction(async (tx) => {
+    await tx
+      .insert(taskEvents)
+      .values({ userId, taskId: id, kind: 'deleted' })
+    await tx
+      .delete(tasks)
+      .where(and(eq(tasks.userId, userId), eq(tasks.id, id)))
+  })
 }

@@ -28,6 +28,17 @@ export const repeatUnitEnum = pgEnum('repeat_unit', [
   'year',
 ])
 
+// Events on a task's lifecycle that the live `tasks` row doesn't preserve.
+// 'snoozed': captured each time the user snoozes (so we can compute
+//   snooze frequency stats — the live `snooze` column only holds the
+//   currently-active value).
+// 'deleted': captured before the actual DELETE so we know how many tasks
+//   were abandoned vs completed.
+export const taskEventKindEnum = pgEnum('task_event_kind', [
+  'snoozed',
+  'deleted',
+])
+
 import type { SubTask, Task } from './types'
 export type {
   DailyProgress,
@@ -95,6 +106,23 @@ export const history = pgTable(
   (t) => [
     index('history_user_id_completed_at_idx').on(t.userId, t.completedAt),
   ],
+)
+
+// Append-only lifecycle log for stats. taskId SET NULL on delete so the
+// row survives even after the task is hard-deleted (and 'deleted' events
+// always satisfy the FK because they're inserted *before* the delete).
+export const taskEvents = pgTable(
+  'task_events',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    userId: text('user_id').notNull(),
+    taskId: uuid('task_id').references(() => tasks.id, {
+      onDelete: 'set null',
+    }),
+    kind: taskEventKindEnum('kind').notNull(),
+    at: timestamp('at', { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [index('task_events_user_id_at_idx').on(t.userId, t.at)],
 )
 
 export const dailyProgress = pgTable(

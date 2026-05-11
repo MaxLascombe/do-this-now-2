@@ -1,4 +1,5 @@
 import {
+  faChartLine,
   faClockRotateLeft,
   faHouse,
   faListCheck,
@@ -106,6 +107,15 @@ export default function TabsLayout() {
           title: 'History',
           tabBarIcon: ({ color }) => (
             <TabIcon icon={faClockRotateLeft} color={color} />
+          ),
+        }}
+      />
+      <Tabs.Screen
+        name="stats"
+        options={{
+          title: 'Stats',
+          tabBarIcon: ({ color }) => (
+            <TabIcon icon={faChartLine} color={color} />
           ),
         }}
       />

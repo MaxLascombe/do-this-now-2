@@ -2,6 +2,7 @@ import {
   faBackward,
   faBars,
   faBell,
+  faChartLine,
   faCheckCircle,
   faPen,
   faPlusCircle,
@@ -89,6 +90,11 @@ function Home() {
       key: 'h',
       description: 'History',
       action: () => navigate({ to: '/history' }),
+    },
+    {
+      key: 'a',
+      description: 'Stats',
+      action: () => navigate({ to: '/stats' }),
     },
     { key: 'l', description: 'Logout', action: () => signOut() },
     {
@@ -213,6 +219,11 @@ function Home() {
               onClick={() => navigate({ to: '/history' })}
               text="History"
               icon={faBackward}
+            />
+            <Button
+              onClick={() => navigate({ to: '/stats' })}
+              text="Stats"
+              icon={faChartLine}
             />
           </div>
           {tasks.length > 0 ? (
