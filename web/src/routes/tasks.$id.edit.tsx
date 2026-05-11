@@ -37,6 +37,7 @@ function EditTask() {
         </div>
         <TaskForm
           title={task.title}
+          emoji={task.emoji}
           due={task.due}
           strictDeadline={task.strictDeadline}
           repeat={task.repeat}

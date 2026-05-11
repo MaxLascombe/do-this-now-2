@@ -7,7 +7,7 @@ import {
 import { FontAwesomeIcon } from '@fortawesome/react-native-fontawesome'
 import DateTimePicker from '@react-native-community/datetimepicker'
 import { format } from 'date-fns'
-import { type ReactNode, useRef, useState } from 'react'
+import { type ReactNode, useEffect, useRef, useState } from 'react'
 import {
   ActivityIndicator,
   Alert,
@@ -22,6 +22,7 @@ import {
 } from 'react-native'
 import { SafeAreaView } from 'react-native-safe-area-context'
 
+import { useApi } from '@dtn/shared/api-client'
 import { dateString, newSafeDate } from '@dtn/shared/helpers'
 import {
   type RepeatOption,
@@ -56,6 +57,7 @@ const repeatUnits: RepeatUnit[] = ['day', 'week', 'month', 'year']
 type Props = {
   initial?: Partial<{
     title: string
+    emoji: string
     dueMonth: number
     dueDay: number
     dueYear: number
@@ -78,7 +80,13 @@ export function TaskForm({
   errorMessage,
   onSubmit,
 }: Props) {
+  const api = useApi()
   const [title, setTitle] = useState(initial.title ?? '')
+  const [emoji, setEmoji] = useState(initial.emoji ?? '')
+  const [emojiOptions, setEmojiOptions] = useState<string[]>(
+    initial.emoji ? [initial.emoji] : [],
+  )
+  const [emojiLoading, setEmojiLoading] = useState(false)
   const [dueDate, setDueDate] = useState(
     initial.dueYear && initial.dueMonth && initial.dueDay
       ? new Date(initial.dueYear, initial.dueMonth - 1, initial.dueDay)
@@ -114,6 +122,35 @@ export function TaskForm({
     null | 'date' | 'time' | 'repeat'
   >(null)
 
+  // Debounced emoji suggestions — fires ~500ms after the user stops typing
+  // the title. Auto-selects the first option if none chosen yet. The
+  // `cancelled` flag drops stale responses.
+  useEffect(() => {
+    const t = title.trim()
+    if (!t) {
+      setEmojiOptions(initial.emoji ? [initial.emoji] : [])
+      return
+    }
+    let cancelled = false
+    const timer = setTimeout(async () => {
+      setEmojiLoading(true)
+      try {
+        const emojis = await api.tasks.suggestEmojis(t)
+        if (cancelled) return
+        setEmojiOptions(emojis)
+        setEmoji((prev) => prev || emojis[0] || '')
+      } catch (e) {
+        console.warn('emoji suggest failed', e)
+      } finally {
+        if (!cancelled) setEmojiLoading(false)
+      }
+    }, 500)
+    return () => {
+      cancelled = true
+      clearTimeout(timer)
+    }
+  }, [title, api, initial.emoji])
+
   const dayDiff = Math.round(
     (dueDate.getTime() - newSafeDate(dateString(new Date())).getTime()) /
       (1000 * 60 * 60 * 24),
@@ -144,6 +181,7 @@ export function TaskForm({
   const submit = () => {
     const parsed = taskInputSchema.safeParse({
       title,
+      emoji,
       due: dateString(dueDate),
       strictDeadline,
       repeat,
@@ -188,6 +226,49 @@ export function TaskForm({
           {errors.title && (
             <Text className="px-4 pb-2 text-xs text-red-500">
               {errors.title}
+            </Text>
+          )}
+        </Section>
+
+        <SectionHeader>Emoji</SectionHeader>
+        <Section>
+          {emojiOptions.length === 0 && !emojiLoading && (
+            <Text className="px-4 py-3 text-sm text-gray-500">
+              Type a title to see suggestions.
+            </Text>
+          )}
+          {emojiLoading && emojiOptions.length === 0 && (
+            <Text className="px-4 py-3 text-sm text-gray-500">Suggesting…</Text>
+          )}
+          {emojiOptions.length > 0 && (
+            <View className="flex-row flex-wrap gap-2 px-4 py-3">
+              {emojiOptions.map((e, i) => {
+                const selected = e === emoji
+                return (
+                  <Pressable
+                    key={`${e}-${i}`}
+                    onPress={() => setEmoji(e)}
+                    className={
+                      'h-12 w-12 items-center justify-center rounded-lg border ' +
+                      (selected
+                        ? 'border-white bg-gray-800'
+                        : 'border-gray-800 bg-black')
+                    }
+                  >
+                    <Text className="text-2xl">{e}</Text>
+                  </Pressable>
+                )
+              })}
+              {emojiLoading && (
+                <View className="items-center justify-center px-2">
+                  <ActivityIndicator size="small" color="#6b7280" />
+                </View>
+              )}
+            </View>
+          )}
+          {errors.emoji && (
+            <Text className="px-4 pb-2 text-xs text-red-500">
+              {errors.emoji}
             </Text>
           )}
         </Section>

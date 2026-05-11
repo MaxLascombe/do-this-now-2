@@ -34,7 +34,8 @@ const TaskBoxBase = ({
       title={title}
       ref={innerRef ?? undefined}
     >
-      <div>
+      <div className="flex items-center gap-2">
+        <span className="text-lg leading-none">{task.emoji}</span>
         <span>
           {showSubtask
             ? (task.subtasks.find(

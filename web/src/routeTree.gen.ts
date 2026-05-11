@@ -15,9 +15,11 @@ import { Route as IndexRouteImport } from './routes/index'
 import { Route as TasksIndexRouteImport } from './routes/tasks.index'
 import { Route as ApiTasksRouteImport } from './routes/api/tasks'
 import { Route as TasksIdEditRouteImport } from './routes/tasks.$id.edit'
+import { Route as ApiTasksSuggestEmojisRouteImport } from './routes/api/tasks.suggest-emojis'
 import { Route as ApiTasksIdRouteImport } from './routes/api/tasks.$id'
 import { Route as ApiProgressTodayRouteImport } from './routes/api/progress.today'
 import { Route as ApiHistoryDateRouteImport } from './routes/api/history.$date'
+import { Route as ApiAdminBackfillEmojisRouteImport } from './routes/api/admin/backfill-emojis'
 import { Route as ApiTasksIdSnoozeRouteImport } from './routes/api/tasks.$id.snooze'
 import { Route as ApiTasksIdCompleteRouteImport } from './routes/api/tasks.$id.complete'
 
@@ -51,6 +53,11 @@ const TasksIdEditRoute = TasksIdEditRouteImport.update({
   path: '/tasks/$id/edit',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiTasksSuggestEmojisRoute = ApiTasksSuggestEmojisRouteImport.update({
+  id: '/suggest-emojis',
+  path: '/suggest-emojis',
+  getParentRoute: () => ApiTasksRoute,
+} as any)
 const ApiTasksIdRoute = ApiTasksIdRouteImport.update({
   id: '/$id',
   path: '/$id',
@@ -64,6 +71,11 @@ const ApiProgressTodayRoute = ApiProgressTodayRouteImport.update({
 const ApiHistoryDateRoute = ApiHistoryDateRouteImport.update({
   id: '/api/history/$date',
   path: '/api/history/$date',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiAdminBackfillEmojisRoute = ApiAdminBackfillEmojisRouteImport.update({
+  id: '/api/admin/backfill-emojis',
+  path: '/api/admin/backfill-emojis',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ApiTasksIdSnoozeRoute = ApiTasksIdSnoozeRouteImport.update({
@@ -83,9 +95,11 @@ export interface FileRoutesByFullPath {
   '/new-task': typeof NewTaskRoute
   '/api/tasks': typeof ApiTasksRouteWithChildren
   '/tasks/': typeof TasksIndexRoute
+  '/api/admin/backfill-emojis': typeof ApiAdminBackfillEmojisRoute
   '/api/history/$date': typeof ApiHistoryDateRoute
   '/api/progress/today': typeof ApiProgressTodayRoute
   '/api/tasks/$id': typeof ApiTasksIdRouteWithChildren
+  '/api/tasks/suggest-emojis': typeof ApiTasksSuggestEmojisRoute
   '/tasks/$id/edit': typeof TasksIdEditRoute
   '/api/tasks/$id/complete': typeof ApiTasksIdCompleteRoute
   '/api/tasks/$id/snooze': typeof ApiTasksIdSnoozeRoute
@@ -96,9 +110,11 @@ export interface FileRoutesByTo {
   '/new-task': typeof NewTaskRoute
   '/api/tasks': typeof ApiTasksRouteWithChildren
   '/tasks': typeof TasksIndexRoute
+  '/api/admin/backfill-emojis': typeof ApiAdminBackfillEmojisRoute
   '/api/history/$date': typeof ApiHistoryDateRoute
   '/api/progress/today': typeof ApiProgressTodayRoute
   '/api/tasks/$id': typeof ApiTasksIdRouteWithChildren
+  '/api/tasks/suggest-emojis': typeof ApiTasksSuggestEmojisRoute
   '/tasks/$id/edit': typeof TasksIdEditRoute
   '/api/tasks/$id/complete': typeof ApiTasksIdCompleteRoute
   '/api/tasks/$id/snooze': typeof ApiTasksIdSnoozeRoute
@@ -110,9 +126,11 @@ export interface FileRoutesById {
   '/new-task': typeof NewTaskRoute
   '/api/tasks': typeof ApiTasksRouteWithChildren
   '/tasks/': typeof TasksIndexRoute
+  '/api/admin/backfill-emojis': typeof ApiAdminBackfillEmojisRoute
   '/api/history/$date': typeof ApiHistoryDateRoute
   '/api/progress/today': typeof ApiProgressTodayRoute
   '/api/tasks/$id': typeof ApiTasksIdRouteWithChildren
+  '/api/tasks/suggest-emojis': typeof ApiTasksSuggestEmojisRoute
   '/tasks/$id/edit': typeof TasksIdEditRoute
   '/api/tasks/$id/complete': typeof ApiTasksIdCompleteRoute
   '/api/tasks/$id/snooze': typeof ApiTasksIdSnoozeRoute
@@ -125,9 +143,11 @@ export interface FileRouteTypes {
     | '/new-task'
     | '/api/tasks'
     | '/tasks/'
+    | '/api/admin/backfill-emojis'
     | '/api/history/$date'
     | '/api/progress/today'
     | '/api/tasks/$id'
+    | '/api/tasks/suggest-emojis'
     | '/tasks/$id/edit'
     | '/api/tasks/$id/complete'
     | '/api/tasks/$id/snooze'
@@ -138,9 +158,11 @@ export interface FileRouteTypes {
     | '/new-task'
     | '/api/tasks'
     | '/tasks'
+    | '/api/admin/backfill-emojis'
     | '/api/history/$date'
     | '/api/progress/today'
     | '/api/tasks/$id'
+    | '/api/tasks/suggest-emojis'
     | '/tasks/$id/edit'
     | '/api/tasks/$id/complete'
     | '/api/tasks/$id/snooze'
@@ -151,9 +173,11 @@ export interface FileRouteTypes {
     | '/new-task'
     | '/api/tasks'
     | '/tasks/'
+    | '/api/admin/backfill-emojis'
     | '/api/history/$date'
     | '/api/progress/today'
     | '/api/tasks/$id'
+    | '/api/tasks/suggest-emojis'
     | '/tasks/$id/edit'
     | '/api/tasks/$id/complete'
     | '/api/tasks/$id/snooze'
@@ -165,6 +189,7 @@ export interface RootRouteChildren {
   NewTaskRoute: typeof NewTaskRoute
   ApiTasksRoute: typeof ApiTasksRouteWithChildren
   TasksIndexRoute: typeof TasksIndexRoute
+  ApiAdminBackfillEmojisRoute: typeof ApiAdminBackfillEmojisRoute
   ApiHistoryDateRoute: typeof ApiHistoryDateRoute
   ApiProgressTodayRoute: typeof ApiProgressTodayRoute
   TasksIdEditRoute: typeof TasksIdEditRoute
@@ -214,6 +239,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof TasksIdEditRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/tasks/suggest-emojis': {
+      id: '/api/tasks/suggest-emojis'
+      path: '/suggest-emojis'
+      fullPath: '/api/tasks/suggest-emojis'
+      preLoaderRoute: typeof ApiTasksSuggestEmojisRouteImport
+      parentRoute: typeof ApiTasksRoute
+    }
     '/api/tasks/$id': {
       id: '/api/tasks/$id'
       path: '/$id'
@@ -233,6 +265,13 @@ declare module '@tanstack/react-router' {
       path: '/api/history/$date'
       fullPath: '/api/history/$date'
       preLoaderRoute: typeof ApiHistoryDateRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/admin/backfill-emojis': {
+      id: '/api/admin/backfill-emojis'
+      path: '/api/admin/backfill-emojis'
+      fullPath: '/api/admin/backfill-emojis'
+      preLoaderRoute: typeof ApiAdminBackfillEmojisRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/api/tasks/$id/snooze': {
@@ -268,10 +307,12 @@ const ApiTasksIdRouteWithChildren = ApiTasksIdRoute._addFileChildren(
 
 interface ApiTasksRouteChildren {
   ApiTasksIdRoute: typeof ApiTasksIdRouteWithChildren
+  ApiTasksSuggestEmojisRoute: typeof ApiTasksSuggestEmojisRoute
 }
 
 const ApiTasksRouteChildren: ApiTasksRouteChildren = {
   ApiTasksIdRoute: ApiTasksIdRouteWithChildren,
+  ApiTasksSuggestEmojisRoute: ApiTasksSuggestEmojisRoute,
 }
 
 const ApiTasksRouteWithChildren = ApiTasksRoute._addFileChildren(
@@ -284,6 +325,7 @@ const rootRouteChildren: RootRouteChildren = {
   NewTaskRoute: NewTaskRoute,
   ApiTasksRoute: ApiTasksRouteWithChildren,
   TasksIndexRoute: TasksIndexRoute,
+  ApiAdminBackfillEmojisRoute: ApiAdminBackfillEmojisRoute,
   ApiHistoryDateRoute: ApiHistoryDateRoute,
   ApiProgressTodayRoute: ApiProgressTodayRoute,
   TasksIdEditRoute: TasksIdEditRoute,

@@ -188,3 +188,13 @@ export function useSnoozeTask() {
     onSettled: () => invalidateTaskCaches(qc),
   })
 }
+
+// Debounced emoji suggestion from the TaskForm. Each call is a one-off
+// Claude request — no cache, no optimistic state. Callers debounce on
+// title-changes so we don't flood the API on every keystroke.
+export function useSuggestEmojis() {
+  const api = useApi()
+  return useMutation({
+    mutationFn: (title: string) => api.tasks.suggestEmojis(title),
+  })
+}

@@ -6,9 +6,16 @@ import {
   faTrash,
 } from '@fortawesome/free-solid-svg-icons'
 import { format } from 'date-fns'
-import { type ComponentProps, type RefObject, useRef, useState } from 'react'
+import {
+  type ComponentProps,
+  type RefObject,
+  useEffect,
+  useRef,
+  useState,
+} from 'react'
 import { ZodError } from 'zod'
 
+import { useApi } from '@dtn/shared/api-client'
 import { dateString, newSafeDate } from '@dtn/shared/helpers'
 import {
   type RepeatOption,
@@ -69,6 +76,7 @@ const dayDiffPhrase = (diff: number): string => {
 
 const TaskForm = ({
   title: initialTitle,
+  emoji: initialEmoji,
   due: initialDue,
   errorMessage,
   strictDeadline: initialStrictDeadline,
@@ -85,8 +93,14 @@ const TaskForm = ({
   submitForm: (input: TaskInput) => void
   isSaving?: boolean
 }) => {
+  const api = useApi()
   const [formError, setFormError] = useState<ZodError>()
   const [title, setTitle] = useState(initialTitle ?? '')
+  const [emoji, setEmoji] = useState(initialEmoji ?? '')
+  const [emojiOptions, setEmojiOptions] = useState<string[]>(
+    initialEmoji ? [initialEmoji] : [],
+  )
+  const [emojiLoading, setEmojiLoading] = useState(false)
   const [due, setDue] = useState<string>(
     initialDue ?? dateString(new Date()),
   )
@@ -120,6 +134,36 @@ const TaskForm = ({
 
   const [hasSubtasks, setHasSubtasks] = useState((subtasks.length ?? 0) > 0)
   if ((subtasks.length ?? 0) > 0 && !hasSubtasks) setHasSubtasks(true)
+
+  // Debounced emoji suggestions. Fires ~500ms after the user stops typing
+  // the title. Auto-selects the first option if no emoji is chosen yet.
+  // The `cancelled` flag drops any in-flight response that resolves after
+  // the user has typed more characters.
+  useEffect(() => {
+    const t = title.trim()
+    if (!t) {
+      setEmojiOptions(initialEmoji ? [initialEmoji] : [])
+      return
+    }
+    let cancelled = false
+    const timer = setTimeout(async () => {
+      setEmojiLoading(true)
+      try {
+        const emojis = await api.tasks.suggestEmojis(t)
+        if (cancelled) return
+        setEmojiOptions(emojis)
+        setEmoji((prev) => prev || emojis[0] || '')
+      } catch (e) {
+        console.warn('emoji suggest failed', e)
+      } finally {
+        if (!cancelled) setEmojiLoading(false)
+      }
+    }, 500)
+    return () => {
+      cancelled = true
+      clearTimeout(timer)
+    }
+  }, [title, api, initialEmoji])
 
   const shiftDue = (deltaDays: number) => {
     const d = newSafeDate(due)
@@ -156,6 +200,7 @@ const TaskForm = ({
   const submit = () => {
     const input = taskInputSchema.safeParse({
       title,
+      emoji,
       due,
       strictDeadline,
       repeat,
@@ -203,6 +248,46 @@ const TaskForm = ({
           </div>
           {errors.title && (
             <div className="text-sm text-red-500">{errors.title}</div>
+          )}
+        </div>
+      </Row>
+
+      <Row label="Emoji">
+        <div className="mt-1 flex flex-col gap-2 sm:col-span-2 sm:mt-0">
+          {emojiOptions.length === 0 && !emojiLoading && (
+            <div className="text-sm text-gray-500">
+              Type a title to see suggestions.
+            </div>
+          )}
+          {emojiLoading && emojiOptions.length === 0 && (
+            <div className="text-sm text-gray-500">Suggesting…</div>
+          )}
+          {emojiOptions.length > 0 && (
+            <div className="flex max-w-lg flex-wrap gap-2">
+              {emojiOptions.map((e, i) => (
+                <button
+                  key={`${e}-${i}`}
+                  type="button"
+                  onClick={() => setEmoji(e)}
+                  className={
+                    (emoji === e
+                      ? 'border-white bg-gray-800 '
+                      : 'border-gray-800 bg-black hover:border-gray-700 ') +
+                    'flex h-12 w-12 items-center justify-center rounded-lg border text-2xl outline-none ring-white focus:ring'
+                  }
+                  aria-pressed={emoji === e}
+                  aria-label={`Use ${e}`}
+                >
+                  {e}
+                </button>
+              ))}
+              {emojiLoading && (
+                <span className="self-center text-xs text-gray-500">…</span>
+              )}
+            </div>
+          )}
+          {errors.emoji && (
+            <div className="text-sm text-red-500">{errors.emoji}</div>
           )}
         </div>
       </Row>

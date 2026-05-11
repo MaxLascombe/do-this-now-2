@@ -30,6 +30,7 @@ export default function EditTask() {
       <TaskForm
         initial={{
           title: task.title,
+          emoji: task.emoji,
           dueMonth: dueDate.getMonth() + 1,
           dueDay: dueDate.getDate(),
           dueYear: dueDate.getFullYear(),

@@ -60,6 +60,9 @@ const dueDateSchema = ymdSchema
 export const taskInputSchema = z
   .object({
     title: z.string().min(1, 'Title is required'),
+    // Single emoji — allow up to 16 chars to accommodate ZWJ sequences and
+    // skin-tone modifiers. The form picks from 5 Claude-suggested options.
+    emoji: z.string().min(1, 'Emoji is required').max(16),
     due: dueDateSchema,
     strictDeadline: z.boolean(),
     repeat: repeatOptionSchema,
@@ -98,6 +101,7 @@ export type SubTask = z.infer<typeof subTaskSchema>
 export function taskToInput(task: Task): TaskInput {
   return {
     title: task.title,
+    emoji: task.emoji,
     due: task.due,
     strictDeadline: task.strictDeadline,
     repeat: task.repeat,

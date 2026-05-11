@@ -27,6 +27,7 @@ export type Task = {
   id: string
   userId: string
   title: string
+  emoji: string
   due: string
   strictDeadline: boolean
   repeat: RepeatOption

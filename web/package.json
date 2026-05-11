@@ -19,6 +19,7 @@
     "db:push": "drizzle-kit push"
   },
   "dependencies": {
+    "@anthropic-ai/sdk": "^0.95.2",
     "@clerk/tanstack-react-start": "^1.2.3",
     "@dtn/shared": "workspace:*",
     "@fortawesome/fontawesome-svg-core": "^7.2.0",

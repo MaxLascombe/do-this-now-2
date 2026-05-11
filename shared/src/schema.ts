@@ -48,6 +48,10 @@ export const tasks = pgTable(
     id: uuid('id').primaryKey().defaultRandom(),
     userId: text('user_id').notNull(),
     title: text('title').notNull(),
+    // Single emoji (occasionally a multi-codepoint sequence — skin tones,
+    // ZWJ pairs). Default '📝' so the column add is safe on legacy rows;
+    // an admin backfill upgrades those to real Claude-generated emojis.
+    emoji: text('emoji').notNull().default('📝'),
     due: text('due').notNull(),
     strictDeadline: boolean('strict_deadline').notNull().default(false),
     repeat: repeatOptionEnum('repeat').notNull().default('No Repeat'),

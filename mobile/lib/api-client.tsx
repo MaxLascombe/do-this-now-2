@@ -82,6 +82,11 @@ function createMobileApi(
           method: 'POST',
           body: { allSubtasks },
         }),
+      suggestEmojis: (title) =>
+        call<string[]>('/api/tasks/suggest-emojis', {
+          method: 'POST',
+          body: { title },
+        }),
     },
     history: {
       forDate: (date) => call<HistoryEntry[]>(`/api/history/${date}`),

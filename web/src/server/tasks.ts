@@ -2,6 +2,7 @@ import { createServerFn } from '@tanstack/react-start'
 import { z } from 'zod'
 
 import { requireUserId } from './auth'
+import { suggestEmojis as suggestEmojisLib } from './lib/emojis'
 import * as tasksLib from './lib/tasks'
 
 const idSchema = z.object({ id: z.string().uuid() })
@@ -46,4 +47,15 @@ export const deleteTask = createServerFn({ method: 'POST' })
   .handler(async ({ data }) => {
     await tasksLib.deleteTask(await requireUserId(), data.id)
     return {}
+  })
+
+export const suggestEmojis = createServerFn({ method: 'POST' })
+  .inputValidator((d: unknown) =>
+    z.object({ title: z.string().min(1).max(500) }).parse(d),
+  )
+  .handler(async ({ data }) => {
+    // Auth-gate even though there's no DB write — keeps the Anthropic
+    // bill scoped to authenticated users.
+    await requireUserId()
+    return suggestEmojisLib(data.title)
   })

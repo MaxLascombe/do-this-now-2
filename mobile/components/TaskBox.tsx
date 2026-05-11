@@ -14,6 +14,7 @@ export function TaskBox({
   return (
     <View className="flex-col gap-1 border-b border-gray-800 bg-black p-4">
       <View className="flex-row items-center gap-2">
+        <Text className="text-xl leading-none">{task.emoji}</Text>
         <Text className="flex-1 text-white">{task.title}</Text>
         {trailing}
       </View>

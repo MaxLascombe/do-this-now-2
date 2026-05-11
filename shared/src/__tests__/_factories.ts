@@ -6,6 +6,7 @@ export const makeTask = (over: Partial<Task> = {}): Task => ({
   id: over.id ?? 'task-test',
   userId: over.userId ?? 'user-test',
   title: over.title ?? 'A task',
+  emoji: over.emoji ?? '📝',
   due: over.due ?? '2026-5-1',
   strictDeadline: over.strictDeadline ?? false,
   repeat: over.repeat ?? 'No Repeat',

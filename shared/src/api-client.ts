@@ -56,6 +56,7 @@ export interface ApiClient {
     delete(id: string): Promise<DeleteTaskResult>
     complete(id: string): Promise<CompleteTaskResult>
     snooze(id: string, allSubtasks?: boolean): Promise<SnoozeTaskResult>
+    suggestEmojis(title: string): Promise<string[]>
   }
   history: {
     forDate(date: string): Promise<HistoryEntry[]>
