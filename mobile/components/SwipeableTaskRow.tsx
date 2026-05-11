@@ -6,7 +6,7 @@ import {
 } from '@fortawesome/free-solid-svg-icons'
 import { FontAwesomeIcon } from '@fortawesome/react-native-fontawesome'
 import * as Haptics from 'expo-haptics'
-import { useRef, useState } from 'react'
+import { memo, useRef, useState } from 'react'
 import { ActionSheetIOS, Alert, Platform, Pressable, Text, View } from 'react-native'
 import { Swipeable } from 'react-native-gesture-handler'
 
@@ -15,7 +15,7 @@ import { TaskBox } from './TaskBox'
 
 const ACTION_W = 96
 
-export function SwipeableTaskRow({
+function SwipeableTaskRowBase({
   task,
   onComplete,
   onSnooze,
@@ -187,3 +187,8 @@ export function SwipeableTaskRow({
     </Swipeable>
   )
 }
+
+// memo so a parent re-render (e.g. the section toggle) doesn't blow away
+// every row's swipe + expand state. Callers already pass useCallback-stable
+// onComplete/onSnooze/onEdit/onDelete.
+export const SwipeableTaskRow = memo(SwipeableTaskRowBase)

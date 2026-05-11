@@ -1,5 +1,6 @@
 import {
   boolean,
+  index,
   integer,
   jsonb,
   pgEnum,
@@ -41,42 +42,56 @@ export type {
   Task,
 } from './types'
 
-export const tasks = pgTable('tasks', {
-  id: uuid('id').primaryKey().defaultRandom(),
-  userId: text('user_id').notNull(),
-  title: text('title').notNull(),
-  due: text('due').notNull(),
-  strictDeadline: boolean('strict_deadline').notNull().default(false),
-  repeat: repeatOptionEnum('repeat').notNull().default('No Repeat'),
-  repeatInterval: integer('repeat_interval').notNull().default(1),
-  repeatUnit: repeatUnitEnum('repeat_unit').notNull().default('day'),
-  // 7-element boolean array for Sun–Sat
-  repeatWeekdays: jsonb('repeat_weekdays')
-    .$type<[boolean, boolean, boolean, boolean, boolean, boolean, boolean]>()
-    .notNull()
-    .default([false, false, false, false, false, false, false]),
-  timeFrame: integer('time_frame').notNull().default(0),
-  snooze: text('snooze'),
-  subtasks: jsonb('subtasks').$type<SubTask[]>().notNull().default([]),
-  createdAt: timestamp('created_at', { withTimezone: true })
-    .notNull()
-    .defaultNow(),
-  updatedAt: timestamp('updated_at', { withTimezone: true })
-    .notNull()
-    .defaultNow(),
-})
+export const tasks = pgTable(
+  'tasks',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    userId: text('user_id').notNull(),
+    title: text('title').notNull(),
+    due: text('due').notNull(),
+    strictDeadline: boolean('strict_deadline').notNull().default(false),
+    repeat: repeatOptionEnum('repeat').notNull().default('No Repeat'),
+    repeatInterval: integer('repeat_interval').notNull().default(1),
+    repeatUnit: repeatUnitEnum('repeat_unit').notNull().default('day'),
+    // 7-element boolean array for Sun–Sat
+    repeatWeekdays: jsonb('repeat_weekdays')
+      .$type<[boolean, boolean, boolean, boolean, boolean, boolean, boolean]>()
+      .notNull()
+      .default([false, false, false, false, false, false, false]),
+    timeFrame: integer('time_frame').notNull().default(0),
+    snooze: text('snooze'),
+    subtasks: jsonb('subtasks').$type<SubTask[]>().notNull().default([]),
+    createdAt: timestamp('created_at', { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+    updatedAt: timestamp('updated_at', { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+  },
+  // Every task query scopes by user_id; without this index Postgres
+  // sequential-scans the table.
+  (t) => [index('tasks_user_id_idx').on(t.userId)],
+)
 
-export const history = pgTable('history', {
-  id: uuid('id').primaryKey().defaultRandom(),
-  userId: text('user_id').notNull(),
-  // SET NULL on task delete: the history row stays (taskSnapshot keeps the
-  // displayable copy) but the live-task back-reference clears.
-  taskId: uuid('task_id').references(() => tasks.id, { onDelete: 'set null' }),
-  taskSnapshot: jsonb('task_snapshot').$type<Task>().notNull(),
-  completedAt: timestamp('completed_at', { withTimezone: true })
-    .notNull()
-    .defaultNow(),
-})
+export const history = pgTable(
+  'history',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    userId: text('user_id').notNull(),
+    // SET NULL on task delete: the history row stays (taskSnapshot keeps the
+    // displayable copy) but the live-task back-reference clears.
+    taskId: uuid('task_id').references(() => tasks.id, { onDelete: 'set null' }),
+    taskSnapshot: jsonb('task_snapshot').$type<Task>().notNull(),
+    completedAt: timestamp('completed_at', { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+  },
+  // History queries always bracket (user_id, completed_at) for the day's
+  // history slice and the progress-today computation.
+  (t) => [
+    index('history_user_id_completed_at_idx').on(t.userId, t.completedAt),
+  ],
+)
 
 export const dailyProgress = pgTable(
   'daily_progress',

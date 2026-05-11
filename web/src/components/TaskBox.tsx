@@ -1,9 +1,9 @@
-import { type LegacyRef } from 'react'
+import { memo, type LegacyRef } from 'react'
 
 import { type Task } from '@dtn/shared/types'
 import { DateTag, Repeat, Strict, TimeFrame } from './Tags'
 
-export const TaskBox = ({
+const TaskBoxBase = ({
   innerRef,
   isSelected,
   onClick,
@@ -70,3 +70,7 @@ export const TaskBox = ({
     </button>
   )
 }
+
+// memo so selection-index changes only re-render the row whose
+// isSelected actually flipped — not every row in the list.
+export const TaskBox = memo(TaskBoxBase)

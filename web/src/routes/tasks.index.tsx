@@ -14,7 +14,7 @@ import {
 } from '@dtn/shared/queries'
 import { createFileRoute, useNavigate } from '@tanstack/react-router'
 import { format } from 'date-fns'
-import { Fragment, useRef, useState } from 'react'
+import { Fragment, useCallback, useMemo, useRef, useState } from 'react'
 
 import { Button } from '../components/Button'
 import Hints from '../components/Hints'
@@ -45,20 +45,32 @@ function TasksList() {
   const data = allTasks.data ?? []
   const dataTop = topTasks.data ?? []
 
-  let tasks = sort === 'CHRON' ? [...data] : [...dataTop]
+  // Sort + group are heavy enough on long lists to be worth memoizing;
+  // the previous code sorted/grouped on every keystroke (re-render).
+  const tasks = useMemo(() => {
+    const arr = sort === 'CHRON' ? [...data] : [...dataTop]
+    if (sort === 'CHRON') {
+      arr.sort(
+        (a, b) => newSafeDate(a.due).getTime() - newSafeDate(b.due).getTime(),
+      )
+    } else {
+      const today = new Date(
+        new Date().getFullYear(),
+        new Date().getMonth(),
+        new Date().getDate(),
+      )
+      sortTasks(arr, today)
+    }
+    return arr
+  }, [sort, data, dataTop])
 
-  if (sort === 'CHRON') {
-    tasks.sort(
-      (a, b) => newSafeDate(a.due).getTime() - newSafeDate(b.due).getTime(),
-    )
-  } else {
-    const today = new Date(
-      new Date().getFullYear(),
-      new Date().getMonth(),
-      new Date().getDate(),
-    )
-    sortTasks(tasks, today)
-  }
+  // O(1) "what's this task's index in the sorted array" lookup. Replaces
+  // the per-row `indexOf(task.id)` that was O(n²) inside render.
+  const indexOf = useMemo(() => {
+    const m = new Map<string, number>()
+    tasks.forEach((t, i) => m.set(t.id, i))
+    return (id: string) => m.get(id) ?? -1
+  }, [tasks])
 
   const doneMutation = useCompleteTask()
   const deleteMutation = useDeleteTask()
@@ -137,24 +149,17 @@ function TasksList() {
   ]
   useKeyAction(keyActions)
 
-  const formatDate = (date: Date) => {
+  const formatDate = useCallback((date: Date) => {
     try {
-      return format(
-        new Date(
-          date.getFullYear(),
-          date.getMonth(),
-          date.getDate() + 1,
-          0,
-          0,
-          0,
-        ),
-        'EEEE, LLLL do, u',
-      )
+      // No off-by-one: `date` is already midnight local on the task's due
+      // date. The previous +1 here was dead compensation that shifted
+      // every group heading one day forward.
+      return format(date, 'EEEE, LLLL do, u')
     } catch (e) {
       console.error(e)
       return date.toDateString()
     }
-  }
+  }, [])
 
   const firstTaskDueAfterToday = tasks.findIndex(
     (task) => newSafeDate(task.due) > new Date(),
@@ -220,13 +225,13 @@ function TasksList() {
                     <Fragment key={task.id}>
                       <TaskBox
                         innerRef={(e: HTMLButtonElement) => {
-                          taskElems.current[tasks.indexOf(task)] = e
+                          taskElems.current[indexOf(task.id)] = e
                         }}
-                        isSelected={tasks.indexOf(task) === selectedTask}
-                        onClick={() => setSelectedTask(tasks.indexOf(task))}
+                        isSelected={indexOf(task.id) === selectedTask}
+                        onClick={() => setSelectedTask(indexOf(task.id))}
                         task={task}
                       />
-                      {tasks.indexOf(task) === selectedTask && (
+                      {indexOf(task.id) === selectedTask && (
                         <ActionRow
                           completeAction={completeAction}
                           editAction={() =>

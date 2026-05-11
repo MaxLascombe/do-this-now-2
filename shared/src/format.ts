@@ -77,19 +77,20 @@ export function formatScheduleStatus(opts: {
  *   today+1  → 'Tomorrow'
  *   today-1  → 'Yesterday'
  *   other    → 'Wed Mar 5' (date-fns `iii LLL d`)
+ *
+ * Optional `today` arg lets callers pass an SSR-safe / tz-aware reference
+ * date. When omitted, defaults to the runtime's local midnight — fine for
+ * client-only render paths.
  */
-export function formatDueLabel(due: string): string | null {
+export function formatDueLabel(due: string, today?: Date): string | null {
   try {
     const dueDate = newSafeDate(due)
-    const today = new Date(
-      new Date().getFullYear(),
-      new Date().getMonth(),
-      new Date().getDate(),
-    )
+    const ref = today ?? new Date()
+    const today0 = new Date(ref.getFullYear(), ref.getMonth(), ref.getDate())
     const t = dueDate.getTime()
-    if (t === today.getTime()) return 'Today'
-    if (t === today.getTime() + 24 * 60 * 60 * 1000) return 'Tomorrow'
-    if (t === today.getTime() - 24 * 60 * 60 * 1000) return 'Yesterday'
+    if (t === today0.getTime()) return 'Today'
+    if (t === today0.getTime() + 24 * 60 * 60 * 1000) return 'Tomorrow'
+    if (t === today0.getTime() - 24 * 60 * 60 * 1000) return 'Yesterday'
     return format(dueDate, 'iii LLL d')
   } catch {
     return null
