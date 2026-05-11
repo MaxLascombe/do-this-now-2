@@ -3,7 +3,7 @@ import { createFileRoute, useRouter } from '@tanstack/react-router'
 
 import { Button } from '../components/Button'
 import { Loading } from '../components/Loading'
-import TaskForm, { type TaskFormInput } from '../components/TaskForm'
+import TaskForm from '../components/TaskForm'
 import { useCreateTask } from '@dtn/shared/queries'
 
 export const Route = createFileRoute('/new-task')({
@@ -33,23 +33,11 @@ function NewTask() {
             </div>
           )}
           <TaskForm
-            submitForm={(input: TaskFormInput) => {
-              const due = `${input.dueYear}-${input.dueMonth}-${input.dueDay}`
-              mutation.mutate(
-                {
-                  title: input.title,
-                  due,
-                  strictDeadline: input.strictDeadline,
-                  repeat: input.repeat,
-                  repeatInterval: input.repeatInterval,
-                  repeatUnit: input.repeatUnit,
-                  repeatWeekdays: input.repeatWeekdays,
-                  timeFrame: Number(input.timeFrame),
-                  subtasks: input.subtasks,
-                },
-                { onSuccess: () => router.history.back() },
-              )
-            }}
+            submitForm={(input) =>
+              mutation.mutate(input, {
+                onSuccess: () => router.history.back(),
+              })
+            }
           />
         </div>
       </div>

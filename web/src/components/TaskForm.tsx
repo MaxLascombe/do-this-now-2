@@ -6,66 +6,22 @@ import {
   faTrash,
 } from '@fortawesome/free-solid-svg-icons'
 import { format } from 'date-fns'
-import {
-  type ComponentProps,
-  type RefObject,
-  useRef,
-  useState,
-} from 'react'
-import { ZodError, z } from 'zod'
+import { type ComponentProps, type RefObject, useRef, useState } from 'react'
+import { ZodError } from 'zod'
 
+import { dateString, newSafeDate } from '@dtn/shared/helpers'
+import {
+  type RepeatOption,
+  type RepeatUnit,
+  type RepeatWeekdays,
+  type SubTask,
+  type TaskInput,
+  taskInputSchema,
+} from '@dtn/shared/task-input'
 import useKeyAction, { type KeyAction } from '../hooks/useKeyAction'
-import { dateString, newSafeDate } from '../lib/helpers'
 import { Button } from './Button'
 import { Input } from './Input'
 import { Switch } from './Switch'
-
-const repeatOptionSchema = z.enum([
-  'No Repeat',
-  'Daily',
-  'Weekdays',
-  'Weekly',
-  'Monthly',
-  'Yearly',
-  'Custom',
-])
-type RepeatOption = z.infer<typeof repeatOptionSchema>
-
-const repeatUnitSchema = z.enum(['day', 'week', 'month', 'year'])
-type RepeatUnit = z.infer<typeof repeatUnitSchema>
-
-const repeatWeekdaysSchema = z.tuple([
-  z.boolean(),
-  z.boolean(),
-  z.boolean(),
-  z.boolean(),
-  z.boolean(),
-  z.boolean(),
-  z.boolean(),
-])
-type RepeatWeekdays = z.infer<typeof repeatWeekdaysSchema>
-
-const subTaskSchema = z.object({
-  title: z.string(),
-  done: z.boolean(),
-  snooze: z.string().optional(),
-})
-type SubTask = z.infer<typeof subTaskSchema>
-
-export const taskInputSchema = z.object({
-  title: z.string().min(1, 'Title is required'),
-  dueMonth: z.number(),
-  dueDay: z.number(),
-  dueYear: z.number(),
-  strictDeadline: z.boolean(),
-  repeat: repeatOptionSchema,
-  repeatInterval: z.number(),
-  repeatWeekdays: repeatWeekdaysSchema,
-  repeatUnit: repeatUnitSchema,
-  timeFrame: z.union([z.number(), z.string().transform((x) => parseInt(x))]),
-  subtasks: z.array(subTaskSchema),
-})
-export type TaskFormInput = z.infer<typeof taskInputSchema>
 
 const days = [
   'Sunday',
@@ -88,11 +44,33 @@ const repeatOptions: RepeatOption[] = [
 ]
 const repeatUnits: RepeatUnit[] = ['day', 'week', 'month', 'year']
 
+// HTML <input type="date"> uses YYYY-MM-DD (zero-padded); our shared schema
+// uses YYYY-M-D. Convert at the input boundary.
+const toIso = (due: string): string => {
+  if (due === 'No Due Date') return ''
+  const [y, m, d] = due.split('-').map((s) => parseInt(s))
+  const pad = (n: number) => (n < 10 ? '0' + n : '' + n)
+  return `${y}-${pad(m)}-${pad(d)}`
+}
+
+const dayDiffFor = (due: string): number => {
+  const today = newSafeDate(dateString(new Date()))
+  const target = newSafeDate(due)
+  return Math.round(
+    (target.getTime() - today.getTime()) / (1000 * 60 * 60 * 24),
+  )
+}
+
+const dayDiffPhrase = (diff: number): string => {
+  if (diff < 0) return `${Math.abs(diff)} days ago`
+  if (diff === 0) return 'today'
+  if (diff === 1) return 'tomorrow'
+  return `in ${diff} days`
+}
+
 const TaskForm = ({
   title: initialTitle,
-  dueMonth: initialDueMonth,
-  dueDay: initialDueDay,
-  dueYear: initialDueYear,
+  due: initialDue,
   errorMessage,
   strictDeadline: initialStrictDeadline,
   repeat: initialRepeat,
@@ -103,21 +81,15 @@ const TaskForm = ({
   subtasks: initialSubtasks,
   submitForm,
   isSaving = false,
-}: Partial<TaskFormInput> & {
+}: Partial<TaskInput> & {
   errorMessage?: string | null
-  submitForm: (input: TaskFormInput) => void
+  submitForm: (input: TaskInput) => void
   isSaving?: boolean
 }) => {
   const [formError, setFormError] = useState<ZodError>()
   const [title, setTitle] = useState(initialTitle ?? '')
-
-  const dueDayRef = useRef<HTMLInputElement>(null)
-  const dueMonthRef = useRef<HTMLInputElement>(null)
-  const dueYearRef = useRef<HTMLInputElement>(null)
-  const [dueDate, setDueDate] = useState(
-    initialDueYear && initialDueMonth && initialDueDay
-      ? new Date(initialDueYear, initialDueMonth - 1, initialDueDay)
-      : newSafeDate(dateString(new Date())),
+  const [due, setDue] = useState<string>(
+    initialDue ?? dateString(new Date()),
   )
   const [strictDeadline, setStrictDeadline] = useState(
     initialStrictDeadline ?? false,
@@ -142,22 +114,11 @@ const TaskForm = ({
   const [hasSubtasks, setHasSubtasks] = useState((subtasks.length ?? 0) > 0)
   if ((subtasks.length ?? 0) > 0 && !hasSubtasks) setHasSubtasks(true)
 
-  const dayDiff = Math.round(
-    (dueDate.getTime() - newSafeDate(dateString(new Date())).getTime()) /
-      (1000 * 60 * 60 * 24),
-  )
-
-  const dayDiffPhrase = () => {
-    if (dayDiff < 0) return `${Math.abs(dayDiff)} days ago`
-    if (dayDiff === 0) return 'today'
-    if (dayDiff === 1) return 'tomorrow'
-    return `in ${dayDiff} days`
+  const shiftDue = (deltaDays: number) => {
+    const d = newSafeDate(due)
+    d.setDate(d.getDate() + deltaDays)
+    setDue(dateString(d))
   }
-
-  const decrementDate = () =>
-    setDueDate(new Date(new Date(dueDate).setDate(dueDate.getDate() - 1)))
-  const incrementDate = () =>
-    setDueDate(new Date(new Date(dueDate).setDate(dueDate.getDate() + 1)))
 
   const errors = Object.fromEntries(
     formError?.issues.map((issue) => [issue.path[0], issue.message]) ?? [],
@@ -187,9 +148,7 @@ const TaskForm = ({
   const submit = () => {
     const input = taskInputSchema.safeParse({
       title,
-      dueMonth: dueDate.getMonth() + 1,
-      dueDay: dueDate.getDate(),
-      dueYear: dueDate.getFullYear(),
+      due,
       strictDeadline,
       repeat,
       repeatInterval,
@@ -210,6 +169,8 @@ const TaskForm = ({
     },
   ]
   useKeyAction(keyActions)
+
+  const dueDate = newSafeDate(due)
 
   return (
     <form
@@ -238,68 +199,27 @@ const TaskForm = ({
         </div>
       </Row>
 
-      <Row label="Due Date" htmlFor="due-month">
+      <Row label="Due Date" htmlFor="due-date">
         <div className="mt-1 sm:col-span-2 sm:mt-0">
           <div className="flex max-w-lg items-center gap-2 rounded-md shadow-sm">
-            <FormButton icon={faMinus} onClick={decrementDate} />
+            <FormButton icon={faMinus} onClick={() => shiftDue(-1)} />
             <Input
-              ref={dueMonthRef}
-              type="number"
-              step={1}
-              name="due-month"
-              id="due-month"
-              placeholder="MM"
-              value={dueDate.getMonth() + 1}
-              onChange={(e) =>
-                setDueDate(
-                  new Date(
-                    parseInt(dueYearRef.current?.value ?? '1'),
-                    parseInt(e.target.value === '' ? '1' : e.target.value) - 1,
-                    parseInt(dueDayRef.current?.value ?? '1'),
-                  ),
+              id="due-date"
+              type="date"
+              value={toIso(due)}
+              onChange={(e) => {
+                if (!e.target.value) return
+                const [y, m, d] = e.target.value.split('-').map((x) =>
+                  parseInt(x),
                 )
-              }
+                setDue(`${y}-${m}-${d}`)
+              }}
+              className="[color-scheme:dark]"
             />
-            <Input
-              ref={dueDayRef}
-              type="number"
-              step={1}
-              name="due-day"
-              id="due-day"
-              placeholder="DD"
-              value={dueDate.getDate()}
-              onChange={(e) =>
-                setDueDate(
-                  new Date(
-                    parseInt(dueYearRef.current?.value ?? '1'),
-                    parseInt(dueMonthRef.current?.value ?? '1') - 1,
-                    parseInt(e.target.value === '' ? '1' : e.target.value),
-                  ),
-                )
-              }
-            />
-            <Input
-              ref={dueYearRef}
-              type="number"
-              step={1}
-              name="due-year"
-              id="due-year"
-              placeholder="YYYY"
-              value={dueDate.getFullYear()}
-              onChange={(e) =>
-                setDueDate(
-                  new Date(
-                    parseInt(e.target.value === '' ? '1' : e.target.value),
-                    parseInt(dueMonthRef.current?.value ?? '1') - 1,
-                    parseInt(dueDayRef.current?.value ?? '1'),
-                  ),
-                )
-              }
-            />
-            <FormButton onClick={incrementDate} icon={faPlus} />
+            <FormButton onClick={() => shiftDue(1)} icon={faPlus} />
           </div>
           <div className="mt-1 max-w-lg text-center text-gray-600">
-            {format(dueDate, 'EEEE, LLLL do, u')} ({dayDiffPhrase()})
+            {format(dueDate, 'EEEE, LLLL do, u')} ({dayDiffPhrase(dayDiffFor(due))})
           </div>
         </div>
       </Row>
@@ -588,3 +508,4 @@ const SwitchWithLabel = ({
 )
 
 export default TaskForm
+export type { TaskInput as TaskFormInput }

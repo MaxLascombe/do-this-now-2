@@ -4,8 +4,7 @@ import { createFileRoute, useRouter } from '@tanstack/react-router'
 
 import { Button } from '../components/Button'
 import { Loading } from '../components/Loading'
-import TaskForm, { type TaskFormInput } from '../components/TaskForm'
-import { newSafeDate } from '../lib/helpers'
+import TaskForm from '../components/TaskForm'
 
 export const Route = createFileRoute('/tasks/$id/edit')({
   component: EditTask,
@@ -27,8 +26,6 @@ function EditTask() {
     )
   }
 
-  const dueDate = newSafeDate(task.due)
-
   return (
     <div className="space-y-8 divide-y divide-gray-700 p-10 text-white">
       <div>
@@ -40,9 +37,7 @@ function EditTask() {
         </div>
         <TaskForm
           title={task.title}
-          dueMonth={dueDate.getMonth() + 1}
-          dueDay={dueDate.getDate()}
-          dueYear={dueDate.getFullYear()}
+          due={task.due}
           strictDeadline={task.strictDeadline}
           repeat={task.repeat}
           repeatInterval={task.repeatInterval}
@@ -50,26 +45,12 @@ function EditTask() {
           repeatWeekdays={task.repeatWeekdays}
           timeFrame={task.timeFrame}
           subtasks={task.subtasks}
-          submitForm={(input: TaskFormInput) => {
-            const due = `${input.dueYear}-${input.dueMonth}-${input.dueDay}`
+          submitForm={(input) =>
             mutation.mutate(
-              {
-                id,
-                input: {
-                  title: input.title,
-                  due,
-                  strictDeadline: input.strictDeadline,
-                  repeat: input.repeat,
-                  repeatInterval: input.repeatInterval,
-                  repeatUnit: input.repeatUnit,
-                  repeatWeekdays: input.repeatWeekdays,
-                  timeFrame: Number(input.timeFrame),
-                  subtasks: input.subtasks,
-                },
-              },
+              { id, input },
               { onSuccess: () => router.history.back() },
             )
-          }}
+          }
           isSaving={mutation.isPending}
         />
       </div>
