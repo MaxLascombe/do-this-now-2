@@ -5,10 +5,8 @@ import {
   faRepeat,
 } from '@fortawesome/free-solid-svg-icons'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
-import { formatRepeat } from '@dtn/shared/format'
-import { newSafeDate } from '@dtn/shared/helpers'
+import { formatDueLabel, formatRepeat } from '@dtn/shared/format'
 import { minutesToHours } from '@dtn/shared/time'
-import { format } from 'date-fns'
 
 export const Tag = ({
   icon,
@@ -35,32 +33,9 @@ export const Tag = ({
 )
 
 export const DateTag = ({ due }: { due: string }) => {
-  if (due === 'No Due Date') return null
-  try {
-    const dueDate = newSafeDate(due)
-    const today = new Date(
-      new Date().getFullYear(),
-      new Date().getMonth(),
-      new Date().getDate(),
-    )
-    const tomorrow = new Date(today)
-    tomorrow.setDate(tomorrow.getDate() + 1)
-    const yesterday = new Date(today)
-    yesterday.setDate(yesterday.getDate() - 1)
-
-    const text =
-      dueDate.getTime() === today.getTime()
-        ? 'Today'
-        : dueDate.getTime() === tomorrow.getTime()
-          ? 'Tomorrow'
-          : dueDate.getTime() === yesterday.getTime()
-            ? 'Yesterday'
-            : format(dueDate, 'iii LLL d')
-    return <Tag text={text} icon={faCalendar} />
-  } catch (e) {
-    console.error(e)
-    return null
-  }
+  const text = formatDueLabel(due)
+  if (!text) return null
+  return <Tag text={text} icon={faCalendar} />
 }
 
 export const TimeFrame = ({ timeFrame }: { timeFrame?: number }) => {

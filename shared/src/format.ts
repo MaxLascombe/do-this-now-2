@@ -1,3 +1,6 @@
+import { format } from 'date-fns'
+
+import { newSafeDate } from './helpers'
 import type { RepeatOption, RepeatUnit, RepeatWeekdays } from './task-input'
 
 const WEEKDAY_SHORT = ['su', 'mo', 'tu', 'we', 'th', 'fr', 'sa'] as const
@@ -38,4 +41,32 @@ export function formatRepeat(
   }
 
   return repeat.toLowerCase()
+}
+
+/**
+ * Human-readable label for a task's due date.
+ *
+ *   'No Due Date' → null
+ *   today         → 'Today'
+ *   today+1       → 'Tomorrow'
+ *   today-1       → 'Yesterday'
+ *   otherwise     → 'Wed Mar 5' (date-fns `iii LLL d`)
+ */
+export function formatDueLabel(due: string): string | null {
+  if (due === 'No Due Date') return null
+  try {
+    const dueDate = newSafeDate(due)
+    const today = new Date(
+      new Date().getFullYear(),
+      new Date().getMonth(),
+      new Date().getDate(),
+    )
+    const t = dueDate.getTime()
+    if (t === today.getTime()) return 'Today'
+    if (t === today.getTime() + 24 * 60 * 60 * 1000) return 'Tomorrow'
+    if (t === today.getTime() - 24 * 60 * 60 * 1000) return 'Yesterday'
+    return format(dueDate, 'iii LLL d')
+  } catch {
+    return null
+  }
 }

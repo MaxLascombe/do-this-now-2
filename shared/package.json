@@ -23,6 +23,7 @@
   },
   "peerDependencies": {
     "@tanstack/react-query": "^5",
+    "date-fns": "^4",
     "react": "^19"
   },
   "devDependencies": {
