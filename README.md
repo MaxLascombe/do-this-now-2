@@ -84,3 +84,5 @@ distribution.
 - `ANTHROPIC_API_KEY` (Claude API — needed for `/api/tasks/suggest-emojis`)
 - `EXPO_PUBLIC_API_URL` (where the mobile client points)
 - `EXPO_PUBLIC_CLERK_PUBLISHABLE_KEY`
+
+<!-- smoke-test: trigger claude review (will revert) -->
