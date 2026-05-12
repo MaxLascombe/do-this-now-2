@@ -24,11 +24,6 @@ jobs:
       # claude-code-action mints an OIDC token to authenticate with the
       # Anthropic GitHub App — required even when ANTHROPIC_API_KEY is set.
       id-token: write
-    # Job-level env so the composite action's internal subprocesses see it.
-    # Step-level env on `uses:` doesn't propagate down into composite-action
-    # children.
-    env:
-      ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
     steps:
       - uses: actions/checkout@v4
         with:
@@ -36,6 +31,7 @@ jobs:
 
       - uses: anthropics/claude-code-action@v1
         with:
+          anthropic_api_key: ${{ secrets.ANTHROPIC_API_KEY }}
           prompt: |
             You are reviewing a pull request on a monorepo with three workspaces:
               - shared/  (@dtn/shared — pure TS types, drizzle schema, react-query hooks)
