@@ -15,6 +15,7 @@
     "./types": "./src/types.ts",
     "./helpers": "./src/helpers.ts",
     "./task-sorting": "./src/task-sorting.ts",
+    "./task-transitions": "./src/task-transitions.ts",
     "./time": "./src/time.ts",
     "./task-input": "./src/task-input.ts",
     "./format": "./src/format.ts",
