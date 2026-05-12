@@ -15,7 +15,8 @@
     "test": "pnpm --filter @dtn/shared test && pnpm --filter web test",
     "db:studio": "pnpm --filter web exec drizzle-kit studio",
     "db:generate": "pnpm --filter web exec drizzle-kit generate",
-    "db:check": "pnpm --filter web exec drizzle-kit check"
+    "db:check": "pnpm --filter web exec drizzle-kit check",
+    "prepare": "lefthook install || true"
   },
   "pnpm": {
     "onlyBuiltDependencies": [
@@ -28,6 +29,7 @@
     }
   },
   "devDependencies": {
-    "concurrently": "^9.2.1"
+    "concurrently": "^9.2.1",
+    "lefthook": "^2.1.6"
   }
 }
