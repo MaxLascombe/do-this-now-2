@@ -125,11 +125,7 @@ async function optimisticSnooze(
   return replaceTaskInCaches(qc, id, transition.nextTask)
 }
 
-// Build a placeholder Task from a TaskInput. Real `id` and `userId` come
-// from the server; we borrow userId from a cached task so the optimistic
-// row matches existing entries' shape, falling back to '' if the cache
-// is empty (in which case nothing renders the userId anyway). The refetch
-// triggered by onSettled replaces the optimistic row with the real one.
+// userId borrowed from a cached task; '' fallback is harmless — onSettled refetch swaps in the real row.
 function makeOptimisticTask(input: TaskInput, userId: string): Task {
   const now = new Date()
   return {
