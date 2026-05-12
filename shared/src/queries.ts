@@ -46,6 +46,8 @@ type OptimisticSnapshot = {
   prevTop: Task[] | undefined
   prevList: Task[] | undefined
   prevProgress?: ProgressTodayResult | undefined
+  // Captured when an update needs to rollback the single-task cache too.
+  prevOne?: { id: string; value: Task | undefined }
 }
 
 function findTaskInCaches(qc: QueryClient, id: string): Task | undefined {
@@ -173,6 +175,39 @@ async function optimisticCreate(
   return { prevTop, prevList }
 }
 
+async function optimisticUpdate(
+  qc: QueryClient,
+  id: string,
+  input: TaskInput,
+): Promise<OptimisticSnapshot> {
+  await qc.cancelQueries({ queryKey: taskKeys.all })
+  const prevTop = qc.getQueryData<Task[]>(taskKeys.top)
+  const prevList = qc.getQueryData<Task[]>(taskKeys.list)
+  const prevOne = qc.getQueryData<Task>(taskKeys.one(id))
+
+  const existing = prevOne ?? findTaskInCaches(qc, id)
+  if (!existing) return { prevTop, prevList, prevOne: { id, value: prevOne } }
+
+  const next: Task = { ...existing, ...input, updatedAt: new Date() }
+
+  const today = new Date()
+  today.setHours(0, 0, 0, 0)
+
+  // Sort-affecting fields (due, repeat, strictDeadline, timeFrame) may
+  // have changed; just re-sort unconditionally — cheap vs the network rtt.
+  const replaceSorted = (xs: Task[] | undefined) => {
+    if (!xs) return xs
+    const out = xs.map((t) => (t.id === id ? next : t))
+    sortTasks(out, today)
+    return out
+  }
+  qc.setQueryData<Task[]>(taskKeys.top, replaceSorted)
+  qc.setQueryData<Task[]>(taskKeys.list, replaceSorted)
+  qc.setQueryData<Task>(taskKeys.one(id), next)
+
+  return { prevTop, prevList, prevOne: { id, value: prevOne } }
+}
+
 function rollback(qc: QueryClient, snap: OptimisticSnapshot | undefined) {
   if (!snap) return
   if (snap.prevTop !== undefined) qc.setQueryData(taskKeys.top, snap.prevTop)
@@ -180,6 +215,8 @@ function rollback(qc: QueryClient, snap: OptimisticSnapshot | undefined) {
     qc.setQueryData(taskKeys.list, snap.prevList)
   if (snap.prevProgress !== undefined)
     qc.setQueryData(progressTodayKey, snap.prevProgress)
+  if (snap.prevOne)
+    qc.setQueryData(taskKeys.one(snap.prevOne.id), snap.prevOne.value)
 }
 
 // ----------------------------------------------------------------------
@@ -260,6 +297,8 @@ export function useUpdateTask() {
   return useMutation({
     mutationFn: ({ id, input }: { id: string; input: TaskInput }) =>
       api.tasks.update(id, input),
+    onMutate: ({ id, input }) => optimisticUpdate(qc, id, input),
+    onError: (_e, _vars, ctx) => rollback(qc, ctx),
     onSettled: () => invalidateTaskCaches(qc),
   })
 }
