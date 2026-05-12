@@ -1,0 +1,21 @@
+# Local git hooks via lefthook. Installs on `pnpm install` via the
+# postinstall (`lefthook install` is hooked into the package).
+#
+# Goal: catch obvious breakage BEFORE a push reaches CI / Vercel.
+# These hooks mirror what CI runs but only on what you're committing,
+# so they're seconds-fast in the common case.
+#
+# Bypass with `git commit --no-verify` or `git push --no-verify` if you
+# need to push a WIP.
+
+pre-push:
+  parallel: true
+  commands:
+    typecheck-shared:
+      run: pnpm --filter @dtn/shared exec tsc --noEmit
+    typecheck-web:
+      run: pnpm --filter web exec tsc --noEmit
+    typecheck-mobile:
+      run: pnpm --filter mobile exec tsc --noEmit
+    test-shared:
+      run: pnpm --filter @dtn/shared test
