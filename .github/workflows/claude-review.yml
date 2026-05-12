@@ -1,0 +1,64 @@
+name: Claude Review
+
+on:
+  pull_request:
+    # opened     = first time the PR is created
+    # synchronize = new commits pushed to the PR branch
+    # reopened   = PR closed then reopened
+    # ready_for_review = draft PR marked ready
+    types: [opened, synchronize, reopened, ready_for_review]
+
+# A new push to the same PR cancels any still-running review for that PR.
+# Keeps token spend bounded when commits land in quick succession.
+concurrency:
+  group: claude-review-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+jobs:
+  review:
+    # Skip drafts to avoid burning tokens on work-in-progress
+    if: github.event.pull_request.draft == false
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pull-requests: write
+      id-token: write
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
+
+      - uses: anthropics/claude-code-action@v1
+        with:
+          claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
+          track_progress: true
+          prompt: |
+            REPO: ${{ github.repository }}
+            PR NUMBER: ${{ github.event.pull_request.number }}
+
+            You are reviewing a pull request for this repository. The PR branch is already checked out in the current working directory.
+
+            Read `ARCHITECTURE.md` first — it explains the 5-layer request flow (queries → ApiClient → server-fn / REST → lib → Drizzle). Flag any changes that bypass or short-circuit this flow.
+
+            Focus your review on:
+            - Correctness and likely bugs (especially edge cases in the diff)
+            - Architecture: does the change respect the 5-layer flow? Server-fn AND matching REST route for any new operation?
+            - Type safety — no `any`, no unsafe casts, schemas validated at the boundary
+            - Security: input validation, auth checks, no secrets, no SQL injection vectors
+            - Tests: are integration tests updated for new server logic? Do shared tests cover the new behavior?
+
+            Style preferences (do NOT nitpick if absent, but flag violations):
+            - No comments explaining WHAT code does — only WHY when non-obvious
+            - No multi-line comment blocks or long docstrings
+            - No error handling for impossible cases; trust internal boundaries
+            - No premature abstractions; three similar lines beats a bad helper
+            - No backwards-compat shims for code paths that don't need them
+
+            Use `mcp__github_inline_comment__create_inline_comment` (with `confirmed: true`) for issues tied to specific lines.
+            Use `gh pr comment` for a single top-level summary at the end.
+            Do not submit an approving or requesting-changes review yet — just comments. (We'll enable verdicts once we're ready to gate merges.)
+
+            Be terse. Don't restate the diff. Don't praise; flag only issues. If the PR looks clean, the summary comment should say so in one sentence.
+
+          claude_args: |
+            --allowedTools "mcp__github_inline_comment__create_inline_comment,Bash(gh pr comment:*),Bash(gh pr diff:*),Bash(gh pr view:*),Bash(gh pr checks:*),Bash(rg:*),Bash(find:*),Bash(cat:*),Bash(ls:*)"
