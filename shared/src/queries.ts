@@ -8,10 +8,9 @@ import {
 import type { ProgressTodayResult } from './api-client'
 import { useApi } from './api-client'
 import {
-  findNextActionableSubtask,
-  willCompletingFinishTheTask,
-  willSnoozingRemoveTask,
-} from './task-sorting'
+  completeTaskTransition,
+  snoozeTaskTransition,
+} from './task-transitions'
 import type { TaskInput } from './task-input'
 import type { Task } from './types'
 
@@ -68,65 +67,50 @@ async function optimisticRemove(
   return { prevTop, prevList }
 }
 
+async function replaceTaskInCaches(
+  qc: QueryClient,
+  id: string,
+  nextTask: Task,
+): Promise<OptimisticSnapshot> {
+  await qc.cancelQueries({ queryKey: taskKeys.all })
+  const prevTop = qc.getQueryData<Task[]>(taskKeys.top)
+  const prevList = qc.getQueryData<Task[]>(taskKeys.list)
+  const replace = (xs: Task[] | undefined) =>
+    xs?.map((t) => (t.id === id ? nextTask : t))
+  qc.setQueryData<Task[]>(taskKeys.top, replace)
+  qc.setQueryData<Task[]>(taskKeys.list, replace)
+  return { prevTop, prevList }
+}
+
 async function optimisticComplete(
   qc: QueryClient,
   id: string,
 ): Promise<OptimisticSnapshot> {
-  // Read the task BEFORE we mutate the caches.
   const task = findTaskInCaches(qc, id)
-
-  // Cache miss — fall back to vanilla remove. Defensive; shouldn't happen
-  // in practice since the UI only triggers complete on a task it just
-  // rendered from the same cache.
   if (!task) return optimisticRemove(qc, id)
 
-  if (willCompletingFinishTheTask(task)) {
-    const snap = await optimisticRemove(qc, id)
-    await qc.cancelQueries({ queryKey: progressTodayKey })
-    const prevProgress = qc.getQueryData<ProgressTodayResult>(progressTodayKey)
-    if (prevProgress) {
-      qc.setQueryData<ProgressTodayResult>(progressTodayKey, {
-        ...prevProgress,
-        done: prevProgress.done + (task.timeFrame ?? 0),
-      })
-    }
-    return { ...snap, prevProgress }
+  const transition = completeTaskTransition(task, new Date())
+
+  if (transition.kind === 'advance-subtask') {
+    return replaceTaskInCaches(qc, id, transition.nextTask)
   }
 
-  // Advance-only path: flip the next actionable subtask to done in the
-  // cache so the UI updates without removing the row. We don't bump
-  // progressToday.done here — the server only writes history when the
-  // *task* completes, not on intermediate subtask advances.
-  const now = new Date()
-  const next =
-    findNextActionableSubtask(task.subtasks, now) ??
-    task.subtasks.find((s) => !s.done)
-  if (!next) return optimisticRemove(qc, id)
-  const nextIdx = task.subtasks.indexOf(next)
-
-  await qc.cancelQueries({ queryKey: taskKeys.all })
-  const prevTop = qc.getQueryData<Task[]>(taskKeys.top)
-  const prevList = qc.getQueryData<Task[]>(taskKeys.list)
-  const advance = (xs: Task[] | undefined) =>
-    xs?.map((t) =>
-      t.id === id
-        ? {
-            ...t,
-            subtasks: t.subtasks.map((s, i) =>
-              i === nextIdx ? { ...s, done: true } : s,
-            ),
-          }
-        : t,
-    )
-  qc.setQueryData<Task[]>(taskKeys.top, advance)
-  qc.setQueryData<Task[]>(taskKeys.list, advance)
-  return { prevTop, prevList }
+  // Both finish-and-delete and finish-and-reschedule drop the task off
+  // the active lists immediately (the rescheduled task reappears on the
+  // refetch with a future due date) and bump progressToday.done so the
+  // bar advances at the same instant the row vanishes.
+  const snap = await optimisticRemove(qc, id)
+  await qc.cancelQueries({ queryKey: progressTodayKey })
+  const prevProgress = qc.getQueryData<ProgressTodayResult>(progressTodayKey)
+  if (prevProgress) {
+    qc.setQueryData<ProgressTodayResult>(progressTodayKey, {
+      ...prevProgress,
+      done: prevProgress.done + (task.timeFrame ?? 0),
+    })
+  }
+  return { ...snap, prevProgress }
 }
 
-// Same flicker shape as completeTask: clicking Snooze on a task with
-// multiple undone subtasks only snoozes one subtask on the server; the
-// task stays in the active list. Removing it from the cache and refetching
-// brings it back — flicker.
 async function optimisticSnooze(
   qc: QueryClient,
   id: string,
@@ -134,13 +118,10 @@ async function optimisticSnooze(
 ): Promise<OptimisticSnapshot> {
   const task = findTaskInCaches(qc, id)
   if (!task) return optimisticRemove(qc, id)
-  if (willSnoozingRemoveTask(task, allSubtasks)) return optimisticRemove(qc, id)
-  // Subtask-only snooze: don't touch the cache. The refetch on onSettled
-  // will pick up the new subtask.snooze field. We still snapshot for
-  // rollback symmetry with the other mutations.
-  const prevTop = qc.getQueryData<Task[]>(taskKeys.top)
-  const prevList = qc.getQueryData<Task[]>(taskKeys.list)
-  return { prevTop, prevList }
+
+  const transition = snoozeTaskTransition(task, allSubtasks, new Date())
+  if (transition.scope === 'task') return optimisticRemove(qc, id)
+  return replaceTaskInCaches(qc, id, transition.nextTask)
 }
 
 function rollback(qc: QueryClient, snap: OptimisticSnapshot | undefined) {
