@@ -1,6 +1,11 @@
 import { describe, expect, it } from 'vitest'
 
-import { isSnoozed, sortTasks } from '../task-sorting'
+import {
+  findNextActionableSubtask,
+  isActionableSubtask,
+  isSnoozed,
+  sortTasks,
+} from '../task-sorting'
 import { makeTask } from './_factories'
 
 const today = new Date(2026, 4, 15) // 2026-05-15
@@ -73,5 +78,93 @@ describe('sortTasks', () => {
     ]
     sortTasks(tasks, today)
     expect(tasks.map((t) => t.id)).toEqual(['short', 'long', 'no-time'])
+  })
+})
+
+describe('isActionableSubtask', () => {
+  const now = new Date('2026-05-15T12:00:00Z')
+
+  it('done = not actionable', () => {
+    expect(isActionableSubtask({ title: 's', done: true }, now)).toBe(false)
+  })
+
+  it('not done, no snooze = actionable', () => {
+    expect(isActionableSubtask({ title: 's', done: false }, now)).toBe(true)
+  })
+
+  it('not done, snooze in the past = actionable', () => {
+    expect(
+      isActionableSubtask(
+        { title: 's', done: false, snooze: '2026-05-14T12:00:00Z' },
+        now,
+      ),
+    ).toBe(true)
+  })
+
+  it('not done, snooze in the future = not actionable', () => {
+    expect(
+      isActionableSubtask(
+        { title: 's', done: false, snooze: '2026-05-16T12:00:00Z' },
+        now,
+      ),
+    ).toBe(false)
+  })
+})
+
+describe('findNextActionableSubtask', () => {
+  const now = new Date('2026-05-15T12:00:00Z')
+
+  it('empty array returns undefined', () => {
+    expect(findNextActionableSubtask([], now)).toBeUndefined()
+  })
+
+  it('all done returns undefined', () => {
+    expect(
+      findNextActionableSubtask(
+        [
+          { title: 'a', done: true },
+          { title: 'b', done: true },
+        ],
+        now,
+      ),
+    ).toBeUndefined()
+  })
+
+  it('returns first actionable subtask', () => {
+    expect(
+      findNextActionableSubtask(
+        [
+          { title: 'a', done: true },
+          { title: 'b', done: false },
+          { title: 'c', done: false },
+        ],
+        now,
+      )?.title,
+    ).toBe('b')
+  })
+
+  it('skips snoozed subtasks if non-snoozed available', () => {
+    expect(
+      findNextActionableSubtask(
+        [
+          { title: 'a', done: false, snooze: '2026-05-16T12:00:00Z' },
+          { title: 'b', done: false },
+        ],
+        now,
+      )?.title,
+    ).toBe('b')
+  })
+
+  it('falls back to first not-done when all not-done are snoozed', () => {
+    expect(
+      findNextActionableSubtask(
+        [
+          { title: 'a', done: true },
+          { title: 'b', done: false, snooze: '2026-05-16T12:00:00Z' },
+          { title: 'c', done: false, snooze: '2026-05-17T12:00:00Z' },
+        ],
+        now,
+      )?.title,
+    ).toBe('b')
   })
 })

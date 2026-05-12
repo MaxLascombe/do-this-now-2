@@ -42,6 +42,12 @@ jobs:
       - name: Test shared
         run: pnpm --filter @dtn/shared test
 
+      # Web vitest is split into pure-unit + integration tests; the
+      # integration suite self-skips when DATABASE_URL is absent. CI
+      # exercises the unit/pure portion and the skip-counting.
+      - name: Test web
+        run: pnpm --filter web test
+
       # `pnpm --filter web build` runs `drizzle-kit migrate && vite build`,
       # which would touch the prod DB on every PR. Use the migration-free
       # build:check script (just `vite build`) instead.
