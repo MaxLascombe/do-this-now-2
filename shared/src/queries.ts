@@ -142,6 +142,12 @@ export function useStats() {
   return useQuery({
     queryKey: statsKey,
     queryFn: () => api.stats.get(),
+    // Stats roll up the whole history; users expect them to reflect the
+    // latest server state every time they open the page. The default
+    // 5-min staleTime + persister means an old payload sticks around
+    // across reloads, which hides server-side stats fixes.
+    staleTime: 0,
+    refetchOnMount: 'always',
   })
 }
 
