@@ -1,10 +1,17 @@
+import { useApi } from '@dtn/shared/api-client'
 import {
-  faChevronRight,
-  faPlusCircle,
-  faTrash,
-  faXmark,
-} from '@fortawesome/free-solid-svg-icons'
-import { FontAwesomeIcon } from '@fortawesome/react-native-fontawesome'
+  dateString,
+  newSafeDate,
+  newSafeDateTime,
+} from '@dtn/shared/helpers'
+import {
+  type RepeatOption,
+  type RepeatUnit,
+  type RepeatWeekdays,
+  type SubTask,
+  type TaskInput,
+  taskInputSchema,
+} from '@dtn/shared/task-input'
 import DateTimePicker from '@react-native-community/datetimepicker'
 import { format } from 'date-fns'
 import { type ReactNode, useEffect, useRef, useState } from 'react'
@@ -22,30 +29,10 @@ import {
 } from 'react-native'
 import { SafeAreaView } from 'react-native-safe-area-context'
 
-import { useApi } from '@dtn/shared/api-client'
-import {
-  dateString,
-  newSafeDate,
-  newSafeDateTime,
-} from '@dtn/shared/helpers'
-import {
-  type RepeatOption,
-  type RepeatUnit,
-  type RepeatWeekdays,
-  type SubTask,
-  type TaskInput,
-  taskInputSchema,
-} from '@dtn/shared/task-input'
+const ACCENT = '#34d399'
+const OVERDUE = '#fb7185'
 
-const days = [
-  'Sun',
-  'Mon',
-  'Tue',
-  'Wed',
-  'Thu',
-  'Fri',
-  'Sat',
-] as const
+const dayShort = ['Su', 'Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa'] as const
 
 const repeatOptions: RepeatOption[] = [
   'No Repeat',
@@ -77,6 +64,7 @@ type Props = {
   isSaving?: boolean
   errorMessage?: string | null
   onSubmit: (input: TaskInput) => void
+  onDelete?: () => void
 }
 
 export function TaskForm({
@@ -84,6 +72,7 @@ export function TaskForm({
   isSaving = false,
   errorMessage,
   onSubmit,
+  onDelete,
 }: Props) {
   const api = useApi()
   const [title, setTitle] = useState(initial.title ?? '')
@@ -97,9 +86,7 @@ export function TaskForm({
       ? new Date(initial.dueYear, initial.dueMonth - 1, initial.dueDay)
       : newSafeDate(dateString(new Date())),
   )
-  const [dueTime, setDueTime] = useState<string | null>(
-    initial.dueTime ?? null,
-  )
+  const [dueTime, setDueTime] = useState<string | null>(initial.dueTime ?? null)
   const [strictDeadline, setStrictDeadline] = useState(
     initial.strictDeadline ?? false,
   )
@@ -116,8 +103,6 @@ export function TaskForm({
     initial.repeatWeekdays ?? [false, false, false, false, false, false, false],
   )
   const [timeFrame, setTimeFrame] = useState(initial.timeFrame ?? 0)
-  // Stable per-row key so reorder doesn't shuffle DOM nodes; stripped by
-  // zod at submit since subTaskSchema doesn't declare _key.
   const nextSubtaskKey = useRef(0)
   const newKey = () => `s${++nextSubtaskKey.current}`
   const [subtasks, setSubtasks] = useState<Array<SubTask & { _key: string }>>(
@@ -130,9 +115,6 @@ export function TaskForm({
     null | 'date' | 'dueTime' | 'time' | 'repeat'
   >(null)
 
-  // Debounced emoji suggestions — fires ~500ms after the user stops typing
-  // the title. Auto-selects the first option if none chosen yet. The
-  // `cancelled` flag drops stale responses.
   useEffect(() => {
     const t = title.trim()
     if (!t) {
@@ -176,18 +158,12 @@ export function TaskForm({
     repeat === 'No Repeat'
       ? 'Never'
       : repeat === 'Custom'
-        ? `Every ${repeatInterval} ${repeatUnit}${
-            repeatInterval === 1 ? '' : 's'
-          }`
-        : repeat
+        ? `every ${repeatInterval} ${repeatUnit}${repeatInterval === 1 ? '' : 's'}`
+        : repeat.toLowerCase()
 
   const timeSummary =
-    timeFrame === 0
-      ? 'None'
-      : `${Math.floor(timeFrame / 60)}h ${timeFrame % 60}m`
+    timeFrame === 0 ? 'None' : `${Math.floor(timeFrame / 60)}h ${timeFrame % 60}m`
 
-  // DateTimePicker's time mode wants a Date — pack the HH:MM into one
-  // (anchor on an arbitrary date; only time-of-day is used).
   const dueTimeAsDate = dueTime
     ? newSafeDateTime('2000-1-1', dueTime)
     : new Date(2000, 0, 1, 9, 0)
@@ -224,179 +200,292 @@ export function TaskForm({
   const errorList = Object.entries(errors)
 
   return (
-    <View className="flex-1">
-      <ScrollView contentContainerStyle={{ paddingBottom: 32 }}>
+    <View style={{ flex: 1 }}>
+      <ScrollView
+        contentContainerStyle={{
+          paddingHorizontal: 20,
+          paddingBottom: 140,
+          gap: 20,
+        }}
+      >
         {errorMessage && (
-          <Text className="px-4 pt-3 text-red-500">{errorMessage}</Text>
+          <Text style={{ color: OVERDUE, fontSize: 13, marginTop: 4 }}>
+            {errorMessage}
+          </Text>
         )}
 
-        <Section>
+        <Field label="Title">
           <TextInput
             value={title}
             onChangeText={setTitle}
-            placeholder="Task title"
-            placeholderTextColor="#6b7280"
-            className="min-h-[48px] px-4 py-2 text-lg text-white"
+            placeholder="Do this thing"
+            placeholderTextColor="#3f3f46"
             autoFocus={!initial.title}
+            style={{
+              fontFamily: 'InstrumentSerif_400Regular_Italic',
+              fontSize: 28,
+              lineHeight: 34,
+              color: '#fafafa',
+              borderBottomWidth: 1,
+              borderBottomColor: '#3f3f46',
+              paddingVertical: 8,
+            }}
           />
-          {errors.title && (
-            <Text className="px-4 pb-2 text-xs text-red-500">
-              {errors.title}
-            </Text>
-          )}
-        </Section>
+          {errors.title && <FieldError msg={errors.title} />}
+        </Field>
 
-        <SectionHeader>Emoji</SectionHeader>
-        <Section>
-          {emojiOptions.length === 0 && !emojiLoading && (
-            <Text className="px-4 py-3 text-sm text-gray-500">
-              Type a title to see suggestions.
-            </Text>
-          )}
-          {emojiLoading && emojiOptions.length === 0 && (
-            <Text className="px-4 py-3 text-sm text-gray-500">Suggesting…</Text>
-          )}
-          {emojiOptions.length > 0 && (
-            <View className="flex-row flex-wrap gap-2 px-4 py-3">
-              {emojiOptions.map((e, i) => {
-                const selected = e === emoji
+        <Field
+          label="Emoji"
+          trailing={
+            emojiLoading
+              ? 'suggesting…'
+              : emojiOptions.length > 0
+                ? '✨ suggested by Claude'
+                : 'type a title for suggestions'
+          }
+        >
+          <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8 }}>
+            {emojiOptions.map((e, i) => {
+              const selected = e === emoji
+              return (
+                <Pressable
+                  key={`${e}-${i}`}
+                  onPress={() => setEmoji(e)}
+                  style={{
+                    width: 48,
+                    height: 48,
+                    borderRadius: 12,
+                    borderWidth: 1,
+                    borderColor: selected ? '#f4f4f5' : '#27272a',
+                    backgroundColor: selected
+                      ? 'rgba(244,244,245,0.1)'
+                      : 'rgba(24,24,27,0.6)',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                  }}
+                >
+                  <Text style={{ fontSize: 24 }}>{e}</Text>
+                </Pressable>
+              )
+            })}
+            {emojiLoading && (
+              <View
+                style={{
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  paddingHorizontal: 6,
+                }}
+              >
+                <ActivityIndicator size="small" color="#71717a" />
+              </View>
+            )}
+          </View>
+          {errors.emoji && <FieldError msg={errors.emoji} />}
+        </Field>
+
+        <Field label="Due date">
+          <SettingRow
+            value={`${format(dueDate, 'EEE · LLL d, u')}`}
+            sub={dayDiffPhrase}
+            onPress={() => setOpenSheet('date')}
+          />
+        </Field>
+
+        <Field label="Due time">
+          <SettingRow
+            value={dueTimeSummary}
+            sub={dueTime ? `ranks to top once ${dueTimeSummary}` : 'optional'}
+            onPress={() => setOpenSheet('dueTime')}
+          />
+        </Field>
+
+        <Field label="Repeat">
+          <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 6 }}>
+            {repeatOptions.map((r) => {
+              const active = repeat === r
+              return (
+                <Pressable
+                  key={r}
+                  onPress={() => setRepeat(r)}
+                  style={{
+                    borderWidth: 1,
+                    borderColor: active ? '#f4f4f5' : '#27272a',
+                    backgroundColor: active
+                      ? '#fafafa'
+                      : 'rgba(24,24,27,0.6)',
+                    paddingHorizontal: 12,
+                    paddingVertical: 7,
+                    borderRadius: 999,
+                  }}
+                >
+                  <Text
+                    style={{
+                      fontFamily: 'JetBrainsMono_400Regular',
+                      fontSize: 12,
+                      color: active ? '#0a0a0a' : '#a1a1aa',
+                    }}
+                  >
+                    {r}
+                  </Text>
+                </Pressable>
+              )
+            })}
+          </View>
+          {(repeat === 'Weekly' ||
+            (repeat === 'Custom' && repeatUnit === 'week')) && (
+            <View style={{ flexDirection: 'row', gap: 6, marginTop: 12 }}>
+              {dayShort.map((d, i) => {
+                const on = repeatWeekdays[i]
                 return (
                   <Pressable
-                    key={`${e}-${i}`}
-                    onPress={() => setEmoji(e)}
-                    className={
-                      'h-12 w-12 items-center justify-center rounded-lg border ' +
-                      (selected
-                        ? 'border-white bg-gray-800'
-                        : 'border-gray-800 bg-black')
+                    key={d}
+                    onPress={() =>
+                      setRepeatWeekdays(
+                        (s) =>
+                          s.map((v, idx) =>
+                            idx === i ? !v : v,
+                          ) as RepeatWeekdays,
+                      )
                     }
+                    style={{
+                      width: 36,
+                      height: 36,
+                      borderRadius: 18,
+                      borderWidth: 1,
+                      borderColor: on ? '#f4f4f5' : '#27272a',
+                      backgroundColor: on ? '#fafafa' : 'transparent',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                    }}
                   >
-                    <Text className="text-2xl">{e}</Text>
+                    <Text
+                      style={{
+                        fontFamily: 'JetBrainsMono_400Regular',
+                        fontSize: 11,
+                        color: on ? '#0a0a0a' : '#a1a1aa',
+                      }}
+                    >
+                      {d}
+                    </Text>
                   </Pressable>
                 )
               })}
-              {emojiLoading && (
-                <View className="items-center justify-center px-2">
-                  <ActivityIndicator size="small" color="#6b7280" />
-                </View>
-              )}
             </View>
           )}
-          {errors.emoji && (
-            <Text className="px-4 pb-2 text-xs text-red-500">
-              {errors.emoji}
-            </Text>
+          {repeat === 'Custom' && (
+            <View style={{ marginTop: 12 }}>
+              <SettingRow
+                value={`every ${repeatInterval} ${repeatUnit}${repeatInterval === 1 ? '' : 's'}`}
+                sub="tap to change interval"
+                onPress={() => setOpenSheet('repeat')}
+              />
+            </View>
           )}
-        </Section>
+        </Field>
 
-        <SectionHeader>Schedule</SectionHeader>
-        <Section>
-          <Row
-            label="Due"
-            value={`${format(dueDate, 'EEE, LLL d')} · ${dayDiffPhrase}`}
-            onPress={() => setOpenSheet('date')}
-          />
-          <Divider />
-          <Row
-            label="Due time"
-            value={dueTimeSummary}
-            onPress={() => setOpenSheet('dueTime')}
-          />
-          <Divider />
-          <Row
-            label="Time frame"
+        <Field label="Time frame">
+          <SettingRow
             value={timeSummary}
+            sub="tap to adjust"
             onPress={() => setOpenSheet('time')}
           />
-          <Divider />
-          <ToggleRow
-            label="Strict deadline"
-            value={strictDeadline}
-            onValueChange={setStrictDeadline}
-          />
-        </Section>
+        </Field>
 
-        <SectionHeader>Repeat</SectionHeader>
-        <Section>
-          <Row
-            label="Repeat"
-            value={repeatSummary}
-            onPress={() => setOpenSheet('repeat')}
-          />
-          {repeat === 'Custom' && repeatUnit === 'week' && (
-            <>
-              <Divider />
-              <View className="px-4 py-3">
-                <View className="flex-row justify-between">
-                  {days.map((d, i) => (
-                    <Pressable
-                      key={d}
-                      onPress={() =>
-                        setRepeatWeekdays(
-                          (s) =>
-                            s.map((v, idx) =>
-                              idx === i ? !v : v,
-                            ) as RepeatWeekdays,
-                        )
-                      }
-                      className={
-                        'h-9 w-9 items-center justify-center rounded-full ' +
-                        (repeatWeekdays[i] ? 'bg-white' : 'bg-gray-800')
-                      }
-                    >
-                      <Text
-                        className={
-                          'text-xs ' +
-                          (repeatWeekdays[i]
-                            ? 'font-semibold text-black'
-                            : 'text-white')
-                        }
-                      >
-                        {d[0]}
-                      </Text>
-                    </Pressable>
-                  ))}
-                </View>
-              </View>
-            </>
-          )}
-        </Section>
-
-        <SectionHeader>Subtasks</SectionHeader>
-        <Section>
-          <ToggleRow
-            label="Use subtasks"
-            value={hasSubtasks}
-            onValueChange={(v) => {
-              if (!v && subtasks.length > 0) {
-                Alert.alert(
-                  'Remove subtasks?',
-                  'This will clear all subtasks.',
-                  [
-                    { text: 'Cancel', style: 'cancel' },
-                    {
-                      text: 'Remove',
-                      style: 'destructive',
-                      onPress: () => {
-                        setSubtasks([])
-                        setHasSubtasks(false)
-                      },
-                    },
-                  ],
-                )
-                return
-              }
-              if (!v) setSubtasks([])
-              else if (subtasks.length === 0)
-                setSubtasks([{ done: false, title: '', _key: newKey() }])
-              setHasSubtasks(v)
+        <Field label="Strict deadline">
+          <View
+            style={{
+              flexDirection: 'row',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              paddingVertical: 4,
             }}
-          />
-          {hasSubtasks &&
-            subtasks.map((s, i) => (
-              <View key={s._key}>
-                <Divider />
-                <View className="flex-row items-center gap-2 px-4 py-2">
+          >
+            <Text
+              style={{
+                fontFamily: 'JetBrainsMono_400Regular',
+                fontSize: 13,
+                color: '#a1a1aa',
+              }}
+            >
+              Lock this task to its due time
+            </Text>
+            <RNSwitch
+              value={strictDeadline}
+              onValueChange={setStrictDeadline}
+              trackColor={{ false: '#27272a', true: ACCENT }}
+              thumbColor="#fafafa"
+            />
+          </View>
+        </Field>
+
+        <Field
+          label="Subtasks"
+          trailing={hasSubtasks ? 'long-press a row to reorder' : undefined}
+        >
+          <View
+            style={{
+              flexDirection: 'row',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              paddingVertical: 4,
+            }}
+          >
+            <Text
+              style={{
+                fontFamily: 'JetBrainsMono_400Regular',
+                fontSize: 13,
+                color: '#a1a1aa',
+              }}
+            >
+              Use subtasks
+            </Text>
+            <RNSwitch
+              value={hasSubtasks}
+              onValueChange={(v) => {
+                if (!v && subtasks.length > 0) {
+                  Alert.alert(
+                    'Remove subtasks?',
+                    'This will clear all subtasks.',
+                    [
+                      { text: 'Cancel', style: 'cancel' },
+                      {
+                        text: 'Remove',
+                        style: 'destructive',
+                        onPress: () => {
+                          setSubtasks([])
+                          setHasSubtasks(false)
+                        },
+                      },
+                    ],
+                  )
+                  return
+                }
+                if (!v) setSubtasks([])
+                else if (subtasks.length === 0)
+                  setSubtasks([{ done: false, title: '', _key: newKey() }])
+                setHasSubtasks(v)
+              }}
+              trackColor={{ false: '#27272a', true: ACCENT }}
+              thumbColor="#fafafa"
+            />
+          </View>
+          {hasSubtasks && (
+            <View style={{ marginTop: 12, gap: 6 }}>
+              {subtasks.map((s, i) => (
+                <View
+                  key={s._key}
+                  style={{
+                    flexDirection: 'row',
+                    alignItems: 'center',
+                    gap: 10,
+                    paddingHorizontal: 12,
+                    paddingVertical: 10,
+                    borderRadius: 12,
+                    borderWidth: 1,
+                    borderColor: '#27272a',
+                    backgroundColor: 'rgba(24,24,27,0.4)',
+                  }}
+                >
                   <Pressable
                     onPress={() =>
                       setSubtasks((arr) =>
@@ -405,13 +494,21 @@ export function TaskForm({
                         ),
                       )
                     }
-                    className={
-                      'h-5 w-5 rounded-full border ' +
-                      (s.done
-                        ? 'border-green-700 bg-green-700'
-                        : 'border-gray-600 bg-black')
-                    }
-                  />
+                    style={{
+                      width: 18,
+                      height: 18,
+                      borderRadius: 9,
+                      borderWidth: 1,
+                      borderColor: s.done ? ACCENT : '#3f3f46',
+                      backgroundColor: s.done ? ACCENT : 'transparent',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                    }}
+                  >
+                    {s.done && (
+                      <Text style={{ color: '#0a0a0a', fontSize: 10 }}>✓</Text>
+                    )}
+                  </Pressable>
                   <TextInput
                     value={s.title}
                     onChangeText={(text) =>
@@ -422,8 +519,13 @@ export function TaskForm({
                       )
                     }
                     placeholder={`Subtask ${i + 1}`}
-                    placeholderTextColor="#6b7280"
-                    className="flex-1 text-white"
+                    placeholderTextColor="#3f3f46"
+                    style={{
+                      flex: 1,
+                      fontFamily: 'JetBrainsMono_400Regular',
+                      color: '#fafafa',
+                      fontSize: 14,
+                    }}
                   />
                   <Pressable
                     onPress={() =>
@@ -431,18 +533,10 @@ export function TaskForm({
                     }
                     hitSlop={8}
                   >
-                    <FontAwesomeIcon
-                      icon={faTrash}
-                      size={14}
-                      color="#6b7280"
-                    />
+                    <Text style={{ color: '#52525b', fontSize: 16 }}>✕</Text>
                   </Pressable>
                 </View>
-              </View>
-            ))}
-          {hasSubtasks && (
-            <>
-              <Divider />
+              ))}
               <Pressable
                 onPress={() =>
                   setSubtasks((s) => [
@@ -450,45 +544,129 @@ export function TaskForm({
                     { done: false, title: '', _key: newKey() },
                   ])
                 }
-                className="flex-row items-center gap-2 px-4 py-3"
+                style={{
+                  alignSelf: 'flex-start',
+                  flexDirection: 'row',
+                  alignItems: 'center',
+                  gap: 8,
+                  paddingHorizontal: 12,
+                  paddingVertical: 7,
+                  borderRadius: 999,
+                  borderWidth: 1,
+                  borderColor: '#3f3f46',
+                  borderStyle: 'dashed',
+                }}
               >
-                <FontAwesomeIcon
-                  icon={faPlusCircle}
-                  size={16}
-                  color="#3b82f6"
-                />
-                <Text className="text-blue-400">Add subtask</Text>
+                <Text style={{ color: '#a1a1aa', fontSize: 14 }}>+</Text>
+                <Text
+                  style={{
+                    fontFamily: 'JetBrainsMono_400Regular',
+                    color: '#a1a1aa',
+                    fontSize: 12,
+                  }}
+                >
+                  Add subtask
+                </Text>
               </Pressable>
-            </>
+            </View>
           )}
-        </Section>
+        </Field>
 
         {errorList.length > 0 && (
-          <View className="mx-4 mt-4 rounded-lg border border-red-900/60 bg-red-950/30 px-3 py-2">
+          <View
+            style={{
+              borderRadius: 12,
+              borderWidth: 1,
+              borderColor: 'rgba(251,113,133,0.3)',
+              backgroundColor: 'rgba(251,113,133,0.08)',
+              paddingHorizontal: 12,
+              paddingVertical: 10,
+              gap: 4,
+            }}
+          >
             {errorList.map(([k, msg]) => (
-              <Text key={k} className="text-xs text-red-400">
+              <Text
+                key={k}
+                style={{
+                  fontFamily: 'JetBrainsMono_400Regular',
+                  color: OVERDUE,
+                  fontSize: 11,
+                }}
+              >
                 {k}: {msg}
               </Text>
             ))}
           </View>
         )}
-
-        <View className="px-4 pt-6">
-          <Pressable
-            onPress={submit}
-            disabled={isSaving}
-            className="items-center justify-center rounded-xl bg-white py-4 active:opacity-80 disabled:opacity-50"
-          >
-            {isSaving ? (
-              <ActivityIndicator color="#000" />
-            ) : (
-              <Text className="text-base font-semibold text-black">Save</Text>
-            )}
-          </Pressable>
-        </View>
       </ScrollView>
 
-      <Sheet open={openSheet === 'date'} onClose={() => setOpenSheet(null)} title="Due date">
+      <View
+        style={{
+          position: 'absolute',
+          left: 0,
+          right: 0,
+          bottom: 0,
+          paddingHorizontal: 20,
+          paddingTop: 12,
+          paddingBottom: 24,
+          backgroundColor: 'rgba(10,10,10,0.95)',
+          borderTopWidth: 1,
+          borderTopColor: '#18181b',
+          flexDirection: 'row',
+          gap: 10,
+        }}
+      >
+        {onDelete && (
+          <Pressable
+            onPress={onDelete}
+            style={{
+              width: 48,
+              height: 48,
+              borderRadius: 24,
+              borderWidth: 1,
+              borderColor: 'rgba(251,113,133,0.3)',
+              alignItems: 'center',
+              justifyContent: 'center',
+            }}
+          >
+            <Text style={{ color: OVERDUE, fontSize: 18 }}>✕</Text>
+          </Pressable>
+        )}
+        <Pressable
+          onPress={submit}
+          disabled={isSaving}
+          style={({ pressed }) => ({
+            flex: 1,
+            alignItems: 'center',
+            justifyContent: 'center',
+            paddingVertical: 14,
+            borderRadius: 999,
+            backgroundColor: pressed ? '#e4e4e7' : '#fafafa',
+            opacity: isSaving ? 0.5 : 1,
+          })}
+        >
+          {isSaving ? (
+            <ActivityIndicator color="#0a0a0a" />
+          ) : (
+            <Text
+              style={{
+                fontFamily: 'JetBrainsMono_700Bold',
+                color: '#0a0a0a',
+                fontSize: 15,
+                letterSpacing: 0.5,
+              }}
+            >
+              {initial.title ? 'Save' : 'Create task'}
+            </Text>
+          )}
+        </Pressable>
+      </View>
+
+      <Sheet
+        open={openSheet === 'date'}
+        onClose={() => setOpenSheet(null)}
+        title="Due date"
+      >
         <DateTimePicker
           value={dueDate}
           mode="date"
@@ -506,8 +684,14 @@ export function TaskForm({
         onClose={() => setOpenSheet(null)}
         title="Due time"
       >
-        <View className="items-center gap-4 px-6 py-6">
-          <Text className="text-3xl font-semibold text-white">
+        <View style={{ alignItems: 'center', gap: 16, paddingVertical: 24 }}>
+          <Text
+            style={{
+              fontFamily: 'JetBrainsMono_700Bold',
+              fontSize: 28,
+              color: '#fafafa',
+            }}
+          >
             {dueTimeSummary}
           </Text>
           <DateTimePicker
@@ -529,36 +713,88 @@ export function TaskForm({
                 setDueTime(null)
                 setOpenSheet(null)
               }}
-              className="rounded-full border border-gray-700 bg-gray-900 px-4 py-2"
+              style={{
+                paddingHorizontal: 16,
+                paddingVertical: 8,
+                borderRadius: 999,
+                borderWidth: 1,
+                borderColor: '#27272a',
+                backgroundColor: 'rgba(24,24,27,0.6)',
+              }}
             >
-              <Text className="text-white">Remove time</Text>
+              <Text
+                style={{
+                  fontFamily: 'JetBrainsMono_400Regular',
+                  color: '#fafafa',
+                }}
+              >
+                Remove time
+              </Text>
             </Pressable>
           )}
         </View>
       </Sheet>
 
-      <Sheet open={openSheet === 'time'} onClose={() => setOpenSheet(null)} title="Time frame">
-        <View className="items-center gap-4 px-6 py-6">
-          <Text className="text-3xl font-semibold text-white">
+      <Sheet
+        open={openSheet === 'time'}
+        onClose={() => setOpenSheet(null)}
+        title="Time frame"
+      >
+        <View style={{ alignItems: 'center', gap: 20, paddingVertical: 24 }}>
+          <Text
+            style={{
+              fontFamily: 'JetBrainsMono_700Bold',
+              fontSize: 32,
+              color: '#fafafa',
+            }}
+          >
             {Math.floor(timeFrame / 60)}h {timeFrame % 60}m
           </Text>
-          <View className="flex-row gap-3">
+          <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8, justifyContent: 'center' }}>
             {[15, 30, 60, -15].map((delta) => (
               <Pressable
                 key={delta}
                 onPress={() => setTimeFrame(Math.max(0, timeFrame + delta))}
-                className="rounded-full border border-gray-700 bg-gray-900 px-4 py-2"
+                style={{
+                  paddingHorizontal: 16,
+                  paddingVertical: 10,
+                  borderRadius: 999,
+                  borderWidth: 1,
+                  borderColor: '#27272a',
+                  backgroundColor: 'rgba(24,24,27,0.6)',
+                }}
               >
-                <Text className="text-white">
+                <Text
+                  style={{
+                    fontFamily: 'JetBrainsMono_400Regular',
+                    color: '#fafafa',
+                    fontSize: 13,
+                  }}
+                >
                   {delta > 0 ? `+${delta}m` : `${delta}m`}
                 </Text>
               </Pressable>
             ))}
             <Pressable
               onPress={() => setTimeFrame(0)}
-              className="rounded-full border border-gray-700 bg-gray-900 px-4 py-2"
+              style={{
+                paddingHorizontal: 16,
+                paddingVertical: 10,
+                borderRadius: 999,
+                borderWidth: 1,
+                borderColor: '#27272a',
+                backgroundColor: 'rgba(24,24,27,0.6)',
+              }}
             >
-              <Text className="text-white">Clear</Text>
+              <Text
+                style={{
+                  fontFamily: 'JetBrainsMono_400Regular',
+                  color: '#fafafa',
+                  fontSize: 13,
+                }}
+              >
+                Clear
+              </Text>
             </Pressable>
           </View>
         </View>
@@ -567,118 +803,189 @@ export function TaskForm({
       <Sheet
         open={openSheet === 'repeat'}
         onClose={() => setOpenSheet(null)}
-        title="Repeat"
+        title="Custom repeat"
       >
-        <View className="px-4 pb-4">
-          {repeatOptions.map((opt) => (
-            <Pressable
-              key={opt}
-              onPress={() => setRepeat(opt)}
-              className="flex-row items-center justify-between border-b border-gray-800 py-3"
+        <View style={{ paddingHorizontal: 20, paddingVertical: 16, gap: 16 }}>
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
+            <Text
+              style={{
+                fontFamily: 'JetBrainsMono_400Regular',
+                color: '#a1a1aa',
+                fontSize: 13,
+              }}
             >
-              <Text className="text-base text-white">{opt}</Text>
-              {repeat === opt && (
-                <View className="h-2 w-2 rounded-full bg-white" />
-              )}
-            </Pressable>
-          ))}
-          {repeat === 'Custom' && (
-            <View className="mt-4 gap-3">
-              <View className="flex-row items-center gap-2">
-                <Text className="text-white">Every</Text>
-                <TextInput
-                  keyboardType="numeric"
-                  value={String(repeatInterval)}
-                  onChangeText={(t) =>
-                    setRepeatInterval(Math.max(1, parseInt(t) || 1))
-                  }
-                  className="w-16 rounded border border-gray-800 bg-black p-2 text-center text-white"
-                />
-                <View className="flex-row gap-1">
-                  {repeatUnits.map((u) => (
-                    <Pressable
-                      key={u}
-                      onPress={() => setRepeatUnit(u)}
-                      className={
-                        'rounded-full border px-3 py-1.5 ' +
-                        (repeatUnit === u
-                          ? 'border-gray-500 bg-gray-700'
-                          : 'border-gray-800 bg-black')
-                      }
+              every
+            </Text>
+            <TextInput
+              keyboardType="numeric"
+              value={String(repeatInterval)}
+              onChangeText={(t) =>
+                setRepeatInterval(Math.max(1, parseInt(t) || 1))
+              }
+              style={{
+                width: 64,
+                paddingHorizontal: 12,
+                paddingVertical: 8,
+                borderRadius: 12,
+                borderWidth: 1,
+                borderColor: '#27272a',
+                backgroundColor: 'rgba(24,24,27,0.6)',
+                textAlign: 'center',
+                fontFamily: 'JetBrainsMono_400Regular',
+                color: '#fafafa',
+              }}
+            />
+            <View style={{ flexDirection: 'row', gap: 6 }}>
+              {repeatUnits.map((u) => {
+                const active = repeatUnit === u
+                return (
+                  <Pressable
+                    key={u}
+                    onPress={() => setRepeatUnit(u)}
+                    style={{
+                      paddingHorizontal: 12,
+                      paddingVertical: 7,
+                      borderRadius: 999,
+                      borderWidth: 1,
+                      borderColor: active ? '#f4f4f5' : '#27272a',
+                      backgroundColor: active
+                        ? '#fafafa'
+                        : 'rgba(24,24,27,0.6)',
+                    }}
+                  >
+                    <Text
+                      style={{
+                        fontFamily: 'JetBrainsMono_400Regular',
+                        color: active ? '#0a0a0a' : '#a1a1aa',
+                        fontSize: 12,
+                      }}
                     >
-                      <Text className="text-sm text-white">{u}s</Text>
-                    </Pressable>
-                  ))}
-                </View>
-              </View>
+                      {u}s
+                    </Text>
+                  </Pressable>
+                )
+              })}
             </View>
-          )}
+          </View>
         </View>
       </Sheet>
     </View>
   )
 }
 
-function SectionHeader({ children }: { children: ReactNode }) {
-  return (
-    <Text className="px-4 pb-1 pt-5 text-xs uppercase tracking-wide text-gray-500">
-      {children}
-    </Text>
-  )
-}
-
-function Section({ children }: { children: ReactNode }) {
-  return (
-    <View className="border-y border-gray-800 bg-[#0a0a0a]">{children}</View>
-  )
-}
-
-function Divider() {
-  return <View className="ml-4 h-px bg-gray-900" />
-}
-
-function Row({
+function Field({
   label,
-  value,
-  onPress,
+  trailing,
+  children,
 }: {
   label: string
+  trailing?: string
+  children: ReactNode
+}) {
+  return (
+    <View>
+      <View
+        style={{
+          flexDirection: 'row',
+          alignItems: 'baseline',
+          justifyContent: 'space-between',
+          marginBottom: 8,
+        }}
+      >
+        <Text
+          style={{
+            fontFamily: 'JetBrainsMono_400Regular',
+            fontSize: 10,
+            letterSpacing: 2.5,
+            textTransform: 'uppercase',
+            color: '#71717a',
+          }}
+        >
+          {label}
+        </Text>
+        {trailing && (
+          <Text
+            style={{
+              fontFamily: 'JetBrainsMono_400Regular',
+              fontSize: 10,
+              color: '#52525b',
+            }}
+          >
+            {trailing}
+          </Text>
+        )}
+      </View>
+      {children}
+    </View>
+  )
+}
+
+function SettingRow({
+  value,
+  sub,
+  onPress,
+}: {
   value: string
+  sub?: string
   onPress: () => void
 }) {
   return (
     <Pressable
       onPress={onPress}
-      className="min-h-[44px] flex-row items-center justify-between px-4 py-2"
+      style={({ pressed }) => ({
+        borderWidth: 1,
+        borderColor: '#27272a',
+        backgroundColor: pressed
+          ? 'rgba(24,24,27,0.9)'
+          : 'rgba(24,24,27,0.6)',
+        borderRadius: 12,
+        paddingHorizontal: 14,
+        paddingVertical: 12,
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+      })}
     >
-      <Text className="text-base text-white">{label}</Text>
-      <View className="flex-row items-center gap-2">
-        <Text className="text-sm text-gray-400">{value}</Text>
-        <FontAwesomeIcon icon={faChevronRight} size={12} color="#4b5563" />
+      <View style={{ flex: 1 }}>
+        <Text
+          style={{
+            fontFamily: 'JetBrainsMono_400Regular',
+            color: '#fafafa',
+            fontSize: 14,
+          }}
+        >
+          {value}
+        </Text>
+        {sub && (
+          <Text
+            style={{
+              fontFamily: 'JetBrainsMono_400Regular',
+              color: '#71717a',
+              fontSize: 11,
+              marginTop: 2,
+            }}
+          >
+            {sub}
+          </Text>
+        )}
       </View>
+      <Text style={{ color: '#52525b', fontSize: 14 }}>▸</Text>
     </Pressable>
   )
 }
 
-function ToggleRow({
-  label,
-  value,
-  onValueChange,
-}: {
-  label: string
-  value: boolean
-  onValueChange: (v: boolean) => void
-}) {
+function FieldError({ msg }: { msg: string }) {
   return (
-    <View className="min-h-[44px] flex-row items-center justify-between px-4 py-1">
-      <Text className="text-base text-white">{label}</Text>
-      <RNSwitch
-        value={value}
-        onValueChange={onValueChange}
-        trackColor={{ false: '#374151', true: '#22c55e' }}
-        thumbColor="#fff"
-      />
-    </View>
+    <Text
+      style={{
+        marginTop: 6,
+        fontFamily: 'JetBrainsMono_400Regular',
+        color: OVERDUE,
+        fontSize: 11,
+      }}
+    >
+      {msg}
+    </Text>
   )
 }
 
@@ -700,11 +1007,31 @@ function Sheet({
       presentationStyle="pageSheet"
       onRequestClose={onClose}
     >
-      <SafeAreaView className="flex-1 bg-black">
-        <View className="flex-row items-center justify-between border-b border-gray-800 px-4 py-3">
-          <Text className="text-lg font-semibold text-white">{title}</Text>
-          <Pressable onPress={onClose} hitSlop={10}>
-            <FontAwesomeIcon icon={faXmark} size={20} color="#9ca3af" />
+      <SafeAreaView style={{ flex: 1, backgroundColor: '#0a0a0a' }}>
+        <View
+          style={{
+            flexDirection: 'row',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            paddingHorizontal: 20,
+            paddingVertical: 14,
+            borderBottomWidth: 1,
+            borderBottomColor: '#18181b',
+          }}
+        >
+          <Text
+            style={{
+              fontFamily: 'JetBrainsMono_700Bold',
+              fontSize: 14,
+              letterSpacing: 2,
+              textTransform: 'uppercase',
+              color: '#fafafa',
+            }}
+          >
+            {title}
+          </Text>
+          <Pressable onPress={onClose} hitSlop={12}>
+            <Text style={{ color: '#a1a1aa', fontSize: 18 }}>✕</Text>
           </Pressable>
         </View>
         <ScrollView>{children}</ScrollView>

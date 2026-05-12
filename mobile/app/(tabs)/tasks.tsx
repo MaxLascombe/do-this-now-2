@@ -1,3 +1,13 @@
+import { newSafeDate } from '@dtn/shared/helpers'
+import {
+  useAllTasks,
+  useCompleteTask,
+  useDeleteTask,
+  useSnoozeTask,
+  useTopTasks,
+} from '@dtn/shared/queries'
+import { sortTasks } from '@dtn/shared/task-sorting'
+import type { Task } from '@dtn/shared/types'
 import { Stack, useRouter } from 'expo-router'
 import { format } from 'date-fns'
 import { useCallback, useMemo, useState } from 'react'
@@ -12,33 +22,66 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context'
 
 import { Loading } from '../../components/Loading'
-import { Progress } from '../../components/Progress'
+import { PageHeading } from '../../components/PageHeading'
 import { SwipeableTaskRow } from '../../components/SwipeableTaskRow'
+import { TopProgress } from '../../components/TopProgress'
 import { useDing } from '../../hooks/useDing'
-import { newSafeDate } from '@dtn/shared/helpers'
-import { sortTasks } from '@dtn/shared/task-sorting'
-import {
-  useAllTasks,
-  useCompleteTask,
-  useDeleteTask,
-  useSnoozeTask,
-  useTopTasks,
-} from '@dtn/shared/queries'
-import type { Task } from '@dtn/shared/types'
 
 type Sort = 'CHRON' | 'TOP'
 
-type Section = {
-  title: string
-  pastDue?: boolean
+type Group = {
+  key: string
+  label: string
+  eyebrow: string
+  overdueSuffix: string | null
   data: Task[]
 }
 
-const formatGroupDate = (date: Date) => {
-  try {
-    return format(date, 'EEE, LLL d, u')
-  } catch {
-    return date.toDateString()
+const OVERDUE = '#fb7185'
+
+const startOfToday = () => {
+  const n = new Date()
+  return new Date(n.getFullYear(), n.getMonth(), n.getDate())
+}
+
+const dayIndex = (d: Date) => {
+  const today = startOfToday()
+  return Math.round(
+    (new Date(d.getFullYear(), d.getMonth(), d.getDate()).getTime() -
+      today.getTime()) /
+      (24 * 60 * 60 * 1000),
+  )
+}
+
+const groupOf = (
+  firstTaskDue: string,
+): Omit<Group, 'key' | 'data'> => {
+  const d = newSafeDate(firstTaskDue)
+  const idx = dayIndex(d)
+  if (idx < 0) {
+    const days = Math.abs(idx)
+    return {
+      label: format(d, 'EEEE'),
+      eyebrow: format(d, 'LLL d'),
+      overdueSuffix: `${days} day${days === 1 ? '' : 's'} overdue`,
+    }
+  }
+  if (idx === 0)
+    return {
+      label: 'Today',
+      eyebrow: format(d, 'EEEE, LLL d'),
+      overdueSuffix: null,
+    }
+  if (idx === 1)
+    return {
+      label: 'Tomorrow',
+      eyebrow: format(d, 'EEEE, LLL d'),
+      overdueSuffix: null,
+    }
+  return {
+    label: format(d, 'EEEE'),
+    eyebrow: format(d, 'LLL d'),
+    overdueSuffix: null,
   }
 }
 
@@ -47,8 +90,6 @@ export default function TasksList() {
   const ding = useDing()
   const [sort, setSort] = useState<Sort>('CHRON')
 
-  // Only fetch the active list. Pull-to-refresh below also only refetches
-  // the active query.
   const allTasks = useAllTasks({ enabled: sort === 'CHRON' })
   const topTasks = useTopTasks({ enabled: sort === 'TOP' })
 
@@ -81,12 +122,8 @@ export default function TasksList() {
     [deleteMutation],
   )
 
-  const sections: Section[] = useMemo(() => {
-    const today0 = new Date(
-      new Date().getFullYear(),
-      new Date().getMonth(),
-      new Date().getDate(),
-    )
+  const sections: Group[] = useMemo(() => {
+    const today0 = startOfToday()
     const tasks =
       sort === 'CHRON' ? [...(allTasks.data ?? [])] : [...(topTasks.data ?? [])]
     if (tasks.length === 0) return []
@@ -99,7 +136,7 @@ export default function TasksList() {
       const groups: Record<string, Task[]> = {}
       const order: string[] = []
       for (const task of tasks) {
-        const key = formatGroupDate(newSafeDate(task.due))
+        const key = task.due
         if (!groups[key]) {
           groups[key] = []
           order.push(key)
@@ -107,13 +144,12 @@ export default function TasksList() {
         groups[key].push(task)
       }
       return order.map((key) => ({
-        title: key,
-        pastDue: newSafeDate(groups[key][0].due) < today0,
+        key,
+        ...groupOf(key),
         data: groups[key],
       }))
     }
 
-    // TOP: three sections — "Top", "Due after today", "Snoozed".
     sortTasks(tasks, today0)
     const top: Task[] = []
     const afterToday: Task[] = []
@@ -124,12 +160,40 @@ export default function TasksList() {
       else if (newSafeDate(task.due) > now) afterToday.push(task)
       else top.push(task)
     }
-    const result: Section[] = []
-    if (top.length) result.push({ title: 'Today', data: top })
+    const result: Group[] = []
+    const blank = { eyebrow: '', overdueSuffix: null as string | null }
+    if (top.length)
+      result.push({ key: 'top', label: 'Today', ...blank, data: top })
     if (afterToday.length)
-      result.push({ title: 'Due after today', data: afterToday })
-    if (snoozed.length) result.push({ title: 'Snoozed', data: snoozed })
+      result.push({
+        key: 'after',
+        label: 'Due after today',
+        ...blank,
+        data: afterToday,
+      })
+    if (snoozed.length)
+      result.push({
+        key: 'snoozed',
+        label: 'Snoozed',
+        ...blank,
+        data: snoozed,
+      })
     return result
+  }, [sort, allTasks.data, topTasks.data])
+
+  const eyebrow = useMemo(() => {
+    const tasks =
+      sort === 'CHRON' ? (allTasks.data ?? []) : (topTasks.data ?? [])
+    const total = tasks.length
+    const weekStart = startOfToday()
+    weekStart.setDate(weekStart.getDate() - weekStart.getDay())
+    const weekEnd = new Date(weekStart)
+    weekEnd.setDate(weekEnd.getDate() + 7)
+    const thisWeek = tasks.filter((t) => {
+      const d = newSafeDate(t.due)
+      return d >= weekStart && d < weekEnd
+    }).length
+    return `${total} active · ${thisWeek} this week`
   }, [sort, allTasks.data, topTasks.data])
 
   const renderItem = useCallback(
@@ -146,9 +210,7 @@ export default function TasksList() {
   )
 
   const renderSectionHeader = useCallback(
-    ({ section }: { section: Section }) => (
-      <SectionHeader label={section.title} pastDue={section.pastDue} />
-    ),
+    ({ section }: { section: Group }) => <GroupHeader group={section} />,
     [],
   )
 
@@ -156,34 +218,46 @@ export default function TasksList() {
   const isFetching = activeQuery.isFetching && !activeQuery.isPending
 
   return (
-    <SafeAreaView className="flex-1 bg-black">
-      <Stack.Screen options={{ title: 'Tasks' }} />
-      <View className="items-center pb-3 pt-2">
-        <Progress />
-        <View className="mt-2">
-          <SortToggle value={sort} onChange={setSort} />
-        </View>
+    <SafeAreaView
+      style={{ flex: 1, backgroundColor: '#0a0a0a' }}
+      edges={['top']}
+    >
+      <Stack.Screen options={{ headerShown: false }} />
+      <TopProgress />
+      <PageHeading eyebrow={eyebrow}>All tasks</PageHeading>
+      <View style={{ paddingHorizontal: 20, paddingBottom: 12 }}>
+        <SortToggle value={sort} onChange={setSort} />
       </View>
       <SectionList
-        className="flex-1 border-t border-gray-800"
+        style={{ flex: 1 }}
+        contentContainerStyle={{ paddingBottom: 24 }}
         sections={sections}
         keyExtractor={(t) => t.id}
         renderItem={renderItem}
         renderSectionHeader={renderSectionHeader}
-        stickySectionHeadersEnabled
+        stickySectionHeadersEnabled={false}
         refreshControl={
           <RefreshControl
             refreshing={isFetching}
             onRefresh={() => activeQuery.refetch()}
-            tintColor="#fff"
-            colors={['#fff']}
+            tintColor="#fafafa"
+            colors={['#fafafa']}
           />
         }
         ListEmptyComponent={
           activeQuery.isPending ? (
             <Loading />
           ) : (
-            <Text className="mt-10 text-center text-gray-400">No tasks</Text>
+            <Text
+              style={{
+                textAlign: 'center',
+                marginTop: 40,
+                color: '#71717a',
+                fontFamily: 'JetBrainsMono_400Regular',
+              }}
+            >
+              No tasks
+            </Text>
           )
         }
       />
@@ -199,26 +273,40 @@ function SortToggle({
   onChange: (s: Sort) => void
 }) {
   const options: { key: Sort; label: string }[] = [
-    { key: 'CHRON', label: 'Date' },
-    { key: 'TOP', label: 'Priority' },
+    { key: 'CHRON', label: 'By date' },
+    { key: 'TOP', label: 'By priority' },
   ]
   return (
-    <View className="flex-row overflow-hidden rounded-full border border-gray-800 bg-gray-950">
+    <View
+      style={{
+        flexDirection: 'row',
+        borderWidth: 1,
+        borderColor: '#27272a',
+        backgroundColor: 'rgba(24,24,27,0.6)',
+        padding: 4,
+        borderRadius: 999,
+      }}
+    >
       {options.map((o) => {
         const active = value === o.key
         return (
           <Pressable
             key={o.key}
             onPress={() => onChange(o.key)}
-            className={
-              'px-4 py-1.5 ' + (active ? 'bg-white' : 'bg-transparent')
-            }
+            style={{
+              flex: 1,
+              alignItems: 'center',
+              paddingVertical: 8,
+              borderRadius: 999,
+              backgroundColor: active ? '#fafafa' : 'transparent',
+            }}
           >
             <Text
-              className={
-                'text-xs font-medium ' +
-                (active ? 'text-black' : 'text-gray-300')
-              }
+              style={{
+                fontFamily: 'JetBrainsMono_400Regular',
+                fontSize: 13,
+                color: active ? '#0a0a0a' : '#a1a1aa',
+              }}
             >
               {o.label}
             </Text>
@@ -229,22 +317,62 @@ function SortToggle({
   )
 }
 
-function SectionHeader({
-  label,
-  pastDue = false,
-}: {
-  label: string
-  pastDue?: boolean
-}) {
+function GroupHeader({ group }: { group: Group }) {
   return (
-    <View className="border-b border-t border-gray-800 bg-gray-950 px-4 py-2">
+    <View
+      style={{
+        paddingHorizontal: 20,
+        paddingTop: 16,
+        paddingBottom: 8,
+        flexDirection: 'row',
+        alignItems: 'flex-end',
+        gap: 10,
+      }}
+    >
+      <View style={{ flex: 1 }}>
+        {group.eyebrow !== '' && (
+          <Text
+            style={{
+              fontFamily: 'JetBrainsMono_400Regular',
+              fontSize: 10,
+              letterSpacing: 2.5,
+              textTransform: 'uppercase',
+              color: '#a1a1aa',
+            }}
+          >
+            {group.eyebrow}
+            {group.overdueSuffix && (
+              <>
+                <Text style={{ color: '#a1a1aa' }}> · </Text>
+                <Text style={{ color: OVERDUE }}>{group.overdueSuffix}</Text>
+              </>
+            )}
+          </Text>
+        )}
+        <Text
+          style={{
+            fontFamily: 'JetBrainsMono_700Bold',
+            fontSize: 14,
+            color: '#fafafa',
+            letterSpacing: 2,
+            textTransform: 'uppercase',
+            marginTop: 2,
+          }}
+        >
+          {group.label}
+        </Text>
+      </View>
+      <View
+        style={{ flex: 1, height: 1, backgroundColor: '#18181b', marginBottom: 6 }}
+      />
       <Text
-        className={
-          'text-xs font-medium uppercase tracking-wider ' +
-          (pastDue ? 'text-orange-300' : 'text-gray-400')
-        }
+        style={{
+          fontFamily: 'JetBrainsMono_400Regular',
+          fontSize: 11,
+          color: '#52525b',
+        }}
       >
-        {label}
+        {group.data.length}
       </Text>
     </View>
   )

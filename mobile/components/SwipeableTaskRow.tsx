@@ -1,32 +1,29 @@
-import {
-  faBell,
-  faCheck,
-  faChevronDown,
-  faChevronRight,
-} from '@fortawesome/free-solid-svg-icons'
-import { FontAwesomeIcon } from '@fortawesome/react-native-fontawesome'
 import * as Haptics from 'expo-haptics'
 import { memo, useRef, useState } from 'react'
-import { ActionSheetIOS, Alert, Platform, Pressable, Text, View } from 'react-native'
+import { ActionSheetIOS, Alert, Platform, Text, View } from 'react-native'
 import { Swipeable } from 'react-native-gesture-handler'
 
 import type { Task } from '@dtn/shared/types'
-import { TaskBox } from './TaskBox'
+import { TaskRow } from './TaskRow'
 
 const ACTION_W = 96
 
 function SwipeableTaskRowBase({
   task,
+  selected = false,
   onComplete,
   onSnooze,
   onEdit,
   onDelete,
+  onPress,
 }: {
   task: Task
+  selected?: boolean
   onComplete: () => void
   onSnooze: () => void
   onEdit: () => void
   onDelete: () => void
+  onPress?: () => void
 }) {
   const ref = useRef<Swipeable>(null)
   const close = () => ref.current?.close()
@@ -38,13 +35,13 @@ function SwipeableTaskRowBase({
     <View
       style={{
         width: ACTION_W,
-        backgroundColor: '#16a34a',
+        backgroundColor: '#059669',
         alignItems: 'flex-end',
         justifyContent: 'center',
         paddingRight: 24,
       }}
     >
-      <FontAwesomeIcon icon={faCheck} size={22} color="#fff" />
+      <Text style={{ color: '#fff', fontSize: 22 }}>✓</Text>
     </View>
   )
 
@@ -52,17 +49,16 @@ function SwipeableTaskRowBase({
     <View
       style={{
         width: ACTION_W,
-        backgroundColor: '#a16207',
+        backgroundColor: '#b45309',
         alignItems: 'flex-start',
         justifyContent: 'center',
         paddingLeft: 24,
       }}
     >
-      <FontAwesomeIcon icon={faBell} size={22} color="#fff" />
+      <Text style={{ color: '#fff', fontSize: 22 }}>◑</Text>
     </View>
   )
 
-  // Auto-fire the primary action whenever the swipe crosses threshold.
   const onSwipeableOpen = (direction: 'left' | 'right') => {
     if (direction === 'left') {
       void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success)
@@ -75,6 +71,10 @@ function SwipeableTaskRowBase({
   }
 
   const onTap = () => {
+    if (onPress) {
+      onPress()
+      return
+    }
     if (!hasSubtasks) return
     void Haptics.selectionAsync()
     setExpanded((x) => !x)
@@ -106,89 +106,132 @@ function SwipeableTaskRowBase({
     }
   }
 
-  return (
-    <Swipeable
-      ref={ref}
-      renderLeftActions={renderLeftActions}
-      renderRightActions={renderRightActions}
-      friction={1.6}
-      leftThreshold={ACTION_W * 0.6}
-      rightThreshold={ACTION_W * 0.6}
-      overshootLeft={false}
-      overshootRight={false}
-      onSwipeableOpen={onSwipeableOpen}
-    >
-      <Pressable
-        onPress={onTap}
-        onLongPress={onLongPress}
-        delayLongPress={350}
-        android_ripple={{ color: '#1f2937' }}
+  const subtasksList =
+    expanded && hasSubtasks ? (
+      <View
+        style={{
+          paddingHorizontal: 20,
+          paddingBottom: 12,
+          gap: 6,
+        }}
       >
-        <TaskBox
-          task={task}
-          trailing={
-            hasSubtasks ? (
-              <View className="flex-row items-center gap-1">
-                <Text className="text-xs text-gray-500">
-                  {subtasksDone}/{task.subtasks.length}
-                </Text>
-                <FontAwesomeIcon
-                  icon={expanded ? faChevronDown : faChevronRight}
-                  size={10}
-                  color="#6b7280"
-                />
+        {task.subtasks.map((s, i) => {
+          const isSnoozed = !!s.snooze && new Date(s.snooze) > new Date()
+          return (
+            <View
+              key={i}
+              style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}
+            >
+              <View
+                style={{
+                  width: 14,
+                  height: 14,
+                  borderRadius: 7,
+                  borderWidth: 1,
+                  borderColor: s.done ? '#059669' : '#3f3f46',
+                  backgroundColor: s.done ? '#059669' : 'transparent',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                }}
+              >
+                {s.done && (
+                  <Text style={{ color: '#fff', fontSize: 8 }}>✓</Text>
+                )}
               </View>
-            ) : null
-          }
-        />
-        {expanded && hasSubtasks && (
-          <View className="border-b border-gray-800 bg-gray-950 py-2">
-            {task.subtasks.map((s, i) => {
-              const isSnoozed =
-                !!s.snooze && new Date(s.snooze) > new Date()
-              return (
+              <Text
+                style={{
+                  flex: 1,
+                  fontFamily: 'JetBrainsMono_400Regular',
+                  fontSize: 12,
+                  color: s.done
+                    ? '#52525b'
+                    : isSnoozed
+                      ? '#71717a'
+                      : '#d4d4d8',
+                  textDecorationLine: s.done ? 'line-through' : 'none',
+                }}
+              >
+                {s.title}
+              </Text>
+              {isSnoozed && (
+                <Text style={{ fontSize: 10, color: '#52525b' }}>snoozed</Text>
+              )}
+            </View>
+          )
+        })}
+      </View>
+    ) : null
+
+  return (
+    <View style={{ paddingHorizontal: 20, paddingBottom: 8 }}>
+      <Swipeable
+        ref={ref}
+        renderLeftActions={renderLeftActions}
+        renderRightActions={renderRightActions}
+        friction={1.6}
+        leftThreshold={ACTION_W * 0.6}
+        rightThreshold={ACTION_W * 0.6}
+        overshootLeft={false}
+        overshootRight={false}
+        onSwipeableOpen={onSwipeableOpen}
+        childrenContainerStyle={{ borderRadius: 16, overflow: 'hidden' }}
+      >
+        <View
+          style={{
+            borderRadius: 16,
+            backgroundColor: selected
+              ? '#fafafa'
+              : 'rgba(24,24,27,0.6)',
+            borderWidth: 1,
+            borderColor: selected ? '#f4f4f5' : '#27272a',
+            overflow: 'hidden',
+          }}
+        >
+          <TaskRow
+            task={task}
+            selected={selected}
+            onPress={onTap}
+            onLongPress={onLongPress}
+            containerStyle={{
+              backgroundColor: 'transparent',
+              borderWidth: 0,
+              borderRadius: 0,
+            }}
+            trailing={
+              hasSubtasks ? (
                 <View
-                  key={i}
-                  className="flex-row items-center gap-3 px-6 py-1.5"
+                  style={{
+                    flexDirection: 'row',
+                    alignItems: 'center',
+                    gap: 4,
+                  }}
                 >
-                  <View
-                    className={
-                      'h-4 w-4 items-center justify-center rounded-full border ' +
-                      (s.done
-                        ? 'border-green-700 bg-green-700'
-                        : 'border-gray-700 bg-black')
-                    }
-                  >
-                    {s.done && (
-                      <FontAwesomeIcon icon={faCheck} size={8} color="#fff" />
-                    )}
-                  </View>
                   <Text
-                    className={
-                      'flex-1 text-sm ' +
-                      (s.done
-                        ? 'text-gray-600 line-through'
-                        : isSnoozed
-                          ? 'text-gray-500'
-                          : 'text-gray-200')
-                    }
+                    style={{
+                      fontFamily: 'JetBrainsMono_400Regular',
+                      fontSize: 11,
+                      color: selected ? '#52525b' : '#71717a',
+                    }}
                   >
-                    {s.title}
+                    {subtasksDone}/{task.subtasks.length}
                   </Text>
-                  {isSnoozed && (
-                    <Text className="text-[10px] text-gray-600">snoozed</Text>
-                  )}
+                  <Text
+                    style={{
+                      fontSize: 9,
+                      color: selected ? '#52525b' : '#71717a',
+                    }}
+                  >
+                    {expanded ? '▾' : '▸'}
+                  </Text>
                 </View>
-              )
-            })}
-          </View>
-        )}
-      </Pressable>
-    </Swipeable>
+              ) : null
+            }
+          />
+          {subtasksList}
+        </View>
+      </Swipeable>
+    </View>
   )
 }
 
-// memo so a parent re-render (e.g. the section toggle) doesn't blow away
-// every row's swipe + expand state. Callers already pass useCallback-stable
-// onComplete/onSnooze/onEdit/onDelete.
 export const SwipeableTaskRow = memo(SwipeableTaskRowBase)

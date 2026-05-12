@@ -1,18 +1,20 @@
 import { useClerk, useUser } from '@clerk/clerk-expo'
-import { faRightFromBracket } from '@fortawesome/free-solid-svg-icons'
-import { FontAwesomeIcon } from '@fortawesome/react-native-fontawesome'
 import * as Haptics from 'expo-haptics'
+import { Stack } from 'expo-router'
 import { Alert, Pressable, Text, View } from 'react-native'
 import { SafeAreaView } from 'react-native-safe-area-context'
+
+import { PageHeading } from '../../components/PageHeading'
+import { TopProgress } from '../../components/TopProgress'
+
+const OVERDUE = '#fb7185'
 
 export default function Profile() {
   const { signOut } = useClerk()
   const { user } = useUser()
   const email = user?.primaryEmailAddress?.emailAddress
   const initial =
-    user?.firstName?.[0]?.toUpperCase() ??
-    email?.[0]?.toUpperCase() ??
-    '?'
+    user?.firstName?.[0]?.toUpperCase() ?? email?.[0]?.toUpperCase() ?? '?'
 
   const onSignOut = () => {
     void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning)
@@ -27,32 +29,96 @@ export default function Profile() {
   }
 
   return (
-    <SafeAreaView className="flex-1 bg-black" edges={['bottom']}>
-      <View className="flex-1 px-4 pt-6">
-        <View className="items-center pb-8">
-          <View className="mb-3 h-20 w-20 items-center justify-center rounded-full border border-gray-800 bg-gray-950">
-            <Text className="text-3xl font-bold text-white">{initial}</Text>
+    <SafeAreaView
+      style={{ flex: 1, backgroundColor: '#0a0a0a' }}
+      edges={['top']}
+    >
+      <Stack.Screen options={{ headerShown: false }} />
+      <TopProgress />
+      <PageHeading eyebrow="account">Profile</PageHeading>
+      <View
+        style={{
+          flex: 1,
+          paddingHorizontal: 20,
+          paddingTop: 8,
+          gap: 24,
+        }}
+      >
+        <View style={{ alignItems: 'center', paddingVertical: 16 }}>
+          <View
+            style={{
+              width: 80,
+              height: 80,
+              borderRadius: 40,
+              borderWidth: 1,
+              borderColor: '#27272a',
+              backgroundColor: 'rgba(24,24,27,0.6)',
+              alignItems: 'center',
+              justifyContent: 'center',
+              marginBottom: 16,
+            }}
+          >
+            <Text
+              style={{
+                fontFamily: 'JetBrainsMono_700Bold',
+                fontSize: 30,
+                color: '#fafafa',
+              }}
+            >
+              {initial}
+            </Text>
           </View>
           {user?.fullName && (
-            <Text className="mb-1 text-lg font-semibold text-white">
+            <Text
+              style={{
+                fontFamily: 'JetBrainsMono_700Bold',
+                fontSize: 16,
+                color: '#fafafa',
+                letterSpacing: 1,
+                textTransform: 'uppercase',
+                marginBottom: 4,
+              }}
+            >
               {user.fullName}
             </Text>
           )}
           {email && (
-            <Text className="text-sm text-gray-500">{email}</Text>
+            <Text
+              style={{
+                fontFamily: 'JetBrainsMono_400Regular',
+                fontSize: 12,
+                color: '#71717a',
+              }}
+            >
+              {email}
+            </Text>
           )}
         </View>
 
         <Pressable
           onPress={onSignOut}
-          className="flex-row items-center justify-center gap-2 rounded-lg border border-red-900/50 bg-red-950/30 px-4 py-4 active:bg-red-950/60"
+          style={({ pressed }) => ({
+            flexDirection: 'row',
+            alignItems: 'center',
+            justifyContent: 'center',
+            gap: 8,
+            paddingVertical: 14,
+            borderRadius: 999,
+            borderWidth: 1,
+            borderColor: 'rgba(251,113,133,0.3)',
+            backgroundColor: pressed
+              ? 'rgba(251,113,133,0.12)'
+              : 'transparent',
+          })}
         >
-          <FontAwesomeIcon
-            icon={faRightFromBracket}
-            size={16}
-            color="#f87171"
-          />
-          <Text className="text-base font-semibold text-red-400">
+          <Text style={{ color: OVERDUE, fontSize: 16 }}>⏻</Text>
+          <Text
+            style={{
+              fontFamily: 'JetBrainsMono_400Regular',
+              fontSize: 14,
+              color: OVERDUE,
+            }}
+          >
             Sign out
           </Text>
         </Pressable>

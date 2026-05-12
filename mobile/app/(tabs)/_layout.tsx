@@ -1,32 +1,37 @@
-import {
-  faChartLine,
-  faClockRotateLeft,
-  faHouse,
-  faListCheck,
-  faPlus,
-  faUser,
-} from '@fortawesome/free-solid-svg-icons'
-import { FontAwesomeIcon } from '@fortawesome/react-native-fontawesome'
 import * as Haptics from 'expo-haptics'
 import { Tabs, router } from 'expo-router'
-import { Pressable, View } from 'react-native'
+import { Pressable, Text, View } from 'react-native'
 
-const ACTIVE = '#fff'
-const INACTIVE = '#6b7280'
+const ACTIVE = '#fafafa'
+const INACTIVE = '#52525b'
 
 function TabIcon({
-  icon,
+  glyph,
   color,
+  size = 18,
 }: {
-  icon: typeof faHouse
+  glyph: string
   color: string
+  size?: number
 }) {
-  return <FontAwesomeIcon icon={icon} size={20} color={color} />
+  return (
+    <Text
+      style={{
+        fontSize: size,
+        lineHeight: size + 2,
+        color,
+      }}
+    >
+      {glyph}
+    </Text>
+  )
 }
 
-// Center "+" tab — taller white pill, intercepts press to open the
-// /new-task modal instead of switching tabs.
-function PlusButton({ accessibilityState }: { accessibilityState?: { selected?: boolean } }) {
+function PlusButton({
+  accessibilityState,
+}: {
+  accessibilityState?: { selected?: boolean }
+}) {
   return (
     <Pressable
       accessibilityState={accessibilityState}
@@ -45,17 +50,26 @@ function PlusButton({ accessibilityState }: { accessibilityState?: { selected?: 
           width: 48,
           height: 48,
           borderRadius: 24,
-          backgroundColor: '#fff',
+          backgroundColor: '#fafafa',
           alignItems: 'center',
           justifyContent: 'center',
-          marginTop: -8,
-          shadowColor: '#000',
-          shadowOpacity: 0.4,
-          shadowRadius: 8,
-          shadowOffset: { width: 0, height: 2 },
+          marginTop: -10,
+          shadowColor: '#fff',
+          shadowOpacity: 0.25,
+          shadowRadius: 12,
+          shadowOffset: { width: 0, height: 4 },
         }}
       >
-        <FontAwesomeIcon icon={faPlus} size={20} color="#000" />
+        <Text
+          style={{
+            fontSize: 22,
+            lineHeight: 24,
+            color: '#0a0a0b',
+            fontFamily: 'JetBrainsMono_700Bold',
+          }}
+        >
+          +
+        </Text>
       </View>
     </Pressable>
   )
@@ -65,33 +79,36 @@ export default function TabsLayout() {
   return (
     <Tabs
       screenOptions={{
-        headerStyle: { backgroundColor: '#000' },
-        headerTintColor: '#fff',
-        headerTitleStyle: { color: '#fff' },
+        headerShown: false,
         tabBarStyle: {
-          backgroundColor: '#000',
-          borderTopColor: '#1f2937',
+          backgroundColor: '#0a0a0b',
+          borderTopColor: '#18181b',
+          borderTopWidth: 1,
+          height: 78,
+          paddingTop: 6,
         },
         tabBarActiveTintColor: ACTIVE,
         tabBarInactiveTintColor: INACTIVE,
-        tabBarLabelStyle: { fontSize: 11 },
+        tabBarLabelStyle: {
+          fontSize: 10,
+          letterSpacing: 1,
+          textTransform: 'uppercase',
+          fontFamily: 'JetBrainsMono_400Regular',
+        },
       }}
     >
       <Tabs.Screen
         name="index"
         options={{
-          title: 'Home',
-          tabBarIcon: ({ color }) => <TabIcon icon={faHouse} color={color} />,
-          headerShown: false,
+          title: 'Now',
+          tabBarIcon: ({ color }) => <TabIcon glyph="◉" color={color} />,
         }}
       />
       <Tabs.Screen
         name="tasks"
         options={{
           title: 'Tasks',
-          tabBarIcon: ({ color }) => (
-            <TabIcon icon={faListCheck} color={color} />
-          ),
+          tabBarIcon: ({ color }) => <TabIcon glyph="☰" color={color} />,
         }}
       />
       <Tabs.Screen
@@ -105,25 +122,21 @@ export default function TabsLayout() {
         name="history"
         options={{
           title: 'History',
-          tabBarIcon: ({ color }) => (
-            <TabIcon icon={faClockRotateLeft} color={color} />
-          ),
+          tabBarIcon: ({ color }) => <TabIcon glyph="◷" color={color} />,
         }}
       />
       <Tabs.Screen
         name="stats"
         options={{
           title: 'Stats',
-          tabBarIcon: ({ color }) => (
-            <TabIcon icon={faChartLine} color={color} />
-          ),
+          tabBarIcon: ({ color }) => <TabIcon glyph="▤" color={color} />,
         }}
       />
       <Tabs.Screen
         name="profile"
         options={{
           title: 'Profile',
-          tabBarIcon: ({ color }) => <TabIcon icon={faUser} color={color} />,
+          tabBarIcon: ({ color }) => <TabIcon glyph="⊙" color={color} />,
         }}
       />
     </Tabs>

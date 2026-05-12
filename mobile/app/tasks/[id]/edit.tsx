@@ -1,20 +1,28 @@
+import { newSafeDate } from '@dtn/shared/helpers'
+import { useDeleteTask, useTask, useUpdateTask } from '@dtn/shared/queries'
 import { Stack, useLocalSearchParams, useRouter } from 'expo-router'
-import { View } from 'react-native'
+import { Alert, View } from 'react-native'
 
 import { Loading } from '../../../components/Loading'
 import { TaskForm } from '../../../components/TaskForm'
-import { newSafeDate } from '@dtn/shared/helpers'
-import { useTask, useUpdateTask } from '@dtn/shared/queries'
 
 export default function EditTask() {
   const { id } = useLocalSearchParams<{ id: string }>()
   const router = useRouter()
   const taskQuery = useTask(id ?? '')
   const mutation = useUpdateTask()
+  const deleteMutation = useDeleteTask()
 
   if (taskQuery.isPending || !taskQuery.data) {
     return (
-      <View className="flex-1 items-center justify-center bg-black">
+      <View
+        style={{
+          flex: 1,
+          alignItems: 'center',
+          justifyContent: 'center',
+          backgroundColor: '#0a0a0a',
+        }}
+      >
         <Stack.Screen options={{ title: 'Edit' }} />
         <Loading />
       </View>
@@ -24,8 +32,22 @@ export default function EditTask() {
   const task = taskQuery.data
   const dueDate = newSafeDate(task.due)
 
+  const onDelete = () => {
+    Alert.alert('Delete task', `Delete '${task.title}'?`, [
+      { text: 'Cancel', style: 'cancel' },
+      {
+        text: 'Delete',
+        style: 'destructive',
+        onPress: () =>
+          deleteMutation.mutate(task.id, {
+            onSuccess: () => router.back(),
+          }),
+      },
+    ])
+  }
+
   return (
-    <View className="flex-1 bg-black">
+    <View style={{ flex: 1, backgroundColor: '#0a0a0a' }}>
       <Stack.Screen options={{ title: `Edit: ${task.title}` }} />
       <TaskForm
         initial={{
@@ -45,6 +67,7 @@ export default function EditTask() {
         }}
         isSaving={mutation.isPending}
         errorMessage={mutation.error?.message ?? null}
+        onDelete={onDelete}
         onSubmit={(input) =>
           mutation.mutate(
             { id: id ?? '', input },

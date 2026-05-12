@@ -1,4 +1,15 @@
 import { ClerkProvider, SignedOut } from '@clerk/clerk-expo'
+import {
+  InstrumentSerif_400Regular,
+  InstrumentSerif_400Regular_Italic,
+} from '@expo-google-fonts/instrument-serif'
+import {
+  JetBrainsMono_400Regular,
+  JetBrainsMono_500Medium,
+  JetBrainsMono_600SemiBold,
+  JetBrainsMono_700Bold,
+} from '@expo-google-fonts/jetbrains-mono'
+import { useFonts } from 'expo-font'
 import { Stack } from 'expo-router'
 import * as SplashScreen from 'expo-splash-screen'
 import { StatusBar } from 'expo-status-bar'
@@ -35,18 +46,40 @@ InputDefault.defaultProps.style = [
 InputDefault.defaultProps.placeholderTextColor =
   InputDefault.defaultProps.placeholderTextColor ?? '#666'
 
+// Mono is the default body font everywhere, matching web.
+TextDefault.defaultProps.style = [
+  { color: '#fff', fontFamily: 'JetBrainsMono_400Regular' },
+  TextDefault.defaultProps.style,
+]
+InputDefault.defaultProps.style = [
+  { color: '#fff', fontFamily: 'JetBrainsMono_400Regular' },
+  InputDefault.defaultProps.style,
+]
+
 const PUBLISHABLE_KEY = process.env.EXPO_PUBLIC_CLERK_PUBLISHABLE_KEY!
 if (!PUBLISHABLE_KEY) {
   throw new Error('EXPO_PUBLIC_CLERK_PUBLISHABLE_KEY missing')
 }
 
 export default function RootLayout() {
+  const [fontsLoaded] = useFonts({
+    InstrumentSerif_400Regular,
+    InstrumentSerif_400Regular_Italic,
+    JetBrainsMono_400Regular,
+    JetBrainsMono_500Medium,
+    JetBrainsMono_600SemiBold,
+    JetBrainsMono_700Bold,
+  })
+
   useEffect(() => {
+    if (!fontsLoaded) return
     const t = setTimeout(() => {
       void SplashScreen.hideAsync()
     }, 100)
     return () => clearTimeout(t)
-  }, [])
+  }, [fontsLoaded])
+
+  if (!fontsLoaded) return null
 
   return (
     <ClerkProvider publishableKey={PUBLISHABLE_KEY} tokenCache={tokenCache}>
