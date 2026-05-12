@@ -54,11 +54,15 @@ jobs:
             - No premature abstractions; three similar lines beats a bad helper
             - No backwards-compat shims for code paths that don't need them
 
-            Use `mcp__github_inline_comment__create_inline_comment` (with `confirmed: true`) for issues tied to specific lines.
-            Use `gh pr comment` for a single top-level summary at the end.
-            Do not submit an approving or requesting-changes review yet — just comments. (We'll enable verdicts once we're ready to gate merges.)
+            Use `mcp__github_inline_comment__create_inline_comment` (with `confirmed: true`) for line-specific issues or nits.
 
-            Be terse. Don't restate the diff. Don't praise; flag only issues. If the PR looks clean, the summary comment should say so in one sentence.
+            Then submit ONE verdict via `gh pr review`:
+            - Blocking issues found (correctness bug, security hole, architecture violation, broken test, type unsafety): `gh pr review --request-changes --body "<concise summary of blockers, link to the inline comments>"`
+            - Otherwise: `gh pr review --approve --body "<one-line note, or empty>"`
+
+            The bar for `--request-changes` is "this should not be merged as-is." Style preferences and nits go in inline comments without blocking; do NOT request changes for style alone.
+
+            Be terse. Don't restate the diff. Don't praise. If the PR is clean, approve with an empty body or a single sentence.
 
           claude_args: |
-            --allowedTools "mcp__github_inline_comment__create_inline_comment,Bash(gh pr comment:*),Bash(gh pr diff:*),Bash(gh pr view:*),Bash(gh pr checks:*),Bash(rg:*),Bash(find:*),Bash(cat:*),Bash(ls:*)"
+            --allowedTools "mcp__github_inline_comment__create_inline_comment,Bash(gh pr comment:*),Bash(gh pr review:*),Bash(gh pr diff:*),Bash(gh pr view:*),Bash(gh pr checks:*),Bash(rg:*),Bash(find:*),Bash(cat:*),Bash(ls:*)"
