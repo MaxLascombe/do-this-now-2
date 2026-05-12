@@ -1,0 +1,49 @@
+name: CI
+
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches: [main]
+
+# Cancel in-progress runs on new pushes to the same ref — saves minutes
+# when a force-push or rapid-fire commits land.
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  checks:
+    name: typecheck + test + build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+        # version is picked up from package.json#packageManager (pnpm@9.15.9)
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: 'pnpm'
+
+      - name: Install
+        run: pnpm install --frozen-lockfile
+
+      - name: Typecheck shared
+        run: pnpm --filter @dtn/shared exec tsc --noEmit
+
+      - name: Typecheck web
+        run: pnpm --filter web exec tsc --noEmit
+
+      - name: Typecheck mobile
+        run: pnpm --filter mobile exec tsc --noEmit
+
+      - name: Test shared
+        run: pnpm --filter @dtn/shared test
+
+      # `pnpm --filter web build` runs `drizzle-kit migrate && vite build`,
+      # which would touch the prod DB on every PR. Use the migration-free
+      # build:check script (just `vite build`) instead.
+      - name: Build web (no migrations)
+        run: pnpm --filter web run build:check

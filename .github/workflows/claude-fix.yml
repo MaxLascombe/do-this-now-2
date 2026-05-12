@@ -1,0 +1,53 @@
+name: Claude Auto-Fix
+
+on:
+  pull_request_review:
+    types: [submitted]
+
+# When the Claude Review workflow finishes posting comments, GitHub fires
+# this event. We check that the review was by the bot (not a human) and
+# kick off another Claude run that reads the review and commits fixes.
+jobs:
+  fix:
+    if: |
+      github.event.review.user.login == 'github-actions[bot]' &&
+      github.event.review.state == 'commented' &&
+      !contains(github.event.review.body, '[skip-fix]')
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      pull-requests: write
+      issues: write
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          # Check out the PR branch with write access so the action can
+          # commit fixes back. fetch-depth: 0 so Claude can read history.
+          ref: ${{ github.event.pull_request.head.ref }}
+          fetch-depth: 0
+
+      - uses: anthropics/claude-code-action@v1
+        with:
+          prompt: |
+            A review (id: ${{ github.event.review.id }}) was just posted on this PR
+            with inline comments. For each comment that flags a concrete issue:
+
+              1. Apply the fix to the code.
+              2. Reply to the comment with a one-line note explaining what changed,
+                 OR why you disagreed and left it as-is.
+
+            When all comments are addressed, commit the changes with the message:
+
+              [claude-fix] address review #${{ github.event.review.id }}
+
+            Do NOT resolve the conversation threads — the human reviewer marks them
+            resolved after verifying the fix.
+
+            If a comment is purely informational ("FYI", "consider...") rather than
+            a request, acknowledge and skip.
+
+            Heads-up: pushes made with the default GITHUB_TOKEN do not re-trigger
+            CI workflows. If the fix would require a fresh CI pass, mention this in
+            your reply so the human knows to push another commit or rerun CI.
+        env:
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}

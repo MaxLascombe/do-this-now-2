@@ -1,0 +1,58 @@
+name: Claude Review
+
+on:
+  pull_request:
+    # Only on first open / reopen — don't re-review every push, because
+    # the auto-fix workflow's commits would trigger an infinite loop.
+    types: [opened, reopened, ready_for_review]
+  issue_comment:
+    # Re-trigger by commenting `@claude review` on the PR.
+    types: [created]
+
+jobs:
+  review:
+    if: |
+      github.event_name == 'pull_request' ||
+      (github.event_name == 'issue_comment' &&
+       github.event.issue.pull_request != null &&
+       contains(github.event.comment.body, '@claude review'))
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pull-requests: write
+      issues: write
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - uses: anthropics/claude-code-action@v1
+        with:
+          prompt: |
+            You are reviewing a pull request on a monorepo with three workspaces:
+              - shared/  (@dtn/shared — pure TS types, drizzle schema, react-query hooks)
+              - web/     (TanStack Start app, Drizzle ORM, Neon Postgres, Clerk auth, Vercel deploy)
+              - mobile/  (Expo SDK 54 app sharing the same @dtn/shared package)
+
+            Read the diff and post a PR review with inline comments on the specific
+            lines that have issues. Cover:
+              - correctness bugs (race conditions, off-by-one, missing await, etc.)
+              - type safety (any escape hatches, missing narrowings)
+              - inconsistencies with patterns established elsewhere in the repo
+                (e.g. error envelope via server/lib/http.ts, drizzle transactions,
+                useApi() through @dtn/shared, etc.)
+              - missing tests for new pure-function logic in shared/
+              - security: never log secrets, validate auth at boundaries, scope DB
+                queries by userId, parse untrusted input through zod
+              - perf cliffs that show up at the scale the user actually runs at
+
+            Each comment should describe the issue AND propose a concrete fix. Be
+            specific — line refs, exact replacement code where useful.
+
+            Submit the review with state COMMENT (do not APPROVE or REQUEST_CHANGES;
+            GitHub branch-protection counts neither from this bot anyway).
+
+            If the diff is clean, post one summary comment saying so. Do not fabricate
+            issues to look thorough.
+        env:
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
