@@ -9,6 +9,7 @@ import {
   tasks,
 } from '@dtn/shared/schema'
 import { dateString, nextDueDate } from '@dtn/shared/helpers'
+import { findNextActionableSubtask } from '@dtn/shared/task-sorting'
 import { HOUR_MS } from '@dtn/shared/time'
 import { finalizeTodayProgress } from './progress'
 
@@ -46,11 +47,7 @@ export async function completeTask(
     const now = new Date()
 
     if (task.subtasks.length > 0 && task.subtasks.some((s) => !s.done)) {
-      const next =
-        task.subtasks.find(
-          (s) =>
-            !s.done && (!s.snooze || new Date(s.snooze) < new Date()),
-        ) ?? task.subtasks.find((s) => !s.done)
+      const next = findNextActionableSubtask(task.subtasks, now)
       if (next) {
         const newSubtasks: SubTask[] = task.subtasks.map((s) =>
           s === next ? { ...s, done: true } : s,
@@ -132,21 +129,16 @@ export async function snoozeTask(
       .insert(taskEvents)
       .values({ userId, taskId: task.id, kind: 'snoozed' })
 
-    const newSnooze = new Date(Date.now() + HOUR_MS).toISOString()
+    const now = new Date()
+    const newSnooze = new Date(now.getTime() + HOUR_MS).toISOString()
 
-    const hasUnsnoozedSubtask =
-      !allSubtasks &&
-      task.subtasks.length > 0 &&
-      task.subtasks.some(
-        (s) => !s.done && (!s.snooze || new Date(s.snooze) < new Date()),
-      )
+    const next = allSubtasks
+      ? undefined
+      : findNextActionableSubtask(task.subtasks, now)
 
-    if (hasUnsnoozedSubtask) {
-      const idx = task.subtasks.findIndex(
-        (s) => !s.done && (!s.snooze || new Date(s.snooze) < new Date()),
-      )
-      const newSubtasks: SubTask[] = task.subtasks.map((s, i) =>
-        i === idx ? { ...s, snooze: newSnooze } : s,
+    if (next) {
+      const newSubtasks: SubTask[] = task.subtasks.map((s) =>
+        s === next ? { ...s, snooze: newSnooze } : s,
       )
       await tx
         .update(tasks)

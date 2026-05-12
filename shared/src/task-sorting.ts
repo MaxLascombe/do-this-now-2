@@ -4,6 +4,29 @@ import { newSafeDate, nextDueDate } from './helpers'
 const subtaskIsSnoozed = (s: SubTask) =>
   !!s.snooze && new Date(s.snooze) >= new Date()
 
+// A subtask is "actionable" iff it isn't done AND isn't currently snoozed.
+// completeTask + snoozeTask both reach for "the next actionable subtask";
+// hoisted here so the predicate has one source of truth and is unit-testable
+// without a DB.
+export function isActionableSubtask(s: SubTask, now: Date): boolean {
+  if (s.done) return false
+  if (!s.snooze) return true
+  return new Date(s.snooze) < now
+}
+
+// Returns the next subtask the user should action: prefer one that's
+// actionable; fall back to the first not-done one (e.g. all remaining are
+// snoozed but we still want to advance something). Undefined if all done.
+export function findNextActionableSubtask(
+  subtasks: SubTask[],
+  now: Date,
+): SubTask | undefined {
+  return (
+    subtasks.find((s) => isActionableSubtask(s, now)) ??
+    subtasks.find((s) => !s.done)
+  )
+}
+
 export const isSnoozed = (t: Task): boolean => {
   if (t.snooze && new Date(t.snooze) >= new Date()) return true
   if (
