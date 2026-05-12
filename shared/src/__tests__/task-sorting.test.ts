@@ -5,6 +5,8 @@ import {
   isActionableSubtask,
   isSnoozed,
   sortTasks,
+  willCompletingFinishTheTask,
+  willSnoozingRemoveTask,
 } from '../task-sorting'
 import { makeTask } from './_factories'
 
@@ -166,5 +168,97 @@ describe('findNextActionableSubtask', () => {
         now,
       )?.title,
     ).toBe('b')
+  })
+})
+
+describe('willCompletingFinishTheTask', () => {
+  it('true when no subtasks (one-shot task)', () => {
+    expect(willCompletingFinishTheTask(makeTask({ subtasks: [] }))).toBe(true)
+  })
+
+  it('true when exactly one undone subtask left', () => {
+    expect(
+      willCompletingFinishTheTask(
+        makeTask({
+          subtasks: [
+            { title: 'a', done: true },
+            { title: 'b', done: false },
+          ],
+        }),
+      ),
+    ).toBe(true)
+  })
+
+  it('false when two undone subtasks remain (THE flicker-bug case)', () => {
+    expect(
+      willCompletingFinishTheTask(
+        makeTask({
+          subtasks: [
+            { title: 'a', done: false },
+            { title: 'b', done: false },
+          ],
+        }),
+      ),
+    ).toBe(false)
+  })
+
+  it('true when all subtasks already done (edge — completing the last one)', () => {
+    expect(
+      willCompletingFinishTheTask(
+        makeTask({
+          subtasks: [
+            { title: 'a', done: true },
+            { title: 'b', done: true },
+          ],
+        }),
+      ),
+    ).toBe(true)
+  })
+})
+
+describe('willSnoozingRemoveTask', () => {
+  it('true when allSubtasks set (whole task always snoozes)', () => {
+    expect(
+      willSnoozingRemoveTask(
+        makeTask({
+          subtasks: [{ title: 'a', done: false }],
+        }),
+        true,
+      ),
+    ).toBe(true)
+  })
+
+  it('true when no subtasks (whole task snoozes)', () => {
+    expect(willSnoozingRemoveTask(makeTask({ subtasks: [] }), false)).toBe(
+      true,
+    )
+  })
+
+  it('false when undone subtasks exist (server only snoozes one — flicker bug)', () => {
+    expect(
+      willSnoozingRemoveTask(
+        makeTask({
+          subtasks: [
+            { title: 'a', done: false },
+            { title: 'b', done: false },
+          ],
+        }),
+        false,
+      ),
+    ).toBe(false)
+  })
+
+  it('true when all subtasks done (server snoozes whole task)', () => {
+    expect(
+      willSnoozingRemoveTask(
+        makeTask({
+          subtasks: [
+            { title: 'a', done: true },
+            { title: 'b', done: true },
+          ],
+        }),
+        false,
+      ),
+    ).toBe(true)
   })
 })

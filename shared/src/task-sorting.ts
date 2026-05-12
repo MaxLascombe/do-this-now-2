@@ -27,6 +27,30 @@ export function findNextActionableSubtask(
   )
 }
 
+// "Will clicking Complete on this task actually finish the whole task?"
+// — true if no subtasks or at most one undone subtask remains. Used by
+// the optimistic-update layer to decide between hiding the row (whole
+// task done) vs flipping one subtask to done in-place (task continues).
+export function willCompletingFinishTheTask(task: Task): boolean {
+  if (task.subtasks.length === 0) return true
+  const undoneCount = task.subtasks.filter((s) => !s.done).length
+  return undoneCount <= 1
+}
+
+// "Will clicking Snooze on this task remove it from the active list?"
+// — yes if allSubtasks is set, if there are no subtasks, or if every
+// subtask is already done (server snoozes the whole task in those cases).
+// No otherwise — the server snoozes a single subtask and the task stays
+// in the list.
+export function willSnoozingRemoveTask(
+  task: Task,
+  allSubtasks: boolean,
+): boolean {
+  if (allSubtasks) return true
+  if (task.subtasks.length === 0) return true
+  return !task.subtasks.some((s) => !s.done)
+}
+
 export const isSnoozed = (t: Task): boolean => {
   if (t.snooze && new Date(t.snooze) >= new Date()) return true
   if (
