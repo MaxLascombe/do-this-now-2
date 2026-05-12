@@ -135,17 +135,33 @@ function StreakSummary({ data }: { data: StatsResult }) {
 
 const HEATMAP_COLS = 26
 
-function heatmapColor(minutes: number, hit: boolean): string {
-  if (hit) return 'bg-green-500'
+// Pick a value at the p-th percentile (0..100) of an already-sorted array.
+function percentile(sorted: number[], p: number): number {
+  if (sorted.length === 0) return 0
+  const idx = Math.min(
+    sorted.length - 1,
+    Math.floor(((sorted.length - 1) * p) / 100),
+  )
+  return sorted[idx]
+}
+
+function heatmapColor(
+  minutes: number,
+  hit: boolean,
+  p33: number,
+  p66: number,
+): string {
   if (minutes === 0) return 'bg-gray-800'
-  if (minutes < 30) return 'bg-green-900'
-  return 'bg-green-700'
+  if (hit || minutes >= p66) return 'bg-green-500'
+  if (minutes >= p33) return 'bg-green-700'
+  return 'bg-green-900'
 }
 
 function Heatmap({ data }: { data: StatsResult }) {
-  // 26 columns × 7 rows ≈ 6 months. The rightmost column is the current
-  // week; topmost row is Sunday. Color tiers: 0 min = gray, <30 min = very
-  // dim green, ≥30 min = medium green, target-hit = bright green.
+  // 26 columns × 7 rows ≈ 6 months. Color tiers come from percentiles of
+  // the non-zero days in the visible window so the shading actually has
+  // variation for a given user's output range (fixed minute thresholds
+  // bucketed everything into one tier for daily-task power users).
   const last = data.heatmap[data.heatmap.length - 1]
   if (!last) return null
   const today = newSafeDate(last.date)
@@ -169,11 +185,18 @@ function Heatmap({ data }: { data: StatsResult }) {
   }
   const visible = cells.filter((c) => c.col >= 0)
 
+  const nonZeroSorted = data.heatmap
+    .map((d) => d.minutes)
+    .filter((m) => m > 0)
+    .sort((a, b) => a - b)
+  const p33 = percentile(nonZeroSorted, 33)
+  const p66 = percentile(nonZeroSorted, 66)
+
   const dayLabels = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat']
 
   return (
     <Section title="Last 6 months">
-      <div className="flex gap-2">
+      <div className="flex justify-center gap-2 overflow-x-auto">
         <div className="flex flex-col gap-[3px] pr-1 text-[10px] text-gray-600">
           {dayLabels.map((d) => (
             <div key={d} className="h-3 leading-3">
@@ -182,7 +205,7 @@ function Heatmap({ data }: { data: StatsResult }) {
           ))}
         </div>
         <div
-          className="grid gap-[3px] overflow-x-auto"
+          className="grid gap-[3px]"
           style={{
             gridTemplateColumns: `repeat(${HEATMAP_COLS}, 12px)`,
             gridTemplateRows: 'repeat(7, 12px)',
@@ -207,7 +230,7 @@ function Heatmap({ data }: { data: StatsResult }) {
                 title={`${cell.date}: ${cell.minutes} min${cell.hit ? ' · hit' : ''}`}
                 className={
                   'h-3 w-3 rounded-[2px] ' +
-                  heatmapColor(cell.minutes, cell.hit)
+                  heatmapColor(cell.minutes, cell.hit, p33, p66)
                 }
               />
             )

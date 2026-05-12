@@ -130,16 +130,30 @@ function StreakSummary({ data }: { data: StatsResult }) {
 
 const HEATMAP_COLS = 26
 
-function heatmapColor(minutes: number, hit: boolean): string {
-  if (hit) return '#22c55e' // green-500
+function percentile(sorted: number[], p: number): number {
+  if (sorted.length === 0) return 0
+  const idx = Math.min(
+    sorted.length - 1,
+    Math.floor(((sorted.length - 1) * p) / 100),
+  )
+  return sorted[idx]
+}
+
+function heatmapColor(
+  minutes: number,
+  hit: boolean,
+  p33: number,
+  p66: number,
+): string {
   if (minutes === 0) return '#1f2937' // gray-800
-  if (minutes < 30) return '#14532d' // green-900
-  return '#15803d' // green-700
+  if (hit || minutes >= p66) return '#22c55e' // green-500
+  if (minutes >= p33) return '#15803d' // green-700
+  return '#14532d' // green-900
 }
 
 function Heatmap({ data }: { data: StatsResult }) {
-  // 26 columns × 7 rows ≈ 6 months. Anchor today in the rightmost column
-  // and walk backward. Color tiers match the web variant.
+  // 26 columns × 7 rows ≈ 6 months. Same percentile-based color tiers as
+  // the web variant so the shading actually varies for active users.
   const last = data.heatmap[data.heatmap.length - 1]
   if (!last) return null
   const today = newSafeDate(last.date)
@@ -159,10 +173,21 @@ function Heatmap({ data }: { data: StatsResult }) {
     const row = ((dowOffset % 7) + 7) % 7
     if (col >= 0 && col < HEATMAP_COLS) grid[col][row] = data.heatmap[i]
   }
+  const nonZeroSorted = data.heatmap
+    .map((d) => d.minutes)
+    .filter((m) => m > 0)
+    .sort((a, b) => a - b)
+  const p33 = percentile(nonZeroSorted, 33)
+  const p66 = percentile(nonZeroSorted, 66)
+
   const labels = ['S', 'M', 'T', 'W', 'T', 'F', 'S']
   return (
     <Section title="Last 6 months">
-      <ScrollView horizontal showsHorizontalScrollIndicator={false}>
+      <ScrollView
+        horizontal
+        showsHorizontalScrollIndicator={false}
+        contentContainerStyle={{ flexGrow: 1, justifyContent: 'center' }}
+      >
         <View style={{ flexDirection: 'row', gap: 6 }}>
           <View style={{ gap }}>
             {labels.map((l, i) => (
@@ -190,7 +215,7 @@ function Heatmap({ data }: { data: StatsResult }) {
                       height: cellSize,
                       borderRadius: 2,
                       backgroundColor: cell.date
-                        ? heatmapColor(cell.minutes, cell.hit)
+                        ? heatmapColor(cell.minutes, cell.hit, p33, p66)
                         : '#0a0a0a',
                     }}
                   />
