@@ -21,6 +21,9 @@ jobs:
       contents: read
       pull-requests: write
       issues: write
+      # claude-code-action mints an OIDC token to authenticate with the
+      # Anthropic GitHub App — required even when ANTHROPIC_API_KEY is set.
+      id-token: write
     steps:
       - uses: actions/checkout@v4
         with:
