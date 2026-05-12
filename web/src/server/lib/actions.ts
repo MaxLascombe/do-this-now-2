@@ -1,16 +1,11 @@
 import { and, eq, gte, lt } from 'drizzle-orm'
 
 import { db } from '../../db'
+import { history, type Task, taskEvents, tasks } from '@dtn/shared/schema'
 import {
-  history,
-  type SubTask,
-  type Task,
-  taskEvents,
-  tasks,
-} from '@dtn/shared/schema'
-import { dateString, nextDueDate } from '@dtn/shared/helpers'
-import { findNextActionableSubtask } from '@dtn/shared/task-sorting'
-import { HOUR_MS } from '@dtn/shared/time'
+  completeTaskTransition,
+  snoozeTaskTransition,
+} from '@dtn/shared/task-transitions'
 import { finalizeTodayProgress } from './progress'
 
 // `loadTask` accepts either the top-level `db` or a `tx` handle so the
@@ -45,50 +40,33 @@ export async function completeTask(
     if (!task) throw new Error('Task not found')
 
     const now = new Date()
+    const transition = completeTaskTransition(task, now)
 
-    if (task.subtasks.length > 0 && task.subtasks.some((s) => !s.done)) {
-      const next = findNextActionableSubtask(task.subtasks, now)
-      if (next) {
-        const newSubtasks: SubTask[] = task.subtasks.map((s) =>
-          s === next ? { ...s, done: true } : s,
-        )
-        const stillUndone = newSubtasks.some((s) => !s.done)
-
-        if (stillUndone) {
-          await tx
-            .update(tasks)
-            .set({ subtasks: newSubtasks, updatedAt: now })
-            .where(and(eq(tasks.userId, userId), eq(tasks.id, task.id)))
-          return { advanced: false }
-        }
-
-        task.subtasks = newSubtasks
-      }
+    if (transition.kind === 'advance-subtask') {
+      await tx
+        .update(tasks)
+        .set({ subtasks: transition.nextTask.subtasks, updatedAt: now })
+        .where(and(eq(tasks.userId, userId), eq(tasks.id, task.id)))
+      return { advanced: false }
     }
 
     await tx.insert(history).values({
       userId,
       taskId: task.id,
-      taskSnapshot: task,
+      taskSnapshot: transition.snapshot,
       completedAt: now,
     })
 
-    const newDue = nextDueDate(task)
-    if (task.repeat === 'No Repeat' || newDue === undefined) {
+    if (transition.kind === 'finish-and-delete') {
       await tx
         .delete(tasks)
         .where(and(eq(tasks.userId, userId), eq(tasks.id, task.id)))
     } else {
-      const resetSubtasks: SubTask[] = task.subtasks.map((s) => ({
-        ...s,
-        done: false,
-        snooze: undefined,
-      }))
       await tx
         .update(tasks)
         .set({
-          due: dateString(newDue),
-          subtasks: resetSubtasks,
+          due: transition.nextTask.due,
+          subtasks: transition.nextTask.subtasks,
           updatedAt: now,
         })
         .where(and(eq(tasks.userId, userId), eq(tasks.id, task.id)))
@@ -129,29 +107,27 @@ export async function snoozeTask(
       .insert(taskEvents)
       .values({ userId, taskId: task.id, kind: 'snoozed' })
 
-    const now = new Date()
-    const newSnooze = new Date(now.getTime() + HOUR_MS).toISOString()
+    const transition = snoozeTaskTransition(task, allSubtasks, new Date())
 
-    const next = allSubtasks
-      ? undefined
-      : findNextActionableSubtask(task.subtasks, now)
-
-    if (next) {
-      const newSubtasks: SubTask[] = task.subtasks.map((s) =>
-        s === next ? { ...s, snooze: newSnooze } : s,
-      )
+    if (transition.scope === 'subtask') {
       await tx
         .update(tasks)
-        .set({ subtasks: newSubtasks, updatedAt: new Date() })
+        .set({
+          subtasks: transition.nextTask.subtasks,
+          updatedAt: transition.nextTask.updatedAt,
+        })
         .where(and(eq(tasks.userId, userId), eq(tasks.id, task.id)))
-      return { scope: 'subtask' }
+    } else {
+      await tx
+        .update(tasks)
+        .set({
+          snooze: transition.nextTask.snooze,
+          updatedAt: transition.nextTask.updatedAt,
+        })
+        .where(and(eq(tasks.userId, userId), eq(tasks.id, task.id)))
     }
 
-    await tx
-      .update(tasks)
-      .set({ snooze: newSnooze, updatedAt: new Date() })
-      .where(and(eq(tasks.userId, userId), eq(tasks.id, task.id)))
-    return { scope: 'task' }
+    return { scope: transition.scope }
   })
 }
 

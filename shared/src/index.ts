@@ -1,6 +1,7 @@
 export * from './schema'
 export * from './helpers'
 export * from './task-sorting'
+export * from './task-transitions'
 export * from './time'
 // Selective re-export: RepeatOption/RepeatUnit/RepeatWeekdays/SubTask are
 // the canonical types from ./types (re-exported via ./schema). task-input
