@@ -34,10 +34,16 @@ export function Tag({
   )
 }
 
-export function DateTag({ due }: { due: string }) {
-  const text = formatDueLabel(due)
+export function DateTag({
+  due,
+  dueTime,
+}: {
+  due: string
+  dueTime?: string | null
+}) {
+  const text = formatDueLabel(due, dueTime)
   if (!text) return null
-  return <Tag text={text} icon={faCalendar} />
+  return <Tag text={text} icon={dueTime ? faClock : faCalendar} />
 }
 
 export function TimeFrame({ timeFrame }: { timeFrame?: number }) {

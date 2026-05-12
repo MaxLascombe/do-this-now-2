@@ -34,6 +34,7 @@ export default function EditTask() {
           dueMonth: dueDate.getMonth() + 1,
           dueDay: dueDate.getDate(),
           dueYear: dueDate.getFullYear(),
+          dueTime: task.dueTime,
           strictDeadline: task.strictDeadline,
           repeat: task.repeat,
           repeatInterval: task.repeatInterval,

@@ -136,6 +136,7 @@ function makeOptimisticTask(input: TaskInput, userId: string): Task {
     title: input.title,
     emoji: input.emoji,
     due: input.due,
+    dueTime: input.dueTime,
     strictDeadline: input.strictDeadline,
     repeat: input.repeat,
     repeatInterval: input.repeatInterval,

@@ -66,6 +66,18 @@ describe('formatDueLabel', () => {
     // 2026-5-15 was a Friday
     expect(formatDueLabel('2026-5-15')).toMatch(/^Fri May 15$/)
   })
+
+  it('renders time-of-day instead of "Today" when dueTime is set today', () => {
+    const t = new Date()
+    const s = `${t.getFullYear()}-${t.getMonth() + 1}-${t.getDate()}`
+    expect(formatDueLabel(s, '04:00')).toBe('4:00 AM')
+    expect(formatDueLabel(s, '19:30')).toBe('7:30 PM')
+  })
+
+  it('ignores dueTime when not due today (date wins)', () => {
+    // 2026-5-15 was a Friday
+    expect(formatDueLabel('2026-5-15', '07:00')).toMatch(/^Fri May 15$/)
+  })
 })
 
 describe('formatScheduleStatus', () => {

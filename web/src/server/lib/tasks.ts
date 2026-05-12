@@ -1,7 +1,7 @@
 import { and, eq } from 'drizzle-orm'
 
 import { db } from '../../db'
-import { getUserToday } from '@dtn/shared/helpers'
+import { getUserLocalNow, getUserToday } from '@dtn/shared/helpers'
 import { type Task, taskEvents, tasks } from '@dtn/shared/schema'
 import { type TaskInput } from '@dtn/shared/task-input'
 import { sortTasks } from '@dtn/shared/task-sorting'
@@ -25,7 +25,7 @@ export async function listTopTasks(
 ): Promise<Task[]> {
   const all = await listTasks(userId)
   const { todayDate } = getUserToday(tzOffsetMin)
-  sortTasks(all, todayDate)
+  sortTasks(all, todayDate, getUserLocalNow(tzOffsetMin))
   return all
 }
 

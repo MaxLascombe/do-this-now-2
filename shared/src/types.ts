@@ -29,6 +29,7 @@ export type Task = {
   title: string
   emoji: string
   due: string
+  dueTime: string | null
   strictDeadline: boolean
   repeat: RepeatOption
   repeatInterval: number

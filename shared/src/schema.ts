@@ -64,6 +64,10 @@ export const tasks = pgTable(
     // an admin backfill upgrades those to real Claude-generated emojis.
     emoji: text('emoji').notNull().default('📝'),
     due: text('due').notNull(),
+    // Optional time-of-day for the due date in 24h "HH:MM" form. When set,
+    // the task is treated as "actionable" only once the local datetime
+    // (date + time) has passed — and ranks above non-timed past-due tasks.
+    dueTime: text('due_time'),
     strictDeadline: boolean('strict_deadline').notNull().default(false),
     repeat: repeatOptionEnum('repeat').notNull().default('No Repeat'),
     repeatInterval: integer('repeat_interval').notNull().default(1),

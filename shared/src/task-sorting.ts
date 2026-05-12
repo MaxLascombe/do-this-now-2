@@ -1,5 +1,5 @@
 import type { Task, SubTask } from './types'
-import { newSafeDate, nextDueDate } from './helpers'
+import { newSafeDate, newSafeDateTime, nextDueDate } from './helpers'
 
 const subtaskIsSnoozed = (s: SubTask) =>
   !!s.snooze && new Date(s.snooze) >= new Date()
@@ -61,10 +61,29 @@ export const isSnoozed = (t: Task): boolean => {
   return false
 }
 
-const dueOrPastDue = (t: Task, today: Date): boolean =>
-  newSafeDate(t.due) <= today
+// A task with a due-time is only "actionable" once the local wall-clock
+// has passed that time. Without a due-time, plain calendar comparison.
+const dueOrPastDue = (t: Task, today: Date, now: Date): boolean => {
+  const dueDate = newSafeDate(t.due)
+  if (dueDate > today) return false
+  if (dueDate < today) return true
+  // Due today: if a time is set, it counts as past only once the time has
+  // passed — so a 7pm task at 3pm shouldn't show as "due now".
+  if (t.dueTime) return newSafeDateTime(t.due, t.dueTime) <= now
+  return true
+}
 
-export const sortTasks = (tasks: Task[], today: Date): void => {
+// True iff the task has a due-time AND the local datetime has passed.
+// This is what bubbles a 4am morning routine to the top of the list once
+// 4am hits — even above other past-due tasks that don't carry a time.
+export const dueTimeHasPassed = (t: Task, now: Date): boolean =>
+  !!t.dueTime && newSafeDateTime(t.due, t.dueTime) <= now
+
+export const sortTasks = (
+  tasks: Task[],
+  today: Date,
+  now: Date = new Date(),
+): void => {
   const tmrw = new Date(today)
   tmrw.setDate(tmrw.getDate() + 1)
   const in2Days = new Date(today)
@@ -74,22 +93,27 @@ export const sortTasks = (tasks: Task[], today: Date): void => {
     // not snoozed (true = higher priority)
     (t) => !isSnoozed(t),
 
+    // due-time set AND local wall-clock has passed it — ranks above
+    // generic past-due so timed tasks (morning/evening routines) jump
+    // to the top of the list once their moment arrives.
+    (t) => dueTimeHasPassed(t, now),
+
     // due today or past due
-    (t) => dueOrPastDue(t, today),
+    (t) => dueOrPastDue(t, today, now),
 
     // strict deadline and due today or past due
-    (t) => dueOrPastDue(t, today) && t.strictDeadline,
+    (t) => dueOrPastDue(t, today, now) && t.strictDeadline,
 
     // completing this task means it won't come back for at least 2 days
     (t) => {
-      if (!dueOrPastDue(t, today)) return false
+      if (!dueOrPastDue(t, today, now)) return false
       const next = nextDueDate(t)
       return next === undefined || next >= in2Days
     },
 
     // completing this task means it won't come back today
     (t) => {
-      if (!dueOrPastDue(t, today)) return false
+      if (!dueOrPastDue(t, today, now)) return false
       const next = nextDueDate(t)
       return next === undefined || next >= tmrw
     },
@@ -106,6 +130,16 @@ export const sortTasks = (tasks: Task[], today: Date): void => {
     // sort by due date
     const diff = newSafeDate(a.due).getTime() - newSafeDate(b.due).getTime()
     if (diff !== 0) return diff
+
+    // same calendar date: if either has a dueTime, sort by full datetime
+    // ascending. Earlier-overdue (e.g. 4am morning routine) ranks above
+    // later (e.g. 6am stretch). A task without a dueTime sorts before a
+    // task with one on the same date (treat it as 00:00).
+    if (a.dueTime || b.dueTime) {
+      const aMs = newSafeDateTime(a.due, a.dueTime ?? '00:00').getTime()
+      const bMs = newSafeDateTime(b.due, b.dueTime ?? '00:00').getTime()
+      if (aMs !== bMs) return aMs - bMs
+    }
 
     // sort by time frame (0 = no estimate, goes last)
     if (a.timeFrame !== b.timeFrame) {

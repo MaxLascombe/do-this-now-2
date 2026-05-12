@@ -1,6 +1,6 @@
 import { format } from 'date-fns'
 
-import { newSafeDate } from './helpers'
+import { newSafeDate, newSafeDateTime } from './helpers'
 import type { RepeatOption, RepeatUnit, RepeatWeekdays } from './task-input'
 import { minutesToHours } from './time'
 
@@ -73,7 +73,8 @@ export function formatScheduleStatus(opts: {
  * be parsed (shouldn't happen — schema enforces YYYY-M-D, but the History
  * page renders archived snapshots that may predate the constraint).
  *
- *   today    → 'Today'
+ *   today    → 'Today' (or the time-of-day, when dueTime is set —
+ *              "4:00 AM" / "7:00 PM" — since the date is implicit)
  *   today+1  → 'Tomorrow'
  *   today-1  → 'Yesterday'
  *   other    → 'Wed Mar 5' (date-fns `iii LLL d`)
@@ -82,13 +83,20 @@ export function formatScheduleStatus(opts: {
  * date. When omitted, defaults to the runtime's local midnight — fine for
  * client-only render paths.
  */
-export function formatDueLabel(due: string, today?: Date): string | null {
+export function formatDueLabel(
+  due: string,
+  dueTime?: string | null,
+  today?: Date,
+): string | null {
   try {
     const dueDate = newSafeDate(due)
     const ref = today ?? new Date()
     const today0 = new Date(ref.getFullYear(), ref.getMonth(), ref.getDate())
     const t = dueDate.getTime()
-    if (t === today0.getTime()) return 'Today'
+    if (t === today0.getTime()) {
+      if (dueTime) return format(newSafeDateTime(due, dueTime), 'h:mm a')
+      return 'Today'
+    }
     if (t === today0.getTime() + 24 * 60 * 60 * 1000) return 'Tomorrow'
     if (t === today0.getTime() - 24 * 60 * 60 * 1000) return 'Yesterday'
     return format(dueDate, 'iii LLL d')
