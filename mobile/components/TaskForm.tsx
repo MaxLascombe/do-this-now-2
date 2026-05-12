@@ -23,7 +23,11 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context'
 
 import { useApi } from '@dtn/shared/api-client'
-import { dateString, newSafeDate } from '@dtn/shared/helpers'
+import {
+  dateString,
+  newSafeDate,
+  newSafeDateTime,
+} from '@dtn/shared/helpers'
 import {
   type RepeatOption,
   type RepeatUnit,
@@ -61,6 +65,7 @@ type Props = {
     dueMonth: number
     dueDay: number
     dueYear: number
+    dueTime: string | null
     strictDeadline: boolean
     repeat: RepeatOption
     repeatInterval: number
@@ -92,6 +97,9 @@ export function TaskForm({
       ? new Date(initial.dueYear, initial.dueMonth - 1, initial.dueDay)
       : newSafeDate(dateString(new Date())),
   )
+  const [dueTime, setDueTime] = useState<string | null>(
+    initial.dueTime ?? null,
+  )
   const [strictDeadline, setStrictDeadline] = useState(
     initial.strictDeadline ?? false,
   )
@@ -119,7 +127,7 @@ export function TaskForm({
   const [errors, setErrors] = useState<Record<string, string>>({})
 
   const [openSheet, setOpenSheet] = useState<
-    null | 'date' | 'time' | 'repeat'
+    null | 'date' | 'dueTime' | 'time' | 'repeat'
   >(null)
 
   // Debounced emoji suggestions — fires ~500ms after the user stops typing
@@ -178,11 +186,19 @@ export function TaskForm({
       ? 'None'
       : `${Math.floor(timeFrame / 60)}h ${timeFrame % 60}m`
 
+  // DateTimePicker's time mode wants a Date — pack the HH:MM into one
+  // (anchor on an arbitrary date; only time-of-day is used).
+  const dueTimeAsDate = dueTime
+    ? newSafeDateTime('2000-1-1', dueTime)
+    : new Date(2000, 0, 1, 9, 0)
+  const dueTimeSummary = dueTime ? format(dueTimeAsDate, 'h:mm a') : 'None'
+
   const submit = () => {
     const parsed = taskInputSchema.safeParse({
       title,
       emoji,
       due: dateString(dueDate),
+      dueTime,
       strictDeadline,
       repeat,
       repeatInterval,
@@ -279,6 +295,12 @@ export function TaskForm({
             label="Due"
             value={`${format(dueDate, 'EEE, LLL d')} · ${dayDiffPhrase}`}
             onPress={() => setOpenSheet('date')}
+          />
+          <Divider />
+          <Row
+            label="Due time"
+            value={dueTimeSummary}
+            onPress={() => setOpenSheet('dueTime')}
           />
           <Divider />
           <Row
@@ -477,6 +499,42 @@ export function TaskForm({
             if (selected) setDueDate(selected)
           }}
         />
+      </Sheet>
+
+      <Sheet
+        open={openSheet === 'dueTime'}
+        onClose={() => setOpenSheet(null)}
+        title="Due time"
+      >
+        <View className="items-center gap-4 px-6 py-6">
+          <Text className="text-3xl font-semibold text-white">
+            {dueTimeSummary}
+          </Text>
+          <DateTimePicker
+            value={dueTimeAsDate}
+            mode="time"
+            display={Platform.OS === 'ios' ? 'spinner' : 'default'}
+            themeVariant="dark"
+            onChange={(_, selected) => {
+              if (Platform.OS !== 'ios') setOpenSheet(null)
+              if (!selected) return
+              const hh = String(selected.getHours()).padStart(2, '0')
+              const mm = String(selected.getMinutes()).padStart(2, '0')
+              setDueTime(`${hh}:${mm}`)
+            }}
+          />
+          {dueTime !== null && (
+            <Pressable
+              onPress={() => {
+                setDueTime(null)
+                setOpenSheet(null)
+              }}
+              className="rounded-full border border-gray-700 bg-gray-900 px-4 py-2"
+            >
+              <Text className="text-white">Remove time</Text>
+            </Pressable>
+          )}
+        </View>
       </Sheet>
 
       <Sheet open={openSheet === 'time'} onClose={() => setOpenSheet(null)} title="Time frame">

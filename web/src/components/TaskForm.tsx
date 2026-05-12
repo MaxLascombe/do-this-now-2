@@ -78,6 +78,7 @@ const TaskForm = ({
   title: initialTitle,
   emoji: initialEmoji,
   due: initialDue,
+  dueTime: initialDueTime,
   errorMessage,
   strictDeadline: initialStrictDeadline,
   repeat: initialRepeat,
@@ -104,6 +105,7 @@ const TaskForm = ({
   const [due, setDue] = useState<string>(
     initialDue ?? dateString(new Date()),
   )
+  const [dueTime, setDueTime] = useState<string | null>(initialDueTime ?? null)
   const [strictDeadline, setStrictDeadline] = useState(
     initialStrictDeadline ?? false,
   )
@@ -202,6 +204,7 @@ const TaskForm = ({
       title,
       emoji,
       due,
+      dueTime,
       strictDeadline,
       repeat,
       repeatInterval,
@@ -314,6 +317,39 @@ const TaskForm = ({
           <div className="mt-1 max-w-lg text-center text-gray-600">
             {format(dueDate, 'EEEE, LLLL do, u')} ({dayDiffPhrase(dayDiffFor(due))})
           </div>
+        </div>
+      </Row>
+
+      <Row label="Due Time?">
+        <div className="mt-1 sm:col-span-2 sm:mt-0">
+          <div className="flex max-w-lg items-center gap-3">
+            <Switch
+              checked={dueTime !== null}
+              onChange={(on) => setDueTime(on ? '09:00' : null)}
+            />
+            {dueTime !== null && (
+              <Input
+                id="due-time"
+                type="time"
+                value={dueTime}
+                onChange={(e) => {
+                  // <input type="time"> can briefly emit '' (e.g. clearing
+                  // mid-edit) — fall back to a sane default so we never
+                  // submit a null-via-empty-string.
+                  setDueTime(e.target.value || '09:00')
+                }}
+                className="[color-scheme:dark]"
+              />
+            )}
+          </div>
+          {dueTime !== null && (
+            <div className="mt-1 max-w-lg text-center text-xs text-gray-600">
+              Task ranks to the top once this time arrives.
+            </div>
+          )}
+          {errors.dueTime && (
+            <div className="mt-1 text-sm text-red-500">{errors.dueTime}</div>
+          )}
         </div>
       </Row>
 

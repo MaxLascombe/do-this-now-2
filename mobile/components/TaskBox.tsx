@@ -19,7 +19,7 @@ export function TaskBox({
         {trailing}
       </View>
       <View className="flex-row flex-wrap">
-        <DateTag due={task.due} />
+        <DateTag due={task.due} dueTime={task.dueTime} />
         <TimeFrame timeFrame={task.timeFrame} />
         <Repeat
           repeat={task.repeat}

@@ -39,6 +39,7 @@ function EditTask() {
           title={task.title}
           emoji={task.emoji}
           due={task.due}
+          dueTime={task.dueTime}
           strictDeadline={task.strictDeadline}
           repeat={task.repeat}
           repeatInterval={task.repeatInterval}

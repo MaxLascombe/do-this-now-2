@@ -61,7 +61,7 @@ const TaskBoxBase = ({
           'flex flex-wrap gap-x-4'
         }
       >
-        <DateTag due={task.due} />
+        <DateTag due={task.due} dueTime={task.dueTime} />
         <TimeFrame timeFrame={task.timeFrame} />
         <Repeat
           repeat={task.repeat}

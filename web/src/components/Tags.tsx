@@ -32,10 +32,18 @@ export const Tag = ({
   </span>
 )
 
-export const DateTag = ({ due }: { due: string }) => {
-  const text = formatDueLabel(due)
+export const DateTag = ({
+  due,
+  dueTime,
+}: {
+  due: string
+  dueTime?: string | null
+}) => {
+  const text = formatDueLabel(due, dueTime)
   if (!text) return null
-  return <Tag text={text} icon={faCalendar} />
+  // Show the clock icon when the user set a specific time (clearer signal
+  // than a calendar icon — the label is the time, not a date).
+  return <Tag text={text} icon={dueTime ? faClock : faCalendar} />
 }
 
 export const TimeFrame = ({ timeFrame }: { timeFrame?: number }) => {

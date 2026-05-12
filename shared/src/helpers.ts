@@ -5,6 +5,15 @@ export const newSafeDate = (str: string): Date => {
   return new Date(year, month - 1, day)
 }
 
+// Combines a YYYY-M-D `due` and HH:MM `dueTime` into a local Date.
+// Caller decides what to compare against (local "now" on the client, or
+// a tz-shifted "now" on the server — see getUserToday for the shift).
+export const newSafeDateTime = (due: string, dueTime: string): Date => {
+  const [year, month, day] = due.split('-').map((s) => parseInt(s))
+  const [hh, mm] = dueTime.split(':').map((s) => parseInt(s))
+  return new Date(year, month - 1, day, hh, mm)
+}
+
 export const dateString = (date: Date): string =>
   `${date.getFullYear()}-${date.getMonth() + 1}-${date.getDate()}`
 
@@ -37,6 +46,26 @@ export const getUserToday = (
     todayUtcStart: new Date(utcStartMs),
     tomorrowUtcStart: new Date(utcStartMs + 24 * 60 * 60 * 1000),
   }
+}
+
+// Returns a Date whose local (server-side) getters report the user's
+// wall-clock Y/M/D/H/M — i.e. it's directly comparable to a Date built by
+// newSafeDateTime() in the user's timezone. Server runs UTC, so we shift
+// `now` by tzOffsetMin and pull the UTC fields out as if they were local.
+export const getUserLocalNow = (
+  tzOffsetMin: number,
+  now: Date = new Date(),
+): Date => {
+  const shifted = new Date(now.getTime() - tzOffsetMin * 60000)
+  return new Date(
+    shifted.getUTCFullYear(),
+    shifted.getUTCMonth(),
+    shifted.getUTCDate(),
+    shifted.getUTCHours(),
+    shifted.getUTCMinutes(),
+    shifted.getUTCSeconds(),
+    shifted.getUTCMilliseconds(),
+  )
 }
 
 export const nextDueDate = (task: Task): Date | undefined => {

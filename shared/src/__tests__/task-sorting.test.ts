@@ -81,6 +81,50 @@ describe('sortTasks', () => {
     sortTasks(tasks, today)
     expect(tasks.map((t) => t.id)).toEqual(['short', 'long', 'no-time'])
   })
+
+  describe('dueTime', () => {
+    // 2026-05-15 09:00 local
+    const now = new Date(2026, 4, 15, 9, 0)
+
+    it('passed dueTime ranks above plain past-due on the same date', () => {
+      const tasks = [
+        makeTask({ id: 'plain', due: '2026-5-15' }),
+        makeTask({ id: 'timed-passed', due: '2026-5-15', dueTime: '04:00' }),
+      ]
+      sortTasks(tasks, today, now)
+      expect(tasks.map((t) => t.id)).toEqual(['timed-passed', 'plain'])
+    })
+
+    it('future dueTime today is NOT treated as past-due', () => {
+      // 7pm task at 9am — should sort BELOW a today-due task without time.
+      const tasks = [
+        makeTask({ id: 'plain', due: '2026-5-15' }),
+        makeTask({ id: 'timed-future', due: '2026-5-15', dueTime: '19:00' }),
+      ]
+      sortTasks(tasks, today, now)
+      expect(tasks.map((t) => t.id)).toEqual(['plain', 'timed-future'])
+    })
+
+    it('past calendar date with dueTime still counts as past-due', () => {
+      const tasks = [
+        makeTask({ id: 'today', due: '2026-5-15' }),
+        makeTask({ id: 'yesterday-7pm', due: '2026-5-14', dueTime: '19:00' }),
+      ]
+      sortTasks(tasks, today, now)
+      // yesterday-7pm has passed dueTime → flag #2 fires → top
+      expect(tasks.map((t) => t.id)).toEqual(['yesterday-7pm', 'today'])
+    })
+
+    it('earlier passed dueTime ranks above later passed dueTime', () => {
+      // both passed by 9am; 4am ranks above 6am (longer overdue).
+      const tasks = [
+        makeTask({ id: 'six', due: '2026-5-15', dueTime: '06:00' }),
+        makeTask({ id: 'four', due: '2026-5-15', dueTime: '04:00' }),
+      ]
+      sortTasks(tasks, today, now)
+      expect(tasks.map((t) => t.id)).toEqual(['four', 'six'])
+    })
+  })
 })
 
 describe('isActionableSubtask', () => {

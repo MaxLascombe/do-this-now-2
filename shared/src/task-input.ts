@@ -57,6 +57,13 @@ export const ymdSchema = z
 
 const dueDateSchema = ymdSchema
 
+// 24-hour HH:MM (00:00–23:59). Stored as text so it round-trips with
+// HTML <input type="time"> verbatim. Null = no specific time set.
+export const dueTimeSchema = z
+  .string()
+  .regex(/^([01]\d|2[0-3]):[0-5]\d$/, 'Time must be HH:MM (24h)')
+  .nullable()
+
 export const taskInputSchema = z
   .object({
     title: z.string().min(1, 'Title is required'),
@@ -64,6 +71,7 @@ export const taskInputSchema = z
     // skin-tone modifiers. The form picks from 5 Claude-suggested options.
     emoji: z.string().min(1, 'Emoji is required').max(16),
     due: dueDateSchema,
+    dueTime: dueTimeSchema,
     strictDeadline: z.boolean(),
     repeat: repeatOptionSchema,
     repeatInterval: z.number().int().positive(),
@@ -103,6 +111,7 @@ export function taskToInput(task: Task): TaskInput {
     title: task.title,
     emoji: task.emoji,
     due: task.due,
+    dueTime: task.dueTime,
     strictDeadline: task.strictDeadline,
     repeat: task.repeat,
     repeatInterval: task.repeatInterval,

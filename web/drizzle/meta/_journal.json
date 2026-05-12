@@ -43,6 +43,13 @@
       "when": 1778542398876,
       "tag": "0005_steep_sandman",
       "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1778599016863,
+      "tag": "0006_familiar_speedball",
+      "breakpoints": true
     }
   ]
 }
