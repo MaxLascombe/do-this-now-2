@@ -19,6 +19,8 @@ jobs:
       pull-requests: write
       issues: write
       id-token: write
+    env:
+      ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
     steps:
       - uses: actions/checkout@v4
         with:
@@ -50,5 +52,3 @@ jobs:
             Heads-up: pushes made with the default GITHUB_TOKEN do not re-trigger
             CI workflows. If the fix would require a fresh CI pass, mention this in
             your reply so the human knows to push another commit or rerun CI.
-        env:
-          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
