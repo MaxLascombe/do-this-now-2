@@ -4,6 +4,9 @@ settings:
   autoInstallPeers: true
   excludeLinksFromLockfile: false
 
+overrides:
+  '@tanstack/react-query': 5.100.10
+
 importers:
 
   .: {}
@@ -38,7 +41,7 @@ importers:
         specifier: ^5.100.10
         version: 5.100.10
       '@tanstack/react-query':
-        specifier: ^5.100.10
+        specifier: 5.100.10
         version: 5.100.10(react@19.1.0)
       '@tanstack/react-query-persist-client':
         specifier: ^5.100.10
@@ -138,8 +141,8 @@ importers:
   shared:
     dependencies:
       '@tanstack/react-query':
-        specifier: ^5
-        version: 5.100.9(react@19.2.6)
+        specifier: 5.100.10
+        version: 5.100.10(react@19.2.6)
       date-fns:
         specifier: ^4
         version: 4.1.0
@@ -196,7 +199,7 @@ importers:
         specifier: ^0.7.11
         version: 0.7.11(@types/react-dom@19.2.3(@types/react@19.2.14))(@types/react@19.2.14)(bufferutil@4.1.0)(csstype@3.2.3)(react-dom@19.2.6(react@19.2.6))(react@19.2.6)(solid-js@1.9.12)(utf-8-validate@6.0.6)
       '@tanstack/react-query':
-        specifier: ^5.100.10
+        specifier: 5.100.10
         version: 5.100.10(react@19.2.6)
       '@tanstack/react-query-persist-client':
         specifier: ^5.100.10
@@ -2879,9 +2882,6 @@ packages:
   '@tanstack/query-core@5.100.10':
     resolution: {integrity: sha512-8UR0yJR+GiQ40m3lPhUr0xbfAupe6GSQiksSBSa9SM2NjezFyxXCIA69/lz8cSoNKZLrw1/PktIyQBJcVeMi3w==}
 
-  '@tanstack/query-core@5.100.9':
-    resolution: {integrity: sha512-SJSFw1S8+kQ0+knv/XGfrbocWoAlT7vDKsSImtLx3ZPQmEcR46hkDjLSvynSy25N8Ms4tIEini1FuBd5k7IscQ==}
-
   '@tanstack/query-core@5.87.4':
     resolution: {integrity: sha512-uNsg6zMxraEPDVO2Bn+F3/ctHi+Zsk+MMpcN8h6P7ozqD088F6mFY5TfGM7zuyIrL7HKpDyu6QHfLWiDxh3cuw==}
 
@@ -2903,16 +2903,11 @@ packages:
   '@tanstack/react-query-persist-client@5.100.10':
     resolution: {integrity: sha512-EImacngLXYEtzlrIPf8IAqKN3foS7cmSj4GWqsHJvc7K+8fy2c3s7mdV8oTJeii/TvrzO4X9fcnXi6tUHMIOHA==}
     peerDependencies:
-      '@tanstack/react-query': ^5.100.10
+      '@tanstack/react-query': 5.100.10
       react: ^18 || ^19
 
   '@tanstack/react-query@5.100.10':
     resolution: {integrity: sha512-FLaZf2RCrA/Zgp4aiu5tG3TyasTRO7aZ99skxQpr3Hg/zXOhu6yq5FZCYQ/tRaJtM9ylnoK8tFK7PolXQadv6Q==}
-    peerDependencies:
-      react: ^18 || ^19
-
-  '@tanstack/react-query@5.100.9':
-    resolution: {integrity: sha512-Oa44XkaI3kCNN6ME0KByU3xT3SEUNOMfZpHxL6+wFoTm+OeUFYHKdeYVe0aOXlRDm/f15sgLwEt2HDorIdW8+A==}
     peerDependencies:
       react: ^18 || ^19
 
@@ -2935,7 +2930,7 @@ packages:
     deprecated: 'SECURITY: compromised release containing credential-stealing malware via optionalDependency @tanstack/setup. Do NOT install. Tracking: https://github.com/TanStack/router/issues/7383'
     peerDependencies:
       '@tanstack/query-core': '>=5.90.0'
-      '@tanstack/react-query': '>=5.90.0'
+      '@tanstack/react-query': 5.100.10
       '@tanstack/react-router': '>=1.127.0'
       react: '>=18.0.0 || >=19.0.0'
       react-dom: '>=18.0.0 || >=19.0.0'
@@ -10255,8 +10250,6 @@ snapshots:
 
   '@tanstack/query-core@5.100.10': {}
 
-  '@tanstack/query-core@5.100.9': {}
-
   '@tanstack/query-core@5.87.4': {}
 
   '@tanstack/query-persist-client-core@5.100.10':
@@ -10301,11 +10294,6 @@ snapshots:
   '@tanstack/react-query@5.100.10(react@19.2.6)':
     dependencies:
       '@tanstack/query-core': 5.100.10
-      react: 19.2.6
-
-  '@tanstack/react-query@5.100.9(react@19.2.6)':
-    dependencies:
-      '@tanstack/query-core': 5.100.9
       react: 19.2.6
 
   '@tanstack/react-router-devtools@1.166.19(@tanstack/react-router@1.169.8(react-dom@19.2.6(react@19.2.6))(react@19.2.6))(@tanstack/router-core@1.169.2)(csstype@3.2.3)(react-dom@19.2.6(react@19.2.6))(react@19.2.6)':

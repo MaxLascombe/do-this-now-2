@@ -17,6 +17,9 @@
       "@clerk/shared",
       "esbuild",
       "unrs-resolver"
-    ]
+    ],
+    "overrides": {
+      "@tanstack/react-query": "5.100.10"
+    }
   }
 }
