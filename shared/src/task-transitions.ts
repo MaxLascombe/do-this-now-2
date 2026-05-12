@@ -3,11 +3,6 @@ import { findNextActionableSubtask } from './task-sorting'
 import { HOUR_MS } from './time'
 import type { SubTask, Task } from './types'
 
-// Pure transitions answering "given this task + now, what does Complete /
-// Snooze produce?" Server callers use the result to drive DB writes;
-// optimistic-update callers use it to mutate React Query caches without
-// reimplementing the rules.
-
 export type CompleteTransition =
   // Multi-subtask task where one subtask was ticked off; task remains.
   | { kind: 'advance-subtask'; nextTask: Task; advanced: false }
