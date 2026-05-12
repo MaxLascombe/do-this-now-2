@@ -133,18 +133,32 @@ function StreakSummary({ data }: { data: StatsResult }) {
   )
 }
 
+const HEATMAP_COLS = 26
+
+function heatmapColor(minutes: number, hit: boolean): string {
+  if (hit) return 'bg-green-500'
+  if (minutes === 0) return 'bg-gray-800'
+  if (minutes < 30) return 'bg-green-900'
+  return 'bg-green-700'
+}
+
 function Heatmap({ data }: { data: StatsResult }) {
-  // 12 columns × 7 rows. The rightmost column is the current week; topmost
-  // row is Sunday. Find each cell's (col, row) from its date.
+  // 26 columns × 7 rows ≈ 6 months. The rightmost column is the current
+  // week; topmost row is Sunday. Color tiers: 0 min = gray, <30 min = very
+  // dim green, ≥30 min = medium green, target-hit = bright green.
   const last = data.heatmap[data.heatmap.length - 1]
   if (!last) return null
-  // newSafeDate handles our YYYY-M-D format (unpadded). `new Date(...)`
-  // returns Invalid Date for unpadded ISO strings on V8, which would
-  // silently NaN the whole grid.
   const today = newSafeDate(last.date)
-  const todayCol = 11
-  const todayDow = today.getDay() // 0..6
-  const cells: Array<{ date: string; hit: boolean; col: number; row: number }> = []
+  const todayCol = HEATMAP_COLS - 1
+  const todayDow = today.getDay()
+  type Cell = {
+    date: string
+    minutes: number
+    hit: boolean
+    col: number
+    row: number
+  }
+  const cells: Cell[] = []
   for (let i = 0; i < data.heatmap.length; i++) {
     const offsetFromToday = data.heatmap.length - 1 - i
     const dowOffset = todayDow - offsetFromToday
@@ -153,13 +167,12 @@ function Heatmap({ data }: { data: StatsResult }) {
     const row = ((dowOffset % 7) + 7) % 7
     cells.push({ ...data.heatmap[i], col, row })
   }
-  // Only show cells where col >= 0 (within the 12-week window).
   const visible = cells.filter((c) => c.col >= 0)
 
   const dayLabels = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat']
 
   return (
-    <Section title="Last 12 weeks">
+    <Section title="Last 6 months">
       <div className="flex gap-2">
         <div className="flex flex-col gap-[3px] pr-1 text-[10px] text-gray-600">
           {dayLabels.map((d) => (
@@ -169,14 +182,14 @@ function Heatmap({ data }: { data: StatsResult }) {
           ))}
         </div>
         <div
-          className="grid gap-[3px]"
+          className="grid gap-[3px] overflow-x-auto"
           style={{
-            gridTemplateColumns: 'repeat(12, 12px)',
+            gridTemplateColumns: `repeat(${HEATMAP_COLS}, 12px)`,
             gridTemplateRows: 'repeat(7, 12px)',
             gridAutoFlow: 'column',
           }}
         >
-          {Array.from({ length: 12 * 7 }).map((_, idx) => {
+          {Array.from({ length: HEATMAP_COLS * 7 }).map((_, idx) => {
             const col = Math.floor(idx / 7)
             const row = idx % 7
             const cell = visible.find((c) => c.col === col && c.row === row)
@@ -191,10 +204,10 @@ function Heatmap({ data }: { data: StatsResult }) {
             return (
               <div
                 key={idx}
-                title={`${cell.date}: ${cell.hit ? 'hit' : 'miss'}`}
+                title={`${cell.date}: ${cell.minutes} min${cell.hit ? ' · hit' : ''}`}
                 className={
                   'h-3 w-3 rounded-[2px] ' +
-                  (cell.hit ? 'bg-green-500' : 'bg-gray-800')
+                  heatmapColor(cell.minutes, cell.hit)
                 }
               />
             )

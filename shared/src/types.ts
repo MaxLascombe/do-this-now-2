@@ -70,7 +70,7 @@ export type NewDailyProgress = DailyProgress
 // here so mobile + shared client code can type-import without depending
 // on web's server tree.
 export type StatsResult = {
-  heatmap: Array<{ date: string; hit: boolean }>
+  heatmap: Array<{ date: string; minutes: number; hit: boolean }>
   currentStreak: number
   longestStreak: number
   totalDaysHit: number

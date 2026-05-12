@@ -128,70 +128,78 @@ function StreakSummary({ data }: { data: StatsResult }) {
   )
 }
 
+const HEATMAP_COLS = 26
+
+function heatmapColor(minutes: number, hit: boolean): string {
+  if (hit) return '#22c55e' // green-500
+  if (minutes === 0) return '#1f2937' // gray-800
+  if (minutes < 30) return '#14532d' // green-900
+  return '#15803d' // green-700
+}
+
 function Heatmap({ data }: { data: StatsResult }) {
-  // 12 columns × 7 rows. Same logic as the web variant — anchor today in
-  // the rightmost column, walk backward.
+  // 26 columns × 7 rows ≈ 6 months. Anchor today in the rightmost column
+  // and walk backward. Color tiers match the web variant.
   const last = data.heatmap[data.heatmap.length - 1]
   if (!last) return null
-  // newSafeDate parses YYYY-M-D — Date(...) returns Invalid Date for
-  // unpadded ISO strings on V8/Hermes.
   const today = newSafeDate(last.date)
   const todayDow = today.getDay()
-  const cellSize = 12
-  const gap = 3
-  type Cell = { date: string; hit: boolean }
-  const grid: Cell[][] = Array.from({ length: 12 }, () =>
-    Array.from({ length: 7 }, () => ({ date: '', hit: false })),
+  const cellSize = 10
+  const gap = 2
+  type Cell = { date: string; minutes: number; hit: boolean }
+  const empty: Cell = { date: '', minutes: 0, hit: false }
+  const grid: Cell[][] = Array.from({ length: HEATMAP_COLS }, () =>
+    Array.from({ length: 7 }, () => empty),
   )
   for (let i = 0; i < data.heatmap.length; i++) {
     const offsetFromToday = data.heatmap.length - 1 - i
     const dowOffset = todayDow - offsetFromToday
     const colsBack = Math.ceil(-dowOffset / 7)
-    const col = 11 - colsBack
+    const col = HEATMAP_COLS - 1 - colsBack
     const row = ((dowOffset % 7) + 7) % 7
-    if (col >= 0 && col < 12) grid[col][row] = data.heatmap[i]
+    if (col >= 0 && col < HEATMAP_COLS) grid[col][row] = data.heatmap[i]
   }
   const labels = ['S', 'M', 'T', 'W', 'T', 'F', 'S']
   return (
-    <Section title="Last 12 weeks">
-      <View style={{ flexDirection: 'row', gap: 6 }}>
-        <View style={{ gap }}>
-          {labels.map((l, i) => (
-            <Text
-              key={i}
-              style={{
-                height: cellSize,
-                lineHeight: cellSize,
-                fontSize: 9,
-                color: '#4b5563',
-              }}
-            >
-              {l}
-            </Text>
-          ))}
+    <Section title="Last 6 months">
+      <ScrollView horizontal showsHorizontalScrollIndicator={false}>
+        <View style={{ flexDirection: 'row', gap: 6 }}>
+          <View style={{ gap }}>
+            {labels.map((l, i) => (
+              <Text
+                key={i}
+                style={{
+                  height: cellSize,
+                  lineHeight: cellSize,
+                  fontSize: 8,
+                  color: '#4b5563',
+                }}
+              >
+                {l}
+              </Text>
+            ))}
+          </View>
+          <View style={{ flexDirection: 'row', gap }}>
+            {grid.map((col, ci) => (
+              <View key={ci} style={{ gap }}>
+                {col.map((cell, ri) => (
+                  <View
+                    key={ri}
+                    style={{
+                      width: cellSize,
+                      height: cellSize,
+                      borderRadius: 2,
+                      backgroundColor: cell.date
+                        ? heatmapColor(cell.minutes, cell.hit)
+                        : '#0a0a0a',
+                    }}
+                  />
+                ))}
+              </View>
+            ))}
+          </View>
         </View>
-        <View style={{ flexDirection: 'row', gap }}>
-          {grid.map((col, ci) => (
-            <View key={ci} style={{ gap }}>
-              {col.map((cell, ri) => (
-                <View
-                  key={ri}
-                  style={{
-                    width: cellSize,
-                    height: cellSize,
-                    borderRadius: 2,
-                    backgroundColor: cell.date
-                      ? cell.hit
-                        ? '#22c55e'
-                        : '#1f2937'
-                      : '#0a0a0a',
-                  }}
-                />
-              ))}
-            </View>
-          ))}
-        </View>
-      </View>
+      </ScrollView>
     </Section>
   )
 }

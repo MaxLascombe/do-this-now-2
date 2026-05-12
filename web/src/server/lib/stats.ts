@@ -11,11 +11,13 @@ import { DAY_MS } from '@dtn/shared/time'
 import { db } from '../../db'
 
 export type StatsResult = {
-  // Calendar heatmap: last 84 days (12 weeks), oldest first.
+  // Calendar heatmap: last 182 days (26 weeks ≈ 6 months), oldest first.
+  // `minutes` is the sum of completed task timeFrames that day.
   // `hit` is true iff that day's target was met (we derive it from the
   // existence of a daily_progress row for d+1, which is only written when
-  // the prior day's target was actually hit).
-  heatmap: Array<{ date: string; hit: boolean }>
+  // the prior day's target was actually hit). Client colors a 4-tier
+  // gradient: 0 min = gray, >0 = dim/medium green, hit = bright green.
+  heatmap: Array<{ date: string; minutes: number; hit: boolean }>
 
   // Streak summary
   currentStreak: number
@@ -105,12 +107,24 @@ export async function getStats(
     )
   }
 
-  // --- heatmap (last 84 days) ----------------------------------------
-  const heatmap: Array<{ date: string; hit: boolean }> = []
-  for (let i = 83; i >= 0; i--) {
+  // --- minutes-by-day aggregation (used by heatmap + last30Days) -----
+  const minutesByDay = new Map<string, number>()
+  for (const row of historyRows) {
+    const key = localDateKey(row.completedAt.getTime(), tzOffsetMin)
+    const min = row.taskSnapshot?.timeFrame ?? 0
+    minutesByDay.set(key, (minutesByDay.get(key) ?? 0) + min)
+  }
+
+  // --- heatmap (last 182 days = 26 weeks ≈ 6 months) -----------------
+  const heatmap: Array<{ date: string; minutes: number; hit: boolean }> = []
+  for (let i = 181; i >= 0; i--) {
     const ms = nowMs - i * DAY_MS
     const key = localDateKey(ms, tzOffsetMin)
-    heatmap.push({ date: key, hit: hitDates.has(key) })
+    heatmap.push({
+      date: key,
+      minutes: minutesByDay.get(key) ?? 0,
+      hit: hitDates.has(key),
+    })
   }
 
   // --- streak summary ------------------------------------------------
@@ -146,12 +160,8 @@ export async function getStats(
   const totalDaysHit = hitDates.size
 
   // --- last 30 days minutes ------------------------------------------
-  const minutesByDay = new Map<string, number>()
-  for (const row of historyRows) {
-    const key = localDateKey(row.completedAt.getTime(), tzOffsetMin)
-    const min = row.taskSnapshot?.timeFrame ?? 0
-    minutesByDay.set(key, (minutesByDay.get(key) ?? 0) + min)
-  }
+  // minutesByDay already aggregated above for the heatmap; just project
+  // the most recent 30 entries.
   const last30Days: Array<{ date: string; minutes: number }> = []
   for (let i = 29; i >= 0; i--) {
     const key = localDateKey(nowMs - i * DAY_MS, tzOffsetMin)
