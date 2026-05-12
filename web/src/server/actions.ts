@@ -1,15 +1,13 @@
 import { createServerFn } from '@tanstack/react-start'
 import { z } from 'zod'
 
-import { ymdSchema } from '@dtn/shared/task-input'
 import { requireUserId } from './auth'
 import * as actionsLib from './lib/actions'
+import { v, validate } from './lib/validate'
 
 export const completeTask = createServerFn({ method: 'POST' })
-  .inputValidator((d: unknown) =>
-    z
-      .object({ id: z.string().uuid(), tzOffsetMin: z.number().int() })
-      .parse(d),
+  .inputValidator(
+    validate(z.object({ id: v.id, tzOffsetMin: v.tzOffsetMin })),
   )
   .handler(async ({ data }) =>
     actionsLib.completeTask(
@@ -20,13 +18,8 @@ export const completeTask = createServerFn({ method: 'POST' })
   )
 
 export const snoozeTask = createServerFn({ method: 'POST' })
-  .inputValidator((d: unknown) =>
-    z
-      .object({
-        id: z.string().uuid(),
-        allSubtasks: z.boolean().optional(),
-      })
-      .parse(d),
+  .inputValidator(
+    validate(z.object({ id: v.id, allSubtasks: z.boolean().optional() })),
   )
   .handler(async ({ data }) =>
     actionsLib.snoozeTask(
@@ -37,13 +30,8 @@ export const snoozeTask = createServerFn({ method: 'POST' })
   )
 
 export const getHistory = createServerFn({ method: 'GET' })
-  .inputValidator((d: unknown) =>
-    z
-      .object({
-        date: ymdSchema,
-        tzOffsetMin: z.number().int(),
-      })
-      .parse(d),
+  .inputValidator(
+    validate(z.object({ date: v.ymd, tzOffsetMin: v.tzOffsetMin })),
   )
   .handler(async ({ data }) =>
     actionsLib.getHistory(
