@@ -13,6 +13,8 @@ import { useClerk } from '@clerk/tanstack-react-start'
 import {
   useCompleteTask,
   useDeleteTask,
+  usePrefetchTask,
+  usePrimeTaskCache,
   useSnoozeTask,
   useTopTasks,
 } from '@dtn/shared/queries'
@@ -51,6 +53,8 @@ function Home() {
   const doneMutation = useCompleteTask()
   const deleteMutation = useDeleteTask()
   const snoozeMutation = useSnoozeTask()
+  const prefetchTask = usePrefetchTask()
+  const primeTaskCache = usePrimeTaskCache()
 
   const completeTaskAction = () => {
     if (!selectedTask) return
@@ -81,6 +85,7 @@ function Home() {
 
   const goEdit = () => {
     if (!selectedTask) return
+    primeTaskCache(selectedTask)
     navigate({ to: '/tasks/$id/edit', params: { id: selectedTask.id } })
   }
 
@@ -231,10 +236,12 @@ function Home() {
               <Fragment key={task.id}>
                 <TaskBox
                   isSelected={selectedTaskIndex === i}
-                  onClick={() =>
-                    (i === 0 || i === 1 || i === 2) &&
-                    setSelectedTaskIndex(i as 0 | 1 | 2)
-                  }
+                  onClick={() => {
+                    primeTaskCache(task)
+                    if (i === 0 || i === 1 || i === 2)
+                      setSelectedTaskIndex(i as 0 | 1 | 2)
+                  }}
+                  onMouseEnter={() => prefetchTask(task.id)}
                   task={task}
                   title={`(Shortcut: ${i + 1})`}
                 />
