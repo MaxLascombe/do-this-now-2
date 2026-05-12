@@ -23,7 +23,11 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context'
 
 import { useApi } from '@dtn/shared/api-client'
-import { dateString, newSafeDate } from '@dtn/shared/helpers'
+import {
+  dateString,
+  newSafeDate,
+  newSafeDateTime,
+} from '@dtn/shared/helpers'
 import {
   type RepeatOption,
   type RepeatUnit,
@@ -182,29 +186,12 @@ export function TaskForm({
       ? 'None'
       : `${Math.floor(timeFrame / 60)}h ${timeFrame % 60}m`
 
-  const dueTimeSummary = dueTime
-    ? format(
-        new Date(
-          2000,
-          0,
-          1,
-          parseInt(dueTime.slice(0, 2)),
-          parseInt(dueTime.slice(3)),
-        ),
-        'h:mm a',
-      )
-    : 'None'
-
-  // DateTimePicker's time mode wants a Date — pack the HH:MM into one.
+  // DateTimePicker's time mode wants a Date — pack the HH:MM into one
+  // (anchor on an arbitrary date; only time-of-day is used).
   const dueTimeAsDate = dueTime
-    ? new Date(
-        2000,
-        0,
-        1,
-        parseInt(dueTime.slice(0, 2)),
-        parseInt(dueTime.slice(3)),
-      )
+    ? newSafeDateTime('2000-1-1', dueTime)
     : new Date(2000, 0, 1, 9, 0)
+  const dueTimeSummary = dueTime ? format(dueTimeAsDate, 'h:mm a') : 'None'
 
   const submit = () => {
     const parsed = taskInputSchema.safeParse({
