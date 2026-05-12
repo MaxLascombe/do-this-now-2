@@ -8,7 +8,7 @@
   },
   "scripts": {
     "dev": "vite dev --port 3000",
-    "build": "drizzle-kit migrate && vite build",
+    "build": "if [ \"$VERCEL_ENV\" = \"production\" ]; then drizzle-kit migrate; fi && vite build",
     "build:check": "vite build",
     "preview": "vite preview",
     "test": "vitest run",
