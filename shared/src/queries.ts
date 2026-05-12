@@ -7,6 +7,7 @@ import {
 
 import type { ProgressTodayResult } from './api-client'
 import { useApi } from './api-client'
+import { sortTasks } from './task-sorting'
 import {
   completeTaskTransition,
   snoozeTaskTransition,
@@ -124,6 +125,58 @@ async function optimisticSnooze(
   return replaceTaskInCaches(qc, id, transition.nextTask)
 }
 
+// Build a placeholder Task from a TaskInput. Real `id` and `userId` come
+// from the server; we borrow userId from a cached task so the optimistic
+// row matches existing entries' shape, falling back to '' if the cache
+// is empty (in which case nothing renders the userId anyway). The refetch
+// triggered by onSettled replaces the optimistic row with the real one.
+function makeOptimisticTask(input: TaskInput, userId: string): Task {
+  const now = new Date()
+  return {
+    id: `optimistic-${Math.random().toString(36).slice(2, 11)}`,
+    userId,
+    title: input.title,
+    emoji: input.emoji,
+    due: input.due,
+    strictDeadline: input.strictDeadline,
+    repeat: input.repeat,
+    repeatInterval: input.repeatInterval,
+    repeatUnit: input.repeatUnit,
+    repeatWeekdays: input.repeatWeekdays,
+    timeFrame: input.timeFrame,
+    snooze: null,
+    subtasks: input.subtasks,
+    createdAt: now,
+    updatedAt: now,
+  }
+}
+
+async function optimisticCreate(
+  qc: QueryClient,
+  input: TaskInput,
+): Promise<OptimisticSnapshot> {
+  await qc.cancelQueries({ queryKey: taskKeys.all })
+  const prevTop = qc.getQueryData<Task[]>(taskKeys.top)
+  const prevList = qc.getQueryData<Task[]>(taskKeys.list)
+
+  const userId = prevTop?.[0]?.userId ?? prevList?.[0]?.userId ?? ''
+  const optimistic = makeOptimisticTask(input, userId)
+
+  const today = new Date()
+  today.setHours(0, 0, 0, 0)
+
+  const insertSorted = (xs: Task[] | undefined) => {
+    if (!xs) return xs
+    const next = [...xs, optimistic]
+    sortTasks(next, today)
+    return next
+  }
+  qc.setQueryData<Task[]>(taskKeys.top, insertSorted)
+  qc.setQueryData<Task[]>(taskKeys.list, insertSorted)
+
+  return { prevTop, prevList }
+}
+
 function rollback(qc: QueryClient, snap: OptimisticSnapshot | undefined) {
   if (!snap) return
   if (snap.prevTop !== undefined) qc.setQueryData(taskKeys.top, snap.prevTop)
@@ -199,6 +252,8 @@ export function useCreateTask() {
   const qc = useQueryClient()
   return useMutation({
     mutationFn: (input: TaskInput) => api.tasks.create(input),
+    onMutate: (input) => optimisticCreate(qc, input),
+    onError: (_e, _input, ctx) => rollback(qc, ctx),
     onSettled: () => invalidateTaskCaches(qc),
   })
 }
