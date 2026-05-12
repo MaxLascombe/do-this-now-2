@@ -10,7 +10,12 @@
     "web:build": "pnpm --filter web build",
     "mobile:start": "pnpm --filter mobile start",
     "mobile:ios": "pnpm --filter mobile ios",
-    "test": "pnpm --filter @dtn/shared test && pnpm --filter web test"
+    "dev": "concurrently -n web,mobile -c blue,green \"pnpm web:dev\" \"pnpm mobile:start\"",
+    "typecheck": "pnpm --filter @dtn/shared exec tsc --noEmit && pnpm --filter web exec tsc --noEmit && pnpm --filter mobile exec tsc --noEmit",
+    "test": "pnpm --filter @dtn/shared test && pnpm --filter web test",
+    "db:studio": "pnpm --filter web exec drizzle-kit studio",
+    "db:generate": "pnpm --filter web exec drizzle-kit generate",
+    "db:check": "pnpm --filter web exec drizzle-kit check"
   },
   "pnpm": {
     "onlyBuiltDependencies": [
@@ -21,5 +26,8 @@
     "overrides": {
       "@tanstack/react-query": "5.100.10"
     }
+  },
+  "devDependencies": {
+    "concurrently": "^9.2.1"
   }
 }
