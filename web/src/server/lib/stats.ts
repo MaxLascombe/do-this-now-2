@@ -5,6 +5,7 @@ import {
   dailyProgress,
   history,
   taskEvents,
+  tasks,
   type Task,
 } from '@dtn/shared/schema'
 import { DAY_MS } from '@dtn/shared/time'
@@ -85,11 +86,22 @@ export async function getStats(
   userId: string,
   tzOffsetMin: number,
 ): Promise<StatsResult> {
-  const [historyRows, eventRows, dailyRows] = await Promise.all([
+  const [historyRows, eventRows, dailyRows, liveTaskRows] = await Promise.all([
     db.select().from(history).where(eq(history.userId, userId)),
     db.select().from(taskEvents).where(eq(taskEvents.userId, userId)),
     db.select().from(dailyProgress).where(eq(dailyProgress.userId, userId)),
+    db
+      .select({ title: tasks.title, emoji: tasks.emoji })
+      .from(tasks)
+      .where(eq(tasks.userId, userId)),
   ])
+
+  // Live tasks are the source of truth for current emoji. taskSnapshot
+  // in history was captured before the emoji column existed (or with the
+  // '📝' default), so trusting it directly produces a sea of placeholders
+  // for tasks the user later picked a real emoji for.
+  const liveEmojiByTitle = new Map<string, string>()
+  for (const t of liveTaskRows) liveEmojiByTitle.set(t.title, t.emoji)
 
   // --- date scaffolding ----------------------------------------------
   const nowMs = Date.now()
@@ -169,28 +181,29 @@ export async function getStats(
   }
 
   // --- hour-of-day + day-of-week + emoji + top tasks -----------------
+  // Per-completion emoji: prefer the live task's current emoji (the user
+  // may have set / changed it after this completion was recorded), fall
+  // back to whatever was snapshotted in history.
   const hourOfDay = new Array<number>(24).fill(0)
   const dayOfWeek = new Array<number>(7).fill(0)
   const emojiCounts = new Map<string, number>()
-  const titleCounts = new Map<string, { count: number; emoji: string }>()
+  const titleCounts = new Map<string, number>()
   for (const row of historyRows) {
     const t = row.completedAt.getTime()
     hourOfDay[localHour(t, tzOffsetMin)]++
     dayOfWeek[localDayOfWeek(t, tzOffsetMin)]++
     const snap = row.taskSnapshot
-    if (snap?.emoji) {
-      emojiCounts.set(snap.emoji, (emojiCounts.get(snap.emoji) ?? 0) + 1)
-    }
-    if (snap?.title) {
-      const existing = titleCounts.get(snap.title)
-      titleCounts.set(snap.title, {
-        count: (existing?.count ?? 0) + 1,
-        emoji: snap.emoji ?? existing?.emoji ?? '📝',
-      })
-    }
+    if (!snap?.title) continue
+    const emoji = liveEmojiByTitle.get(snap.title) ?? snap.emoji ?? '📝'
+    emojiCounts.set(emoji, (emojiCounts.get(emoji) ?? 0) + 1)
+    titleCounts.set(snap.title, (titleCounts.get(snap.title) ?? 0) + 1)
   }
   const topTasks = [...titleCounts.entries()]
-    .map(([title, v]) => ({ title, count: v.count, emoji: v.emoji }))
+    .map(([title, count]) => ({
+      title,
+      count,
+      emoji: liveEmojiByTitle.get(title) ?? '📝',
+    }))
     .sort((a, b) => b.count - a.count)
     .slice(0, 10)
   const emojiFreq = [...emojiCounts.entries()]
