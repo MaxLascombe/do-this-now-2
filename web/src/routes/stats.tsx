@@ -1,99 +1,107 @@
-import { faArrowLeft } from '@fortawesome/free-solid-svg-icons'
 import { newSafeDate } from '@dtn/shared/helpers'
 import { useStats } from '@dtn/shared/queries'
 import type { StatsResult } from '@dtn/shared/types'
 import { createFileRoute, useNavigate } from '@tanstack/react-router'
+import { type ReactNode, useState } from 'react'
 
-import { Button } from '../components/Button'
-import Hints from '../components/Hints'
+import { KeyHints } from '../components/KeyHints'
 import { Loading } from '../components/Loading'
+import { MobileChrome } from '../components/MobileChrome'
+import { PageHeading } from '../components/PageHeading'
+import { TopBar } from '../components/TopBar'
 import useKeyAction, { type KeyAction } from '../hooks/useKeyAction'
 
 export const Route = createFileRoute('/stats')({
   component: Stats,
 })
 
+const ACCENT = '#34d399'
+const STREAK = '#f59e0b'
+
 function Stats() {
   const navigate = useNavigate()
   const { data, isLoading } = useStats()
+  const [sheetOpen, setSheetOpen] = useState(false)
 
   const keyActions: KeyAction[] = [
     { key: 'escape', description: 'Home', action: () => navigate({ to: '/' }) },
+    { key: 'n', description: 'Home', action: () => navigate({ to: '/' }) },
+    { key: 't', description: 'Tasks', action: () => navigate({ to: '/tasks' }) },
+    {
+      key: '=',
+      description: 'New task',
+      shift: true,
+      action: () => navigate({ to: '/new-task' }),
+    },
+    {
+      key: 'h',
+      description: 'History',
+      action: () => navigate({ to: '/history' }),
+    },
   ]
   useKeyAction(keyActions)
 
   if (isLoading || !data) {
     return (
-      <div className="absolute inset-0 flex h-screen flex-col justify-center bg-black">
-        <Loading />
+      <div className="flex min-h-screen flex-col">
+        <TopBar />
+        <MobileChrome
+          sheetOpen={sheetOpen}
+          onOpenSheet={() => setSheetOpen(true)}
+          onCloseSheet={() => setSheetOpen(false)}
+        />
+        <div className="flex flex-1 items-center justify-center">
+          <Loading />
+        </div>
       </div>
     )
   }
 
   return (
-    <div className="mx-auto max-w-3xl space-y-6 px-4 py-8 text-white">
-      <div className="flex items-center gap-2">
-        <Button onClick={() => navigate({ to: '/' })} icon={faArrowLeft} />
-        <h1 className="text-2xl font-bold">Stats</h1>
+    <div className="flex min-h-screen flex-col">
+      <TopBar />
+      <MobileChrome
+        sheetOpen={sheetOpen}
+        onOpenSheet={() => setSheetOpen(true)}
+        onCloseSheet={() => setSheetOpen(false)}
+      />
+
+      <div className="px-5 pt-2 pb-6 md:px-10">
+        <PageHeading eyebrow="all the numbers">Stats</PageHeading>
       </div>
 
-      <VanityCounters data={data} />
-      <StreakSummary data={data} />
-      <Heatmap data={data} />
-      <DailyBars data={data} />
-      <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
-        <HourOfDay data={data} />
-        <DayOfWeek data={data} />
-      </div>
-      <TopTasks data={data} />
-      <EmojiBreakdown data={data} />
-      <div className="grid grid-cols-2 gap-3">
-        <Pill
-          label="On-time"
-          value={
-            data.onTimeRate === null
-              ? '—'
-              : `${Math.round(data.onTimeRate * 100)}%`
-          }
-        />
-        <Pill
-          label="Avg latency"
-          value={
-            data.avgLatencyDays === null
-              ? '—'
-              : `${data.avgLatencyDays.toFixed(1)}d`
-          }
-        />
-        <Pill label="Snoozes all time" value={String(data.snoozesAllTime)} />
-        <Pill label="Snoozes this week" value={String(data.snoozesThisWeek)} />
-        <Pill label="Abandoned" value={String(data.abandonedCount)} />
-        <Pill
-          label="Abandonment rate"
-          value={
-            data.abandonmentRate === null
-              ? '—'
-              : `${Math.round(data.abandonmentRate * 100)}%`
-          }
-        />
+      <div className="flex-1 px-5 pb-28 md:px-10 md:pb-24">
+        <div className="mx-auto flex max-w-5xl flex-col gap-6">
+          <VanityCounters data={data} />
+          <StreakSummary data={data} />
+          <Heatmap data={data} />
+          <DailyBars data={data} />
+          <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
+            <HourOfDay data={data} />
+            <DayOfWeek data={data} />
+          </div>
+          <TopTasks data={data} />
+          <Discipline data={data} />
+        </div>
       </div>
 
-      <Hints keyActions={keyActions} />
+      <div className="fixed right-10 bottom-6 left-10 hidden md:block">
+        <KeyHints items={[['Esc', 'home']]} />
+      </div>
     </div>
   )
 }
-
-// ---------------------------------------------------------------------
 
 function Section({
   title,
   children,
 }: {
   title: string
-  children: React.ReactNode
+  children: ReactNode
 }) {
   return (
-    <section className="rounded-lg border border-gray-800 bg-gray-950/40 p-4">
-      <h2 className="mb-3 text-xs font-medium uppercase tracking-wider text-gray-500">
+    <section className="rounded-2xl border border-zinc-800 bg-zinc-900/30 p-5">
+      <h2 className="mb-4 font-mono text-[10px] tracking-[0.3em] text-zinc-500 uppercase">
         {title}
       </h2>
       {children}
@@ -101,41 +109,67 @@ function Section({
   )
 }
 
-function Pill({ label, value }: { label: string; value: string }) {
+function Counter({
+  label,
+  value,
+  size = '2.25rem',
+  color,
+}: {
+  label: string
+  value: string | number
+  size?: string
+  color?: string
+}) {
   return (
-    <div className="rounded-lg border border-gray-800 bg-gray-950/40 px-3 py-2">
-      <div className="text-xs uppercase tracking-wider text-gray-500">
+    <div>
+      <div className="font-mono text-[10px] tracking-[0.3em] text-zinc-500 uppercase">
         {label}
       </div>
-      <div className="text-xl font-semibold text-white">{value}</div>
+      <div
+        className="dtn-heading mt-1 tabular-nums"
+        style={{ fontSize: size, color: color ?? '#fafafa', lineHeight: 1 }}
+      >
+        {value}
+      </div>
     </div>
   )
 }
 
 function VanityCounters({ data }: { data: StatsResult }) {
   return (
-    <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
-      <Pill label="Today" value={String(data.totalToday)} />
-      <Pill label="This week" value={String(data.totalThisWeek)} />
-      <Pill label="This month" value={String(data.totalThisMonth)} />
-      <Pill label="All-time" value={String(data.totalAllTime)} />
-    </div>
+    <Section title="Completions">
+      <div className="grid grid-cols-2 gap-6 md:grid-cols-4">
+        <Counter label="Today" value={data.totalToday} />
+        <Counter label="This week" value={data.totalThisWeek} />
+        <Counter label="This month" value={data.totalThisMonth} />
+        <Counter label="All time" value={data.totalAllTime} />
+      </div>
+    </Section>
   )
 }
 
 function StreakSummary({ data }: { data: StatsResult }) {
   return (
-    <div className="grid grid-cols-3 gap-3">
-      <Pill label="Current streak" value={`${data.currentStreak}d`} />
-      <Pill label="Longest streak" value={`${data.longestStreak}d`} />
-      <Pill label="Days hit target" value={String(data.totalDaysHit)} />
-    </div>
+    <Section title="Streak">
+      <div className="grid grid-cols-3 gap-6">
+        <Counter
+          label="Current"
+          value={`${data.currentStreak}d`}
+          color={STREAK}
+        />
+        <Counter label="Longest" value={`${data.longestStreak}d`} />
+        <Counter
+          label="Days hit target"
+          value={data.totalDaysHit}
+          size="3rem"
+        />
+      </div>
+    </Section>
   )
 }
 
 const HEATMAP_COLS = 26
 
-// Pick a value at the p-th percentile (0..100) of an already-sorted array.
 function percentile(sorted: number[], p: number): number {
   if (sorted.length === 0) return 0
   const idx = Math.min(
@@ -151,17 +185,13 @@ function heatmapColor(
   p33: number,
   p66: number,
 ): string {
-  if (minutes === 0) return 'bg-gray-800'
-  if (hit || minutes >= p66) return 'bg-green-500'
-  if (minutes >= p33) return 'bg-green-700'
-  return 'bg-green-900'
+  if (minutes === 0) return 'rgba(255,255,255,0.04)'
+  if (hit || minutes >= p66) return '#34d399'
+  if (minutes >= p33) return '#059669'
+  return '#065f46'
 }
 
 function Heatmap({ data }: { data: StatsResult }) {
-  // 26 columns × 7 rows ≈ 6 months. Color tiers come from percentiles of
-  // the non-zero days in the visible window so the shading actually has
-  // variation for a given user's output range (fixed minute thresholds
-  // bucketed everything into one tier for daily-task power users).
   const last = data.heatmap[data.heatmap.length - 1]
   if (!last) return null
   const today = newSafeDate(last.date)
@@ -192,23 +222,23 @@ function Heatmap({ data }: { data: StatsResult }) {
   const p33 = percentile(nonZeroSorted, 33)
   const p66 = percentile(nonZeroSorted, 66)
 
-  const dayLabels = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat']
+  const dayLabels = ['S', 'M', 'T', 'W', 'T', 'F', 'S']
 
   return (
     <Section title="Last 6 months">
       <div className="flex justify-center gap-2 overflow-x-auto">
-        <div className="flex flex-col gap-[3px] pr-1 text-[10px] text-gray-600">
-          {dayLabels.map((d) => (
-            <div key={d} className="h-3 leading-3">
-              {d[0]}
+        <div className="flex flex-col gap-[3px] pr-1 font-mono text-[10px] text-zinc-600">
+          {dayLabels.map((d, i) => (
+            <div key={i} className="h-[14px] leading-[14px]">
+              {d}
             </div>
           ))}
         </div>
         <div
           className="grid gap-[3px]"
           style={{
-            gridTemplateColumns: `repeat(${HEATMAP_COLS}, 12px)`,
-            gridTemplateRows: 'repeat(7, 12px)',
+            gridTemplateColumns: `repeat(${HEATMAP_COLS}, 14px)`,
+            gridTemplateRows: 'repeat(7, 14px)',
             gridAutoFlow: 'column',
           }}
         >
@@ -220,7 +250,8 @@ function Heatmap({ data }: { data: StatsResult }) {
               return (
                 <div
                   key={idx}
-                  className="h-3 w-3 rounded-[2px] bg-gray-950/40"
+                  className="h-[14px] w-[14px] rounded-[2px]"
+                  style={{ background: 'rgba(255,255,255,0.02)' }}
                 />
               )
             }
@@ -228,13 +259,28 @@ function Heatmap({ data }: { data: StatsResult }) {
               <div
                 key={idx}
                 title={`${cell.date}: ${cell.minutes} min${cell.hit ? ' · hit' : ''}`}
-                className={
-                  'h-3 w-3 rounded-[2px] ' +
-                  heatmapColor(cell.minutes, cell.hit, p33, p66)
-                }
+                className="h-[14px] w-[14px] rounded-[2px]"
+                style={{
+                  background: heatmapColor(cell.minutes, cell.hit, p33, p66),
+                }}
               />
             )
           })}
+        </div>
+        <div className="ml-3 flex flex-col items-end justify-between font-mono text-[10px] text-zinc-600">
+          <span>more</span>
+          <div className="flex flex-col gap-[3px]">
+            {[ACCENT, '#059669', '#065f46', 'rgba(255,255,255,0.04)'].map(
+              (c) => (
+                <div
+                  key={c}
+                  className="h-[14px] w-[14px] rounded-[2px]"
+                  style={{ background: c }}
+                />
+              ),
+            )}
+          </div>
+          <span>less</span>
         </div>
       </div>
     </Section>
@@ -242,44 +288,71 @@ function Heatmap({ data }: { data: StatsResult }) {
 }
 
 function DailyBars({ data }: { data: StatsResult }) {
-  const max = Math.max(1, ...data.last30Days.map((d) => d.minutes))
+  const days = data.last30Days
+  const max = Math.max(1, ...days.map((d) => d.minutes))
   return (
     <Section title="Last 30 days · minutes done">
       <div className="flex h-24 items-end gap-[2px]">
-        {data.last30Days.map((d) => (
-          <div
-            key={d.date}
-            title={`${d.date}: ${d.minutes} min`}
-            className="flex-1 rounded-sm bg-blue-500/70 hover:bg-blue-400"
-            style={{
-              height: `${Math.max(2, (d.minutes / max) * 100)}%`,
-            }}
-          />
-        ))}
+        {days.map((d, i) => {
+          const opacity = 0.35 + 0.65 * (i / Math.max(1, days.length - 1))
+          return (
+            <div
+              key={d.date}
+              title={`${d.date}: ${d.minutes} min`}
+              className="flex-1 rounded-sm"
+              style={{
+                height: `${Math.max(2, (d.minutes / max) * 100)}%`,
+                background: ACCENT,
+                opacity,
+              }}
+            />
+          )
+        })}
       </div>
-      <div className="mt-2 flex justify-between text-[10px] text-gray-600">
-        <span>{data.last30Days[0]?.date}</span>
-        <span>{data.last30Days[data.last30Days.length - 1]?.date}</span>
+      <div className="mt-2 flex justify-between font-mono text-[10px] text-zinc-600">
+        <span>{days[0]?.date}</span>
+        <span>{days[days.length - 1]?.date}</span>
       </div>
     </Section>
   )
 }
 
 function HourOfDay({ data }: { data: StatsResult }) {
-  const max = Math.max(1, ...data.hourOfDay)
+  const max = Math.max(...data.hourOfDay)
+  const total = data.hourOfDay.reduce((a, b) => a + b, 0)
+  if (total === 0) {
+    return (
+      <Section title="Hour of day">
+        <div className="font-mono text-sm text-zinc-500">
+          No completions yet.
+        </div>
+      </Section>
+    )
+  }
   return (
     <Section title="Hour of day">
-      <div className="flex h-20 items-end gap-[1px]">
-        {data.hourOfDay.map((c, i) => (
-          <div
-            key={i}
-            title={`${i.toString().padStart(2, '0')}:00 — ${c} completions`}
-            className="flex-1 rounded-sm bg-purple-500/70"
-            style={{ height: `${Math.max(2, (c / max) * 100)}%` }}
-          />
-        ))}
+      <div className="mb-2 flex items-baseline justify-between font-mono text-[10px] text-zinc-500">
+        <span>{total} completions</span>
+        <span>peak {max}/hr</span>
       </div>
-      <div className="mt-1 flex justify-between text-[10px] text-gray-600">
+      <div className="flex h-20 items-end gap-[2px]">
+        {data.hourOfDay.map((c, i) => {
+          const pct = (c / max) * 100
+          return (
+            <div
+              key={i}
+              title={`${i.toString().padStart(2, '0')}:00 — ${c} completions`}
+              className="flex-1 rounded-sm"
+              style={{
+                height: c === 0 ? '4px' : `${Math.max(8, pct)}%`,
+                background: c === 0 ? 'rgba(255,255,255,0.06)' : '#e4e4e7',
+                opacity: c === 0 ? 1 : 0.55 + (c / max) * 0.45,
+              }}
+            />
+          )
+        })}
+      </div>
+      <div className="mt-1 flex justify-between font-mono text-[10px] text-zinc-600">
         <span>00</span>
         <span>06</span>
         <span>12</span>
@@ -292,20 +365,43 @@ function HourOfDay({ data }: { data: StatsResult }) {
 
 function DayOfWeek({ data }: { data: StatsResult }) {
   const labels = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat']
-  const max = Math.max(1, ...data.dayOfWeek)
+  const max = Math.max(...data.dayOfWeek)
+  const total = data.dayOfWeek.reduce((a, b) => a + b, 0)
+  if (total === 0) {
+    return (
+      <Section title="Day of week">
+        <div className="font-mono text-sm text-zinc-500">
+          No completions yet.
+        </div>
+      </Section>
+    )
+  }
   return (
     <Section title="Day of week">
-      <div className="flex h-20 items-end gap-1">
-        {data.dayOfWeek.map((c, i) => (
-          <div key={i} className="flex flex-1 flex-col items-center gap-1">
-            <div
-              title={`${labels[i]}: ${c}`}
-              className="w-full rounded-sm bg-amber-500/70"
-              style={{ height: `${Math.max(2, (c / max) * 100)}%` }}
-            />
-            <div className="text-[10px] text-gray-600">{labels[i][0]}</div>
-          </div>
-        ))}
+      <div className="mb-2 flex items-baseline justify-between font-mono text-[10px] text-zinc-500">
+        <span>{total} completions</span>
+        <span>peak {max}</span>
+      </div>
+      <div className="flex h-20 items-end gap-1.5">
+        {data.dayOfWeek.map((c, i) => {
+          const pct = (c / max) * 100
+          return (
+            <div key={i} className="flex flex-1 flex-col items-center gap-1">
+              <div
+                title={`${labels[i]}: ${c}`}
+                className="w-full rounded-sm"
+                style={{
+                  height: c === 0 ? '4px' : `${Math.max(8, pct)}%`,
+                  background: c === 0 ? 'rgba(255,255,255,0.06)' : STREAK,
+                  opacity: c === 0 ? 1 : 0.55 + (c / max) * 0.45,
+                }}
+              />
+              <div className="font-mono text-[10px] text-zinc-600">
+                {labels[i][0]}
+              </div>
+            </div>
+          )
+        })}
       </div>
     </Section>
   )
@@ -315,7 +411,7 @@ function TopTasks({ data }: { data: StatsResult }) {
   if (data.topTasks.length === 0) {
     return (
       <Section title="Most-completed tasks">
-        <div className="text-sm text-gray-500">
+        <div className="font-mono text-sm text-zinc-500">
           Nothing completed yet. Come back after you crush a few.
         </div>
       </Section>
@@ -324,19 +420,27 @@ function TopTasks({ data }: { data: StatsResult }) {
   const max = data.topTasks[0].count
   return (
     <Section title="Most-completed tasks">
-      <ul className="space-y-2">
+      <ul className="flex flex-col gap-2">
         {data.topTasks.map((t) => (
           <li key={t.title} className="flex items-center gap-3">
-            <span className="w-5 text-lg">{t.emoji}</span>
-            <span className="flex-1 truncate text-sm">{t.title}</span>
-            <div className="flex w-32 items-center gap-2">
-              <div className="h-2 flex-1 overflow-hidden rounded bg-gray-900">
+            <span className="w-7 text-lg">{t.emoji}</span>
+            <span
+              className="flex-1 truncate font-mono text-sm text-zinc-200"
+            >
+              {t.title}
+            </span>
+            <div className="flex w-40 items-center gap-3">
+              <div className="h-2 flex-1 overflow-hidden rounded bg-zinc-900">
                 <div
-                  className="h-full bg-emerald-500/80"
-                  style={{ width: `${(t.count / max) * 100}%` }}
+                  className="h-full"
+                  style={{
+                    width: `${(t.count / max) * 100}%`,
+                    background: ACCENT,
+                    opacity: 0.85,
+                  }}
                 />
               </div>
-              <span className="w-8 text-right text-xs text-gray-400">
+              <span className="w-8 text-right font-mono text-xs text-zinc-400 tabular-nums">
                 {t.count}
               </span>
             </div>
@@ -347,30 +451,64 @@ function TopTasks({ data }: { data: StatsResult }) {
   )
 }
 
-function EmojiBreakdown({ data }: { data: StatsResult }) {
-  if (data.emojiFreq.length === 0) {
-    return (
-      <Section title="Emoji breakdown">
-        <div className="text-sm text-gray-500">No data yet.</div>
-      </Section>
-    )
-  }
-  const total = data.emojiFreq.reduce((a, b) => a + b.count, 0)
-  const top = data.emojiFreq.slice(0, 12)
+function DisciplinePill({
+  label,
+  value,
+  accent,
+}: {
+  label: string
+  value: string
+  accent?: string
+}) {
   return (
-    <Section title="Emoji breakdown">
-      <div className="flex flex-wrap gap-2">
-        {top.map((e) => (
-          <div
-            key={e.emoji}
-            className="flex items-center gap-2 rounded-md border border-gray-800 bg-gray-950 px-2 py-1"
-          >
-            <span className="text-base">{e.emoji}</span>
-            <span className="text-xs text-gray-400">
-              {e.count} · {Math.round((e.count / total) * 100)}%
-            </span>
-          </div>
-        ))}
+    <div className="rounded-2xl border border-zinc-800 bg-zinc-900/40 px-4 py-3">
+      <div className="font-mono text-[10px] tracking-[0.3em] text-zinc-500 uppercase">
+        {label}
+      </div>
+      <div
+        className="dtn-heading mt-1 tabular-nums"
+        style={{
+          fontSize: '1.5rem',
+          color: accent ?? '#fafafa',
+          lineHeight: 1,
+        }}
+      >
+        {value}
+      </div>
+    </div>
+  )
+}
+
+function Discipline({ data }: { data: StatsResult }) {
+  return (
+    <Section title="Discipline">
+      <div className="grid grid-cols-2 gap-3">
+        <DisciplinePill
+          label="On-time"
+          value={
+            data.onTimeRate === null
+              ? '—'
+              : `${Math.round(data.onTimeRate * 100)}%`
+          }
+          accent={ACCENT}
+        />
+        <DisciplinePill
+          label="Avg latency"
+          value={
+            data.avgLatencyDays === null
+              ? '—'
+              : `${data.avgLatencyDays.toFixed(1)}d`
+          }
+        />
+        <DisciplinePill
+          label="Snoozes / wk"
+          value={String(data.snoozesThisWeek)}
+        />
+        <DisciplinePill
+          label="Abandoned"
+          value={String(data.abandonedCount)}
+          accent="#fb7185"
+        />
       </div>
     </Section>
   )

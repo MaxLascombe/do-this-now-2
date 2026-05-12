@@ -1,20 +1,3 @@
-import {
-  faArrowRight,
-  faMinus,
-  faPlus,
-  faPlusCircle,
-  faTrash,
-} from '@fortawesome/free-solid-svg-icons'
-import { format } from 'date-fns'
-import {
-  type ComponentProps,
-  type RefObject,
-  useEffect,
-  useRef,
-  useState,
-} from 'react'
-import { ZodError } from 'zod'
-
 import { useApi } from '@dtn/shared/api-client'
 import { dateString, newSafeDate } from '@dtn/shared/helpers'
 import {
@@ -25,20 +8,19 @@ import {
   type TaskInput,
   taskInputSchema,
 } from '@dtn/shared/task-input'
-import useKeyAction, { type KeyAction } from '../hooks/useKeyAction'
-import { Button } from './Button'
-import { Input } from './Input'
-import { Switch } from './Switch'
+import { useNavigate } from '@tanstack/react-router'
+import { format } from 'date-fns'
+import {
+  Fragment,
+  type ReactNode,
+  useEffect,
+  useRef,
+  useState,
+} from 'react'
+import { ZodError } from 'zod'
 
-const days = [
-  'Sunday',
-  'Monday',
-  'Tuesday',
-  'Wednesday',
-  'Thursday',
-  'Friday',
-  'Saturday',
-] as const
+import useKeyAction, { type KeyAction } from '../hooks/useKeyAction'
+import { KeyHints } from './KeyHints'
 
 const repeatOptions: RepeatOption[] = [
   'No Repeat',
@@ -49,10 +31,11 @@ const repeatOptions: RepeatOption[] = [
   'Yearly',
   'Custom',
 ]
+
 const repeatUnits: RepeatUnit[] = ['day', 'week', 'month', 'year']
 
-// HTML <input type="date"> uses YYYY-MM-DD (zero-padded); our shared schema
-// uses YYYY-M-D. Convert at the input boundary.
+const dayShort = ['Su', 'Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa'] as const
+
 const toIso = (due: string): string => {
   const [y, m, d] = due.split('-').map((s) => parseInt(s))
   const pad = (n: number) => (n < 10 ? '0' + n : '' + n)
@@ -74,6 +57,8 @@ const dayDiffPhrase = (diff: number): string => {
   return `in ${diff} days`
 }
 
+type FormSub = SubTask & { _key: string }
+
 const TaskForm = ({
   title: initialTitle,
   emoji: initialEmoji,
@@ -89,12 +74,19 @@ const TaskForm = ({
   subtasks: initialSubtasks,
   submitForm,
   isSaving = false,
+  isEdit = false,
+  onDelete,
+  onCancel,
 }: Partial<TaskInput> & {
   errorMessage?: string | null
   submitForm: (input: TaskInput) => void
   isSaving?: boolean
+  isEdit?: boolean
+  onDelete?: () => void
+  onCancel?: () => void
 }) => {
   const api = useApi()
+  const navigate = useNavigate()
   const [formError, setFormError] = useState<ZodError>()
   const [title, setTitle] = useState(initialTitle ?? '')
   const [emoji, setEmoji] = useState(initialEmoji ?? '')
@@ -102,9 +94,10 @@ const TaskForm = ({
     initialEmoji ? [initialEmoji] : [],
   )
   const [emojiLoading, setEmojiLoading] = useState(false)
-  const [due, setDue] = useState<string>(
-    initialDue ?? dateString(new Date()),
-  )
+  const [customEmoji, setCustomEmoji] = useState<string>('')
+  const [showCustomEmoji, setShowCustomEmoji] = useState(false)
+
+  const [due, setDue] = useState<string>(initialDue ?? dateString(new Date()))
   const [dueTime, setDueTime] = useState<string | null>(initialDueTime ?? null)
   const [strictDeadline, setStrictDeadline] = useState(
     initialStrictDeadline ?? false,
@@ -122,25 +115,16 @@ const TaskForm = ({
     initialRepeatWeekdays ?? [false, false, false, false, false, false, false],
   )
   const [timeFrame, setTimeFrame] = useState(initialTimeFrame ?? 0)
-  const timeFrameMinutesRef = useRef<HTMLInputElement>(null)
-  const timeFrameHoursRef = useRef<HTMLInputElement>(null)
-  // Stable client-side key per subtask so React can keep the right DOM
-  // node attached after a drag-reorder. Stripped by zod at submit since
-  // the schema doesn't declare _key.
+
   const nextSubtaskKey = useRef(0)
   const newKey = () => `s${++nextSubtaskKey.current}`
-  const [subtasks, setSubtasks] = useState<Array<SubTask & { _key: string }>>(
-    () =>
-      (initialSubtasks ?? []).map((s) => ({ ...s, _key: newKey() })),
+  const [subtasks, setSubtasks] = useState<FormSub[]>(() =>
+    (initialSubtasks ?? []).map((s) => ({ ...s, _key: newKey() })),
   )
+  const [hasSubtasks, setHasSubtasks] = useState(subtasks.length > 0)
+  if (subtasks.length > 0 && !hasSubtasks) setHasSubtasks(true)
 
-  const [hasSubtasks, setHasSubtasks] = useState((subtasks.length ?? 0) > 0)
-  if ((subtasks.length ?? 0) > 0 && !hasSubtasks) setHasSubtasks(true)
-
-  // Debounced emoji suggestions. Fires ~500ms after the user stops typing
-  // the title. Auto-selects the first option if no emoji is chosen yet.
-  // The `cancelled` flag drops any in-flight response that resolves after
-  // the user has typed more characters.
+  // Debounced emoji suggestions.
   useEffect(() => {
     const t = title.trim()
     if (!t) {
@@ -177,8 +161,7 @@ const TaskForm = ({
     formError?.issues.map((issue) => [issue.path[0], issue.message]) ?? [],
   )
 
-  // Drag-and-drop reorder for subtasks
-  type FormSub = SubTask & { _key: string }
+  // Drag-and-drop reorder for subtasks.
   const [draggedSubtask, setDraggedSubtask] = useState<FormSub | undefined>()
   const handleDragStart = (e: React.DragEvent, item: FormSub) => {
     setDraggedSubtask(item)
@@ -200,9 +183,10 @@ const TaskForm = ({
   }
 
   const submit = () => {
+    const finalEmoji = showCustomEmoji && customEmoji ? customEmoji : emoji
     const input = taskInputSchema.safeParse({
       title,
-      emoji,
+      emoji: finalEmoji,
       due,
       dueTime,
       strictDeadline,
@@ -220,13 +204,52 @@ const TaskForm = ({
   const keyActions: KeyAction[] = [
     {
       key: 'escape',
-      description: 'Home',
-      action: () => window.history.back(),
+      description: 'Cancel',
+      action: () => (onCancel ? onCancel() : window.history.back()),
+    },
+    { key: 'n', description: 'Home', action: () => navigate({ to: '/' }) },
+    {
+      key: 't',
+      description: 'Tasks',
+      action: () => navigate({ to: '/tasks' }),
+    },
+    {
+      key: 'h',
+      description: 'History',
+      action: () => navigate({ to: '/history' }),
+    },
+    {
+      key: 'a',
+      description: 'Stats',
+      action: () => navigate({ to: '/stats' }),
     },
   ]
+  // Don't bind `c → /new-task` in edit mode — pressing it on /new-task would
+  // be a no-op anyway, and we'd shadow whatever Backspace-like delete needs.
+  if (!isEdit) {
+    keyActions.push({
+      key: '=',
+      description: 'New task',
+      shift: true,
+      action: () => navigate({ to: '/new-task' }),
+    })
+  }
+  if (isEdit && onDelete) {
+    keyActions.push({
+      key: 'backspace',
+      description: 'Delete',
+      action: onDelete,
+    })
+  }
   useKeyAction(keyActions)
 
   const dueDate = newSafeDate(due)
+  const hours = Math.floor(timeFrame / 60)
+  const minutes = timeFrame % 60
+  const stepMins = (delta: number) =>
+    setTimeFrame(Math.max(0, timeFrame + delta))
+  const stepHours = (delta: number) =>
+    setTimeFrame(Math.max(0, timeFrame + delta * 60))
 
   return (
     <form
@@ -234,417 +257,473 @@ const TaskForm = ({
         e.preventDefault()
         submit()
       }}
-      className="mt-6 block space-y-6 sm:mt-5 sm:space-y-5"
+      className="flex min-h-[calc(100vh-160px)] flex-col"
     >
-      {errorMessage && <div className="mt-4 text-red-500">{errorMessage}</div>}
+      <div className="flex-1 px-5 pb-[200px] md:px-10 md:pb-32">
+        <div className="mx-auto flex max-w-2xl flex-col gap-6">
+          {errorMessage && (
+            <div className="font-mono text-sm text-rose-400">{errorMessage}</div>
+          )}
 
-      <Row label="Title" htmlFor="titleInput">
-        <div className="mt-1 flex flex-col gap-2 sm:col-span-2 sm:mt-0">
-          <div className="flex max-w-lg rounded-md shadow-sm">
-            <Input
+          <Field label="Title">
+            <input
               id="titleInput"
               type="text"
               value={title}
               onChange={(e) => setTitle(e.target.value)}
               placeholder="Do this thing"
+              className="dtn-task-title w-full border-b border-zinc-700 bg-transparent pb-2 text-[1.85rem] leading-[1.1] text-zinc-50 outline-none placeholder:text-zinc-700 focus:border-zinc-50 md:text-[2.25rem]"
             />
-          </div>
-          {errors.title && (
-            <div className="text-sm text-red-500">{errors.title}</div>
-          )}
-        </div>
-      </Row>
+            {errors.title && (
+              <div className="mt-2 font-mono text-xs text-rose-400">
+                {errors.title}
+              </div>
+            )}
+          </Field>
 
-      <Row label="Emoji">
-        <div className="mt-1 flex flex-col gap-2 sm:col-span-2 sm:mt-0">
-          {emojiOptions.length === 0 && !emojiLoading && (
-            <div className="text-sm text-gray-500">
-              Type a title to see suggestions.
-            </div>
-          )}
-          {emojiLoading && emojiOptions.length === 0 && (
-            <div className="text-sm text-gray-500">Suggesting…</div>
-          )}
-          {emojiOptions.length > 0 && (
-            <div className="flex max-w-lg flex-wrap gap-2">
+          <Field
+            label="Emoji"
+            trailing={
+              emojiLoading
+                ? 'suggesting…'
+                : emojiOptions.length > 0
+                  ? '✨ suggested by Claude'
+                  : 'type a title for suggestions'
+            }
+          >
+            <div className="flex flex-wrap gap-2">
               {emojiOptions.map((e, i) => (
                 <button
                   key={`${e}-${i}`}
                   type="button"
-                  onClick={() => setEmoji(e)}
+                  onClick={() => {
+                    setEmoji(e)
+                    setShowCustomEmoji(false)
+                  }}
                   className={
-                    (emoji === e
-                      ? 'border-white bg-gray-800 '
-                      : 'border-gray-800 bg-black hover:border-gray-700 ') +
-                    'flex h-12 w-12 items-center justify-center rounded-lg border text-2xl outline-none ring-white focus:ring'
+                    'flex h-12 w-12 items-center justify-center rounded-xl border text-2xl transition-colors ' +
+                    (emoji === e && !showCustomEmoji
+                      ? 'border-zinc-100 bg-zinc-100/10'
+                      : 'border-zinc-800 bg-zinc-900/60 hover:border-zinc-700')
                   }
-                  aria-pressed={emoji === e}
+                  aria-pressed={emoji === e && !showCustomEmoji}
                   aria-label={`Use ${e}`}
                 >
                   {e}
                 </button>
               ))}
-              {emojiLoading && (
-                <span className="self-center text-xs text-gray-500">…</span>
+              {showCustomEmoji ? (
+                <input
+                  type="text"
+                  value={customEmoji}
+                  onChange={(e) =>
+                    setCustomEmoji(Array.from(e.target.value).slice(0, 2).join(''))
+                  }
+                  autoFocus
+                  className="h-12 w-12 rounded-xl border border-zinc-100 bg-zinc-100/10 text-center text-2xl outline-none"
+                />
+              ) : (
+                <button
+                  type="button"
+                  onClick={() => setShowCustomEmoji(true)}
+                  className="flex h-12 w-12 items-center justify-center rounded-xl border border-dashed border-zinc-700 text-lg text-zinc-500 hover:text-zinc-300"
+                  title="Custom emoji"
+                >
+                  ＋
+                </button>
               )}
             </div>
-          )}
-          {errors.emoji && (
-            <div className="text-sm text-red-500">{errors.emoji}</div>
-          )}
-        </div>
-      </Row>
-
-      <Row label="Due Date" htmlFor="due-date">
-        <div className="mt-1 sm:col-span-2 sm:mt-0">
-          <div className="flex max-w-lg items-center gap-2 rounded-md shadow-sm">
-            <FormButton icon={faMinus} onClick={() => shiftDue(-1)} />
-            <Input
-              id="due-date"
-              type="date"
-              value={toIso(due)}
-              onChange={(e) => {
-                if (!e.target.value) return
-                const [y, m, d] = e.target.value.split('-').map((x) =>
-                  parseInt(x),
-                )
-                setDue(`${y}-${m}-${d}`)
-              }}
-              className="[color-scheme:dark]"
-            />
-            <FormButton onClick={() => shiftDue(1)} icon={faPlus} />
-          </div>
-          <div className="mt-1 max-w-lg text-center text-gray-600">
-            {format(dueDate, 'EEEE, LLLL do, u')} ({dayDiffPhrase(dayDiffFor(due))})
-          </div>
-        </div>
-      </Row>
-
-      <Row label="Due Time?">
-        <div className="mt-1 sm:col-span-2 sm:mt-0">
-          <div className="flex max-w-lg items-center gap-3">
-            <Switch
-              checked={dueTime !== null}
-              onChange={(on) => setDueTime(on ? '09:00' : null)}
-            />
-            {dueTime !== null && (
-              <Input
-                id="due-time"
-                type="time"
-                value={dueTime}
-                onChange={(e) => {
-                  // <input type="time"> can briefly emit '' (e.g. clearing
-                  // mid-edit) — fall back to a sane default so we never
-                  // submit a null-via-empty-string.
-                  setDueTime(e.target.value || '09:00')
-                }}
-                className="[color-scheme:dark]"
-              />
+            {errors.emoji && (
+              <div className="mt-2 font-mono text-xs text-rose-400">
+                {errors.emoji}
+              </div>
             )}
-          </div>
-          {dueTime !== null && (
-            <div className="mt-1 max-w-lg text-center text-xs text-gray-600">
-              Task ranks to the top once this time arrives.
-            </div>
-          )}
-          {errors.dueTime && (
-            <div className="mt-1 text-sm text-red-500">{errors.dueTime}</div>
-          )}
-        </div>
-      </Row>
+          </Field>
 
-      <Row label="Strict Deadline?">
-        <div className="mt-1 sm:col-span-2 sm:mt-0">
-          <Switch checked={strictDeadline} onChange={setStrictDeadline} />
-        </div>
-      </Row>
-
-      <Row label="Repeat?">
-        <div className="mt-1 sm:col-span-2 sm:mt-0">
-          <div className="flex max-w-lg rounded-md shadow-sm">
-            <FormSelect
-              id="repeat"
-              value={repeat}
-              onChange={(e) => {
-                const v = e.target.value
-                if ((repeatOptions as readonly string[]).includes(v))
-                  setRepeat(v as RepeatOption)
-              }}
-            >
-              {repeatOptions.map((opt) => (
-                <option key={opt}>{opt}</option>
-              ))}
-            </FormSelect>
-          </div>
-          {repeat === 'Custom' && (
-            <>
-              <div className="mt-3 flex max-w-lg">
-                <div className="flex-1 py-2.5 text-sm">Every:</div>
-                <Input
-                  type="number"
-                  step={1}
-                  min={1}
-                  className="mr-3"
-                  value={repeatInterval}
-                  onChange={(e) => setRepeatInterval(parseInt(e.target.value))}
-                />
-                <FormSelect
-                  defaultValue={repeatUnit}
+          <div className="grid grid-cols-1 gap-6 md:grid-cols-[1.6fr_1fr]">
+            <Field label="Due date">
+              <div className="flex items-center gap-2 font-mono">
+                <Stepper onClick={() => shiftDue(-1)}>−</Stepper>
+                <input
+                  id="due-date"
+                  type="date"
+                  value={toIso(due)}
                   onChange={(e) => {
-                    const v = e.target.value
-                    if ((repeatUnits as readonly string[]).includes(v))
-                      setRepeatUnit(v as RepeatUnit)
+                    if (!e.target.value) return
+                    const [y, m, d] = e.target.value
+                      .split('-')
+                      .map((x) => parseInt(x))
+                    setDue(`${y}-${m}-${d}`)
                   }}
+                  className="flex-1 rounded-lg border border-zinc-800 bg-zinc-900/60 px-3 py-2 text-sm text-zinc-100 outline-none tabular-nums [color-scheme:dark] focus:border-zinc-600"
+                />
+                <Stepper onClick={() => shiftDue(1)}>+</Stepper>
+              </div>
+              <div className="mt-1.5 font-mono text-xs text-zinc-500">
+                {format(dueDate, 'EEEE, LLL d')} ·{' '}
+                {dayDiffPhrase(dayDiffFor(due))}
+              </div>
+            </Field>
+
+            <Field label="Due time?">
+              <div className="flex items-center gap-3 font-mono">
+                <Toggle
+                  on={dueTime !== null}
+                  onChange={(on) => setDueTime(on ? '09:00' : null)}
+                />
+                {dueTime !== null && (
+                  <input
+                    id="due-time"
+                    type="time"
+                    value={dueTime}
+                    onChange={(e) => setDueTime(e.target.value || '09:00')}
+                    className="flex-1 rounded-lg border border-zinc-800 bg-zinc-900/60 px-3 py-2 text-sm text-zinc-100 outline-none tabular-nums [color-scheme:dark] focus:border-zinc-600"
+                  />
+                )}
+              </div>
+              {dueTime !== null && (
+                <div className="mt-1.5 font-mono text-xs text-zinc-500">
+                  ranks to top once {dueTime} arrives
+                </div>
+              )}
+            </Field>
+          </div>
+
+          <Field label="Repeat">
+            <div className="flex flex-wrap gap-1.5 font-mono">
+              {repeatOptions.map((r) => (
+                <RepeatChip
+                  key={r}
+                  label={r}
+                  active={repeat === r}
+                  onClick={() => setRepeat(r)}
+                />
+              ))}
+            </div>
+            {(repeat === 'Weekly' ||
+              (repeat === 'Custom' && repeatUnit === 'week')) && (
+              <div className="mt-3 flex flex-wrap gap-1.5 font-mono">
+                {dayShort.map((d, i) => {
+                  const on = repeatWeekdays[i]
+                  return (
+                    <button
+                      key={d}
+                      type="button"
+                      onClick={() =>
+                        setRepeatWeekdays((s) => [
+                          i === 0 ? !on : s[0],
+                          i === 1 ? !on : s[1],
+                          i === 2 ? !on : s[2],
+                          i === 3 ? !on : s[3],
+                          i === 4 ? !on : s[4],
+                          i === 5 ? !on : s[5],
+                          i === 6 ? !on : s[6],
+                        ])
+                      }
+                      className={
+                        'flex h-9 w-9 items-center justify-center rounded-full border text-xs ' +
+                        (on
+                          ? 'border-zinc-100 bg-zinc-100 text-zinc-900'
+                          : 'border-zinc-800 text-zinc-400 hover:border-zinc-600')
+                      }
+                    >
+                      {d}
+                    </button>
+                  )
+                })}
+              </div>
+            )}
+            {repeat === 'Custom' && (
+              <div className="mt-3 flex items-center gap-3 font-mono">
+                <span className="font-mono text-xs text-zinc-500">every</span>
+                <input
+                  type="number"
+                  min={1}
+                  value={repeatInterval}
+                  onChange={(e) =>
+                    setRepeatInterval(parseInt(e.target.value) || 1)
+                  }
+                  className="w-20 rounded-lg border border-zinc-800 bg-zinc-900/60 px-3 py-2 text-sm text-zinc-100 outline-none tabular-nums focus:border-zinc-600"
+                />
+                <select
+                  value={repeatUnit}
+                  onChange={(e) => setRepeatUnit(e.target.value as RepeatUnit)}
+                  className="rounded-lg border border-zinc-800 bg-zinc-900/60 px-3 py-2 text-sm text-zinc-100 outline-none focus:border-zinc-600"
                 >
                   {repeatUnits.map((u) => (
                     <option key={u} value={u}>
                       {u}s
                     </option>
                   ))}
-                </FormSelect>
+                </select>
               </div>
-              {repeatUnit === 'week' && (
-                <div className="pointer-events-auto mt-3 flex max-w-lg justify-evenly">
-                  {repeatWeekdays.map((_, i) => (
-                    <SwitchWithLabel
-                      key={days[i]}
-                      label={days[i]}
-                      onChange={(v) =>
-                        setRepeatWeekdays((s) => [
-                          i === 0 ? v : s[0],
-                          i === 1 ? v : s[1],
-                          i === 2 ? v : s[2],
-                          i === 3 ? v : s[3],
-                          i === 4 ? v : s[4],
-                          i === 5 ? v : s[5],
-                          i === 6 ? v : s[6],
-                        ])
-                      }
-                      checked={repeatWeekdays[i]}
-                    />
-                  ))}
-                </div>
-              )}
-            </>
-          )}
-        </div>
-      </Row>
-
-      <Row label="Expected Time Frame">
-        <div className="mt-1 sm:col-span-2 sm:mt-0">
-          <div className="flex max-w-lg flex-col items-center justify-evenly gap-2 md:flex-row">
-            {timeFrame >= 60 && (
-              <NumberInput
-                innerRef={timeFrameHoursRef}
-                label="hrs"
-                minusDisabled={false}
-                minusFn={() => setTimeFrame(Math.max(0, timeFrame - 60))}
-                onChange={(e) =>
-                  setTimeFrame(
-                    parseInt(e.target.value) * 60 +
-                      parseInt(timeFrameMinutesRef.current?.value ?? '0'),
-                  )
-                }
-                plusFn={() => setTimeFrame(timeFrame + 60)}
-                value={Math.floor(timeFrame / 60)}
-                step={1}
-                min={0}
-              />
             )}
-            <NumberInput
-              innerRef={timeFrameMinutesRef}
-              label="mins"
-              minusDisabled={timeFrame === 0}
-              minusFn={() => setTimeFrame(Math.max(0, timeFrame - 15))}
-              onChange={(e) =>
-                setTimeFrame(
-                  Math.max(
-                    0,
-                    parseInt(timeFrameHoursRef.current?.value ?? '0') * 60 +
-                      parseInt(e.target.value),
-                  ),
-                )
-              }
-              plusFn={() => setTimeFrame(timeFrame + 15)}
-              value={timeFrame % 60}
-              step={15}
-              min={-15}
-            />
-          </div>
-        </div>
-      </Row>
+          </Field>
 
-      <Row label="Subtasks">
-        <div className="mt-1 sm:col-span-2 sm:mt-0">
-          <div className="flex max-w-lg">
-            <Switch
-              checked={hasSubtasks}
-              onChange={(e) => {
-                if (
-                  !e &&
-                  subtasks.length > 0 &&
-                  !window.confirm('Are you sure you want to remove all subtasks?')
-                )
-                  return
-                if (!e) setSubtasks([])
-                else setSubtasks([{ done: false, title: '', _key: newKey() }])
-                setHasSubtasks(e)
-              }}
-            />
-          </div>
-          {hasSubtasks && (
-            <>
-              {subtasks.map((subtask, i) => (
-                <div
-                  key={subtask._key}
-                  draggable
-                  onDragStart={(e) => handleDragStart(e, subtask)}
-                  onDragEnd={handleDragEnd}
-                  onDragOver={handleDragOver}
-                  onDrop={(e) => handleDrop(e, subtask)}
-                  className="mt-3 flex max-w-lg items-center gap-2"
+          <div className="grid grid-cols-1 gap-6 md:grid-cols-[1.6fr_1fr]">
+            <Field label="Time frame">
+              <div className="flex items-center gap-3 font-mono">
+                <Stepper onClick={() => stepHours(-1)} disabled={hours === 0}>
+                  −
+                </Stepper>
+                <span
+                  className="dtn-heading tabular-nums"
+                  style={{ fontSize: '1.5rem', minWidth: '2ch', textAlign: 'right' }}
                 >
-                  <button type="button">⠿</button>
-                  <Input
-                    type="text"
-                    value={subtask.title}
-                    onChange={(e) => {
-                      setSubtasks([
-                        ...subtasks.slice(0, i),
-                        { ...subtask, title: e.target.value },
-                        ...subtasks.slice(i + 1),
-                      ])
-                    }}
-                    placeholder={`Subtask ${i + 1}`}
-                  />
-                  <FormButton
-                    icon={faTrash}
-                    onClick={() =>
-                      setSubtasks((s) => [...s.slice(0, i), ...s.slice(i + 1)])
-                    }
-                  />
-                  <SwitchWithLabel
-                    label="Done?"
-                    checked={subtask.done}
-                    onChange={(v) =>
-                      setSubtasks((s) => [
-                        ...s.slice(0, i),
-                        { ...s[i], done: v },
-                        ...s.slice(i + 1),
-                      ])
-                    }
-                  />
-                </div>
-              ))}
-              <div className="mt-3 flex max-w-lg justify-center">
-                <Button
-                  icon={faPlusCircle}
-                  text="New Subtask"
+                  {hours}
+                </span>
+                <span className="text-xs text-zinc-500">hrs</span>
+                <Stepper onClick={() => stepHours(1)}>+</Stepper>
+                <span className="mx-1 text-zinc-700">·</span>
+                <Stepper onClick={() => stepMins(-15)} disabled={timeFrame === 0}>
+                  −
+                </Stepper>
+                <span
+                  className="dtn-heading tabular-nums"
+                  style={{ fontSize: '1.5rem', minWidth: '2.5ch', textAlign: 'right' }}
+                >
+                  {minutes}
+                </span>
+                <span className="text-xs text-zinc-500">mins</span>
+                <Stepper onClick={() => stepMins(15)}>+</Stepper>
+              </div>
+            </Field>
+            <Field label="Strict deadline?">
+              <div className="flex items-center gap-3 font-mono">
+                <Toggle on={strictDeadline} onChange={setStrictDeadline} />
+              </div>
+            </Field>
+          </div>
+
+          <Field
+            label="Subtasks"
+            trailing={hasSubtasks ? 'drag ⠿ to reorder' : undefined}
+          >
+            <div className="flex items-center gap-3 font-mono">
+              <Toggle
+                on={hasSubtasks}
+                onChange={(on) => {
+                  if (
+                    !on &&
+                    subtasks.length > 0 &&
+                    !window.confirm(
+                      'Are you sure you want to remove all subtasks?',
+                    )
+                  )
+                    return
+                  if (!on) setSubtasks([])
+                  else if (subtasks.length === 0)
+                    setSubtasks([{ done: false, title: '', _key: newKey() }])
+                  setHasSubtasks(on)
+                }}
+              />
+            </div>
+            {hasSubtasks && (
+              <div className="mt-3 flex flex-col gap-1.5 font-mono">
+                {subtasks.map((s, i) => (
+                  <Fragment key={s._key}>
+                    <div
+                      draggable
+                      onDragStart={(e) => handleDragStart(e, s)}
+                      onDragEnd={handleDragEnd}
+                      onDragOver={handleDragOver}
+                      onDrop={(e) => handleDrop(e, s)}
+                      className="group flex items-center gap-3 rounded-xl border border-zinc-800 bg-zinc-900/40 px-3 py-2"
+                    >
+                      <span className="cursor-grab text-zinc-600 select-none">
+                        ⠿
+                      </span>
+                      <input
+                        type="text"
+                        value={s.title}
+                        onChange={(e) =>
+                          setSubtasks([
+                            ...subtasks.slice(0, i),
+                            { ...s, title: e.target.value },
+                            ...subtasks.slice(i + 1),
+                          ])
+                        }
+                        placeholder={`Subtask ${i + 1}`}
+                        className="flex-1 bg-transparent font-mono text-base text-zinc-100 outline-none placeholder:text-zinc-700"
+                      />
+                      <label className="flex items-center gap-1.5 text-[10px] tracking-wider text-zinc-500 uppercase">
+                        <input
+                          type="checkbox"
+                          checked={s.done}
+                          onChange={(e) =>
+                            setSubtasks((sub) => [
+                              ...sub.slice(0, i),
+                              { ...sub[i], done: e.target.checked },
+                              ...sub.slice(i + 1),
+                            ])
+                          }
+                          className="accent-zinc-100"
+                        />
+                        done?
+                      </label>
+                      <button
+                        type="button"
+                        onClick={() =>
+                          setSubtasks((sub) => [
+                            ...sub.slice(0, i),
+                            ...sub.slice(i + 1),
+                          ])
+                        }
+                        className="px-2 text-zinc-600 hover:text-rose-400"
+                        title="Remove subtask"
+                      >
+                        ✕
+                      </button>
+                    </div>
+                  </Fragment>
+                ))}
+                <button
+                  type="button"
                   onClick={() =>
                     setSubtasks([
                       ...subtasks,
                       { done: false, title: '', _key: newKey() },
                     ])
                   }
-                  type="button"
-                />
+                  className="mt-1 flex items-center gap-2 self-start rounded-full border border-dashed border-zinc-700 px-3 py-1.5 text-sm text-zinc-400 hover:border-zinc-500 hover:text-zinc-200"
+                >
+                  <span>+</span>
+                  <span>Add subtask</span>
+                </button>
               </div>
-            </>
-          )}
+            )}
+          </Field>
         </div>
-      </Row>
+      </div>
 
-      <div className="flex justify-center pt-5 sm:border-t sm:border-gray-700">
-        <Button
-          loading={isSaving}
-          icon={faArrowRight}
-          text="Submit"
-          type="submit"
-        />
+      <div className="fixed right-0 bottom-[88px] left-0 z-40 flex items-center justify-between gap-3 border-t border-zinc-900 bg-black/60 px-5 py-4 backdrop-blur md:bottom-0 md:px-10 md:py-5">
+        <div className="hidden md:block">
+          <KeyHints
+            items={[
+              ['↵', 'submit'],
+              ['Esc', 'cancel'],
+              ...(isEdit ? ([['⌫', 'delete']] as const) : []),
+            ]}
+          />
+        </div>
+        <div className="flex flex-1 items-center justify-end gap-2 md:flex-none">
+          {isEdit && onDelete && (
+            <button
+              type="button"
+              onClick={onDelete}
+              aria-label="Delete task"
+              className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full border border-rose-500/30 font-mono text-rose-300 hover:bg-rose-500/10 md:h-auto md:w-auto md:gap-2 md:px-4 md:py-2.5 md:text-sm"
+            >
+              <span>✕</span>
+              <span className="hidden md:inline">Delete task</span>
+              <kbd className="hidden rounded border border-rose-500/30 bg-rose-500/10 px-1.5 py-0.5 text-[10px] font-bold md:inline">
+                ⌫
+              </kbd>
+            </button>
+          )}
+          <button
+            type="submit"
+            disabled={isSaving}
+            className="flex flex-1 items-center justify-center gap-3 rounded-full bg-zinc-50 px-6 py-3 font-mono font-semibold text-zinc-900 hover:bg-zinc-100 disabled:opacity-60 md:flex-none"
+          >
+            <span>{isEdit ? 'Save' : 'Create task'}</span>
+            <kbd className="hidden rounded-md bg-black/15 px-2 py-1 text-xs font-bold md:inline">
+              ↵
+            </kbd>
+          </button>
+        </div>
       </div>
     </form>
   )
 }
 
-const Row = ({
+const Field = ({
   label,
-  htmlFor,
+  trailing,
   children,
 }: {
   label: string
-  htmlFor?: string
-  children: React.ReactNode
+  trailing?: ReactNode
+  children: ReactNode
 }) => (
-  <div className="sm:grid sm:grid-cols-3 sm:items-start sm:gap-4 sm:border-t sm:border-gray-700 sm:pt-5">
-    <label
-      htmlFor={htmlFor}
-      className="block text-sm font-medium sm:mt-px sm:pt-2"
-    >
-      {label}
-    </label>
+  <div>
+    <div className="mb-2 flex items-baseline justify-between">
+      <div className="font-mono text-[10px] tracking-[0.3em] text-zinc-500 uppercase">
+        {label}
+      </div>
+      {trailing && (
+        <div className="font-mono text-[10px] text-zinc-600">{trailing}</div>
+      )}
+    </div>
     {children}
   </div>
 )
 
-const NumberInput = (
-  props: ComponentProps<'input'> & {
-    innerRef: RefObject<HTMLInputElement | null>
-    label: string
-    minusDisabled: boolean
-    minusFn: () => void
-    onChange: (e: React.ChangeEvent<HTMLInputElement>) => void
-    plusFn: () => void
-    step: number
-    min: number
-  },
-) => (
-  <div className="flex w-full items-center gap-2">
-    {!props.minusDisabled && (
-      <FormButton icon={faMinus} onClick={props.minusFn} />
-    )}
-    <div className="flex-1 flex-grow">
-      <Input
-        id={props.id}
-        ref={props.innerRef}
-        type="number"
-        step={props.step}
-        min={props.min}
-        value={props.value}
-        onChange={props.onChange}
-        className="w-full"
-      />
-    </div>
-    <FormButton icon={faPlus} onClick={props.plusFn} />
-    <label htmlFor={props.id} className="text-sm">
-      {props.label}
-    </label>
-  </div>
+const Stepper = ({
+  onClick,
+  disabled,
+  children,
+}: {
+  onClick: () => void
+  disabled?: boolean
+  children: ReactNode
+}) => (
+  <button
+    type="button"
+    onClick={onClick}
+    disabled={disabled}
+    className="flex h-8 w-8 items-center justify-center rounded-full border border-zinc-800 text-base leading-none text-zinc-300 hover:border-zinc-600 disabled:opacity-30 disabled:hover:border-zinc-800"
+  >
+    {children}
+  </button>
 )
 
-const FormButton = (
-  props: Omit<ComponentProps<typeof Button>, 'className'>,
-) => <Button {...props} type="button" className="border-gray-800" />
-
-const FormSelect = (props: ComponentProps<'select'>) => (
-  <select
-    {...props}
+const Toggle = ({
+  on,
+  onChange,
+}: {
+  on: boolean
+  onChange: (on: boolean) => void
+}) => (
+  <button
+    type="button"
+    onClick={() => onChange(!on)}
+    aria-pressed={on}
     className={
-      'mw-11/12 mx-auto block w-96 min-w-0 flex-1 rounded border border-gray-800 bg-black p-2.5 text-white placeholder-gray-400 outline-none ring-white ring-offset-0 ring-offset-black focus:border-gray-700 focus:bg-gray-900 focus:ring sm:text-sm ' +
-      (props.className ?? '')
+      'relative inline-block h-6 w-11 rounded-full transition-colors ' +
+      (on ? 'bg-zinc-50' : 'bg-zinc-800')
     }
   >
-    {props.children}
-  </select>
+    <span
+      className={
+        'absolute top-0.5 h-5 w-5 rounded-full transition-all ' +
+        (on ? 'left-[22px] bg-zinc-900' : 'left-0.5 bg-zinc-400')
+      }
+    />
+  </button>
 )
 
-const SwitchWithLabel = ({
+const RepeatChip = ({
   label,
-  ...props
-}: { label: string } & ComponentProps<typeof Switch>) => (
-  <div className="flex flex-col items-center text-xs">
-    <label htmlFor={props.id}>{label}</label>
-    <Switch {...props} />
-  </div>
+  active,
+  onClick,
+}: {
+  label: string
+  active: boolean
+  onClick: () => void
+}) => (
+  <button
+    type="button"
+    onClick={onClick}
+    className={
+      'rounded-full border px-3 py-1.5 text-sm transition-colors ' +
+      (active
+        ? 'border-zinc-100 bg-zinc-100 text-zinc-900'
+        : 'border-zinc-800 bg-zinc-900/60 text-zinc-400 hover:border-zinc-600 hover:text-zinc-100')
+    }
+  >
+    {label}
+  </button>
 )
 
 export default TaskForm

@@ -1,15 +1,4 @@
-import {
-  faBackward,
-  faBars,
-  faBell,
-  faChartLine,
-  faCheckCircle,
-  faPen,
-  faPlusCircle,
-  faRightFromBracket,
-  faTrash,
-} from '@fortawesome/free-solid-svg-icons'
-import { useClerk } from '@clerk/tanstack-react-start'
+import { formatDueLabel, formatRepeat } from '@dtn/shared/format'
 import {
   useCompleteTask,
   useDeleteTask,
@@ -18,27 +7,81 @@ import {
   useSnoozeTask,
   useTopTasks,
 } from '@dtn/shared/queries'
-import { Link, createFileRoute, useNavigate } from '@tanstack/react-router'
-import { Fragment, useState } from 'react'
+import { isSnoozed } from '@dtn/shared/task-sorting'
+import { minutesToHours } from '@dtn/shared/time'
+import { type Task } from '@dtn/shared/types'
+import { createFileRoute, useNavigate } from '@tanstack/react-router'
+import { useState } from 'react'
 
-import { Button } from '../components/Button'
-import Hints from '../components/Hints'
-import { LastUpdated } from '../components/LastUpdated'
+
+
 import { Loading } from '../components/Loading'
-import { Progress } from '../components/Progress'
-import { TaskBox } from '../components/TaskBox'
+import { MobileChrome } from '../components/MobileChrome'
+import { TaskRow } from '../components/TaskRow'
+import { TopBar } from '../components/TopBar'
 import useDing from '../hooks/useDing'
 import useKeyAction, { type KeyAction } from '../hooks/useKeyAction'
-import { isSnoozed } from '@dtn/shared/task-sorting'
 
 export const Route = createFileRoute('/')({
   component: Home,
 })
 
+const pickNextSubtask = (task: Task) => {
+  const now = new Date()
+  return (
+    task.subtasks.find(
+      (s) => !s.done && (!s.snooze || new Date(s.snooze) < now),
+    ) ?? task.subtasks.find((s) => !s.done)
+  )
+}
+
+const Kbd = ({
+  children,
+  variant = 'default',
+}: {
+  children: string
+  variant?: 'default' | 'on-light'
+}) => (
+  <kbd
+    className={
+      'rounded border px-1.5 py-0.5 text-[10px] font-bold tabular-nums ' +
+      (variant === 'on-light'
+        ? 'border-zinc-300 bg-black/10 text-zinc-900'
+        : 'border-zinc-800 bg-zinc-900 text-zinc-300')
+    }
+  >
+    {children}
+  </kbd>
+)
+
+const Chip = ({ children }: { children: React.ReactNode }) => (
+  <span className="rounded-full border border-zinc-800 bg-zinc-900/80 px-3 py-1 text-sm text-zinc-400">
+    {children}
+  </span>
+)
+
+const SecondaryAction = ({
+  k,
+  label,
+  onClick,
+}: {
+  k: string
+  label: string
+  onClick: () => void
+}) => (
+  <button
+    type="button"
+    onClick={onClick}
+    className="flex items-center gap-1.5 rounded-full px-3 py-1.5 text-sm text-zinc-500 transition-colors hover:bg-zinc-900 hover:text-zinc-100"
+  >
+    <Kbd>{k}</Kbd>
+    <span>{label}</span>
+  </button>
+)
+
 function Home() {
   const navigate = useNavigate()
   const ding = useDing()
-  const { signOut } = useClerk()
   const topTasksQuery = useTopTasks()
 
   const tasks = (topTasksQuery.data ?? []).filter((t) => !isSnoozed(t))
@@ -91,20 +134,12 @@ function Home() {
 
   const keyActions: KeyAction[] = [
     { key: 'd', description: 'Task done', action: completeTaskAction },
+    { key: 'h', description: 'History', action: () => navigate({ to: '/history' }) },
+    { key: 'a', description: 'Stats', action: () => navigate({ to: '/stats' }) },
     {
-      key: 'h',
-      description: 'History',
-      action: () => navigate({ to: '/history' }),
-    },
-    {
-      key: 'a',
-      description: 'Stats',
-      action: () => navigate({ to: '/stats' }),
-    },
-    { key: 'l', description: 'Logout', action: () => signOut() },
-    {
-      key: 'n',
+      key: '=',
       description: 'New task',
+      shift: true,
       action: () => navigate({ to: '/new-task' }),
     },
     {
@@ -119,12 +154,8 @@ function Home() {
       action: snoozeAllSubtasksAction,
       shift: true,
     },
-    {
-      key: 't',
-      description: 'Tasks',
-      action: () => navigate({ to: '/tasks' }),
-    },
-    { key: 'u', description: 'Update task', action: goEdit },
+    { key: 't', description: 'Tasks', action: () => navigate({ to: '/tasks' }) },
+    { key: 'e', description: 'Edit task', action: goEdit },
     {
       key: '1',
       description: 'Select first task',
@@ -160,115 +191,174 @@ function Home() {
   ]
   useKeyAction(keyActions)
 
-  type ButtonInfo = [
-    () => void,
-    string | undefined,
-    typeof faBackward,
-    boolean?,
-  ]
-  const ActionButtons = () => {
-    const info: ButtonInfo[] = [
-      [
-        completeTaskAction,
-        'Complete',
-        faCheckCircle,
-        doneMutation.isPending && doneMutation.variables === selectedTask?.id,
-      ],
-      [snoozeTaskAction, 'Snooze', faBell],
-      [goEdit, undefined, faPen],
-      [
-        deleteTaskAction,
-        undefined,
-        faTrash,
-        deleteMutation.isPending &&
-          deleteMutation.variables === selectedTask?.id,
-      ],
-    ]
-    if (selectedTask && selectedTask.subtasks.length > 0)
-      info.splice(2, 0, [snoozeAllSubtasksAction, 'Snooze all subtasks', faBell])
+  const [sheetOpen, setSheetOpen] = useState(false)
 
+  if (topTasksQuery.isPending || deleteMutation.isPending) {
     return (
-      <>
-        {info.map(([func, text, icon, loading], i) => (
-          <Button
-            key={i}
-            onClick={func}
-            text={text}
-            icon={icon}
-            loading={loading}
-          />
-        ))}
-      </>
+      <div className="flex h-screen items-center justify-center">
+        <Loading />
+      </div>
     )
   }
 
+  const upNextTasks = tasks
+    .slice(0, 3)
+    .map((t, i) => ({ task: t, slot: (i + 1) as 1 | 2 | 3 }))
+    .filter(({ slot }) => slot - 1 !== selectedTaskIndex)
+
   return (
-    <div className="flex h-screen flex-col items-center justify-center gap-2">
-      {topTasksQuery.isPending || deleteMutation.isPending ? (
-        <Loading />
+    <div className="relative flex min-h-screen flex-col">
+      <TopBar />
+      <MobileChrome
+        sheetOpen={sheetOpen}
+        onOpenSheet={() => setSheetOpen(true)}
+        onCloseSheet={() => setSheetOpen(false)}
+      />
+
+      {tasks.length === 0 ? (
+        <div className="flex flex-1 items-center justify-center text-zinc-500">
+          No tasks
+        </div>
       ) : (
+        selectedTask && (
+          <Hero
+            task={selectedTask}
+            index={selectedTaskIndex}
+            onComplete={completeTaskAction}
+            onSnooze={snoozeTaskAction}
+            onEdit={goEdit}
+            onDelete={deleteTaskAction}
+          />
+        )
+      )}
+
+      {/* Up-next stack — same TaskRow component used on /tasks, just with
+          a slot kbd on desktop. Fixed to the bottom of the viewport on
+          desktop; in-flow above the mobile tab bar on small screens. */}
+      {tasks.length > 1 && (
         <>
-          <Progress />
-          <div className="mx-5 mt-1 flex flex-row flex-wrap justify-center">
-            <Button
-              onClick={() => navigate({ to: '/tasks' })}
-              text="All tasks"
-              icon={faBars}
-            />
-            <Button
-              onClick={() => navigate({ to: '/new-task' })}
-              text="New task"
-              icon={faPlusCircle}
-            />
-            <Button
-              onClick={() => navigate({ to: '/history' })}
-              text="History"
-              icon={faBackward}
-            />
-            <Button
-              onClick={() => navigate({ to: '/stats' })}
-              text="Stats"
-              icon={faChartLine}
-            />
-          </div>
-          {tasks.length > 0 ? (
-            tasks.slice(0, 3).map((task, i) => (
-              <Fragment key={task.id}>
-                <TaskBox
-                  isSelected={selectedTaskIndex === i}
+          <div className="fixed right-0 bottom-0 left-0 hidden justify-center px-10 pb-6 md:flex">
+            <div className="flex w-full max-w-xl flex-col gap-1.5">
+              {upNextTasks.map(({ task: t, slot }) => (
+                <TaskRow
+                  key={t.id}
+                  task={t}
+                  kbd={String(slot)}
                   onClick={() => {
-                    primeTaskCache(task)
-                    if (i === 0 || i === 1 || i === 2)
-                      setSelectedTaskIndex(i as 0 | 1 | 2)
+                    primeTaskCache(t)
+                    setSelectedTaskIndex((slot - 1) as 0 | 1 | 2)
                   }}
-                  onMouseEnter={() => prefetchTask(task.id)}
-                  task={task}
-                  title={`(Shortcut: ${i + 1})`}
+                  onMouseEnter={() => prefetchTask(t.id)}
                 />
-                {selectedTaskIndex === i && (
-                  <div className="mx-5 flex flex-row flex-wrap justify-center">
-                    <ActionButtons />
-                  </div>
-                )}
-              </Fragment>
-            ))
-          ) : (
-            <div className="text-gray-400">No tasks</div>
-          )}
-          <LastUpdated query={topTasksQuery} />
+              ))}
+            </div>
+          </div>
+          <div className="px-5 pb-24 md:hidden">
+            <div className="mb-2 px-1 font-mono text-[10px] tracking-[0.25em] text-zinc-600 uppercase">
+              up next
+            </div>
+            <div className="flex flex-col gap-1.5">
+              {upNextTasks.map(({ task: t, slot }) => (
+                <TaskRow
+                  key={t.id}
+                  task={t}
+                  onClick={() => {
+                    primeTaskCache(t)
+                    setSelectedTaskIndex((slot - 1) as 0 | 1 | 2)
+                  }}
+                />
+              ))}
+            </div>
+          </div>
         </>
       )}
-      <Hints keyActions={keyActions} />
-      <div className="fixed right-5 bottom-5">
-        <Button
-          icon={faRightFromBracket}
-          onClick={() => signOut()}
-          text="Log out"
-        />
-      </div>
     </div>
   )
 }
 
-// Suppress unused-link warning when first wired up; will be replaced by usage.
-void Link
+function Hero({
+  task,
+  index,
+  onComplete,
+  onSnooze,
+  onEdit,
+  onDelete,
+}: {
+  task: Task
+  index: 0 | 1 | 2
+  onComplete: () => void
+  onSnooze: () => void
+  onEdit: () => void
+  onDelete: () => void
+}) {
+  const nextSub = task.subtasks.length > 0 ? pickNextSubtask(task) : undefined
+  const doneCount = task.subtasks.filter((s) => s.done).length
+  const dueLabel = formatDueLabel(task.due, task.dueTime)
+  const repeatLabel = formatRepeat(
+    task.repeat,
+    task.repeatInterval,
+    task.repeatUnit,
+    task.repeatWeekdays,
+  )
+  const titleText = nextSub?.title ?? task.title
+
+  return (
+    <div className="flex flex-1 flex-col items-center justify-center px-5 pb-8 md:px-16 md:pb-48">
+      <div className="mb-4 text-center font-mono text-[10px] tracking-[0.2em] text-zinc-500 uppercase md:mb-6 md:text-xs">
+        Task {index + 1} of 3 · Right now
+      </div>
+
+      <div className="mb-4 text-[5rem] leading-none select-none md:mb-8 md:text-[7rem]">
+        {task.emoji}
+      </div>
+
+      <h1
+        className="dtn-task-title max-w-[20rem] text-center text-[2.6rem] leading-[1.05] text-zinc-50 md:max-w-3xl md:text-[5.5rem] md:leading-[1.02]"
+        style={{
+          letterSpacing: '-0.015em',
+          textWrap: 'balance',
+        }}
+      >
+        {titleText}
+      </h1>
+
+      {nextSub && (
+        <div className="mt-3 font-mono text-xs text-zinc-400 md:mt-5 md:text-base">
+          part of{' '}
+          <span
+            className="dtn-task-title"
+            style={{ fontSize: '1.05rem' }}
+          >
+            {task.title}
+          </span>{' '}
+          <span className="text-zinc-600">·</span>{' '}
+          <span className="text-zinc-50 tabular-nums">
+            {doneCount}/{task.subtasks.length}
+          </span>
+        </div>
+      )}
+
+      <div className="mt-4 flex flex-wrap items-center justify-center gap-2 md:mt-6 md:gap-3">
+        {dueLabel && <Chip>{dueLabel}</Chip>}
+        {task.timeFrame ? <Chip>{minutesToHours(task.timeFrame)}</Chip> : null}
+        {repeatLabel && <Chip>↻ {repeatLabel}</Chip>}
+      </div>
+
+      <button
+        type="button"
+        onClick={onComplete}
+        className="mt-8 flex w-full max-w-[320px] items-center justify-center gap-3 rounded-full bg-white px-8 py-3.5 font-mono text-lg font-semibold text-black transition-colors hover:bg-zinc-100 md:mt-12 md:w-auto md:max-w-none md:gap-4 md:px-10 md:py-5 md:text-xl"
+        style={{ boxShadow: '0 0 80px rgba(255, 255, 255, 0.1)' }}
+      >
+        <span>Done</span>
+        <Kbd variant="on-light">D</Kbd>
+      </button>
+
+      <div className="mt-3 grid w-full max-w-[320px] grid-cols-3 gap-2 md:mt-4 md:flex md:max-w-none md:w-auto md:items-center md:gap-3">
+        <SecondaryAction k="S" label="Snooze" onClick={onSnooze} />
+        <SecondaryAction k="E" label="Edit" onClick={onEdit} />
+        <SecondaryAction k="⌫" label="Delete" onClick={onDelete} />
+      </div>
+    </div>
+  )
+}

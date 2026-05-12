@@ -15,7 +15,19 @@ export const Route = createRootRoute({
       { name: 'viewport', content: 'width=device-width, initial-scale=1' },
       { title: 'Do This Now' },
     ],
-    links: [{ rel: 'stylesheet', href: appCss }],
+    links: [
+      { rel: 'preconnect', href: 'https://fonts.googleapis.com' },
+      {
+        rel: 'preconnect',
+        href: 'https://fonts.gstatic.com',
+        crossOrigin: 'anonymous',
+      },
+      {
+        rel: 'stylesheet',
+        href: 'https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=JetBrains+Mono:wght@400;500;600;700&display=swap',
+      },
+      { rel: 'stylesheet', href: appCss },
+    ],
   }),
   shellComponent: RootDocument,
 })
@@ -27,7 +39,7 @@ function RootDocument({ children }: { children: ReactNode }) {
         <head>
           <HeadContent />
         </head>
-        <body className="bg-black text-white">
+        <body className="text-zinc-50">
           <QueryProvider>
             <ApiProvider value={webApiClient}>
               <Show when="signed-in">{children}</Show>

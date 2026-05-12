@@ -1,36 +1,93 @@
-import {
-  faArrowDown,
-  faCheckCircle,
-  faHome,
-  faPen,
-  faPlusCircle,
-  faTrash,
-} from '@fortawesome/free-solid-svg-icons'
+import { newSafeDate } from '@dtn/shared/helpers'
 import {
   useAllTasks,
   useCompleteTask,
   useDeleteTask,
   usePrefetchTask,
   usePrimeTaskCache,
+  useSnoozeTask,
   useTopTasks,
 } from '@dtn/shared/queries'
+import { sortTasks } from '@dtn/shared/task-sorting'
+import { type Task } from '@dtn/shared/types'
 import { createFileRoute, useNavigate } from '@tanstack/react-router'
 import { format } from 'date-fns'
-import { Fragment, useCallback, useMemo, useRef, useState } from 'react'
+import {
+  Fragment,
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from 'react'
 
-import { Button } from '../components/Button'
-import Hints from '../components/Hints'
+import { KeyHints } from '../components/KeyHints'
 import { Loading } from '../components/Loading'
-import { Progress } from '../components/Progress'
-import { TaskBox } from '../components/TaskBox'
+import { MobileChrome } from '../components/MobileChrome'
+import { PageHeading } from '../components/PageHeading'
+import { TaskRow } from '../components/TaskRow'
+import { TopBar } from '../components/TopBar'
 import useDing from '../hooks/useDing'
 import useKeyAction, { type KeyAction } from '../hooks/useKeyAction'
-import { newSafeDate } from '@dtn/shared/helpers'
-import { sortTasks } from '@dtn/shared/task-sorting'
 
 export const Route = createFileRoute('/tasks/')({
   component: TasksList,
 })
+
+const OVERDUE = '#fb7185'
+
+const startOfToday = () => {
+  const n = new Date()
+  return new Date(n.getFullYear(), n.getMonth(), n.getDate())
+}
+
+const dayIndex = (d: Date) => {
+  const today = startOfToday()
+  return Math.round(
+    (new Date(d.getFullYear(), d.getMonth(), d.getDate()).getTime() -
+      today.getTime()) /
+      (24 * 60 * 60 * 1000),
+  )
+}
+
+type GroupLabel = {
+  label: string
+  eyebrow: string
+  overdueSuffix: string | null
+}
+
+const groupLabel = (firstTaskDue: string): GroupLabel => {
+  const d = newSafeDate(firstTaskDue)
+  const idx = dayIndex(d)
+  if (idx < 0) {
+    const days = Math.abs(idx)
+    return {
+      // Treat overdue days like any other dated group — label is the
+      // weekday, rose accent stays *only* on the trailing days-overdue
+      // tag so a long list of overdues doesn't drown the page in red.
+      label: format(d, 'EEEE'),
+      eyebrow: format(d, 'LLL d'),
+      overdueSuffix: `${days} day${days === 1 ? '' : 's'} overdue`,
+    }
+  }
+  if (idx === 0)
+    return {
+      label: 'Today',
+      eyebrow: format(d, 'EEEE, LLL d'),
+      overdueSuffix: null,
+    }
+  if (idx === 1)
+    return {
+      label: 'Tomorrow',
+      eyebrow: format(d, 'EEEE, LLL d'),
+      overdueSuffix: null,
+    }
+  return {
+    label: format(d, 'EEEE'),
+    eyebrow: format(d, 'LLL d'),
+    overdueSuffix: null,
+  }
+}
 
 function TasksList() {
   const navigate = useNavigate()
@@ -39,16 +96,12 @@ function TasksList() {
   const [sort, setSort] = useState<'CHRON' | 'TOP'>('CHRON')
   const taskElems = useRef<HTMLElement[]>([])
 
-  // Only fetch the active list — switching sort lazily fetches the other.
-  // Saves a network round-trip and a full sort pass on every Tasks mount.
   const allTasks = useAllTasks({ enabled: sort === 'CHRON' })
   const topTasks = useTopTasks({ enabled: sort === 'TOP' })
 
   const data = allTasks.data ?? []
   const dataTop = topTasks.data ?? []
 
-  // Sort + group are heavy enough on long lists to be worth memoizing;
-  // the previous code sorted/grouped on every keystroke (re-render).
   const tasks = useMemo(() => {
     const arr = sort === 'CHRON' ? [...data] : [...dataTop]
     if (sort === 'CHRON') {
@@ -56,18 +109,11 @@ function TasksList() {
         (a, b) => newSafeDate(a.due).getTime() - newSafeDate(b.due).getTime(),
       )
     } else {
-      const today = new Date(
-        new Date().getFullYear(),
-        new Date().getMonth(),
-        new Date().getDate(),
-      )
-      sortTasks(arr, today)
+      sortTasks(arr, startOfToday())
     }
     return arr
   }, [sort, data, dataTop])
 
-  // O(1) "what's this task's index in the sorted array" lookup. Replaces
-  // the per-row `indexOf(task.id)` that was O(n²) inside render.
   const indexOf = useMemo(() => {
     const m = new Map<string, number>()
     tasks.forEach((t, i) => m.set(t.id, i))
@@ -76,6 +122,7 @@ function TasksList() {
 
   const doneMutation = useCompleteTask()
   const deleteMutation = useDeleteTask()
+  const snoozeMutation = useSnoozeTask()
   const prefetchTask = usePrefetchTask()
   const primeTaskCache = usePrimeTaskCache()
 
@@ -85,277 +132,407 @@ function TasksList() {
     doneMutation.mutate(tasks[selectedTask].id)
   }
 
-  const scrollIntoView = (elem?: HTMLElement) => {
-    if (!elem) return
-    window.scrollTo({
-      behavior: 'smooth',
-      top:
-        elem.getBoundingClientRect().top -
-        document.body.getBoundingClientRect().top -
-        200,
-    })
+  const editAction = () => {
+    const t = tasks[selectedTask]
+    if (!t) return
+    primeTaskCache(t)
+    navigate({ to: '/tasks/$id/edit', params: { id: t.id } })
   }
+
+  const deleteAction = () => {
+    const t = tasks[selectedTask]
+    if (!t) return
+    if (window.confirm(`Are you sure you want to delete '${t.title}'?`))
+      deleteMutation.mutate(t.id)
+  }
+
+  const snoozeSubtasks = () => {
+    const t = tasks[selectedTask]
+    if (!t) return
+    snoozeMutation.mutate({ id: t.id, allSubtasks: true })
+  }
+
+  // Only scroll when the selected row leaves the viewport. The top-bar is
+  // ~70px and the bottom KeyHints strip ~50px — we add a little extra padding
+  // on each side so a row never feels glued to an edge before triggering.
+  useEffect(() => {
+    const el = taskElems.current[selectedTask]
+    if (!el) return
+    const rect = el.getBoundingClientRect()
+    const TOP_PAD = 120
+    const BOTTOM_PAD = 140
+    if (rect.top < TOP_PAD) {
+      window.scrollTo({
+        behavior: 'smooth',
+        top: rect.top + window.scrollY - TOP_PAD,
+      })
+    } else if (rect.bottom > window.innerHeight - BOTTOM_PAD) {
+      window.scrollTo({
+        behavior: 'smooth',
+        top: rect.bottom + window.scrollY - (window.innerHeight - BOTTOM_PAD),
+      })
+    }
+  }, [selectedTask])
 
   const keyActions: KeyAction[] = [
     { key: 'd', description: 'Mark task as done', action: completeAction },
     {
       key: 'n',
+      description: 'Home',
+      action: () => navigate({ to: '/' }),
+    },
+    {
+      key: '=',
       description: 'New task',
+      shift: true,
       action: () => navigate({ to: '/new-task' }),
+    },
+    {
+      key: 'h',
+      description: 'History',
+      action: () => navigate({ to: '/history' }),
+    },
+    {
+      key: 'a',
+      description: 'Stats',
+      action: () => navigate({ to: '/stats' }),
     },
     {
       key: 'o',
       description: 'Toggle order between date and top',
       action: () => setSort((s) => (s === 'CHRON' ? 'TOP' : 'CHRON')),
     },
+    { key: 'e', description: 'Edit task', action: editAction },
     {
-      key: 'u',
-      description: 'Update task',
-      action: () => {
-        const t = tasks[selectedTask]
-        if (!t) return
-        primeTaskCache(t)
-        navigate({ to: '/tasks/$id/edit', params: { id: t.id } })
-      },
+      key: 'S',
+      description: 'Snooze all subtasks',
+      action: snoozeSubtasks,
+      shift: true,
     },
     {
       key: 'up',
       description: 'Select previous task',
-      action: () => {
-        setSelectedTask(Math.max(selectedTask - 1, 0))
-        scrollIntoView(taskElems.current[selectedTask - 1])
-      },
+      action: () => setSelectedTask((t) => Math.max(t - 1, 0)),
     },
     {
       key: 'down',
       description: 'Select next task',
-      action: () => {
-        setSelectedTask(Math.min(selectedTask + 1, tasks.length - 1))
-        scrollIntoView(taskElems.current[selectedTask + 1])
-      },
+      action: () => setSelectedTask((t) => Math.min(t + 1, tasks.length - 1)),
     },
-    {
-      key: 'Escape',
-      description: 'Home',
-      action: () => navigate({ to: '/' }),
-    },
+    { key: 'Escape', description: 'Home', action: () => navigate({ to: '/' }) },
     {
       key: 'Backspace',
       description: 'Delete current task',
-      action: () => {
-        const t = tasks[selectedTask]
-        if (!t) return
-        if (window.confirm(`Are you sure you want to delete '${t.title}'?`))
-          deleteMutation.mutate(t.id)
-      },
+      action: deleteAction,
     },
   ]
   useKeyAction(keyActions)
 
-  const formatDate = useCallback((date: Date) => {
-    try {
-      // No off-by-one: `date` is already midnight local on the task's due
-      // date. The previous +1 here was dead compensation that shifted
-      // every group heading one day forward.
-      return format(date, 'EEEE, LLLL do, u')
-    } catch (e) {
-      console.error(e)
-      return date.toDateString()
+  const groupedChron = useMemo(() => {
+    if (sort !== 'CHRON') return []
+    const groups: Array<{ key: string; tasks: Task[] }> = []
+    for (const t of tasks) {
+      const key = t.due
+      const existing = groups[groups.length - 1]
+      if (existing && existing.key === key) existing.tasks.push(t)
+      else groups.push({ key, tasks: [t] })
     }
-  }, [])
+    return groups
+  }, [sort, tasks])
 
-  const firstTaskDueAfterToday = tasks.findIndex(
-    (task) => newSafeDate(task.due) > new Date(),
+  const firstTaskDueAfterToday = useMemo(
+    () =>
+      sort === 'TOP'
+        ? tasks.findIndex((task) => newSafeDate(task.due) > new Date())
+        : -1,
+    [sort, tasks],
   )
-  const firstSnoozedTask = tasks.findIndex(
-    (task) => task.snooze && new Date(task.snooze) > new Date(),
+  const firstSnoozedTask = useMemo(
+    () =>
+      sort === 'TOP'
+        ? tasks.findIndex(
+            (task) => task.snooze && new Date(task.snooze) > new Date(),
+          )
+        : -1,
+    [sort, tasks],
   )
+
+  const eyebrow = useMemo(() => {
+    const total = tasks.length
+    const weekStart = startOfToday()
+    weekStart.setDate(weekStart.getDate() - weekStart.getDay())
+    const weekEnd = new Date(weekStart)
+    weekEnd.setDate(weekEnd.getDate() + 7)
+    const thisWeek = tasks.filter((t) => {
+      const d = newSafeDate(t.due)
+      return d >= weekStart && d < weekEnd
+    }).length
+    return `${total} active · ${thisWeek} this week`
+  }, [tasks])
+
+  const setRef = useCallback(
+    (id: string) => (e: HTMLButtonElement | null) => {
+      const i = indexOf(id)
+      if (e && i >= 0) taskElems.current[i] = e
+    },
+    [indexOf],
+  )
+
+  const isFetching =
+    (sort === 'CHRON' && allTasks.isFetching) ||
+    (sort === 'TOP' && topTasks.isFetching)
+
+  const [sheetOpen, setSheetOpen] = useState(false)
 
   return (
-    <div className="flex h-screen flex-col">
-      <div className="flex flex-col gap-4 py-4">
-        <Progress />
-        <div className="flex flex-row flex-wrap justify-center">
-          <Button
-            onClick={() => navigate({ to: '/' })}
-            icon={faHome}
-            text="Home"
-          />
-          <Button
-            onClick={() => navigate({ to: '/new-task' })}
-            icon={faPlusCircle}
-            text="New Task"
-          />
-          <Button
-            onClick={() => setSort((s) => (s === 'CHRON' ? 'TOP' : 'CHRON'))}
-            icon={faArrowDown}
-            text="Toggle Order"
-          />
-        </div>
+    <div className="flex min-h-screen flex-col">
+      <TopBar />
+      <MobileChrome
+        sheetOpen={sheetOpen}
+        onOpenSheet={() => setSheetOpen(true)}
+        onCloseSheet={() => setSheetOpen(false)}
+      />
+
+      <div className="flex flex-col items-stretch gap-3 px-5 pt-2 pb-4 md:flex-row md:items-end md:justify-between md:gap-0 md:px-10">
+        <PageHeading eyebrow={eyebrow}>All tasks</PageHeading>
+        <SortToggle
+          sort={sort}
+          onToggle={() => setSort((s) => (s === 'CHRON' ? 'TOP' : 'CHRON'))}
+        />
       </div>
-      <div className="flex-1 overflow-y-auto">
-        <div className="mx-5 flex flex-col items-center gap-1">
-          {sort === 'CHRON' ? (
-            Object.entries(
-              tasks.reduce<Record<string, typeof tasks>>((groups, task) => {
-                const date = formatDate(newSafeDate(task.due))
-                if (!groups[date]) groups[date] = []
-                groups[date].push(task)
-                return groups
-              }, {}),
-            ).map(([date, dateTasks]) => (
-              <div key={date} className="flex w-full flex-col items-center">
-                <div
-                  className={
-                    (newSafeDate(dateTasks[0].due) <
-                    new Date(
-                      new Date().getFullYear(),
-                      new Date().getMonth(),
-                      new Date().getDate(),
-                      0,
-                      0,
-                      0,
-                    )
-                      ? 'text-orange-300'
-                      : 'text-white') +
-                    ' sticky top-0 w-full bg-black py-2 text-center text-sm md:max-w-sm'
-                  }
-                >
-                  {newSafeDate(dateTasks[0].due).toDateString()}
-                </div>
-                <div className="flex w-full flex-col items-center gap-1">
-                  {dateTasks.map((task) => (
-                    <Fragment key={task.id}>
-                      <TaskBox
-                        innerRef={(e: HTMLButtonElement) => {
-                          taskElems.current[indexOf(task.id)] = e
-                        }}
-                        isSelected={indexOf(task.id) === selectedTask}
-                        onClick={() => {
-                          primeTaskCache(task)
-                          setSelectedTask(indexOf(task.id))
-                        }}
-                        onMouseEnter={() => prefetchTask(task.id)}
-                        task={task}
-                      />
-                      {indexOf(task.id) === selectedTask && (
-                        <ActionRow
-                          completeAction={completeAction}
-                          editAction={() => {
-                            primeTaskCache(task)
-                            navigate({
-                              to: '/tasks/$id/edit',
-                              params: { id: task.id },
-                            })
-                          }}
-                          deleteAction={() =>
-                            window.confirm(
-                              `Are you sure you want to delete '${task.title}'?`,
-                            ) && deleteMutation.mutate(task.id)
-                          }
-                          completing={
-                            doneMutation.isPending &&
-                            doneMutation.variables === task.id
-                          }
-                          deleting={
-                            deleteMutation.isPending &&
-                            deleteMutation.variables === task.id
-                          }
-                        />
+
+      <div className="flex-1 overflow-y-auto px-5 pb-28 md:px-10 md:pb-24">
+        {tasks.length === 0 && !isFetching && (
+          <div className="mt-8 text-center font-mono text-sm text-zinc-500">
+            No tasks
+          </div>
+        )}
+
+        {sort === 'CHRON' ? (
+          <div className="flex flex-col gap-6">
+            {groupedChron.map(({ key, tasks: gTasks }) => {
+              const g = groupLabel(key)
+              return (
+                <div key={key}>
+                  <div className="mb-2 flex items-baseline gap-3">
+                    <span className="font-mono text-[10px] tracking-[0.3em] text-zinc-400 uppercase">
+                      {g.eyebrow}
+                      {g.overdueSuffix && (
+                        <>
+                          {' · '}
+                          <span style={{ color: OVERDUE }}>
+                            {g.overdueSuffix}
+                          </span>
+                        </>
                       )}
-                    </Fragment>
-                  ))}
+                    </span>
+                    <span
+                      className="dtn-heading text-zinc-100 uppercase"
+                      style={{ fontSize: '0.95rem', letterSpacing: '0.15em' }}
+                    >
+                      {g.label}
+                    </span>
+                    <span className="mb-1 h-px flex-1 bg-zinc-900" />
+                    <span className="font-mono text-xs text-zinc-600 tabular-nums">
+                      {gTasks.length}
+                    </span>
+                  </div>
+                  <div className="flex flex-col gap-1.5">
+                    {gTasks.map((t) => {
+                      const i = indexOf(t.id)
+                      const isSelected = i === selectedTask
+                      return (
+                        <Fragment key={t.id}>
+                          <div ref={setRef(t.id) as never}>
+                            <TaskRow
+                              task={t}
+                              selected={isSelected}
+                              onClick={() => {
+                                primeTaskCache(t)
+                                setSelectedTask(i)
+                              }}
+                              onMouseEnter={() => prefetchTask(t.id)}
+                            />
+                          </div>
+                          {isSelected && (
+                            <SelectedActions
+                              hasSubtasks={t.subtasks.length > 0}
+                              onComplete={completeAction}
+                              onEdit={editAction}
+                              onSnoozeSubtasks={snoozeSubtasks}
+                              onDelete={deleteAction}
+                            />
+                          )}
+                        </Fragment>
+                      )
+                    })}
+                  </div>
                 </div>
-              </div>
-            ))
-          ) : (
-            tasks.map((task, i) => (
-              <Fragment key={task.id}>
-                {i === firstTaskDueAfterToday && (
-                  <div className="sticky top-0 w-full bg-black py-2 text-center text-sm text-white md:max-w-sm">
-                    Due after today
+              )
+            })}
+          </div>
+        ) : (
+          <div className="flex flex-col gap-1.5">
+            {tasks.map((t, i) => {
+              const isSelected = i === selectedTask
+              return (
+                <Fragment key={t.id}>
+                  {i === firstTaskDueAfterToday && (
+                    <Separator label="Due after today" />
+                  )}
+                  {i === firstSnoozedTask && <Separator label="Snoozed" />}
+                  <div ref={setRef(t.id) as never}>
+                    <TaskRow
+                      task={t}
+                      selected={isSelected}
+                      onClick={() => {
+                        primeTaskCache(t)
+                        setSelectedTask(i)
+                      }}
+                      onMouseEnter={() => prefetchTask(t.id)}
+                    />
                   </div>
-                )}
-                {i === firstSnoozedTask && (
-                  <div className="sticky top-0 w-full bg-black py-2 text-center text-sm text-white md:max-w-sm">
-                    Snoozed
-                  </div>
-                )}
-                <TaskBox
-                  innerRef={(e: HTMLButtonElement) => {
-                    taskElems.current[i] = e
-                  }}
-                  isSelected={i === selectedTask}
-                  onClick={() => {
-                    primeTaskCache(task)
-                    setSelectedTask(i)
-                  }}
-                  onMouseEnter={() => prefetchTask(task.id)}
-                  task={task}
-                />
-                {i === selectedTask && (
-                  <ActionRow
-                    completeAction={completeAction}
-                    editAction={() => {
-                      primeTaskCache(task)
-                      navigate({
-                        to: '/tasks/$id/edit',
-                        params: { id: task.id },
-                      })
-                    }}
-                    deleteAction={() =>
-                      window.confirm(
-                        `Are you sure you want to delete '${task.title}'?`,
-                      ) && deleteMutation.mutate(task.id)
-                    }
-                    completing={
-                      doneMutation.isPending &&
-                      doneMutation.variables === task.id
-                    }
-                    deleting={
-                      deleteMutation.isPending &&
-                      deleteMutation.variables === task.id
-                    }
-                  />
-                )}
-              </Fragment>
-            ))
-          )}
-          {((sort === 'CHRON' && allTasks.isFetching) ||
-            (sort === 'TOP' && topTasks.isFetching)) && <Loading />}
-        </div>
-        <Hints keyActions={keyActions} />
+                  {isSelected && (
+                    <SelectedActions
+                      hasSubtasks={t.subtasks.length > 0}
+                      onComplete={completeAction}
+                      onEdit={editAction}
+                      onSnoozeSubtasks={snoozeSubtasks}
+                      onDelete={deleteAction}
+                    />
+                  )}
+                </Fragment>
+              )
+            })}
+          </div>
+        )}
+
+        {isFetching && (
+          <div className="mt-4 flex justify-center">
+            <Loading />
+          </div>
+        )}
+      </div>
+
+      <div className="fixed right-10 bottom-6 left-10 hidden md:block">
+        <KeyHints
+          items={[
+            ['D', 'done'],
+            ['E', 'edit'],
+            ['⌫', 'delete'],
+            ['↑↓', 'select'],
+            ['O', 'toggle sort'],
+            ['+', 'new'],
+            ['Esc', 'home'],
+          ]}
+        />
       </div>
     </div>
   )
 }
 
-const ActionRow = ({
-  completeAction,
-  editAction,
-  deleteAction,
-  completing,
-  deleting,
+const SortToggle = ({
+  sort,
+  onToggle,
 }: {
-  completeAction: () => void
-  editAction: () => void
-  deleteAction: () => void
-  completing: boolean
-  deleting: boolean
+  sort: 'CHRON' | 'TOP'
+  onToggle: () => void
 }) => (
-  <div className="flex flex-row flex-wrap justify-center py-2">
-    <Button
-      text="Complete"
-      icon={faCheckCircle}
-      onClick={completeAction}
-      loading={completing}
-    />
-    <Button text="Update" icon={faPen} onClick={editAction} />
-    <Button
-      text="Delete"
-      icon={faTrash}
-      onClick={deleteAction}
-      loading={deleting}
-    />
+  <div className="flex w-full items-center rounded-full border border-zinc-800 bg-zinc-900/60 p-1 font-mono text-sm md:inline-flex md:w-auto">
+    <SortPill label="By date" active={sort === 'CHRON'} onClick={onToggle} />
+    <SortPill label="By priority" active={sort === 'TOP'} onClick={onToggle} />
   </div>
+)
+
+const SortPill = ({
+  label,
+  active,
+  onClick,
+}: {
+  label: string
+  active: boolean
+  onClick: () => void
+}) => (
+  <button
+    type="button"
+    onClick={onClick}
+    className={
+      'flex flex-1 items-center justify-center gap-2 rounded-full px-3 py-1.5 transition-colors md:flex-none ' +
+      (active
+        ? 'bg-zinc-50 text-zinc-900'
+        : 'text-zinc-400 hover:text-zinc-100')
+    }
+  >
+    <span>{label}</span>
+    {!active && (
+      <kbd className="rounded border border-zinc-800 bg-zinc-900 px-1 py-0.5 text-[10px] font-bold text-zinc-300">
+        O
+      </kbd>
+    )}
+  </button>
+)
+
+const Separator = ({ label }: { label: string }) => (
+  <div className="mt-3 mb-1 flex items-baseline gap-3">
+    <span
+      className="dtn-heading text-zinc-100 uppercase"
+      style={{ fontSize: '0.95rem', letterSpacing: '0.15em' }}
+    >
+      {label}
+    </span>
+    <span className="mb-1 h-px flex-1 bg-zinc-900" />
+  </div>
+)
+
+const SelectedActions = ({
+  hasSubtasks,
+  onComplete,
+  onEdit,
+  onSnoozeSubtasks,
+  onDelete,
+}: {
+  hasSubtasks: boolean
+  onComplete: () => void
+  onEdit: () => void
+  onSnoozeSubtasks: () => void
+  onDelete: () => void
+}) => (
+  <div className="mb-2 ml-12 flex flex-wrap items-center gap-2">
+    <button
+      type="button"
+      onClick={onComplete}
+      className="flex items-center gap-2 rounded-full bg-zinc-50 px-4 py-2 font-mono text-sm font-semibold text-zinc-900 hover:bg-zinc-100"
+    >
+      <span>Complete</span>
+      <kbd className="rounded bg-black/15 px-1.5 py-0.5 text-[10px] font-bold">
+        D
+      </kbd>
+    </button>
+    <ActionGhost k="E" label="Edit" onClick={onEdit} />
+    {hasSubtasks && (
+      <ActionGhost k="⇧S" label="Snooze subtasks" onClick={onSnoozeSubtasks} />
+    )}
+    <ActionGhost k="⌫" label="Delete" onClick={onDelete} />
+  </div>
+)
+
+const ActionGhost = ({
+  k,
+  label,
+  onClick,
+}: {
+  k: string
+  label: string
+  onClick: () => void
+}) => (
+  <button
+    type="button"
+    onClick={onClick}
+    className="flex items-center gap-2 rounded-full border border-zinc-800 px-3 py-2 font-mono text-sm text-zinc-300 hover:bg-zinc-900 hover:text-zinc-50"
+  >
+    <kbd className="rounded border border-zinc-700 bg-zinc-900 px-1.5 py-0.5 text-[10px] font-bold text-zinc-300">
+      {k}
+    </kbd>
+    <span>{label}</span>
+  </button>
 )
