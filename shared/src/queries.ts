@@ -346,3 +346,26 @@ export function useSuggestEmojis() {
     mutationFn: (title: string) => api.tasks.suggestEmojis(title),
   })
 }
+
+// Kick off a background fetch for a task's detail. Callers attach this
+// to hover handlers so the data is in flight before the user navigates.
+export function usePrefetchTask() {
+  const qc = useQueryClient()
+  const api = useApi()
+  return (id: string) => {
+    qc.prefetchQuery({
+      queryKey: taskKeys.one(id),
+      queryFn: () => api.tasks.get(id),
+    })
+  }
+}
+
+// Copy a list-cached task into taskKeys.one(id) so the detail page
+// renders without waiting for a fetch. Idempotent — won't clobber a
+// fresher server response if a prefetch already landed.
+export function usePrimeTaskCache() {
+  const qc = useQueryClient()
+  return (task: Task) => {
+    qc.setQueryData<Task>(taskKeys.one(task.id), (prev) => prev ?? task)
+  }
+}

@@ -10,6 +10,8 @@ import {
   useAllTasks,
   useCompleteTask,
   useDeleteTask,
+  usePrefetchTask,
+  usePrimeTaskCache,
   useTopTasks,
 } from '@dtn/shared/queries'
 import { createFileRoute, useNavigate } from '@tanstack/react-router'
@@ -74,6 +76,8 @@ function TasksList() {
 
   const doneMutation = useCompleteTask()
   const deleteMutation = useDeleteTask()
+  const prefetchTask = usePrefetchTask()
+  const primeTaskCache = usePrimeTaskCache()
 
   const completeAction = () => {
     if (!tasks[selectedTask]) return
@@ -108,11 +112,10 @@ function TasksList() {
       key: 'u',
       description: 'Update task',
       action: () => {
-        if (!tasks[selectedTask]) return
-        navigate({
-          to: '/tasks/$id/edit',
-          params: { id: tasks[selectedTask].id },
-        })
+        const t = tasks[selectedTask]
+        if (!t) return
+        primeTaskCache(t)
+        navigate({ to: '/tasks/$id/edit', params: { id: t.id } })
       },
     },
     {
@@ -228,18 +231,23 @@ function TasksList() {
                           taskElems.current[indexOf(task.id)] = e
                         }}
                         isSelected={indexOf(task.id) === selectedTask}
-                        onClick={() => setSelectedTask(indexOf(task.id))}
+                        onClick={() => {
+                          primeTaskCache(task)
+                          setSelectedTask(indexOf(task.id))
+                        }}
+                        onMouseEnter={() => prefetchTask(task.id)}
                         task={task}
                       />
                       {indexOf(task.id) === selectedTask && (
                         <ActionRow
                           completeAction={completeAction}
-                          editAction={() =>
+                          editAction={() => {
+                            primeTaskCache(task)
                             navigate({
                               to: '/tasks/$id/edit',
                               params: { id: task.id },
                             })
-                          }
+                          }}
                           deleteAction={() =>
                             window.confirm(
                               `Are you sure you want to delete '${task.title}'?`,
@@ -278,18 +286,23 @@ function TasksList() {
                     taskElems.current[i] = e
                   }}
                   isSelected={i === selectedTask}
-                  onClick={() => setSelectedTask(i)}
+                  onClick={() => {
+                    primeTaskCache(task)
+                    setSelectedTask(i)
+                  }}
+                  onMouseEnter={() => prefetchTask(task.id)}
                   task={task}
                 />
                 {i === selectedTask && (
                   <ActionRow
                     completeAction={completeAction}
-                    editAction={() =>
+                    editAction={() => {
+                      primeTaskCache(task)
                       navigate({
                         to: '/tasks/$id/edit',
                         params: { id: task.id },
                       })
-                    }
+                    }}
                     deleteAction={() =>
                       window.confirm(
                         `Are you sure you want to delete '${task.title}'?`,

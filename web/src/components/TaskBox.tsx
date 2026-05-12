@@ -7,12 +7,14 @@ const TaskBoxBase = ({
   innerRef,
   isSelected,
   onClick,
+  onMouseEnter,
   task,
   title,
 }: {
   innerRef?: LegacyRef<HTMLButtonElement>
   isSelected: boolean
   onClick?: () => void
+  onMouseEnter?: () => void
   task: Task
   title?: string
 }) => {
@@ -25,6 +27,7 @@ const TaskBoxBase = ({
   return (
     <button
       onClick={onClick}
+      onMouseEnter={onMouseEnter}
       className={
         (isSelected
           ? 'border-gray-700 bg-gray-900 text-white '
