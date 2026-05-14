@@ -63,8 +63,12 @@ describe('formatDueLabel', () => {
   })
 
   it('formats other dates as iii LLL d', () => {
-    // 2026-5-15 was a Friday
-    expect(formatDueLabel('2026-5-15')).toMatch(/^Fri May 15$/)
+    // 2026-5-15 was a Friday. Inject a fixed "today" reference so the
+    // assertion doesn't drift into Today/Tomorrow/Yesterday as the
+    // wall-clock crosses these dates.
+    expect(formatDueLabel('2026-5-15', null, new Date(2026, 0, 1))).toMatch(
+      /^Fri May 15$/,
+    )
   })
 
   it('renders time-of-day instead of "Today" when dueTime is set today', () => {
@@ -75,8 +79,10 @@ describe('formatDueLabel', () => {
   })
 
   it('ignores dueTime when not due today (date wins)', () => {
-    // 2026-5-15 was a Friday
-    expect(formatDueLabel('2026-5-15', '07:00')).toMatch(/^Fri May 15$/)
+    // 2026-5-15 was a Friday — pin "today" so the test stays stable.
+    expect(
+      formatDueLabel('2026-5-15', '07:00', new Date(2026, 0, 1)),
+    ).toMatch(/^Fri May 15$/)
   })
 })
 
