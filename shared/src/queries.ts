@@ -452,9 +452,6 @@ export function registerTimerMutationDefaults(qc: QueryClient, api: ApiClient) {
     networkMode: 'offlineFirst',
     mutationFn: (vars: TimerVars) => api.tasks.timer(vars.id, vars.action),
     onMutate: async (vars: TimerVars): Promise<TimerCtx> => {
-      if (!vars.action.at) {
-        vars.action = { ...vars.action, at: new Date().toISOString() }
-      }
       await qc.cancelQueries({ queryKey: taskKeys.all })
       const issuer = findTaskInCaches(qc, vars.id)
       const targetId = issuer?.timekeeperId ?? vars.id
@@ -500,10 +497,24 @@ export function registerTimerMutationDefaults(qc: QueryClient, api: ApiClient) {
   })
 }
 
+// Wraps mutate/mutateAsync so `at` is stamped on the variables BEFORE TanStack stores them in mutation.state.variables. Stamping inside onMutate would mutate that object in-place, which races with the PQCP serialiser if the process is killed in the gap between cache-add and onMutate.
 export function useTaskTimer() {
-  return useMutation<Task, Error, TimerVars, TimerCtx>({
+  const mutation = useMutation<Task, Error, TimerVars, TimerCtx>({
     mutationKey: [...timerMutationKey],
   })
+  return {
+    ...mutation,
+    mutate: (vars: TimerVars) => mutation.mutate(stampAt(vars)),
+    mutateAsync: (vars: TimerVars) => mutation.mutateAsync(stampAt(vars)),
+  }
+}
+
+function stampAt(vars: TimerVars): TimerVars {
+  if (vars.action.at) return vars
+  return {
+    ...vars,
+    action: { ...vars.action, at: new Date().toISOString() },
+  }
 }
 
 // Debounced emoji suggestion from the TaskForm. Each call is a one-off
