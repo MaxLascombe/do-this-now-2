@@ -12,7 +12,6 @@ import {
 import { sortTasks } from '@dtn/shared/task-sorting'
 import {
   completionConfirmKind,
-  confirmMessage,
   isCompletionGated,
 } from '@dtn/shared/timer-utils'
 import { type Task } from '@dtn/shared/types'
@@ -28,6 +27,7 @@ import {
   useState,
 } from 'react'
 
+import { CountConfirmModal } from '../components/CountConfirmModal'
 import { KeyHints } from '../components/KeyHints'
 import { Loading } from '../components/Loading'
 import { MobileChrome } from '../components/MobileChrome'
@@ -134,6 +134,16 @@ function TasksList() {
   const prefetchTask = usePrefetchTask()
   const primeTaskCache = usePrimeTaskCache()
 
+  const [pendingComplete, setPendingComplete] = useState<{
+    task: Task
+    kind: 'over' | 'under'
+  } | null>(null)
+
+  const runComplete = (id: string, countMeasurement: boolean) => {
+    ding()
+    doneMutation.mutate({ id, countMeasurement })
+  }
+
   const completeAction = () => {
     const t = tasks[selectedTask]
     if (!t) return
@@ -141,11 +151,11 @@ function TasksList() {
     // Strict-fixed gate: same rule the Complete button shows visually.
     if (isCompletionGated(t, now)) return
     const kind = completionConfirmKind(t, now)
-    const countMeasurement = !kind
-      ? true
-      : window.confirm(confirmMessage(t, now, kind))
-    ding()
-    doneMutation.mutate({ id: t.id, countMeasurement })
+    if (!kind) {
+      runComplete(t.id, true)
+      return
+    }
+    setPendingComplete({ task: t, kind })
   }
 
   const editAction = () => {
@@ -449,6 +459,21 @@ function TasksList() {
           ]}
         />
       </div>
+
+      <CountConfirmModal
+        open={!!pendingComplete}
+        task={pendingComplete?.task ?? null}
+        kind={pendingComplete?.kind ?? null}
+        onCancel={() => setPendingComplete(null)}
+        onSkip={() => {
+          if (pendingComplete) runComplete(pendingComplete.task.id, false)
+          setPendingComplete(null)
+        }}
+        onCount={() => {
+          if (pendingComplete) runComplete(pendingComplete.task.id, true)
+          setPendingComplete(null)
+        }}
+      />
     </div>
   )
 }
