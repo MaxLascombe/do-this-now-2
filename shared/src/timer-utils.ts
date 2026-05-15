@@ -1,12 +1,23 @@
 import type { Task } from './types'
 
+// The React Query persister serializes the cache to localStorage /
+// AsyncStorage as JSON, which loses the Date class. On page reload the
+// rehydrated object's `timerStartedAt` arrives as an ISO string, not a
+// Date, so calling `.getTime()` on it crashes. Coerce here so every
+// callsite — widget, chip, gate, optimistic mutation — gets a Date.
+function toDateOrNull(value: Date | string | null | undefined): Date | null {
+  if (!value) return null
+  return value instanceof Date ? value : new Date(value)
+}
+
 // Shared math for the "live" elapsed seconds of a task's timer. Mirrors
 // web/src/server/lib/timer.ts.currentTimerSeconds — the same formula
 // must run on both sides so client and server agree on the value at the
 // moment Done is clicked.
 export function currentTimerSeconds(task: Task, now: Date): number {
-  if (task.timerStartedAt) {
-    const elapsed = (now.getTime() - task.timerStartedAt.getTime()) / 1000
+  const started = toDateOrNull(task.timerStartedAt)
+  if (started) {
+    const elapsed = (now.getTime() - started.getTime()) / 1000
     return Math.max(0, task.timerAccumulatedSeconds + elapsed)
   }
   return task.timerAccumulatedSeconds
