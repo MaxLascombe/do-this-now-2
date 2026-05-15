@@ -229,11 +229,14 @@ function rollback(qc: QueryClient, snap: OptimisticSnapshot | undefined) {
 
 type EnabledOpts = { enabled?: boolean }
 
-const TIMER_SYNC_INTERVAL_MS = 3000
-const listSyncInterval = (data: Task[] | undefined): number | false =>
-  data?.some((t) => t.timerStartedAt !== null) ? TIMER_SYNC_INTERVAL_MS : false
-const oneSyncInterval = (data: Task | undefined): number | false =>
-  data?.timerStartedAt ? TIMER_SYNC_INTERVAL_MS : false
+const BASELINE_SYNC_INTERVAL_MS = 10_000
+const ACTIVE_SYNC_INTERVAL_MS = 3_000
+const listSyncInterval = (data: Task[] | undefined): number =>
+  data?.some((t) => t.timerStartedAt !== null)
+    ? ACTIVE_SYNC_INTERVAL_MS
+    : BASELINE_SYNC_INTERVAL_MS
+const oneSyncInterval = (data: Task | undefined): number =>
+  data?.timerStartedAt ? ACTIVE_SYNC_INTERVAL_MS : BASELINE_SYNC_INTERVAL_MS
 
 export function useTopTasks(opts: EnabledOpts = {}) {
   const api = useApi()
