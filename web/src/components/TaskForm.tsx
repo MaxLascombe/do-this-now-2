@@ -1,11 +1,13 @@
 import { useApi } from '@dtn/shared/api-client'
 import { dateString, newSafeDate } from '@dtn/shared/helpers'
+import { useAllTasks } from '@dtn/shared/queries'
 import {
   type RepeatOption,
   type RepeatUnit,
   type RepeatWeekdays,
   type SubTask,
   type TaskInput,
+  type TimeframeType,
   taskInputSchema,
 } from '@dtn/shared/task-input'
 import { useNavigate } from '@tanstack/react-router'
@@ -71,10 +73,13 @@ const TaskForm = ({
   repeatUnit: initialRepeatUnit,
   repeatWeekdays: initialRepeatWeekdays,
   timeFrame: initialTimeFrame,
+  timekeeperId: initialTimekeeperId,
+  timeframeType: initialTimeframeType,
   subtasks: initialSubtasks,
   submitForm,
   isSaving = false,
   isEdit = false,
+  taskId,
   onDelete,
   onCancel,
 }: Partial<TaskInput> & {
@@ -82,6 +87,9 @@ const TaskForm = ({
   submitForm: (input: TaskInput) => void
   isSaving?: boolean
   isEdit?: boolean
+  // Required in edit mode so we can exclude the task from its own
+  // keeper-candidate list. Optional on new-task (no current task yet).
+  taskId?: string
   onDelete?: () => void
   onCancel?: () => void
 }) => {
@@ -115,6 +123,12 @@ const TaskForm = ({
     initialRepeatWeekdays ?? [false, false, false, false, false, false, false],
   )
   const [timeFrame, setTimeFrame] = useState(initialTimeFrame ?? 0)
+  const [timekeeperId, setTimekeeperId] = useState<string | null>(
+    (initialTimekeeperId ?? null) as string | null,
+  )
+  const [timeframeType, setTimeframeType] = useState<TimeframeType>(
+    (initialTimeframeType as TimeframeType | undefined) ?? 'fixed',
+  )
 
   const nextSubtaskKey = useRef(0)
   const newKey = () => `s${++nextSubtaskKey.current}`
@@ -195,6 +209,8 @@ const TaskForm = ({
       repeatUnit,
       repeatWeekdays,
       timeFrame,
+      timekeeperId,
+      timeframeType,
       subtasks,
     })
     if (!input.success) return setFormError(input.error)
@@ -244,12 +260,34 @@ const TaskForm = ({
   useKeyAction(keyActions)
 
   const dueDate = newSafeDate(due)
-  const hours = Math.floor(timeFrame / 60)
-  const minutes = timeFrame % 60
-  const stepMins = (delta: number) =>
-    setTimeFrame(Math.max(0, timeFrame + delta))
-  const stepHours = (delta: number) =>
-    setTimeFrame(Math.max(0, timeFrame + delta * 60))
+  // Time frame is stored as decimal minutes after the timer redesign; UI
+  // rounds up so a 30.4-min EMA still reads "31 min" rather than "30".
+  const displayedMinutes = Math.ceil(timeFrame)
+  const stepMins = (delta: number) => {
+    const next = Math.max(0, Math.round(timeFrame) + delta)
+    setTimeFrame(next)
+    // Keep the XOR invariant: positive timeFrame implies no keeper.
+    if (next > 0 && timekeeperId !== null) setTimekeeperId(null)
+  }
+
+  // Eligible timekeepers: this user's fixed-type tasks with a positive
+  // time frame, excluding the current task (a task can't be its own
+  // keeper — the DB CHECK enforces this too).
+  const allTasksQuery = useAllTasks({ enabled: timeFrame === 0 })
+  const keeperCandidates = (allTasksQuery.data ?? [])
+    .filter(
+      (t) =>
+        t.timeframeType === 'fixed' &&
+        t.timeFrame > 0 &&
+        (!taskId || t.id !== taskId),
+    )
+    .sort((a, b) => a.title.localeCompare(b.title))
+  const [keeperFilter, setKeeperFilter] = useState('')
+  const filteredKeepers = keeperFilter.trim()
+    ? keeperCandidates.filter((t) =>
+        t.title.toLowerCase().includes(keeperFilter.trim().toLowerCase()),
+      )
+    : keeperCandidates
 
   return (
     <form
@@ -460,40 +498,118 @@ const TaskForm = ({
             )}
           </Field>
 
-          <div className="grid grid-cols-1 gap-6 md:grid-cols-[1.6fr_1fr]">
-            <Field label="Time frame">
-              <div className="flex items-center gap-3 font-mono">
-                <Stepper onClick={() => stepHours(-1)} disabled={hours === 0}>
-                  −
-                </Stepper>
-                <span
-                  className="dtn-heading tabular-nums"
-                  style={{ fontSize: '1.5rem', minWidth: '2ch', textAlign: 'right' }}
-                >
-                  {hours}
-                </span>
-                <span className="text-xs text-zinc-500">hrs</span>
-                <Stepper onClick={() => stepHours(1)}>+</Stepper>
-                <span className="mx-1 text-zinc-700">·</span>
-                <Stepper onClick={() => stepMins(-15)} disabled={timeFrame === 0}>
-                  −
-                </Stepper>
-                <span
-                  className="dtn-heading tabular-nums"
-                  style={{ fontSize: '1.5rem', minWidth: '2.5ch', textAlign: 'right' }}
-                >
-                  {minutes}
-                </span>
-                <span className="text-xs text-zinc-500">mins</span>
-                <Stepper onClick={() => stepMins(15)}>+</Stepper>
+          <Field
+            label="Time frame"
+            trailing={timeFrame === 0 ? 'tracked under another task' : 'minutes'}
+          >
+            <div className="flex flex-wrap items-center gap-2 font-mono">
+              <Stepper
+                onClick={() => stepMins(-15)}
+                disabled={timeFrame === 0}
+              >
+                −15
+              </Stepper>
+              <Stepper onClick={() => stepMins(-1)} disabled={timeFrame === 0}>
+                −1
+              </Stepper>
+              <span
+                className="dtn-heading tabular-nums"
+                style={{
+                  fontSize: '1.5rem',
+                  minWidth: '4ch',
+                  textAlign: 'center',
+                }}
+              >
+                {displayedMinutes}
+              </span>
+              <Stepper onClick={() => stepMins(1)}>+1</Stepper>
+              <Stepper onClick={() => stepMins(15)}>+15</Stepper>
+            </div>
+            {errors.timeFrame && (
+              <div className="mt-2 font-mono text-xs text-rose-400">
+                {errors.timeFrame as string}
+              </div>
+            )}
+          </Field>
+
+          {timeFrame > 0 ? (
+            <Field label="Time frame type">
+              <div className="flex flex-col gap-2">
+                <TimeframeTypeOption
+                  active={timeframeType === 'fixed'}
+                  label="Fixed — target time"
+                  description="The time frame is the goal. If you overshoot, the extra rolls into the next instance. Best for habits where the time itself is the point (read 30 min/day)."
+                  onClick={() => setTimeframeType('fixed')}
+                />
+                <TimeframeTypeOption
+                  active={timeframeType === 'fluid'}
+                  label="Fluid — measured time"
+                  description="The time frame is a live estimate. Each completion self-tunes the value via a 14-day rolling average. Best when you want a realistic recurring estimate (workout, design review)."
+                  onClick={() => setTimeframeType('fluid')}
+                />
               </div>
             </Field>
-            <Field label="Strict deadline?">
-              <div className="flex items-center gap-3 font-mono">
-                <Toggle on={strictDeadline} onChange={setStrictDeadline} />
+          ) : (
+            <Field
+              label="Tracked under"
+              trailing={
+                timekeeperId ? null : 'pick a task whose timer covers this one'
+              }
+            >
+              <input
+                type="text"
+                value={keeperFilter}
+                onChange={(e) => setKeeperFilter(e.target.value)}
+                placeholder="Search keepers…"
+                className="mb-2 w-full rounded-lg border border-zinc-800 bg-zinc-900/60 px-3 py-2 text-sm text-zinc-100 outline-none focus:border-zinc-600"
+              />
+              <div className="flex max-h-72 flex-col gap-1 overflow-y-auto">
+                {filteredKeepers.length === 0 ? (
+                  <div className="font-mono text-xs text-zinc-500">
+                    {allTasksQuery.isPending
+                      ? 'Loading…'
+                      : 'No matching keepers. Create one with a positive time frame first.'}
+                  </div>
+                ) : (
+                  filteredKeepers.map((t) => {
+                    const selected = timekeeperId === t.id
+                    return (
+                      <button
+                        key={t.id}
+                        type="button"
+                        onClick={() => setTimekeeperId(t.id)}
+                        className={
+                          'flex items-center gap-3 rounded-xl border px-3 py-2 text-left transition-colors ' +
+                          (selected
+                            ? 'border-zinc-100 bg-zinc-100/10'
+                            : 'border-zinc-800 bg-zinc-900/40 hover:border-zinc-700')
+                        }
+                      >
+                        <span className="text-xl leading-none">{t.emoji}</span>
+                        <span className="flex-1 truncate font-mono text-sm text-zinc-100">
+                          {t.title}
+                        </span>
+                        <span className="font-mono text-xs text-zinc-500 tabular-nums">
+                          {Math.ceil(t.timeFrame)}m
+                        </span>
+                      </button>
+                    )
+                  })
+                )}
               </div>
+              {errors.timekeeperId && (
+                <div className="mt-2 font-mono text-xs text-rose-400">
+                  {errors.timekeeperId as string}
+                </div>
+              )}
             </Field>
-          </div>
+          )}
+
+          <Field label="Strict deadline?">
+            <div className="flex items-center gap-3 font-mono">
+              <Toggle on={strictDeadline} onChange={setStrictDeadline} />
+            </div>
+          </Field>
 
           <Field
             label="Subtasks"
@@ -672,9 +788,44 @@ const Stepper = ({
     type="button"
     onClick={onClick}
     disabled={disabled}
-    className="flex h-8 w-8 items-center justify-center rounded-full border border-zinc-800 text-base leading-none text-zinc-300 hover:border-zinc-600 disabled:opacity-30 disabled:hover:border-zinc-800"
+    className="flex h-8 min-w-[2rem] items-center justify-center rounded-full border border-zinc-800 px-2 font-mono text-xs leading-none text-zinc-300 hover:border-zinc-600 disabled:opacity-30 disabled:hover:border-zinc-800"
   >
     {children}
+  </button>
+)
+
+const TimeframeTypeOption = ({
+  active,
+  label,
+  description,
+  onClick,
+}: {
+  active: boolean
+  label: string
+  description: string
+  onClick: () => void
+}) => (
+  <button
+    type="button"
+    onClick={onClick}
+    className={
+      'rounded-xl border px-4 py-3 text-left font-mono transition-colors ' +
+      (active
+        ? 'border-zinc-100 bg-zinc-100/10'
+        : 'border-zinc-800 bg-zinc-900/40 hover:border-zinc-700')
+    }
+    aria-pressed={active}
+  >
+    <div className="flex items-center gap-2">
+      <span
+        className={
+          'h-3 w-3 rounded-full border ' +
+          (active ? 'border-zinc-50 bg-zinc-50' : 'border-zinc-600')
+        }
+      />
+      <span className="text-sm font-semibold text-zinc-100">{label}</span>
+    </div>
+    <p className="mt-1 pl-5 text-xs leading-5 text-zinc-500">{description}</p>
   </button>
 )
 

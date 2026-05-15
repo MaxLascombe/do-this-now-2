@@ -15,6 +15,50 @@ export {
   type TaskInput,
 } from '@dtn/shared/task-input'
 
+// Two keeper-rules are enforced app-side (they need a DB read so can't be
+// CHECK constraints): the keeper must itself be a fixed, non-zero-time
+// task. Throws a friendly Error with a 400-shaped message that the REST
+// route surfaces verbatim.
+async function assertKeeperEligible(
+  userId: string,
+  keeperId: string,
+  conn:
+    | typeof db
+    | Parameters<Parameters<typeof db.transaction>[0]>[0] = db,
+): Promise<void> {
+  const [keeper] = await conn
+    .select()
+    .from(tasks)
+    .where(and(eq(tasks.userId, userId), eq(tasks.id, keeperId)))
+    .limit(1)
+  if (!keeper) {
+    throw new Error('Timekeeper not found')
+  }
+  if (keeper.timeframeType !== 'fixed') {
+    throw new Error('Timekeeper must be a fixed-type task')
+  }
+  if (!(keeper.timeFrame > 0)) {
+    throw new Error('Timekeeper must have a non-zero time frame')
+  }
+}
+
+// Count children (tasks pointing at `id` as their timekeeper). Used by
+// updateTask + deleteTask to refuse incompatible changes with a clear
+// message before Postgres' FK RESTRICT bites us.
+async function countChildren(
+  userId: string,
+  id: string,
+  conn:
+    | typeof db
+    | Parameters<Parameters<typeof db.transaction>[0]>[0] = db,
+): Promise<number> {
+  const rows = await conn
+    .select({ id: tasks.id })
+    .from(tasks)
+    .where(and(eq(tasks.userId, userId), eq(tasks.timekeeperId, id)))
+  return rows.length
+}
+
 export async function listTasks(userId: string): Promise<Task[]> {
   return db.select().from(tasks).where(eq(tasks.userId, userId))
 }
@@ -45,11 +89,16 @@ export async function createTask(
   userId: string,
   input: TaskInput,
 ): Promise<Task> {
-  const [row] = await db
-    .insert(tasks)
-    .values({ ...input, userId })
-    .returning()
-  return row
+  return db.transaction(async (tx) => {
+    if (input.timekeeperId) {
+      await assertKeeperEligible(userId, input.timekeeperId, tx)
+    }
+    const [row] = await tx
+      .insert(tasks)
+      .values({ ...input, userId })
+      .returning()
+    return row
+  })
 }
 
 export async function updateTask(
@@ -57,20 +106,53 @@ export async function updateTask(
   id: string,
   input: TaskInput,
 ): Promise<Task | null> {
-  const [row] = await db
-    .update(tasks)
-    .set({ ...input, updatedAt: new Date() })
-    .where(and(eq(tasks.userId, userId), eq(tasks.id, id)))
-    .returning()
-  return row ?? null
+  return db.transaction(async (tx) => {
+    if (input.timekeeperId) {
+      // Self-reference is also blocked by the CHECK constraint, but check
+      // here too for a friendlier error.
+      if (input.timekeeperId === id) {
+        throw new Error('A task cannot be its own timekeeper')
+      }
+      await assertKeeperEligible(userId, input.timekeeperId, tx)
+    }
+    // If this task is itself a keeper (has children), block transitions
+    // that would invalidate the keeper rules: can't go fluid, can't go
+    // zero-time. Force the user to detach children first.
+    const childCount = await countChildren(userId, id, tx)
+    if (childCount > 0) {
+      if (input.timeframeType !== 'fixed') {
+        throw new Error(
+          `${childCount} task${childCount === 1 ? '' : 's'} track time under this one — detach them before switching to fluid.`,
+        )
+      }
+      if (input.timeFrame === 0) {
+        throw new Error(
+          `${childCount} task${childCount === 1 ? '' : 's'} track time under this one — detach them before removing the time frame.`,
+        )
+      }
+    }
+    const [row] = await tx
+      .update(tasks)
+      .set({ ...input, updatedAt: new Date() })
+      .where(and(eq(tasks.userId, userId), eq(tasks.id, id)))
+      .returning()
+    return row ?? null
+  })
 }
 
 export async function deleteTask(userId: string, id: string): Promise<void> {
   // Record the 'deleted' event BEFORE the actual DELETE — the FK on
   // task_events.task_id sets to NULL on cascade, so the event row
   // survives, but inserting before keeps the link populated while the
-  // task exists.
+  // task exists. Also surface a friendly error when the DB's FK RESTRICT
+  // would block the delete (this task is a keeper for other tasks).
   await db.transaction(async (tx) => {
+    const childCount = await countChildren(userId, id, tx)
+    if (childCount > 0) {
+      throw new Error(
+        `Can't delete: ${childCount} task${childCount === 1 ? '' : 's'} track time under this one. Detach them first.`,
+      )
+    }
     await tx
       .insert(taskEvents)
       .values({ userId, taskId: id, kind: 'deleted' })
