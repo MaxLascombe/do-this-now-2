@@ -10,10 +10,12 @@ import {
 } from '@dtn/shared/schema'
 import { DAY_MS } from '@dtn/shared/time'
 import { db } from '../../db'
+import { rowCreditMinutes } from './history-credit'
 
 export type StatsResult = {
   // Calendar heatmap: last 182 days (26 weeks ≈ 6 months), oldest first.
-  // `minutes` is the sum of completed task timeFrames that day.
+  // `minutes` is the sum of per-row credits that day, where each row's
+  // credit is max(planned, actual) — see rowCreditMinutes.
   // `hit` is true iff that day's target was met (we derive it from the
   // existence of a daily_progress row for d+1, which is only written when
   // the prior day's target was actually hit). Client colors a 4-tier
@@ -120,10 +122,12 @@ export async function getStats(
   }
 
   // --- minutes-by-day aggregation (used by heatmap + last30Days) -----
+  // Per-row credit = max(planned, actual). actualSeconds is null on
+  // pre-timer rows; fall back to the snapshot's timeFrame in that case.
   const minutesByDay = new Map<string, number>()
   for (const row of historyRows) {
     const key = localDateKey(row.completedAt.getTime(), tzOffsetMin)
-    const min = row.taskSnapshot?.timeFrame ?? 0
+    const min = rowCreditMinutes(row)
     minutesByDay.set(key, (minutesByDay.get(key) ?? 0) + min)
   }
 

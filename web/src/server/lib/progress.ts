@@ -9,6 +9,7 @@ import {
   newSafeDate,
 } from '@dtn/shared/helpers'
 import { DAY_MS } from '@dtn/shared/time'
+import { rowCreditMinutes } from './history-credit'
 
 // "todo" target floor: never report less than this many minutes of work for
 // the day even if the actual due tasks total less — keeps the bar moving.
@@ -199,8 +200,11 @@ async function loadProgressInputs(
     db.select().from(tasks).where(eq(tasks.userId, userId)),
   ])
 
+  // Per-row credit = max(planned, actual) — see rowCreditMinutes. Pre-
+  // timer rows still credit their snapshot's timeFrame via the null-
+  // fallback.
   const completedTodayMin = completedToday.reduce(
-    (acc, row) => acc + (row.taskSnapshot.timeFrame ?? 0),
+    (acc, row) => acc + rowCreditMinutes(row),
     0,
   )
 
