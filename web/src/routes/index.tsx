@@ -9,9 +9,13 @@ import {
 } from '@dtn/shared/queries'
 import { isSnoozed } from '@dtn/shared/task-sorting'
 import { minutesToHours } from '@dtn/shared/time'
+import {
+  currentTimerSeconds,
+  isCompletionGated,
+} from '@dtn/shared/timer-utils'
 import { type Task } from '@dtn/shared/types'
 import { createFileRoute, useNavigate } from '@tanstack/react-router'
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 
 
 
@@ -101,6 +105,10 @@ function Home() {
 
   const completeTaskAction = () => {
     if (!selectedTask) return
+    // Strict-fixed gate: a repeating fixed task can't be marked done
+    // until the timer hits the target. Same rule the Done button
+    // displays as disabled; this catches the keyboard shortcut.
+    if (isCompletionGated(selectedTask, new Date())) return
     ding()
     doneMutation.mutate(selectedTask.id)
   }
@@ -302,6 +310,21 @@ function Hero({
   )
   const titleText = nextSub?.title ?? task.title
 
+  // Tick "now" every second while the timer is running so the Done
+  // gate re-evaluates without the user having to do anything. When the
+  // timer is paused we don't need the interval since the gate state
+  // doesn't change.
+  const [now, setNow] = useState(() => new Date())
+  useEffect(() => {
+    if (!task.timerStartedAt) return
+    const t = setInterval(() => setNow(new Date()), 1000)
+    return () => clearInterval(t)
+  }, [task.timerStartedAt])
+  const gated = isCompletionGated(task, now)
+  const remainingSec = gated
+    ? Math.ceil(task.timeFrame * 60 - currentTimerSeconds(task, now))
+    : 0
+
   return (
     <div className="flex flex-1 flex-col items-center justify-center px-5 pb-8 md:px-16 md:pb-48">
       <div className="mb-4 text-center font-mono text-[10px] tracking-[0.2em] text-zinc-500 uppercase md:mb-6 md:text-xs">
@@ -347,10 +370,18 @@ function Hero({
       <button
         type="button"
         onClick={onComplete}
-        className="mt-8 flex w-full max-w-[320px] items-center justify-center gap-3 rounded-full bg-white px-8 py-3.5 font-mono text-lg font-semibold text-black transition-colors hover:bg-zinc-100 md:mt-12 md:w-auto md:max-w-none md:gap-4 md:px-10 md:py-5 md:text-xl"
+        disabled={gated}
+        title={
+          gated
+            ? `Run the timer to ${Math.ceil(task.timeFrame)} min — ${Math.ceil(
+                remainingSec / 60,
+              )} min to go`
+            : undefined
+        }
+        className="mt-8 flex w-full max-w-[320px] items-center justify-center gap-3 rounded-full bg-white px-8 py-3.5 font-mono text-lg font-semibold text-black transition-colors hover:bg-zinc-100 disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:bg-white md:mt-12 md:w-auto md:max-w-none md:gap-4 md:px-10 md:py-5 md:text-xl"
         style={{ boxShadow: '0 0 80px rgba(255, 255, 255, 0.1)' }}
       >
-        <span>Done</span>
+        <span>{gated ? `${Math.ceil(remainingSec / 60)} min to go` : 'Done'}</span>
         <Kbd variant="on-light">D</Kbd>
       </button>
 

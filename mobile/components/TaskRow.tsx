@@ -86,7 +86,22 @@ export function TaskRow({
           <Text style={{ color: ACCENT, fontSize: 14, lineHeight: 14 }}>✓</Text>
         </View>
       )}
-      <Text style={{ fontSize: 22, lineHeight: 24 }}>{task.emoji}</Text>
+      <View>
+        <Text style={{ fontSize: 22, lineHeight: 24 }}>{task.emoji}</Text>
+        {task.timerStartedAt && (
+          <View
+            style={{
+              position: 'absolute',
+              top: -2,
+              right: -3,
+              width: 8,
+              height: 8,
+              borderRadius: 4,
+              backgroundColor: ACCENT,
+            }}
+          />
+        )}
+      </View>
       <View style={{ flex: 1, minWidth: 0 }}>
         <Text
           numberOfLines={1}

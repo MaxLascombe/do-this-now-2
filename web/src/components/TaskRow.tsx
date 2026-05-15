@@ -53,7 +53,20 @@ const TaskRowBase = ({
         (dim ? ' opacity-70' : '')
       }
     >
-      <span className="text-2xl leading-none">{task.emoji}</span>
+      <span className="relative text-2xl leading-none">
+        {task.emoji}
+        {task.timerStartedAt && (
+          <span
+            className="absolute -top-1 -right-1 h-2 w-2 rounded-full"
+            style={{
+              background: '#34d399',
+              boxShadow: '0 0 6px rgba(52,211,153,0.7)',
+              animation: 'pulse 1.4s ease-in-out infinite',
+            }}
+            title="Timer running"
+          />
+        )}
+      </span>
       <div className="min-w-0 flex-1">
         <div
           className={
