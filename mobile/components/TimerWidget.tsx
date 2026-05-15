@@ -1,23 +1,17 @@
 import { useTaskTimer } from '@dtn/shared/queries'
-import { currentTimerSeconds } from '@dtn/shared/timer-utils'
+import {
+  currentTimerSeconds,
+  formatTimerSeconds,
+} from '@dtn/shared/timer-utils'
 import { type Task } from '@dtn/shared/types'
 import { useEffect, useState } from 'react'
 import { Alert, Pressable, Text, View } from 'react-native'
 
 import { PulseDot } from './PulseDot'
+import { TimerAdjustModal } from './TimerAdjustModal'
 
 const ACCENT = '#34d399'
 const STREAK = '#f59e0b'
-
-function formatTimerSeconds(s: number): string {
-  const total = Math.max(0, Math.floor(s))
-  const h = Math.floor(total / 3600)
-  const m = Math.floor((total % 3600) / 60)
-  const sec = total % 60
-  const pad = (n: number) => (n < 10 ? '0' + n : '' + n)
-  if (h > 0) return `${h}:${pad(m)}:${pad(sec)}`
-  return `${pad(m)}:${pad(sec)}`
-}
 
 export function TimerWidget({
   task,
@@ -62,59 +56,101 @@ export function TimerWidget({
     ])
   }
 
+  const [adjustOpen, setAdjustOpen] = useState(false)
+
   if (compact) {
     return (
-      <View
-        style={{
-          flexDirection: 'row',
-          alignItems: 'center',
-          justifyContent: 'space-between',
-          borderRadius: 16,
-          borderWidth: 1,
-          borderColor: running ? ACCENT : '#27272a',
-          backgroundColor: 'rgba(24,24,27,0.4)',
-          paddingHorizontal: 18,
-          paddingVertical: 12,
-        }}
-      >
-        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
-          {running && <PulseDot color={ACCENT} />}
-          <Text
-            style={{
-              fontFamily: 'JetBrainsMono_700Bold',
-              color: running ? ACCENT : '#fafafa',
-              fontSize: 30,
-              lineHeight: 32,
-            }}
-          >
-            {formatTimerSeconds(seconds)}
-          </Text>
-        </View>
-        <Pressable
-          onPress={() => dispatch(running ? 'pause' : 'start')}
-          disabled={timer.isPending}
-          accessibilityLabel={running ? 'Pause timer' : 'Start timer'}
-          style={({ pressed }) => ({
-            width: 44,
-            height: 44,
-            borderRadius: 22,
+      <>
+        <View
+          style={{
+            flexDirection: 'row',
             alignItems: 'center',
-            justifyContent: 'center',
-            backgroundColor: running
-              ? pressed
-                ? '#d97706'
-                : '#f59e0b'
-              : pressed
-                ? '#e4e4e7'
-                : '#fafafa',
-            opacity: timer.isPending ? 0.6 : 1,
-          })}
+            justifyContent: 'space-between',
+            borderRadius: 16,
+            borderWidth: 1,
+            borderColor: running ? ACCENT : '#27272a',
+            backgroundColor: 'rgba(24,24,27,0.4)',
+            paddingHorizontal: 18,
+            paddingVertical: 12,
+          }}
         >
-          <Text style={{ color: '#0a0a0a', fontSize: 16 }}>
-            {running ? '⏸' : '▶'}
-          </Text>
-        </Pressable>
-      </View>
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
+            {running && <PulseDot color={ACCENT} />}
+            <Text
+              style={{
+                fontFamily: 'JetBrainsMono_700Bold',
+                color: running ? ACCENT : '#fafafa',
+                fontSize: 30,
+                lineHeight: 32,
+              }}
+            >
+              {formatTimerSeconds(seconds)}
+            </Text>
+          </View>
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+            <Pressable
+              onPress={() => setAdjustOpen(true)}
+              disabled={timer.isPending}
+              accessibilityLabel="Adjust timer"
+              style={({ pressed }) => ({
+                width: 36,
+                height: 36,
+                borderRadius: 18,
+                borderWidth: 1,
+                borderColor: '#27272a',
+                alignItems: 'center',
+                justifyContent: 'center',
+                opacity: timer.isPending ? 0.3 : pressed ? 0.7 : 1,
+              })}
+            >
+              <Text
+                style={{
+                  fontFamily: 'JetBrainsMono_400Regular',
+                  color: '#d4d4d8',
+                  fontSize: 16,
+                }}
+              >
+                ±
+              </Text>
+            </Pressable>
+            <Pressable
+              onPress={() => dispatch(running ? 'pause' : 'start')}
+              disabled={timer.isPending}
+              accessibilityLabel={running ? 'Pause timer' : 'Start timer'}
+              style={({ pressed }) => ({
+                width: 44,
+                height: 44,
+                borderRadius: 22,
+                alignItems: 'center',
+                justifyContent: 'center',
+                backgroundColor: running
+                  ? pressed
+                    ? '#d97706'
+                    : '#f59e0b'
+                  : pressed
+                    ? '#e4e4e7'
+                    : '#fafafa',
+                opacity: timer.isPending ? 0.6 : 1,
+              })}
+            >
+              <Text style={{ color: '#0a0a0a', fontSize: 16 }}>
+                {running ? '⏸' : '▶'}
+              </Text>
+            </Pressable>
+          </View>
+        </View>
+        <TimerAdjustModal
+          open={adjustOpen}
+          seconds={seconds}
+          disabled={timer.isPending}
+          onAdd={(m) => add(m * 60)}
+          onClear={() => {
+            dispatch('reset')
+            setAdjustOpen(false)
+          }}
+          onClose={() => setAdjustOpen(false)}
+        />
+      </>
     )
   }
 

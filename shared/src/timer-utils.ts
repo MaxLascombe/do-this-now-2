@@ -5,6 +5,16 @@ export function ceilTaskTime<T extends Pick<Task, 'timeFrame'>>(task: T): T {
   return { ...task, timeFrame: Math.ceil(task.timeFrame) }
 }
 
+export function formatTimerSeconds(s: number): string {
+  const total = Math.max(0, Math.floor(s))
+  const h = Math.floor(total / 3600)
+  const m = Math.floor((total % 3600) / 60)
+  const sec = total % 60
+  const pad = (n: number) => (n < 10 ? '0' + n : '' + n)
+  if (h > 0) return `${h}:${pad(m)}:${pad(sec)}`
+  return `${pad(m)}:${pad(sec)}`
+}
+
 // The React Query persister serializes the cache to localStorage /
 // AsyncStorage as JSON, which loses the Date class. On page reload the
 // rehydrated object's `timerStartedAt` arrives as an ISO string, not a
