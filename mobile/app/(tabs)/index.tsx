@@ -1,4 +1,5 @@
 import { isSnoozed } from '@dtn/shared/task-sorting'
+import { willAdvanceSubtask } from '@dtn/shared/task-transitions'
 import {
   useCompleteTask,
   useDeleteTask,
@@ -58,14 +59,17 @@ export default function Home() {
     }
     const now = new Date()
     if (isCompletionGated(t, now)) return
+    if (willAdvanceSubtask(t, now)) {
+      void ding()
+      doneMutation.mutate({ id })
+      return
+    }
     const kind = completionConfirmKind(t, now)
     if (!kind) {
       void ding()
       doneMutation.mutate({ id })
       return
     }
-    // 3-button alert: Cancel / Don't count / Count it. Both action
-    // buttons complete the task; only the EMA-update path differs.
     Alert.alert('Count this time?', confirmMessage(t, now, kind), [
       { text: 'Cancel', style: 'cancel' },
       {
@@ -224,6 +228,7 @@ function Hero({
   const remainingMin = gated
     ? Math.ceil((task.timeFrame * 60 - currentTimerSeconds(task, now)) / 60)
     : 0
+  const advance = willAdvanceSubtask(task, now)
 
   return (
     <View style={{ paddingHorizontal: 20, paddingTop: 16 }}>
@@ -325,7 +330,7 @@ function Hero({
             letterSpacing: 0.5,
           }}
         >
-          {gated ? `${remainingMin} min to go` : 'Complete'}
+          {gated ? `${remainingMin} min to go` : advance ? 'Subtask Done' : 'Complete'}
         </Text>
       </Pressable>
 
