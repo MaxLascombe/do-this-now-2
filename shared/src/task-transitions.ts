@@ -71,6 +71,11 @@ export type FullCompletionInput = {
   task: Task
   actualSeconds: number
   now: Date
+  // When false, skip the fluid EMA update entirely — the user explicitly
+  // chose "don't count this measurement" in the over/under confirm. The
+  // task still completes, history rows still write; only the running
+  // estimate is preserved as-is. Default true (normal completion path).
+  countMeasurement?: boolean
 }
 
 export type FullCompletionResult = {
@@ -101,6 +106,7 @@ export function applyFullCompletion(
 ): FullCompletionResult {
   const { task, now } = input
   const actualSeconds = Math.max(0, input.actualSeconds)
+  const countMeasurement = input.countMeasurement ?? true
   const repeating = task.repeat !== 'No Repeat'
 
   // Children of a timekeeper have no timer of their own. Treat their
@@ -131,14 +137,18 @@ export function applyFullCompletion(
     }
   }
 
-  // Fluid: 1 completion. If the timer ran, update the time-frame via the
-  // 14-period EMA bootstrap (n<14 = true running avg, n≥14 = 13/14 EMA)
-  // and bump the measurement counter. If the timer is at 0, the user
-  // completed without tracking — skip both updates.
+  // Fluid: 1 completion. Update the time-frame via the 14-period EMA
+  // bootstrap (n<14 = true running avg, n≥14 = 13/14 EMA) and bump the
+  // measurement counter. The user-facing "don't count" choice in the
+  // over/under confirm sets countMeasurement=false to skip the update —
+  // useful when the timer ran wrong (forgot to pause / forgot to start)
+  // and recording it would pollute the estimate. Zero seconds DOES count
+  // when countMeasurement is true: completing an overdue instance with 0
+  // pulls the average down to reflect that the work was front-loaded.
   if (task.timeframeType === 'fluid') {
     let newTimeFrame = task.timeFrame
     let newMeasurementCount = task.measurementCount
-    if (actualSeconds > 0) {
+    if (countMeasurement) {
       const actualMinutes = actualSeconds / 60
       const n = task.measurementCount
       if (n === 0) newTimeFrame = actualMinutes

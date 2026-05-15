@@ -73,9 +73,10 @@ function createMobileApi(
         call<Task>(`/api/tasks/${id}`, { method: 'PUT', body: input }),
       delete: (id) =>
         call<Record<string, never>>(`/api/tasks/${id}`, { method: 'DELETE' }),
-      complete: (id) =>
+      complete: (id, opts) =>
         call<{ advanced: boolean }>(`/api/tasks/${id}/complete`, {
           method: 'POST',
+          body: { countMeasurement: opts?.countMeasurement ?? true },
         }),
       snooze: (id, allSubtasks = false) =>
         call<{ scope: 'subtask' | 'task' }>(`/api/tasks/${id}/snooze`, {

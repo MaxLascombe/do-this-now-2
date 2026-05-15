@@ -32,6 +32,7 @@ export async function completeTask(
   userId: string,
   id: string,
   tzOffsetMin: number,
+  countMeasurement: boolean = true,
 ): Promise<{ advanced: boolean }> {
   // The history insert + task update/delete must be atomic — without a
   // transaction, a double-tap on "Done" can race: two history rows for
@@ -60,7 +61,12 @@ export async function completeTask(
     // carryover seconds for the next instance, and whether the task row
     // should be updated or deleted.
     const actualSeconds = currentTimerSeconds(task, now)
-    const result = applyFullCompletion({ task, actualSeconds, now })
+    const result = applyFullCompletion({
+      task,
+      actualSeconds,
+      now,
+      countMeasurement,
+    })
 
     // All N history rows share the same snapshot. Inserting in a single
     // .values([...]) call so Drizzle batches into one INSERT.

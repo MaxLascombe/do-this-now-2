@@ -11,6 +11,7 @@ import {
 import { isSnoozed } from '@dtn/shared/task-sorting'
 import { minutesToHours } from '@dtn/shared/time'
 import {
+  completionConfirmKind,
   currentTimerSeconds,
   isCompletionGated,
 } from '@dtn/shared/timer-utils'
@@ -20,6 +21,7 @@ import { useEffect, useState } from 'react'
 
 
 
+import { CountConfirmModal } from '../components/CountConfirmModal'
 import { Loading } from '../components/Loading'
 import { MobileChrome } from '../components/MobileChrome'
 import { TaskRow } from '../components/TaskRow'
@@ -105,14 +107,31 @@ function Home() {
   const prefetchTask = usePrefetchTask()
   const primeTaskCache = usePrimeTaskCache()
 
+  const [pendingComplete, setPendingComplete] = useState<{
+    task: Task
+    kind: 'over' | 'under'
+  } | null>(null)
+
+  const runComplete = (id: string, countMeasurement: boolean) => {
+    ding()
+    doneMutation.mutate({ id, countMeasurement })
+  }
+
   const completeTaskAction = () => {
     if (!selectedTask) return
+    const now = new Date()
     // Strict-fixed gate: a repeating fixed task can't be marked done
     // until the timer hits the target. Same rule the Done button
     // displays as disabled; this catches the keyboard shortcut.
-    if (isCompletionGated(selectedTask, new Date())) return
-    ding()
-    doneMutation.mutate(selectedTask.id)
+    if (isCompletionGated(selectedTask, now)) return
+    // Fluid over/under: open the count/skip/cancel modal. No alert →
+    // complete immediately, counting the measurement.
+    const kind = completionConfirmKind(selectedTask, now)
+    if (!kind) {
+      runComplete(selectedTask.id, true)
+      return
+    }
+    setPendingComplete({ task: selectedTask, kind })
   }
 
   const snoozeTaskAction = () => {
@@ -282,6 +301,21 @@ function Home() {
           </div>
         </>
       )}
+
+      <CountConfirmModal
+        open={!!pendingComplete}
+        task={pendingComplete?.task ?? null}
+        kind={pendingComplete?.kind ?? null}
+        onCancel={() => setPendingComplete(null)}
+        onSkip={() => {
+          if (pendingComplete) runComplete(pendingComplete.task.id, false)
+          setPendingComplete(null)
+        }}
+        onCount={() => {
+          if (pendingComplete) runComplete(pendingComplete.task.id, true)
+          setPendingComplete(null)
+        }}
+      />
     </div>
   )
 }

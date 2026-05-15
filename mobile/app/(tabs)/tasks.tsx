@@ -7,7 +7,11 @@ import {
   useTopTasks,
 } from '@dtn/shared/queries'
 import { sortTasks } from '@dtn/shared/task-sorting'
-import { isCompletionGated } from '@dtn/shared/timer-utils'
+import {
+  completionConfirmKind,
+  confirmMessage,
+  isCompletionGated,
+} from '@dtn/shared/timer-utils'
 import type { Task } from '@dtn/shared/types'
 import { Stack, useRouter } from 'expo-router'
 import { format } from 'date-fns'
@@ -102,9 +106,36 @@ export default function TasksList() {
   const onComplete = useCallback(
     (id: string) => {
       const t = (allData ?? []).find((x) => x.id === id)
-      if (t && isCompletionGated(t, new Date())) return
-      void ding()
-      doneMutation.mutate(id)
+      if (!t) {
+        void ding()
+        doneMutation.mutate({ id })
+        return
+      }
+      const now = new Date()
+      if (isCompletionGated(t, now)) return
+      const kind = completionConfirmKind(t, now)
+      if (!kind) {
+        void ding()
+        doneMutation.mutate({ id })
+        return
+      }
+      Alert.alert('Count this time?', confirmMessage(t, now, kind), [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: "Don't count",
+          onPress: () => {
+            void ding()
+            doneMutation.mutate({ id, countMeasurement: false })
+          },
+        },
+        {
+          text: 'Count it',
+          onPress: () => {
+            void ding()
+            doneMutation.mutate({ id, countMeasurement: true })
+          },
+        },
+      ])
     },
     [ding, doneMutation, allData],
   )

@@ -8,13 +8,20 @@ import { v, validate } from './lib/validate'
 
 export const completeTask = createServerFn({ method: 'POST' })
   .inputValidator(
-    validate(z.object({ id: v.id, tzOffsetMin: v.tzOffsetMin })),
+    validate(
+      z.object({
+        id: v.id,
+        tzOffsetMin: v.tzOffsetMin,
+        countMeasurement: z.boolean().optional(),
+      }),
+    ),
   )
   .handler(async ({ data }) =>
     actionsLib.completeTask(
       await requireUserId(),
       data.id,
       data.tzOffsetMin,
+      data.countMeasurement ?? true,
     ),
   )
 

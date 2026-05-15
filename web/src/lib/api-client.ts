@@ -30,9 +30,13 @@ export const webApiClient: ApiClient = {
       return t
     },
     delete: (id) => taskFns.deleteTask({ data: { id } }),
-    complete: (id) =>
+    complete: (id, opts) =>
       actionFns.completeTask({
-        data: { id, tzOffsetMin: getTzOffsetMin() },
+        data: {
+          id,
+          tzOffsetMin: getTzOffsetMin(),
+          countMeasurement: opts?.countMeasurement,
+        },
       }),
     snooze: (id, allSubtasks = false) =>
       actionFns.snoozeTask({ data: { id, allSubtasks } }),
