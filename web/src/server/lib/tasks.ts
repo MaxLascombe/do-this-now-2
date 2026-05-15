@@ -5,6 +5,7 @@ import { getUserLocalNow, getUserToday } from '@dtn/shared/helpers'
 import { type Task, taskEvents, tasks } from '@dtn/shared/schema'
 import { type TaskInput } from '@dtn/shared/task-input'
 import { sortTasks } from '@dtn/shared/task-sorting'
+import { ceilTaskTime } from '@dtn/shared/timer-utils'
 
 export {
   repeatOptionSchema,
@@ -60,7 +61,8 @@ async function countChildren(
 }
 
 export async function listTasks(userId: string): Promise<Task[]> {
-  return db.select().from(tasks).where(eq(tasks.userId, userId))
+  const rows = await db.select().from(tasks).where(eq(tasks.userId, userId))
+  return rows.map(ceilTaskTime)
 }
 
 export async function listTopTasks(
@@ -82,7 +84,7 @@ export async function getTask(
     .from(tasks)
     .where(and(eq(tasks.userId, userId), eq(tasks.id, id)))
     .limit(1)
-  return rows[0] ?? null
+  return rows[0] ? ceilTaskTime(rows[0]) : null
 }
 
 export async function createTask(
@@ -97,7 +99,7 @@ export async function createTask(
       .insert(tasks)
       .values({ ...input, userId })
       .returning()
-    return row
+    return ceilTaskTime(row)
   })
 }
 
@@ -136,7 +138,7 @@ export async function updateTask(
       .set({ ...input, updatedAt: new Date() })
       .where(and(eq(tasks.userId, userId), eq(tasks.id, id)))
       .returning()
-    return row ?? null
+    return row ? ceilTaskTime(row) : null
   })
 }
 

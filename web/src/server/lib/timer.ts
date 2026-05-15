@@ -2,6 +2,7 @@ import { and, eq } from 'drizzle-orm'
 
 import { db } from '../../db'
 import { type Task, tasks } from '@dtn/shared/schema'
+import { ceilTaskTime } from '@dtn/shared/timer-utils'
 
 export type TimerAction =
   | { kind: 'start' }
@@ -121,6 +122,6 @@ export async function applyTimerAction(
       .where(and(eq(tasks.userId, userId), eq(tasks.id, target.id)))
       .returning()
 
-    return updated
+    return ceilTaskTime(updated)
   })
 }

@@ -1,5 +1,10 @@
 import type { Task } from './types'
 
+// Round at the API boundary so EMA decimals don't leak to the UI / aggregates; DB keeps full precision for internal math.
+export function ceilTaskTime<T extends Pick<Task, 'timeFrame'>>(task: T): T {
+  return { ...task, timeFrame: Math.ceil(task.timeFrame) }
+}
+
 // The React Query persister serializes the cache to localStorage /
 // AsyncStorage as JSON, which loses the Date class. On page reload the
 // rehydrated object's `timerStartedAt` arrives as an ISO string, not a
