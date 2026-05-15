@@ -68,12 +68,15 @@ export async function applyTimerAction(
 ): Promise<Task> {
   return db.transaction(async (tx) => {
     const target = await resolveTimerTarget(tx, userId, id)
-    // Use the client-stamped `at` (when the user pressed the button) so an offline replay lands at the right time. Stale guard: if a newer action already touched the row, return the authoritative state without mutating.
-    const at = action.at ? new Date(action.at) : null
+    const serverNow = new Date()
+    // Clamp client-stamped `at` to server-now so a clock-skewed device can't inflate elapsed time or jump past the stale guard.
+    const at = action.at
+      ? new Date(Math.min(new Date(action.at).getTime(), serverNow.getTime()))
+      : null
     if (at && at.getTime() < target.updatedAt.getTime()) {
       return ceilTaskTime(target)
     }
-    const now = at ?? new Date()
+    const now = at ?? serverNow
 
     let nextStartedAt: Date | null = target.timerStartedAt
     let nextAccumulated = target.timerAccumulatedSeconds

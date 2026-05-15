@@ -47,13 +47,12 @@ export type CompleteTaskOptions = { countMeasurement?: boolean }
 export type SnoozeTaskResult = { scope: 'subtask' | 'task' }
 export type DeleteTaskResult = Record<string, never>
 
-// `at` (ISO) anchors the math at the client clock when the user pressed the button; lets offline replays land in the right place and lets the server reject stale writes.
 export type TimerAction = (
   | { kind: 'start' }
   | { kind: 'pause' }
   | { kind: 'add'; seconds: number }
   | { kind: 'reset' }
-) & { at?: string }
+) & { at?: string /* ISO client-click time */ }
 
 export interface ApiClient {
   tasks: {

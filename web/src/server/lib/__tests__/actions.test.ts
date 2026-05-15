@@ -10,6 +10,7 @@ import {
 
 import { db } from '../../../db'
 import { completeTask, snoozeTask } from '../actions'
+import { applyTimerAction } from '../timer'
 
 // Integration tests that hit a real Neon Postgres via the neon-serverless
 // driver. Skipped automatically in CI (where DATABASE_URL isn't set).
@@ -233,6 +234,56 @@ describe.skipIf(!process.env.DATABASE_URL)('actions (integration)', () => {
       expect(events).toHaveLength(1)
       expect(events[0].kind).toBe('snoozed')
       expect(events[0].taskId).toBe(task.id)
+    })
+  })
+
+  describe('applyTimerAction stale guard', () => {
+    it('rejects an action whose `at` is older than the row updatedAt', async () => {
+      const task = await makeTask()
+      // Seed: timer running, last touched a moment ago.
+      const justNow = new Date()
+      await db
+        .update(tasks)
+        .set({
+          timerStartedAt: justNow,
+          timerAccumulatedSeconds: 0,
+          updatedAt: justNow,
+        })
+        .where(eq(tasks.id, task.id))
+
+      // Replay a pause from 1h ago — older than updatedAt.
+      const staleAt = new Date(justNow.getTime() - 60 * 60 * 1000).toISOString()
+      const replayed = await applyTimerAction(TEST_USER, task.id, {
+        kind: 'pause',
+        at: staleAt,
+      })
+
+      expect(replayed.timerStartedAt).not.toBeNull()
+      expect(replayed.timerAccumulatedSeconds).toBe(0)
+      expect(replayed.updatedAt.getTime()).toBe(justNow.getTime())
+    })
+
+    it('applies an action whose `at` is newer than updatedAt', async () => {
+      const task = await makeTask()
+      // Seed: timer started 60s ago, row touched then too.
+      const sixtySecondsAgo = new Date(Date.now() - 60 * 1000)
+      await db
+        .update(tasks)
+        .set({
+          timerStartedAt: sixtySecondsAgo,
+          timerAccumulatedSeconds: 0,
+          updatedAt: sixtySecondsAgo,
+        })
+        .where(eq(tasks.id, task.id))
+
+      const paused = await applyTimerAction(TEST_USER, task.id, {
+        kind: 'pause',
+        at: new Date().toISOString(),
+      })
+
+      expect(paused.timerStartedAt).toBeNull()
+      expect(paused.timerAccumulatedSeconds).toBeGreaterThan(55)
+      expect(paused.timerAccumulatedSeconds).toBeLessThan(65)
     })
   })
 })

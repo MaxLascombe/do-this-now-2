@@ -434,7 +434,7 @@ export function useTaskTimer() {
     mutationFn: (vars: { id: string; action: TimerAction }) =>
       api.tasks.timer(vars.id, vars.action),
     onMutate: async (vars) => {
-      // Stamp the action with the client-click time so the optimistic math + server math + offline replay all anchor to the same instant.
+      // Stamp in onMutate (not the call site) so paused/replayed mutations carry the original click time, not the time they happened to be retried.
       if (!vars.action.at) {
         vars.action = { ...vars.action, at: new Date().toISOString() }
       }
