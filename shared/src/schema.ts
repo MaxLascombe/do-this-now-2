@@ -1,5 +1,7 @@
 import {
   boolean,
+  doublePrecision,
+  type AnyPgColumn,
   index,
   integer,
   jsonb,
@@ -39,6 +41,10 @@ export const taskEventKindEnum = pgEnum('task_event_kind', [
   'deleted',
 ])
 
+// Fixed: target time per repetition; over/under carries forward.
+// Fluid: actual time, self-tuning via 14-period EMA bootstrap.
+export const timeframeTypeEnum = pgEnum('timeframe_type', ['fixed', 'fluid'])
+
 import type { SubTask, Task } from './types'
 export type {
   DailyProgress,
@@ -51,6 +57,7 @@ export type {
   RepeatWeekdays,
   SubTask,
   Task,
+  TimeframeType,
 } from './types'
 
 export const tasks = pgTable(
@@ -77,7 +84,31 @@ export const tasks = pgTable(
       .$type<[boolean, boolean, boolean, boolean, boolean, boolean, boolean]>()
       .notNull()
       .default([false, false, false, false, false, false, false]),
-    timeFrame: integer('time_frame').notNull().default(0),
+    // Decimal minutes. Stored as double precision so the EMA / fractional
+    // measurements (e.g. 30.42 min) round-trip without truncation. When 0,
+    // `timekeeperId` must be set (CHECK constraint in the migration).
+    timeFrame: doublePrecision('time_frame').notNull().default(0),
+    // Self-referencing FK: a zero-timeFrame task points to another task
+    // whose timer covers its time. RESTRICT — block keeper deletes while
+    // children exist. App-layer enforces: keeper has timeFrame>0 AND
+    // timeframeType='fixed'.
+    timekeeperId: uuid('timekeeper_id').references(
+      (): AnyPgColumn => tasks.id,
+      { onDelete: 'restrict' },
+    ),
+    timeframeType: timeframeTypeEnum('timeframe_type')
+      .notNull()
+      .default('fixed'),
+    // Per-task timer. Null `timerStartedAt` ⇒ paused. The visible elapsed
+    // value is `timerAccumulatedSeconds + (now - timerStartedAt)` while
+    // running, otherwise just `timerAccumulatedSeconds`.
+    timerStartedAt: timestamp('timer_started_at', { withTimezone: true }),
+    timerAccumulatedSeconds: doublePrecision('timer_accumulated_seconds')
+      .notNull()
+      .default(0),
+    // Fluid-task EMA bootstrap counter; capped at 14. <14 ⇒ true running
+    // average of all measurements so far; ≥14 ⇒ 13/14 exponential decay.
+    measurementCount: integer('measurement_count').notNull().default(0),
     snooze: text('snooze'),
     subtasks: jsonb('subtasks').$type<SubTask[]>().notNull().default([]),
     createdAt: timestamp('created_at', { withTimezone: true })
@@ -89,7 +120,10 @@ export const tasks = pgTable(
   },
   // Every task query scopes by user_id; without this index Postgres
   // sequential-scans the table.
-  (t) => [index('tasks_user_id_idx').on(t.userId)],
+  (t) => [
+    index('tasks_user_id_idx').on(t.userId),
+    index('tasks_timekeeper_id_idx').on(t.timekeeperId),
+  ],
 )
 
 export const history = pgTable(
@@ -101,6 +135,9 @@ export const history = pgTable(
     // displayable copy) but the live-task back-reference clears.
     taskId: uuid('task_id').references(() => tasks.id, { onDelete: 'set null' }),
     taskSnapshot: jsonb('task_snapshot').$type<Task>().notNull(),
+    // Timer value at completion, in seconds. Null on legacy rows pre-timer
+    // feature — readers fall back to `taskSnapshot.timeFrame * 60`.
+    actualSeconds: doublePrecision('actual_seconds'),
     completedAt: timestamp('completed_at', { withTimezone: true })
       .notNull()
       .defaultNow(),

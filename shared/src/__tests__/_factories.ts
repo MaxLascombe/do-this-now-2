@@ -16,6 +16,11 @@ export const makeTask = (over: Partial<Task> = {}): Task => ({
   repeatWeekdays:
     over.repeatWeekdays ?? [false, false, false, false, false, false, false],
   timeFrame: over.timeFrame ?? 0,
+  timekeeperId: over.timekeeperId ?? null,
+  timeframeType: over.timeframeType ?? 'fixed',
+  timerStartedAt: over.timerStartedAt ?? null,
+  timerAccumulatedSeconds: over.timerAccumulatedSeconds ?? 0,
+  measurementCount: over.measurementCount ?? 0,
   snooze: over.snooze ?? null,
   subtasks: over.subtasks ?? [],
   createdAt: over.createdAt ?? new Date('2026-01-01T00:00:00Z'),
