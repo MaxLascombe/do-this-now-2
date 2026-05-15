@@ -43,6 +43,7 @@ export type ProgressTodayResult = {
 }
 
 export type CompleteTaskResult = { advanced: boolean }
+export type CompleteTaskOptions = { countMeasurement?: boolean }
 export type SnoozeTaskResult = { scope: 'subtask' | 'task' }
 export type DeleteTaskResult = Record<string, never>
 
@@ -63,7 +64,7 @@ export interface ApiClient {
     create(input: TaskInput): Promise<Task>
     update(id: string, input: TaskInput): Promise<Task>
     delete(id: string): Promise<DeleteTaskResult>
-    complete(id: string): Promise<CompleteTaskResult>
+    complete(id: string, opts?: CompleteTaskOptions): Promise<CompleteTaskResult>
     snooze(id: string, allSubtasks?: boolean): Promise<SnoozeTaskResult>
     suggestEmojis(title: string): Promise<string[]>
     // Returns the task whose row actually holds the timer state — for

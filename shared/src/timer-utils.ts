@@ -40,3 +40,41 @@ export function isCompletionGated(task: Task, now: Date): boolean {
   if (targetSec <= 0) return false
   return currentTimerSeconds(task, now) < targetSec
 }
+
+// "When the user clicks Done, do we need to ask whether to count this
+// time toward the estimate?" Only fires for fluid tasks where the
+// estimate exists and the recorded time is far from the planned target
+// in either direction. Note: actual = 0 is intentionally NOT excluded —
+// the user may legitimately complete an instance with zero time because
+// they front-loaded the work on a prior overdue day, and counting those
+// zeros pulls the EMA average down so it reflects reality.
+//   - 'over' when actual > 1.5× planned
+//   - 'under' when actual < 0.5× planned (including actual = 0)
+export function completionConfirmKind(
+  task: Task,
+  now: Date,
+): 'over' | 'under' | null {
+  if (task.timeframeType !== 'fluid') return null
+  const plannedSec = task.timeFrame * 60
+  if (plannedSec <= 0) return null
+  const actualSec = currentTimerSeconds(task, now)
+  if (actualSec > plannedSec * 1.5) return 'over'
+  if (actualSec < plannedSec * 0.5) return 'under'
+  return null
+}
+
+// Prompt copy for the count/don't-count dialog. The action isn't really
+// "are you sure you want to complete?" — both choices complete the task.
+// The user is deciding whether this session's recorded time should
+// update the running 14-period EMA estimate or be skipped as a non-
+// measurement.
+export function confirmMessage(
+  task: Task,
+  now: Date,
+  kind: 'over' | 'under',
+): string {
+  const plannedMin = Math.round(task.timeFrame)
+  const actualMin = Math.round(currentTimerSeconds(task, now) / 60)
+  const direction = kind === 'over' ? 'over 1.5×' : 'under 50% of'
+  return `Timer is at ${actualMin} min — ${direction} the ${plannedMin} min estimate. Count this time toward the estimate?`
+}

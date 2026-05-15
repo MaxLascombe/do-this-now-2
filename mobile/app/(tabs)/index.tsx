@@ -9,6 +9,8 @@ import {
 import { formatDueLabel, formatRepeat } from '@dtn/shared/format'
 import { minutesToHours } from '@dtn/shared/time'
 import {
+  completionConfirmKind,
+  confirmMessage,
   currentTimerSeconds,
   isCompletionGated,
 } from '@dtn/shared/timer-utils'
@@ -49,9 +51,38 @@ export default function Home() {
 
   const onComplete = (id: string) => {
     const t = tasks.find((x) => x.id === id)
-    if (t && isCompletionGated(t, new Date())) return
-    void ding()
-    doneMutation.mutate(id)
+    if (!t) {
+      void ding()
+      doneMutation.mutate({ id })
+      return
+    }
+    const now = new Date()
+    if (isCompletionGated(t, now)) return
+    const kind = completionConfirmKind(t, now)
+    if (!kind) {
+      void ding()
+      doneMutation.mutate({ id })
+      return
+    }
+    // 3-button alert: Cancel / Don't count / Count it. Both action
+    // buttons complete the task; only the EMA-update path differs.
+    Alert.alert('Count this time?', confirmMessage(t, now, kind), [
+      { text: 'Cancel', style: 'cancel' },
+      {
+        text: "Don't count",
+        onPress: () => {
+          void ding()
+          doneMutation.mutate({ id, countMeasurement: false })
+        },
+      },
+      {
+        text: 'Count it',
+        onPress: () => {
+          void ding()
+          doneMutation.mutate({ id, countMeasurement: true })
+        },
+      },
+    ])
   }
   const onSnooze = (id: string) => snoozeMutation.mutate({ id })
   const onDelete = (id: string, title: string) => {

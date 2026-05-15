@@ -320,13 +320,22 @@ export function useDeleteTask() {
   })
 }
 
+export type CompleteVars = string | { id: string; countMeasurement?: boolean }
+
+function normalizeComplete(v: CompleteVars): { id: string; countMeasurement?: boolean } {
+  return typeof v === 'string' ? { id: v } : v
+}
+
 export function useCompleteTask() {
   const api = useApi()
   const qc = useQueryClient()
   return useMutation({
-    mutationFn: (id: string) => api.tasks.complete(id),
-    onMutate: (id) => optimisticComplete(qc, id),
-    onError: (_e, _id, ctx) => rollback(qc, ctx),
+    mutationFn: (vars: CompleteVars) => {
+      const { id, countMeasurement } = normalizeComplete(vars)
+      return api.tasks.complete(id, { countMeasurement })
+    },
+    onMutate: (vars) => optimisticComplete(qc, normalizeComplete(vars).id),
+    onError: (_e, _vars, ctx) => rollback(qc, ctx),
     onSettled: () => invalidateTaskCaches(qc),
   })
 }

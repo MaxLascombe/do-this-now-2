@@ -11,6 +11,8 @@ import {
 import { isSnoozed } from '@dtn/shared/task-sorting'
 import { minutesToHours } from '@dtn/shared/time'
 import {
+  completionConfirmKind,
+  confirmMessage,
   currentTimerSeconds,
   isCompletionGated,
 } from '@dtn/shared/timer-utils'
@@ -107,12 +109,21 @@ function Home() {
 
   const completeTaskAction = () => {
     if (!selectedTask) return
+    const now = new Date()
     // Strict-fixed gate: a repeating fixed task can't be marked done
     // until the timer hits the target. Same rule the Done button
     // displays as disabled; this catches the keyboard shortcut.
-    if (isCompletionGated(selectedTask, new Date())) return
+    if (isCompletionGated(selectedTask, now)) return
+    // Fluid over/under: ask whether to count this session toward the
+    // running estimate. OK = count it (EMA updates); Cancel = skip the
+    // measurement (preserve the current estimate). Either way the task
+    // completes.
+    const kind = completionConfirmKind(selectedTask, now)
+    const countMeasurement = !kind
+      ? true
+      : window.confirm(confirmMessage(selectedTask, now, kind))
     ding()
-    doneMutation.mutate(selectedTask.id)
+    doneMutation.mutate({ id: selectedTask.id, countMeasurement })
   }
 
   const snoozeTaskAction = () => {

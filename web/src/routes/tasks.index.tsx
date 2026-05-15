@@ -10,7 +10,11 @@ import {
   useTopTasks,
 } from '@dtn/shared/queries'
 import { sortTasks } from '@dtn/shared/task-sorting'
-import { isCompletionGated } from '@dtn/shared/timer-utils'
+import {
+  completionConfirmKind,
+  confirmMessage,
+  isCompletionGated,
+} from '@dtn/shared/timer-utils'
 import { type Task } from '@dtn/shared/types'
 
 import { createFileRoute, useNavigate } from '@tanstack/react-router'
@@ -133,10 +137,15 @@ function TasksList() {
   const completeAction = () => {
     const t = tasks[selectedTask]
     if (!t) return
+    const now = new Date()
     // Strict-fixed gate: same rule the Complete button shows visually.
-    if (isCompletionGated(t, new Date())) return
+    if (isCompletionGated(t, now)) return
+    const kind = completionConfirmKind(t, now)
+    const countMeasurement = !kind
+      ? true
+      : window.confirm(confirmMessage(t, now, kind))
     ding()
-    doneMutation.mutate(t.id)
+    doneMutation.mutate({ id: t.id, countMeasurement })
   }
 
   const editAction = () => {
