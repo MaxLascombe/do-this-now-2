@@ -1,22 +1,27 @@
+import { registerTimerMutationDefaults } from '@dtn/shared/queries'
 import { createSyncStoragePersister } from '@tanstack/query-sync-storage-persister'
 import { QueryClient } from '@tanstack/react-query'
 import { PersistQueryClientProvider } from '@tanstack/react-query-persist-client'
 import { type ReactNode, useState } from 'react'
 
+import { webApiClient } from './api-client'
+
 const ONE_DAY_MS = 24 * 60 * 60 * 1000
 
 export function QueryProvider({ children }: { children: ReactNode }) {
-  const [queryClient] = useState(
-    () =>
-      new QueryClient({
-        defaultOptions: {
-          queries: {
-            staleTime: 5 * 60 * 1000,
-            gcTime: ONE_DAY_MS,
-          },
+  const [queryClient] = useState(() => {
+    const qc = new QueryClient({
+      defaultOptions: {
+        queries: {
+          staleTime: 5 * 60 * 1000,
+          gcTime: ONE_DAY_MS,
         },
-      }),
-  )
+      },
+    })
+    // Register before PQCP rehydrates so resumePausedMutations finds the mutationFn.
+    registerTimerMutationDefaults(qc, webApiClient)
+    return qc
+  })
 
   const persister =
     typeof window === 'undefined'

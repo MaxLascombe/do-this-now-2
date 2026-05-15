@@ -5,7 +5,11 @@ import {
   type QueryClient,
 } from '@tanstack/react-query'
 
-import type { ProgressTodayResult, TimerAction } from './api-client'
+import type {
+  ApiClient,
+  ProgressTodayResult,
+  TimerAction,
+} from './api-client'
 import { useApi } from './api-client'
 import { sortTasks } from './task-sorting'
 import {
@@ -427,49 +431,59 @@ function applyClientTimerAction(task: Task, action: TimerAction): Task {
   return next
 }
 
-export function useTaskTimer() {
-  const api = useApi()
-  const qc = useQueryClient()
-  return useMutation({
-    mutationFn: (vars: { id: string; action: TimerAction }) =>
-      api.tasks.timer(vars.id, vars.action),
-    onMutate: async (vars) => {
-      // Stamp in onMutate (not the call site) so paused/replayed mutations carry the original click time, not the time they happened to be retried.
-      if (!vars.action.at) {
-        vars.action = { ...vars.action, at: new Date().toISOString() }
-      }
+// Stable mutation-key for the timer. Defaults registered against this
+// key survive cache rehydration; paused/offline mutations re-run with
+// the registered mutationFn even though the component that originally
+// fired them is long gone.
+export const timerMutationKey = ['tasks', 'timer'] as const
+
+type TimerVars = { id: string; action: TimerAction }
+type TimerCtx = {
+  prevOne?: { id: string; value: Task | undefined }
+  prevTop?: Task[]
+  prevList?: Task[]
+}
+
+// Call once after the QueryClient and ApiClient exist (web: at client
+// construction; mobile: inside MobileApiProvider). Re-registering is a
+// no-op overwrite — safe for HMR / re-mounts.
+export function registerTimerMutationDefaults(qc: QueryClient, api: ApiClient) {
+  qc.setMutationDefaults(timerMutationKey, {
+    networkMode: 'offlineFirst',
+    mutationFn: (vars: TimerVars) => api.tasks.timer(vars.id, vars.action),
+    onMutate: async (vars: TimerVars): Promise<TimerCtx> => {
       await qc.cancelQueries({ queryKey: taskKeys.all })
       const issuer = findTaskInCaches(qc, vars.id)
-      // Resolve client-side the same way the server does: a child task
-      // points at its keeper; standalone tasks hold their own timer.
       const targetId = issuer?.timekeeperId ?? vars.id
       const target = issuer?.timekeeperId
         ? findTaskInCaches(qc, targetId)
         : issuer
-      if (!target) return undefined
-      const next = applyClientTimerAction(target, vars.action)
-      const prevOne = {
-        id: targetId,
-        value: qc.getQueryData<Task>(taskKeys.one(targetId)),
-      }
       const prevTop = qc.getQueryData<Task[]>(taskKeys.top)
       const prevList = qc.getQueryData<Task[]>(taskKeys.list)
-      qc.setQueryData<Task>(taskKeys.one(targetId), next)
-      const patch = (xs: Task[] | undefined) =>
-        xs?.map((t) => (t.id === targetId ? next : t))
-      qc.setQueryData<Task[]>(taskKeys.top, patch)
-      qc.setQueryData<Task[]>(taskKeys.list, patch)
+      const prevOne = target
+        ? {
+            id: targetId,
+            value: qc.getQueryData<Task>(taskKeys.one(targetId)),
+          }
+        : undefined
+      if (target) {
+        const next = applyClientTimerAction(target, vars.action)
+        qc.setQueryData<Task>(taskKeys.one(targetId), next)
+        const patch = (xs: Task[] | undefined) =>
+          xs?.map((t) => (t.id === targetId ? next : t))
+        qc.setQueryData<Task[]>(taskKeys.top, patch)
+        qc.setQueryData<Task[]>(taskKeys.list, patch)
+      }
       return { prevOne, prevTop, prevList }
     },
-    onSuccess: (server) => {
-      // Server response is authoritative — replace the optimistic copy.
+    onSuccess: (server: Task) => {
       qc.setQueryData<Task>(taskKeys.one(server.id), server)
       const patch = (xs: Task[] | undefined) =>
         xs?.map((t) => (t.id === server.id ? server : t))
       qc.setQueryData<Task[]>(taskKeys.top, patch)
       qc.setQueryData<Task[]>(taskKeys.list, patch)
     },
-    onError: (_e, _vars, ctx) => {
+    onError: (_e: unknown, _vars: TimerVars, ctx: TimerCtx | undefined) => {
       if (!ctx) return
       if (ctx.prevOne) {
         qc.setQueryData<Task | undefined>(
@@ -481,6 +495,26 @@ export function useTaskTimer() {
       qc.setQueryData<Task[] | undefined>(taskKeys.list, ctx.prevList)
     },
   })
+}
+
+// Wraps mutate/mutateAsync so `at` is stamped on the variables BEFORE TanStack stores them in mutation.state.variables. Stamping inside onMutate would mutate that object in-place, which races with the PQCP serialiser if the process is killed in the gap between cache-add and onMutate.
+export function useTaskTimer() {
+  const mutation = useMutation<Task, Error, TimerVars, TimerCtx>({
+    mutationKey: [...timerMutationKey],
+  })
+  return {
+    ...mutation,
+    mutate: (vars: TimerVars) => mutation.mutate(stampAt(vars)),
+    mutateAsync: (vars: TimerVars) => mutation.mutateAsync(stampAt(vars)),
+  }
+}
+
+function stampAt(vars: TimerVars): TimerVars {
+  if (vars.action.at) return vars
+  return {
+    ...vars,
+    action: { ...vars.action, at: new Date().toISOString() },
+  }
 }
 
 // Debounced emoji suggestion from the TaskForm. Each call is a one-off

@@ -8,6 +8,8 @@ import { getTzOffsetMin } from '@dtn/shared/time'
 import type { HistoryEntry, StatsResult, Task } from '@dtn/shared/types'
 import { type ReactNode, useMemo } from 'react'
 
+import { QueryProvider } from './query-client'
+
 const BASE_URL = process.env.EXPO_PUBLIC_API_URL!
 if (!BASE_URL) {
   console.warn('EXPO_PUBLIC_API_URL not set; API calls will fail')
@@ -106,8 +108,12 @@ function createMobileApi(
   }
 }
 
-export function MobileApiProvider({ children }: { children: ReactNode }) {
+export function MobileApiAndQuery({ children }: { children: ReactNode }) {
   const { getToken } = useAuth()
   const api = useMemo(() => createMobileApi(getToken), [getToken])
-  return <ApiProvider value={api}>{children}</ApiProvider>
+  return (
+    <QueryProvider api={api}>
+      <ApiProvider value={api}>{children}</ApiProvider>
+    </QueryProvider>
+  )
 }
