@@ -229,12 +229,23 @@ function rollback(qc: QueryClient, snap: OptimisticSnapshot | undefined) {
 
 type EnabledOpts = { enabled?: boolean }
 
+// Cross-device sync: when *any* task in the cached list has a running
+// timer, refetch every 3s so state changes made on another device
+// (pause / add / reset) propagate within a few seconds. When no timer is
+// running, polling is disabled to avoid background traffic.
+const TIMER_SYNC_INTERVAL_MS = 3000
+const listSyncInterval = (data: Task[] | undefined): number | false =>
+  data?.some((t) => t.timerStartedAt !== null) ? TIMER_SYNC_INTERVAL_MS : false
+const oneSyncInterval = (data: Task | undefined): number | false =>
+  data?.timerStartedAt ? TIMER_SYNC_INTERVAL_MS : false
+
 export function useTopTasks(opts: EnabledOpts = {}) {
   const api = useApi()
   return useQuery({
     queryKey: taskKeys.top,
     queryFn: () => api.tasks.listTop(),
     enabled: opts.enabled ?? true,
+    refetchInterval: (q) => listSyncInterval(q.state.data),
   })
 }
 
@@ -244,6 +255,7 @@ export function useAllTasks(opts: EnabledOpts = {}) {
     queryKey: taskKeys.list,
     queryFn: () => api.tasks.list(),
     enabled: opts.enabled ?? true,
+    refetchInterval: (q) => listSyncInterval(q.state.data),
   })
 }
 
@@ -253,6 +265,7 @@ export function useTask(id: string) {
     queryKey: taskKeys.one(id),
     queryFn: () => api.tasks.get(id),
     enabled: !!id,
+    refetchInterval: (q) => oneSyncInterval(q.state.data),
   })
 }
 
