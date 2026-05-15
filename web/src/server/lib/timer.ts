@@ -4,11 +4,12 @@ import { db } from '../../db'
 import { type Task, tasks } from '@dtn/shared/schema'
 import { ceilTaskTime } from '@dtn/shared/timer-utils'
 
-export type TimerAction =
+export type TimerAction = (
   | { kind: 'start' }
   | { kind: 'pause' }
   | { kind: 'add'; seconds: number }
   | { kind: 'reset' }
+) & { at?: string }
 
 // Compute the live elapsed seconds for a task. Encapsulated here so the
 // server applies the same math as the client UI: when running, the value
@@ -67,7 +68,12 @@ export async function applyTimerAction(
 ): Promise<Task> {
   return db.transaction(async (tx) => {
     const target = await resolveTimerTarget(tx, userId, id)
-    const now = new Date()
+    // Use the client-stamped `at` (when the user pressed the button) so an offline replay lands at the right time. Stale guard: if a newer action already touched the row, return the authoritative state without mutating.
+    const at = action.at ? new Date(action.at) : null
+    if (at && at.getTime() < target.updatedAt.getTime()) {
+      return ceilTaskTime(target)
+    }
+    const now = at ?? new Date()
 
     let nextStartedAt: Date | null = target.timerStartedAt
     let nextAccumulated = target.timerAccumulatedSeconds

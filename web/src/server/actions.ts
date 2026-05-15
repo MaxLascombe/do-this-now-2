@@ -37,12 +37,14 @@ export const snoozeTask = createServerFn({ method: 'POST' })
     ),
   )
 
-const timerActionSchema = z.discriminatedUnion('kind', [
-  z.object({ kind: z.literal('start') }),
-  z.object({ kind: z.literal('pause') }),
-  z.object({ kind: z.literal('add'), seconds: z.number().finite() }),
-  z.object({ kind: z.literal('reset') }),
-])
+const timerActionSchema = z
+  .discriminatedUnion('kind', [
+    z.object({ kind: z.literal('start') }),
+    z.object({ kind: z.literal('pause') }),
+    z.object({ kind: z.literal('add'), seconds: z.number().finite() }),
+    z.object({ kind: z.literal('reset') }),
+  ])
+  .and(z.object({ at: z.string().datetime().optional() }))
 
 export const taskTimer = createServerFn({ method: 'POST' })
   .inputValidator(
