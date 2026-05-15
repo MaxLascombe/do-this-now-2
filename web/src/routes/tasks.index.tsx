@@ -6,11 +6,13 @@ import {
   usePrefetchTask,
   usePrimeTaskCache,
   useSnoozeTask,
+  useTask,
   useTopTasks,
 } from '@dtn/shared/queries'
 import { sortTasks } from '@dtn/shared/task-sorting'
 import { isCompletionGated } from '@dtn/shared/timer-utils'
 import { type Task } from '@dtn/shared/types'
+
 import { createFileRoute, useNavigate } from '@tanstack/react-router'
 import { format } from 'date-fns'
 import {
@@ -27,6 +29,7 @@ import { Loading } from '../components/Loading'
 import { MobileChrome } from '../components/MobileChrome'
 import { PageHeading } from '../components/PageHeading'
 import { TaskRow } from '../components/TaskRow'
+import { TimerWidget } from '../components/TimerWidget'
 import { TopBar } from '../components/TopBar'
 import useDing from '../hooks/useDing'
 import useKeyAction, { type KeyAction } from '../hooks/useKeyAction'
@@ -359,13 +362,16 @@ function TasksList() {
                             />
                           </div>
                           {isSelected && (
-                            <SelectedActions
-                              hasSubtasks={t.subtasks.length > 0}
-                              onComplete={completeAction}
-                              onEdit={editAction}
-                              onSnoozeSubtasks={snoozeSubtasks}
-                              onDelete={deleteAction}
-                            />
+                            <>
+                              <SelectedActions
+                                hasSubtasks={t.subtasks.length > 0}
+                                onComplete={completeAction}
+                                onEdit={editAction}
+                                onSnoozeSubtasks={snoozeSubtasks}
+                                onDelete={deleteAction}
+                              />
+                              <SelectedTimer task={t} />
+                            </>
                           )}
                         </Fragment>
                       )
@@ -397,13 +403,16 @@ function TasksList() {
                     />
                   </div>
                   {isSelected && (
-                    <SelectedActions
-                      hasSubtasks={t.subtasks.length > 0}
-                      onComplete={completeAction}
-                      onEdit={editAction}
-                      onSnoozeSubtasks={snoozeSubtasks}
-                      onDelete={deleteAction}
-                    />
+                    <>
+                      <SelectedActions
+                        hasSubtasks={t.subtasks.length > 0}
+                        onComplete={completeAction}
+                        onEdit={editAction}
+                        onSnoozeSubtasks={snoozeSubtasks}
+                        onDelete={deleteAction}
+                      />
+                      <SelectedTimer task={t} />
+                    </>
                   )}
                 </Fragment>
               )
@@ -519,6 +528,23 @@ const SelectedActions = ({
     <ActionGhost k="⌫" label="Delete" onClick={onDelete} />
   </div>
 )
+
+// Compact timer slot under each selected row. Resolves child→keeper
+// internally so children share their keeper's timer.
+const SelectedTimer = ({ task }: { task: Task }) => {
+  const keeperQuery = useTask(task.timekeeperId ?? '')
+  const timerTask = task.timekeeperId ? keeperQuery.data : task
+  if (!timerTask) return null
+  return (
+    <div className="mb-3 ml-12">
+      <TimerWidget
+        task={timerTask}
+        actionId={task.id}
+        plannedMinutes={timerTask.timeFrame}
+      />
+    </div>
+  )
+}
 
 const ActionGhost = ({
   k,

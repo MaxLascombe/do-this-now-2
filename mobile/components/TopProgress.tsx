@@ -10,6 +10,7 @@ import { Modal, Pressable, Text, View } from 'react-native'
 import { SafeAreaView } from 'react-native-safe-area-context'
 
 import { useDate } from '../hooks/useDate'
+import { RunningTimerChip } from './RunningTimerChip'
 
 const ACCENT = '#34d399'
 const STREAK = '#f59e0b'
@@ -140,6 +141,15 @@ export function TopProgress() {
           })}
         </View>
       </Pressable>
+      <View
+        style={{
+          alignItems: 'flex-end',
+          paddingHorizontal: 20,
+          paddingBottom: 6,
+        }}
+      >
+        <RunningTimerChip />
+      </View>
       <Modal
         visible={open}
         animationType="slide"

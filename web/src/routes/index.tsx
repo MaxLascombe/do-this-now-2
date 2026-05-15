@@ -5,6 +5,7 @@ import {
   usePrefetchTask,
   usePrimeTaskCache,
   useSnoozeTask,
+  useTask,
   useTopTasks,
 } from '@dtn/shared/queries'
 import { isSnoozed } from '@dtn/shared/task-sorting'
@@ -22,6 +23,7 @@ import { useEffect, useState } from 'react'
 import { Loading } from '../components/Loading'
 import { MobileChrome } from '../components/MobileChrome'
 import { TaskRow } from '../components/TaskRow'
+import { TimerWidget } from '../components/TimerWidget'
 import { TopBar } from '../components/TopBar'
 import useDing from '../hooks/useDing'
 import useKeyAction, { type KeyAction } from '../hooks/useKeyAction'
@@ -390,6 +392,26 @@ function Hero({
         <SecondaryAction k="E" label="Edit" onClick={onEdit} />
         <SecondaryAction k="⌫" label="Delete" onClick={onDelete} />
       </div>
+
+      <HeroTimer task={task} />
+    </div>
+  )
+}
+
+// Pulls in the keeper task for 0-time-frame children so the widget
+// always operates on the row that holds the timer state. For standalone
+// tasks this just renders the widget against the task itself.
+function HeroTimer({ task }: { task: Task }) {
+  const keeperQuery = useTask(task.timekeeperId ?? '')
+  const timerTask = task.timekeeperId ? keeperQuery.data : task
+  if (!timerTask) return null
+  return (
+    <div className="mt-6 w-full max-w-[420px]">
+      <TimerWidget
+        task={timerTask}
+        actionId={task.id}
+        plannedMinutes={timerTask.timeFrame}
+      />
     </div>
   )
 }

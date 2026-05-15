@@ -3,6 +3,7 @@ import {
   useCompleteTask,
   useDeleteTask,
   useSnoozeTask,
+  useTask,
   useTopTasks,
 } from '@dtn/shared/queries'
 import { formatDueLabel, formatRepeat } from '@dtn/shared/format'
@@ -26,6 +27,7 @@ import { SafeAreaView } from 'react-native-safe-area-context'
 
 import { Loading } from '../../components/Loading'
 import { SwipeableTaskRow } from '../../components/SwipeableTaskRow'
+import { TimerWidget } from '../../components/TimerWidget'
 import { TopProgress } from '../../components/TopProgress'
 import { useDing } from '../../hooks/useDing'
 
@@ -307,7 +309,24 @@ function Hero({
         <Ghost label="Edit" glyph="✎" onPress={onEdit} />
         <Ghost label="Delete" glyph="✕" onPress={onDelete} danger />
       </View>
+
+      <View style={{ marginTop: 20 }}>
+        <HeroTimer task={task} />
+      </View>
     </View>
+  )
+}
+
+function HeroTimer({ task }: { task: Task }) {
+  const keeperQuery = useTask(task.timekeeperId ?? '')
+  const timerTask = task.timekeeperId ? keeperQuery.data : task
+  if (!timerTask) return null
+  return (
+    <TimerWidget
+      task={timerTask}
+      actionId={task.id}
+      plannedMinutes={timerTask.timeFrame}
+    />
   )
 }
 
