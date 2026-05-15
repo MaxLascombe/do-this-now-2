@@ -4,6 +4,8 @@ import { type Task } from '@dtn/shared/types'
 import { useEffect, useState } from 'react'
 import { Alert, Pressable, Text, View } from 'react-native'
 
+import { PulseDot } from './PulseDot'
+
 const ACCENT = '#34d399'
 const STREAK = '#f59e0b'
 
@@ -76,16 +78,7 @@ export function TimerWidget({
         }}
       >
         <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
-          {running && (
-            <View
-              style={{
-                width: 6,
-                height: 6,
-                borderRadius: 3,
-                backgroundColor: ACCENT,
-              }}
-            />
-          )}
+          {running && <PulseDot color={ACCENT} />}
           <Text
             style={{
               fontFamily: 'JetBrainsMono_700Bold',

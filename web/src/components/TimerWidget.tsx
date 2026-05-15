@@ -37,10 +37,6 @@ export function TimerWidget({
   task: Task
   actionId?: string
   plannedMinutes?: number
-  // Compact = single-row iOS-lockscreen-style pill (time + start/pause).
-  // Default false = full widget with overrun warning, reset, and ±/min
-  // adjusters. Use compact for Home / Tasks-selected; keep the full
-  // widget on the edit page where the adjusters belong.
   compact?: boolean
 }) {
   const id = actionId ?? task.id
