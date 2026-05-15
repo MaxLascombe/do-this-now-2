@@ -229,10 +229,6 @@ function rollback(qc: QueryClient, snap: OptimisticSnapshot | undefined) {
 
 type EnabledOpts = { enabled?: boolean }
 
-// Cross-device sync: when *any* task in the cached list has a running
-// timer, refetch every 3s so state changes made on another device
-// (pause / add / reset) propagate within a few seconds. When no timer is
-// running, polling is disabled to avoid background traffic.
 const TIMER_SYNC_INTERVAL_MS = 3000
 const listSyncInterval = (data: Task[] | undefined): number | false =>
   data?.some((t) => t.timerStartedAt !== null) ? TIMER_SYNC_INTERVAL_MS : false
