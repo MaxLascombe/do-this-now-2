@@ -87,6 +87,11 @@ function createMobileApi(
           method: 'POST',
           body: { title },
         }),
+      timer: (id, action) =>
+        call<Task>(`/api/tasks/${id}/timer`, {
+          method: 'POST',
+          body: action,
+        }),
     },
     history: {
       forDate: (date) => call<HistoryEntry[]>(`/api/history/${date}`),

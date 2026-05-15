@@ -46,6 +46,15 @@ export type CompleteTaskResult = { advanced: boolean }
 export type SnoozeTaskResult = { scope: 'subtask' | 'task' }
 export type DeleteTaskResult = Record<string, never>
 
+// Action shape for POST /api/tasks/:id/timer. Mirrors the server's
+// discriminated union; `seconds` may be negative for `add` (clamped to
+// a 0-floor by the server).
+export type TimerAction =
+  | { kind: 'start' }
+  | { kind: 'pause' }
+  | { kind: 'add'; seconds: number }
+  | { kind: 'reset' }
+
 export interface ApiClient {
   tasks: {
     list(): Promise<Task[]>
@@ -57,6 +66,9 @@ export interface ApiClient {
     complete(id: string): Promise<CompleteTaskResult>
     snooze(id: string, allSubtasks?: boolean): Promise<SnoozeTaskResult>
     suggestEmojis(title: string): Promise<string[]>
+    // Returns the task whose row actually holds the timer state — for
+    // 0-time-frame children that's the keeper, not the task you passed.
+    timer(id: string, action: TimerAction): Promise<Task>
   }
   history: {
     forDate(date: string): Promise<HistoryEntry[]>

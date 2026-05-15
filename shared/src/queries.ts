@@ -5,7 +5,7 @@ import {
   type QueryClient,
 } from '@tanstack/react-query'
 
-import type { ProgressTodayResult } from './api-client'
+import type { ProgressTodayResult, TimerAction } from './api-client'
 import { useApi } from './api-client'
 import { sortTasks } from './task-sorting'
 import {
@@ -340,6 +340,111 @@ export function useSnoozeTask() {
     onMutate: (vars) => optimisticSnooze(qc, vars.id, vars.allSubtasks ?? false),
     onError: (_e, _vars, ctx) => rollback(qc, ctx),
     onSettled: () => invalidateTaskCaches(qc),
+  })
+}
+
+// Mutate a task's timer state. The id passed in may be a 0-time-frame
+// child; the server resolves it to the effective task (keeper for
+// children, self otherwise) and returns the actual updated row. We use
+// that to patch both the keeper's `one`-cache and the lists so any UI
+// rendering the keeper updates in lockstep.
+//
+// Optimistic update: best-effort. We look up the target ID client-side
+// the same way the server does (child.timekeeperId ?? id) and apply the
+// timer math locally so the timer-widget changes feel instant. If the
+// cache doesn't have the task yet, we skip optimism and rely on the
+// server response — the next refetch fills the gap.
+function applyClientTimerAction(task: Task, action: TimerAction): Task {
+  const now = new Date()
+  const next: Task = { ...task }
+  switch (action.kind) {
+    case 'start':
+      if (!task.timerStartedAt) {
+        next.timerStartedAt = now
+      }
+      break
+    case 'pause':
+      if (task.timerStartedAt) {
+        const elapsed = (now.getTime() - task.timerStartedAt.getTime()) / 1000
+        next.timerAccumulatedSeconds = Math.max(
+          0,
+          task.timerAccumulatedSeconds + elapsed,
+        )
+        next.timerStartedAt = null
+      }
+      break
+    case 'add': {
+      const current = task.timerStartedAt
+        ? task.timerAccumulatedSeconds +
+          (now.getTime() - task.timerStartedAt.getTime()) / 1000
+        : task.timerAccumulatedSeconds
+      const after = Math.max(0, current + action.seconds)
+      if (task.timerStartedAt) {
+        next.timerAccumulatedSeconds = after
+        next.timerStartedAt = now
+      } else {
+        next.timerAccumulatedSeconds = after
+        next.timerStartedAt = null
+      }
+      break
+    }
+    case 'reset':
+      next.timerAccumulatedSeconds = 0
+      next.timerStartedAt = null
+      break
+  }
+  return next
+}
+
+export function useTaskTimer() {
+  const api = useApi()
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: (vars: { id: string; action: TimerAction }) =>
+      api.tasks.timer(vars.id, vars.action),
+    onMutate: async (vars) => {
+      await qc.cancelQueries({ queryKey: taskKeys.all })
+      const issuer = findTaskInCaches(qc, vars.id)
+      // Resolve client-side the same way the server does: a child task
+      // points at its keeper; standalone tasks hold their own timer.
+      const targetId = issuer?.timekeeperId ?? vars.id
+      const target = issuer?.timekeeperId
+        ? findTaskInCaches(qc, targetId)
+        : issuer
+      if (!target) return undefined
+      const next = applyClientTimerAction(target, vars.action)
+      const prevOne = {
+        id: targetId,
+        value: qc.getQueryData<Task>(taskKeys.one(targetId)),
+      }
+      const prevTop = qc.getQueryData<Task[]>(taskKeys.top)
+      const prevList = qc.getQueryData<Task[]>(taskKeys.list)
+      qc.setQueryData<Task>(taskKeys.one(targetId), next)
+      const patch = (xs: Task[] | undefined) =>
+        xs?.map((t) => (t.id === targetId ? next : t))
+      qc.setQueryData<Task[]>(taskKeys.top, patch)
+      qc.setQueryData<Task[]>(taskKeys.list, patch)
+      return { prevOne, prevTop, prevList }
+    },
+    onSuccess: (server) => {
+      // Server response is authoritative — replace the optimistic copy.
+      qc.setQueryData<Task>(taskKeys.one(server.id), server)
+      const patch = (xs: Task[] | undefined) =>
+        xs?.map((t) => (t.id === server.id ? server : t))
+      qc.setQueryData<Task[]>(taskKeys.top, patch)
+      qc.setQueryData<Task[]>(taskKeys.list, patch)
+    },
+    onError: (_e, _vars, ctx) => {
+      if (!ctx) return
+      if (ctx.prevOne) {
+        qc.setQueryData<Task | undefined>(
+          taskKeys.one(ctx.prevOne.id),
+          ctx.prevOne.value,
+        )
+      }
+      qc.setQueryData<Task[] | undefined>(taskKeys.top, ctx.prevTop)
+      qc.setQueryData<Task[] | undefined>(taskKeys.list, ctx.prevList)
+    },
   })
 }
 
