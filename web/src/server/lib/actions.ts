@@ -3,10 +3,12 @@ import { and, eq, gte, lt } from 'drizzle-orm'
 import { db } from '../../db'
 import { history, type Task, taskEvents, tasks } from '@dtn/shared/schema'
 import {
+  applyFullCompletion,
   completeTaskTransition,
   snoozeTaskTransition,
 } from '@dtn/shared/task-transitions'
 import { finalizeTodayProgress } from './progress'
+import { currentTimerSeconds } from './timer'
 
 // `loadTask` accepts either the top-level `db` or a `tx` handle so the
 // caller can run it inside a transaction. The transaction param type is
@@ -43,6 +45,8 @@ export async function completeTask(
     const transition = completeTaskTransition(task, now)
 
     if (transition.kind === 'advance-subtask') {
+      // Subtask advancement isn't a "completion" — leave the timer
+      // running so the user can keep working without re-starting it.
       await tx
         .update(tasks)
         .set({ subtasks: transition.nextTask.subtasks, updatedAt: now })
@@ -50,14 +54,26 @@ export async function completeTask(
       return { advanced: false }
     }
 
-    await tx.insert(history).values({
+    // Full completion: hand off to applyFullCompletion which figures out
+    // how many history rows to write (1 for fluid / one-shot / child;
+    // floor(timer/target) for repeating fixed), the per-row credit, the
+    // carryover seconds for the next instance, and whether the task row
+    // should be updated or deleted.
+    const actualSeconds = currentTimerSeconds(task, now)
+    const result = applyFullCompletion({ task, actualSeconds, now })
+
+    // All N history rows share the same snapshot. Inserting in a single
+    // .values([...]) call so Drizzle batches into one INSERT.
+    const rows = Array.from({ length: result.completions }, () => ({
       userId,
       taskId: task.id,
-      taskSnapshot: transition.snapshot,
+      taskSnapshot: result.snapshot,
+      actualSeconds: result.actualSecondsPerRow,
       completedAt: now,
-    })
+    }))
+    await tx.insert(history).values(rows)
 
-    if (transition.kind === 'finish-and-delete') {
+    if (result.nextTask === null) {
       await tx
         .delete(tasks)
         .where(and(eq(tasks.userId, userId), eq(tasks.id, task.id)))
@@ -65,8 +81,12 @@ export async function completeTask(
       await tx
         .update(tasks)
         .set({
-          due: transition.nextTask.due,
-          subtasks: transition.nextTask.subtasks,
+          due: result.nextTask.due,
+          subtasks: result.nextTask.subtasks,
+          timeFrame: result.nextTask.timeFrame,
+          measurementCount: result.nextTask.measurementCount,
+          timerStartedAt: result.nextTask.timerStartedAt,
+          timerAccumulatedSeconds: result.nextTask.timerAccumulatedSeconds,
           updatedAt: now,
         })
         .where(and(eq(tasks.userId, userId), eq(tasks.id, task.id)))
