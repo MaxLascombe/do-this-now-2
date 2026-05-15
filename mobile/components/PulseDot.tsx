@@ -1,9 +1,7 @@
 import { useEffect, useRef } from 'react'
 import { Animated, Easing } from 'react-native'
 
-// 6×6 dot that breathes opacity 0.4 ↔ 1.0 every 1.4s. Mirrors the
-// `pulse 1.4s ease-in-out infinite` keyframes used on the web side so
-// the running-timer signal looks the same across platforms.
+// Mirrors web `pulse 1.4s ease-in-out infinite` for cross-platform parity.
 export function PulseDot({
   color,
   size = 6,
