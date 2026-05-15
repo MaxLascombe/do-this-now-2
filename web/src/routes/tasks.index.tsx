@@ -575,6 +575,7 @@ const SelectedTimer = ({ task }: { task: Task }) => {
         task={timerTask}
         actionId={task.id}
         plannedMinutes={timerTask.timeFrame}
+        compact
       />
     </div>
   )
