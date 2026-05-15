@@ -1,9 +1,8 @@
-import { ceilMinutes } from './time'
 import type { Task } from './types'
 
 // Round at the API boundary so EMA decimals don't leak to the UI / aggregates; DB keeps full precision for internal math.
 export function ceilTaskTime<T extends Pick<Task, 'timeFrame'>>(task: T): T {
-  return { ...task, timeFrame: ceilMinutes(task.timeFrame) }
+  return { ...task, timeFrame: Math.ceil(task.timeFrame) }
 }
 
 // The React Query persister serializes the cache to localStorage /
