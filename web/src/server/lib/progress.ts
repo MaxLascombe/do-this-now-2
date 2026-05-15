@@ -9,6 +9,7 @@ import {
   newSafeDate,
 } from '@dtn/shared/helpers'
 import { DAY_MS } from '@dtn/shared/time'
+import { ceilTaskTime } from '@dtn/shared/timer-utils'
 import { rowCreditMinutes } from './history-credit'
 
 // "todo" target floor: never report less than this many minutes of work for
@@ -200,9 +201,6 @@ async function loadProgressInputs(
     db.select().from(tasks).where(eq(tasks.userId, userId)),
   ])
 
-  // Per-row credit = max(planned, actual) — see rowCreditMinutes. Pre-
-  // timer rows still credit their snapshot's timeFrame via the null-
-  // fallback.
   const completedTodayMin = completedToday.reduce(
     (acc, row) => acc + rowCreditMinutes(row),
     0,
@@ -212,7 +210,7 @@ async function loadProgressInputs(
     completedTodayMin,
     streakBeforeToday: todayProgress?.streakBeforeToday ?? 0,
     lives: todayProgress?.lives ?? 0,
-    allTasks,
+    allTasks: allTasks.map(ceilTaskTime),
   }
 }
 

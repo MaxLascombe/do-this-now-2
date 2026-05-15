@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest'
 
 import {
+  ceilTaskTime,
   completionConfirmKind,
   confirmMessage,
   currentTimerSeconds,
@@ -189,5 +190,22 @@ describe('confirmMessage', () => {
     const msg = confirmMessage(t, NOW, 'under')
     expect(msg).toContain('0 min')
     expect(msg).toContain('under 50%')
+  })
+})
+
+describe('ceilTaskTime', () => {
+  it('ceils a fractional timeFrame', () => {
+    const t = makeTask({ timeFrame: 35.42 })
+    expect(ceilTaskTime(t).timeFrame).toBe(36)
+  })
+
+  it('leaves whole-minute timeFrame untouched', () => {
+    const t = makeTask({ timeFrame: 30 })
+    expect(ceilTaskTime(t).timeFrame).toBe(30)
+  })
+
+  it('keeps 0-time-frame children at 0', () => {
+    const t = makeTask({ timeFrame: 0, timekeeperId: 'keeper-id' })
+    expect(ceilTaskTime(t).timeFrame).toBe(0)
   })
 })
