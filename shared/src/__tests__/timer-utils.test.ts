@@ -90,6 +90,7 @@ describe('isCompletionGated', () => {
 describe('completionConfirmKind', () => {
   const base = makeTask({
     timeframeType: 'fluid',
+    repeat: 'Daily',
     timeFrame: 30,
   })
 
@@ -162,6 +163,21 @@ describe('completionConfirmKind', () => {
     expect(
       completionConfirmKind(
         { ...base, timeFrame: 0, timerAccumulatedSeconds: 0 },
+        NOW,
+      ),
+    ).toBeNull()
+  })
+
+  it('returns null for one-shot fluid tasks (EMA never runs)', () => {
+    expect(
+      completionConfirmKind(
+        { ...base, repeat: 'No Repeat', timerAccumulatedSeconds: 0 },
+        NOW,
+      ),
+    ).toBeNull()
+    expect(
+      completionConfirmKind(
+        { ...base, repeat: 'No Repeat', timerAccumulatedSeconds: 90 * 60 },
         NOW,
       ),
     ).toBeNull()

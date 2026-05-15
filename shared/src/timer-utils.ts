@@ -70,6 +70,8 @@ export function completionConfirmKind(
   now: Date,
 ): 'over' | 'under' | null {
   if (task.timeframeType !== 'fluid') return null
+  // One-shot fluid: nothing to update — task disappears on Done, EMA never runs.
+  if (task.repeat === 'No Repeat') return null
   const plannedSec = task.timeFrame * 60
   if (plannedSec <= 0) return null
   const actualSec = currentTimerSeconds(task, now)
