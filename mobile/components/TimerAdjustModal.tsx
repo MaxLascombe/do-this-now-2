@@ -1,16 +1,7 @@
+import { formatTimerSeconds } from '@dtn/shared/timer-utils'
 import { Alert, Modal, Pressable, Text, View } from 'react-native'
 
 const ADJUST_AMOUNTS = [-15, -5, -1, 1, 5, 15] as const
-
-function formatTimerSeconds(s: number): string {
-  const total = Math.max(0, Math.floor(s))
-  const h = Math.floor(total / 3600)
-  const m = Math.floor((total % 3600) / 60)
-  const sec = total % 60
-  const pad = (n: number) => (n < 10 ? '0' + n : '' + n)
-  if (h > 0) return `${h}:${pad(m)}:${pad(sec)}`
-  return `${pad(m)}:${pad(sec)}`
-}
 
 export function TimerAdjustModal({
   open,

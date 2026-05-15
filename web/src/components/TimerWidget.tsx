@@ -1,5 +1,8 @@
 import { useTaskTimer } from '@dtn/shared/queries'
-import { currentTimerSeconds } from '@dtn/shared/timer-utils'
+import {
+  currentTimerSeconds,
+  formatTimerSeconds,
+} from '@dtn/shared/timer-utils'
 import { type Task } from '@dtn/shared/types'
 import { useEffect, useState } from 'react'
 
@@ -7,18 +10,6 @@ import { TimerAdjustModal } from './TimerAdjustModal'
 
 const ACCENT = '#34d399'
 const STREAK = '#f59e0b'
-
-// HH:MM:SS for ≥ 1 hour, otherwise MM:SS. Used for both the headline
-// display and the "elapsed" math in the warning message.
-function formatTimerSeconds(s: number): string {
-  const total = Math.max(0, Math.floor(s))
-  const h = Math.floor(total / 3600)
-  const m = Math.floor((total % 3600) / 60)
-  const sec = total % 60
-  const pad = (n: number) => (n < 10 ? '0' + n : '' + n)
-  if (h > 0) return `${h}:${pad(m)}:${pad(sec)}`
-  return `${pad(m)}:${pad(sec)}`
-}
 
 /**
  * The timer widget for a single task. If `task` is a 0-time-frame child,
@@ -124,7 +115,10 @@ export function TimerWidget({
           seconds={seconds}
           disabled={timer.isPending}
           onAdd={(m) => add(m * 60)}
-          onClear={() => dispatch('reset')}
+          onClear={() => {
+            dispatch('reset')
+            setAdjustOpen(false)
+          }}
           onClose={() => setAdjustOpen(false)}
         />
       </>

@@ -1,20 +1,13 @@
 import { useAllTasks, useTaskTimer } from '@dtn/shared/queries'
-import { currentTimerSeconds } from '@dtn/shared/timer-utils'
+import {
+  currentTimerSeconds,
+  formatTimerSeconds,
+} from '@dtn/shared/timer-utils'
 import { useRouter } from 'expo-router'
 import { useEffect, useState } from 'react'
 import { Pressable, Text, View } from 'react-native'
 
 const ACCENT = '#34d399'
-
-function formatTimerSeconds(s: number): string {
-  const total = Math.max(0, Math.floor(s))
-  const h = Math.floor(total / 3600)
-  const m = Math.floor((total % 3600) / 60)
-  const sec = total % 60
-  const pad = (n: number) => (n < 10 ? '0' + n : '' + n)
-  if (h > 0) return `${h}:${pad(m)}:${pad(sec)}`
-  return `${pad(m)}:${pad(sec)}`
-}
 
 export function RunningTimerChip() {
   const tasks = useAllTasks()
