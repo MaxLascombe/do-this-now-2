@@ -20,7 +20,8 @@
     "./task-input": "./src/task-input.ts",
     "./format": "./src/format.ts",
     "./api-client": "./src/api-client.ts",
-    "./queries": "./src/queries.ts"
+    "./queries": "./src/queries.ts",
+    "./timer-utils": "./src/timer-utils.ts"
   },
   "dependencies": {
     "drizzle-orm": "^0.45.1",

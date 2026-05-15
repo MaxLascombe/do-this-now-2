@@ -7,9 +7,13 @@ import {
 } from '@dtn/shared/queries'
 import { formatDueLabel, formatRepeat } from '@dtn/shared/format'
 import { minutesToHours } from '@dtn/shared/time'
+import {
+  currentTimerSeconds,
+  isCompletionGated,
+} from '@dtn/shared/timer-utils'
 import { type Task } from '@dtn/shared/types'
 import { Stack, useRouter } from 'expo-router'
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import {
   Alert,
   Pressable,
@@ -42,6 +46,8 @@ export default function Home() {
   const snoozeMutation = useSnoozeTask()
 
   const onComplete = (id: string) => {
+    const t = tasks.find((x) => x.id === id)
+    if (t && isCompletionGated(t, new Date())) return
     void ding()
     doneMutation.mutate(id)
   }
@@ -173,6 +179,19 @@ function Hero({
     task.repeatWeekdays,
   )
 
+  // Tick once a second while the timer is running so the gate state
+  // updates without the user touching the screen.
+  const [now, setNow] = useState(() => new Date())
+  useEffect(() => {
+    if (!task.timerStartedAt) return
+    const t = setInterval(() => setNow(new Date()), 1000)
+    return () => clearInterval(t)
+  }, [task.timerStartedAt])
+  const gated = isCompletionGated(task, now)
+  const remainingMin = gated
+    ? Math.ceil((task.timeFrame * 60 - currentTimerSeconds(task, now)) / 60)
+    : 0
+
   return (
     <View style={{ paddingHorizontal: 20, paddingTop: 16 }}>
       <Text
@@ -251,10 +270,12 @@ function Hero({
 
       <Pressable
         onPress={onComplete}
+        disabled={gated}
         style={({ pressed }) => ({
           marginTop: 24,
           paddingVertical: 14,
           borderRadius: 999,
+          opacity: gated ? 0.4 : 1,
           backgroundColor: pressed ? '#e4e4e7' : '#fafafa',
           alignItems: 'center',
           shadowColor: '#fff',
@@ -271,7 +292,7 @@ function Hero({
             letterSpacing: 0.5,
           }}
         >
-          Complete
+          {gated ? `${remainingMin} min to go` : 'Complete'}
         </Text>
       </Pressable>
 

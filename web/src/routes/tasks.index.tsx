@@ -9,6 +9,7 @@ import {
   useTopTasks,
 } from '@dtn/shared/queries'
 import { sortTasks } from '@dtn/shared/task-sorting'
+import { isCompletionGated } from '@dtn/shared/timer-utils'
 import { type Task } from '@dtn/shared/types'
 import { createFileRoute, useNavigate } from '@tanstack/react-router'
 import { format } from 'date-fns'
@@ -127,9 +128,12 @@ function TasksList() {
   const primeTaskCache = usePrimeTaskCache()
 
   const completeAction = () => {
-    if (!tasks[selectedTask]) return
+    const t = tasks[selectedTask]
+    if (!t) return
+    // Strict-fixed gate: same rule the Complete button shows visually.
+    if (isCompletionGated(t, new Date())) return
     ding()
-    doneMutation.mutate(tasks[selectedTask].id)
+    doneMutation.mutate(t.id)
   }
 
   const editAction = () => {

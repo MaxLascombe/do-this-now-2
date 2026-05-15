@@ -7,6 +7,7 @@ import {
   useTopTasks,
 } from '@dtn/shared/queries'
 import { sortTasks } from '@dtn/shared/task-sorting'
+import { isCompletionGated } from '@dtn/shared/timer-utils'
 import type { Task } from '@dtn/shared/types'
 import { Stack, useRouter } from 'expo-router'
 import { format } from 'date-fns'
@@ -97,12 +98,15 @@ export default function TasksList() {
   const deleteMutation = useDeleteTask()
   const snoozeMutation = useSnoozeTask()
 
+  const allData = sort === 'CHRON' ? allTasks.data : topTasks.data
   const onComplete = useCallback(
     (id: string) => {
+      const t = (allData ?? []).find((x) => x.id === id)
+      if (t && isCompletionGated(t, new Date())) return
       void ding()
       doneMutation.mutate(id)
     },
-    [ding, doneMutation],
+    [ding, doneMutation, allData],
   )
   const onSnooze = useCallback(
     (id: string) => snoozeMutation.mutate({ id }),
