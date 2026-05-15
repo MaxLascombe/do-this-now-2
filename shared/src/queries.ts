@@ -376,7 +376,8 @@ export function useSnoozeTask() {
 // cache doesn't have the task yet, we skip optimism and rely on the
 // server response — the next refetch fills the gap.
 function applyClientTimerAction(task: Task, action: TimerAction): Task {
-  const now = new Date()
+  // Use the action's stamped `at` so optimistic math matches what the server will compute on replay.
+  const now = action.at ? new Date(action.at) : new Date()
   // Coerce the persisted-cache string back into a Date, same trick the
   // timer-utils math uses. The cached row may carry an ISO string after
   // a localStorage rehydrate; treating it as a Date below would crash.
@@ -433,6 +434,10 @@ export function useTaskTimer() {
     mutationFn: (vars: { id: string; action: TimerAction }) =>
       api.tasks.timer(vars.id, vars.action),
     onMutate: async (vars) => {
+      // Stamp in onMutate (not the call site) so paused/replayed mutations carry the original click time, not the time they happened to be retried.
+      if (!vars.action.at) {
+        vars.action = { ...vars.action, at: new Date().toISOString() }
+      }
       await qc.cancelQueries({ queryKey: taskKeys.all })
       const issuer = findTaskInCaches(qc, vars.id)
       // Resolve client-side the same way the server does: a child task

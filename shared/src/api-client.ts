@@ -47,14 +47,12 @@ export type CompleteTaskOptions = { countMeasurement?: boolean }
 export type SnoozeTaskResult = { scope: 'subtask' | 'task' }
 export type DeleteTaskResult = Record<string, never>
 
-// Action shape for POST /api/tasks/:id/timer. Mirrors the server's
-// discriminated union; `seconds` may be negative for `add` (clamped to
-// a 0-floor by the server).
-export type TimerAction =
+export type TimerAction = (
   | { kind: 'start' }
   | { kind: 'pause' }
   | { kind: 'add'; seconds: number }
   | { kind: 'reset' }
+) & { at?: string /* ISO client-click time */ }
 
 export interface ApiClient {
   tasks: {
