@@ -81,8 +81,11 @@ function EditTask() {
         repeatUnit={task.repeatUnit}
         repeatWeekdays={task.repeatWeekdays}
         timeFrame={task.timeFrame}
+        timekeeperId={task.timekeeperId}
+        timeframeType={task.timeframeType}
         subtasks={task.subtasks}
         isEdit
+        taskId={id}
         isSaving={mutation.isPending}
         errorMessage={mutation.error?.message ?? null}
         onCancel={() => router.history.back()}

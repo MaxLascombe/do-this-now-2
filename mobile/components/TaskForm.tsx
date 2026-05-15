@@ -4,12 +4,14 @@ import {
   newSafeDate,
   newSafeDateTime,
 } from '@dtn/shared/helpers'
+import { useAllTasks } from '@dtn/shared/queries'
 import {
   type RepeatOption,
   type RepeatUnit,
   type RepeatWeekdays,
   type SubTask,
   type TaskInput,
+  type TimeframeType,
   taskInputSchema,
 } from '@dtn/shared/task-input'
 import DateTimePicker from '@react-native-community/datetimepicker'
@@ -59,8 +61,13 @@ type Props = {
     repeatUnit: RepeatUnit
     repeatWeekdays: RepeatWeekdays
     timeFrame: number
+    timekeeperId: string | null
+    timeframeType: TimeframeType
     subtasks: SubTask[]
   }>
+  // Required in edit mode so we can exclude this task from its own
+  // keeper-candidate list.
+  taskId?: string
   isSaving?: boolean
   errorMessage?: string | null
   onSubmit: (input: TaskInput) => void
@@ -69,6 +76,7 @@ type Props = {
 
 export function TaskForm({
   initial = {},
+  taskId,
   isSaving = false,
   errorMessage,
   onSubmit,
@@ -103,6 +111,12 @@ export function TaskForm({
     initial.repeatWeekdays ?? [false, false, false, false, false, false, false],
   )
   const [timeFrame, setTimeFrame] = useState(initial.timeFrame ?? 0)
+  const [timekeeperId, setTimekeeperId] = useState<string | null>(
+    initial.timekeeperId ?? null,
+  )
+  const [timeframeType, setTimeframeType] = useState<TimeframeType>(
+    initial.timeframeType ?? 'fixed',
+  )
   const nextSubtaskKey = useRef(0)
   const newKey = () => `s${++nextSubtaskKey.current}`
   const [subtasks, setSubtasks] = useState<Array<SubTask & { _key: string }>>(
@@ -112,8 +126,21 @@ export function TaskForm({
   const [errors, setErrors] = useState<Record<string, string>>({})
 
   const [openSheet, setOpenSheet] = useState<
-    null | 'date' | 'dueTime' | 'time' | 'repeat'
+    null | 'date' | 'dueTime' | 'time' | 'repeat' | 'keeper'
   >(null)
+
+  // Eligible timekeepers: this user's fixed-type tasks with a positive
+  // time frame, excluding the current task.
+  const allTasksQuery = useAllTasks({ enabled: timeFrame === 0 })
+  const keeperCandidates = (allTasksQuery.data ?? [])
+    .filter(
+      (t) =>
+        t.timeframeType === 'fixed' &&
+        t.timeFrame > 0 &&
+        (!taskId || t.id !== taskId),
+    )
+    .sort((a, b) => a.title.localeCompare(b.title))
+  const selectedKeeper = keeperCandidates.find((t) => t.id === timekeeperId)
 
   useEffect(() => {
     const t = title.trim()
@@ -161,8 +188,11 @@ export function TaskForm({
         ? `every ${repeatInterval} ${repeatUnit}${repeatInterval === 1 ? '' : 's'}`
         : repeat.toLowerCase()
 
+  const displayedMinutes = Math.ceil(timeFrame)
   const timeSummary =
-    timeFrame === 0 ? 'None' : `${Math.floor(timeFrame / 60)}h ${timeFrame % 60}m`
+    timeFrame === 0
+      ? '0 min (tracked elsewhere)'
+      : `${displayedMinutes} min`
 
   const dueTimeAsDate = dueTime
     ? newSafeDateTime('2000-1-1', dueTime)
@@ -181,6 +211,8 @@ export function TaskForm({
       repeatUnit,
       repeatWeekdays,
       timeFrame,
+      timekeeperId,
+      timeframeType,
       subtasks,
     })
     if (!parsed.success) {
@@ -390,6 +422,49 @@ export function TaskForm({
             onPress={() => setOpenSheet('time')}
           />
         </Field>
+
+        {timeFrame > 0 ? (
+          <Field label="Time frame type">
+            <View style={{ gap: 8 }}>
+              <TimeframeTypeOption
+                active={timeframeType === 'fixed'}
+                label="Fixed — target time"
+                description="The time frame is the goal. If you overshoot, the extra rolls into the next instance. Best for habits where the time itself is the point (read 30 min/day)."
+                onPress={() => setTimeframeType('fixed')}
+              />
+              <TimeframeTypeOption
+                active={timeframeType === 'fluid'}
+                label="Fluid — measured time"
+                description="The time frame is a live estimate. Each completion self-tunes via a 14-day rolling average. Best when you want a realistic recurring estimate (workout, design review)."
+                onPress={() => setTimeframeType('fluid')}
+              />
+            </View>
+          </Field>
+        ) : (
+          <Field
+            label="Tracked under"
+            trailing={selectedKeeper ? undefined : 'pick a keeper'}
+          >
+            <SettingRow
+              value={
+                selectedKeeper
+                  ? `${selectedKeeper.emoji} ${selectedKeeper.title}`
+                  : 'No keeper selected'
+              }
+              sub={
+                selectedKeeper
+                  ? `${Math.ceil(selectedKeeper.timeFrame)}m timer covers this task`
+                  : 'tap to pick a fixed task whose timer covers this one'
+              }
+              onPress={() => setOpenSheet('keeper')}
+            />
+            {errors.timekeeperId && (
+              <Text style={{ color: OVERDUE, fontSize: 11, marginTop: 6 }}>
+                {errors.timekeeperId}
+              </Text>
+            )}
+          </Field>
+        )}
 
         <Field label="Strict deadline">
           <View
@@ -748,13 +823,20 @@ export function TaskForm({
               color: '#fafafa',
             }}
           >
-            {Math.floor(timeFrame / 60)}h {timeFrame % 60}m
+            {displayedMinutes} min
           </Text>
           <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8, justifyContent: 'center' }}>
-            {[15, 30, 60, -15].map((delta) => (
+            {[-15, -1, 1, 15].map((delta) => (
               <Pressable
                 key={delta}
-                onPress={() => setTimeFrame(Math.max(0, timeFrame + delta))}
+                onPress={() => {
+                  const next = Math.max(0, Math.round(timeFrame) + delta)
+                  setTimeFrame(next)
+                  // Keep the XOR invariant: positive timeFrame => no keeper.
+                  if (next > 0 && timekeeperId !== null) {
+                    setTimekeeperId(null)
+                  }
+                }}
                 style={{
                   paddingHorizontal: 16,
                   paddingVertical: 10,
@@ -869,7 +951,135 @@ export function TaskForm({
           </View>
         </View>
       </Sheet>
+
+      <Sheet
+        open={openSheet === 'keeper'}
+        onClose={() => setOpenSheet(null)}
+        title="Tracked under"
+      >
+        <View style={{ paddingHorizontal: 20, paddingTop: 12, paddingBottom: 24, gap: 8 }}>
+          {keeperCandidates.length === 0 ? (
+            <Text style={{ color: '#71717a', fontSize: 12 }}>
+              {allTasksQuery.isPending
+                ? 'Loading…'
+                : 'No matching keepers. Create a fixed task with a positive time frame first.'}
+            </Text>
+          ) : (
+            keeperCandidates.map((t) => {
+              const selected = timekeeperId === t.id
+              return (
+                <Pressable
+                  key={t.id}
+                  onPress={() => {
+                    setTimekeeperId(t.id)
+                    setOpenSheet(null)
+                  }}
+                  style={{
+                    flexDirection: 'row',
+                    alignItems: 'center',
+                    gap: 12,
+                    paddingHorizontal: 14,
+                    paddingVertical: 10,
+                    borderRadius: 12,
+                    borderWidth: 1,
+                    borderColor: selected ? '#f4f4f5' : '#27272a',
+                    backgroundColor: selected
+                      ? 'rgba(244,244,245,0.1)'
+                      : 'rgba(24,24,27,0.4)',
+                  }}
+                >
+                  <Text style={{ fontSize: 22, lineHeight: 24 }}>
+                    {t.emoji}
+                  </Text>
+                  <Text
+                    numberOfLines={1}
+                    style={{
+                      flex: 1,
+                      fontFamily: 'JetBrainsMono_400Regular',
+                      color: '#fafafa',
+                      fontSize: 14,
+                    }}
+                  >
+                    {t.title}
+                  </Text>
+                  <Text
+                    style={{
+                      fontFamily: 'JetBrainsMono_400Regular',
+                      color: '#71717a',
+                      fontSize: 12,
+                    }}
+                  >
+                    {Math.ceil(t.timeFrame)}m
+                  </Text>
+                </Pressable>
+              )
+            })
+          )}
+        </View>
+      </Sheet>
     </View>
+  )
+}
+
+function TimeframeTypeOption({
+  active,
+  label,
+  description,
+  onPress,
+}: {
+  active: boolean
+  label: string
+  description: string
+  onPress: () => void
+}) {
+  return (
+    <Pressable
+      onPress={onPress}
+      style={{
+        borderRadius: 12,
+        borderWidth: 1,
+        borderColor: active ? '#f4f4f5' : '#27272a',
+        backgroundColor: active
+          ? 'rgba(244,244,245,0.1)'
+          : 'rgba(24,24,27,0.4)',
+        paddingHorizontal: 14,
+        paddingVertical: 12,
+      }}
+    >
+      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+        <View
+          style={{
+            width: 12,
+            height: 12,
+            borderRadius: 6,
+            borderWidth: 1,
+            borderColor: active ? '#fafafa' : '#52525b',
+            backgroundColor: active ? '#fafafa' : 'transparent',
+          }}
+        />
+        <Text
+          style={{
+            fontFamily: 'JetBrainsMono_700Bold',
+            color: '#fafafa',
+            fontSize: 14,
+          }}
+        >
+          {label}
+        </Text>
+      </View>
+      <Text
+        style={{
+          marginTop: 4,
+          marginLeft: 20,
+          fontFamily: 'JetBrainsMono_400Regular',
+          color: '#71717a',
+          fontSize: 11,
+          lineHeight: 16,
+        }}
+      >
+        {description}
+      </Text>
+    </Pressable>
   )
 }
 
