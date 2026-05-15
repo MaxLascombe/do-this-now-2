@@ -9,6 +9,7 @@ import {
   useTopTasks,
 } from '@dtn/shared/queries'
 import { isSnoozed } from '@dtn/shared/task-sorting'
+import { willAdvanceSubtask } from '@dtn/shared/task-transitions'
 import { minutesToHours } from '@dtn/shared/time'
 import {
   completionConfirmKind,
@@ -120,12 +121,14 @@ function Home() {
   const completeTaskAction = () => {
     if (!selectedTask) return
     const now = new Date()
-    // Strict-fixed gate: a repeating fixed task can't be marked done
-    // until the timer hits the target. Same rule the Done button
-    // displays as disabled; this catches the keyboard shortcut.
     if (isCompletionGated(selectedTask, now)) return
-    // Fluid over/under: open the count/skip/cancel modal. No alert →
-    // complete immediately, counting the measurement.
+    // Subtask advance never triggers the count/skip confirm — that
+    // dialog is about how to record the *whole task's* timer, which
+    // doesn't fire on subtask completion.
+    if (willAdvanceSubtask(selectedTask, now)) {
+      runComplete(selectedTask.id, true)
+      return
+    }
     const kind = completionConfirmKind(selectedTask, now)
     if (!kind) {
       runComplete(selectedTask.id, true)
@@ -360,6 +363,7 @@ function Hero({
   const remainingSec = gated
     ? Math.ceil(task.timeFrame * 60 - currentTimerSeconds(task, now))
     : 0
+  const advance = willAdvanceSubtask(task, now)
 
   return (
     <div className="flex flex-1 flex-col items-center justify-center px-5 pb-8 md:px-16 md:pb-48">
@@ -417,7 +421,13 @@ function Hero({
         className="mt-8 flex w-full max-w-[320px] items-center justify-center gap-3 rounded-full bg-white px-8 py-3.5 font-mono text-lg font-semibold text-black transition-colors hover:bg-zinc-100 disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:bg-white md:mt-12 md:w-auto md:max-w-none md:gap-4 md:px-10 md:py-5 md:text-xl"
         style={{ boxShadow: '0 0 80px rgba(255, 255, 255, 0.1)' }}
       >
-        <span>{gated ? `${Math.ceil(remainingSec / 60)} min to go` : 'Done'}</span>
+        <span>
+          {gated
+            ? `${Math.ceil(remainingSec / 60)} min to go`
+            : advance
+              ? 'Subtask Done'
+              : 'Done'}
+        </span>
         <Kbd variant="on-light">D</Kbd>
       </button>
 

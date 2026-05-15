@@ -16,6 +16,14 @@ export type CompleteTransition =
       advanced: true
     }
 
+export function willAdvanceSubtask(task: Task, now: Date = new Date()): boolean {
+  if (task.subtasks.length === 0) return false
+  if (!task.subtasks.some((s) => !s.done)) return false
+  const next = findNextActionableSubtask(task.subtasks, now)
+  if (!next) return false
+  return task.subtasks.some((s) => s !== next && !s.done)
+}
+
 export function completeTaskTransition(
   task: Task,
   now: Date = new Date(),

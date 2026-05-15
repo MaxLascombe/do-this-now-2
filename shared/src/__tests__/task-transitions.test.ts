@@ -3,10 +3,58 @@ import { describe, expect, it } from 'vitest'
 import {
   completeTaskTransition,
   snoozeTaskTransition,
+  willAdvanceSubtask,
 } from '../task-transitions'
 import { makeTask } from './_factories'
 
 const now = new Date('2026-05-15T12:00:00Z')
+
+describe('willAdvanceSubtask', () => {
+  it('returns false for a task with no subtasks', () => {
+    expect(willAdvanceSubtask(makeTask({ subtasks: [] }), now)).toBe(false)
+  })
+
+  it('returns false when all subtasks are already done (would full-complete)', () => {
+    const t = makeTask({
+      subtasks: [
+        { title: 'a', done: true },
+        { title: 'b', done: true },
+      ],
+    })
+    expect(willAdvanceSubtask(t, now)).toBe(false)
+  })
+
+  it('returns true when ticking off one of multiple undone subtasks', () => {
+    const t = makeTask({
+      subtasks: [
+        { title: 'a', done: false },
+        { title: 'b', done: false },
+      ],
+    })
+    expect(willAdvanceSubtask(t, now)).toBe(true)
+  })
+
+  it('returns false when only one subtask remains undone (would full-complete)', () => {
+    const t = makeTask({
+      subtasks: [
+        { title: 'a', done: true },
+        { title: 'b', done: false },
+      ],
+    })
+    expect(willAdvanceSubtask(t, now)).toBe(false)
+  })
+
+  it('still advances when all undone subtasks are snoozed', () => {
+    const future = new Date(now.getTime() + 60 * 60 * 1000).toISOString()
+    const t = makeTask({
+      subtasks: [
+        { title: 'a', done: false, snooze: future },
+        { title: 'b', done: false, snooze: future },
+      ],
+    })
+    expect(willAdvanceSubtask(t, now)).toBe(true)
+  })
+})
 
 describe('completeTaskTransition', () => {
   describe('no subtasks', () => {

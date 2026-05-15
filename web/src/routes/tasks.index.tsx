@@ -10,6 +10,7 @@ import {
   useTopTasks,
 } from '@dtn/shared/queries'
 import { sortTasks } from '@dtn/shared/task-sorting'
+import { willAdvanceSubtask } from '@dtn/shared/task-transitions'
 import {
   completionConfirmKind,
   isCompletionGated,
@@ -148,8 +149,11 @@ function TasksList() {
     const t = tasks[selectedTask]
     if (!t) return
     const now = new Date()
-    // Strict-fixed gate: same rule the Complete button shows visually.
     if (isCompletionGated(t, now)) return
+    if (willAdvanceSubtask(t, now)) {
+      runComplete(t.id, true)
+      return
+    }
     const kind = completionConfirmKind(t, now)
     if (!kind) {
       runComplete(t.id, true)
@@ -384,6 +388,7 @@ function TasksList() {
                             <>
                               <SelectedActions
                                 hasSubtasks={t.subtasks.length > 0}
+                                advance={willAdvanceSubtask(t, new Date())}
                                 onComplete={completeAction}
                                 onEdit={editAction}
                                 onSnoozeSubtasks={snoozeSubtasks}
@@ -425,6 +430,7 @@ function TasksList() {
                     <>
                       <SelectedActions
                         hasSubtasks={t.subtasks.length > 0}
+                        advance={willAdvanceSubtask(t, new Date())}
                         onComplete={completeAction}
                         onEdit={editAction}
                         onSnoozeSubtasks={snoozeSubtasks}
@@ -533,12 +539,14 @@ const Separator = ({ label }: { label: string }) => (
 
 const SelectedActions = ({
   hasSubtasks,
+  advance,
   onComplete,
   onEdit,
   onSnoozeSubtasks,
   onDelete,
 }: {
   hasSubtasks: boolean
+  advance: boolean
   onComplete: () => void
   onEdit: () => void
   onSnoozeSubtasks: () => void
@@ -550,7 +558,7 @@ const SelectedActions = ({
       onClick={onComplete}
       className="flex items-center gap-2 rounded-full bg-zinc-50 px-4 py-2 font-mono text-sm font-semibold text-zinc-900 hover:bg-zinc-100"
     >
-      <span>Complete</span>
+      <span>{advance ? 'Subtask Done' : 'Complete'}</span>
       <kbd className="rounded bg-black/15 px-1.5 py-0.5 text-[10px] font-bold">
         D
       </kbd>

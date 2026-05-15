@@ -7,6 +7,7 @@ import {
   useTopTasks,
 } from '@dtn/shared/queries'
 import { sortTasks } from '@dtn/shared/task-sorting'
+import { willAdvanceSubtask } from '@dtn/shared/task-transitions'
 import {
   completionConfirmKind,
   confirmMessage,
@@ -113,6 +114,11 @@ export default function TasksList() {
       }
       const now = new Date()
       if (isCompletionGated(t, now)) return
+      if (willAdvanceSubtask(t, now)) {
+        void ding()
+        doneMutation.mutate({ id })
+        return
+      }
       const kind = completionConfirmKind(t, now)
       if (!kind) {
         void ding()
