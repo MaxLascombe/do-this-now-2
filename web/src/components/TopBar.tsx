@@ -9,6 +9,7 @@ import { useEffect, useRef, useState } from 'react'
 
 import { useDate } from '../hooks/useDate'
 import { ProgressBlocks, ProgressPopover } from './ProgressBar'
+import { RunningTimerChip } from './RunningTimerChip'
 
 const ACCENT = '#34d399'
 const STREAK = '#f59e0b'
@@ -150,6 +151,10 @@ export const TopBar = () => {
             <ProgressBlocks />
           </button>
           {open && <ProgressPopover />}
+        </div>
+
+        <div className="flex items-center gap-3">
+          <RunningTimerChip />
         </div>
 
         <div className="flex items-center gap-1">
