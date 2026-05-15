@@ -6,6 +6,7 @@ import { Loading } from '../components/Loading'
 import { MobileChrome } from '../components/MobileChrome'
 import { PageHeading } from '../components/PageHeading'
 import TaskForm from '../components/TaskForm'
+import { TimerWidget } from '../components/TimerWidget'
 import { TopBar } from '../components/TopBar'
 
 export const Route = createFileRoute('/tasks/$id/edit')({
@@ -21,6 +22,11 @@ function EditTask() {
   const [sheetOpen, setSheetOpen] = useState(false)
 
   const task = taskQuery.data
+  // If this is a 0-time-frame child, its timer state actually lives on
+  // the keeper. Load the keeper so the widget displays + mutates the
+  // right row. Plain tasks just use their own row.
+  const keeperQuery = useTask(task?.timekeeperId ?? '')
+  const timerTask = task?.timekeeperId ? keeperQuery.data : task
 
   if (taskQuery.isPending || !task) {
     return (
@@ -69,6 +75,12 @@ function EditTask() {
           </kbd>
         </button>
       </div>
+
+      {timerTask && (
+        <div className="mx-auto w-full max-w-2xl px-5 pb-6 md:px-10">
+          <TimerWidget task={timerTask} actionId={id} plannedMinutes={timerTask.timeFrame} />
+        </div>
+      )}
 
       <TaskForm
         title={task.title}
