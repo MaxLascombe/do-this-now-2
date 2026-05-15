@@ -23,6 +23,11 @@ export type RepeatWeekdays = [
 
 export type SubTask = { title: string; done: boolean; snooze?: string }
 
+// Fixed: timeFrame is the target; over/under-runs carry into the next instance.
+// Fluid: timeFrame is the latest estimate; on completion we update it via a
+// 14-period EMA bootstrap (see shared/queries / server completion logic).
+export type TimeframeType = 'fixed' | 'fluid'
+
 export type Task = {
   id: string
   userId: string
@@ -35,7 +40,20 @@ export type Task = {
   repeatInterval: number
   repeatUnit: RepeatUnit
   repeatWeekdays: RepeatWeekdays
+  // Stored as decimal minutes (e.g. 30.42). UI rounds up for display.
+  // When 0, `timekeeperId` must be set — the task's time is tracked by
+  // another task. Otherwise `timekeeperId` is null.
   timeFrame: number
+  timekeeperId: string | null
+  timeframeType: TimeframeType
+  // Per-task timer state. The current value is
+  //   timerAccumulatedSeconds + (now - timerStartedAt) when running,
+  //   timerAccumulatedSeconds                            when paused.
+  timerStartedAt: Date | null
+  timerAccumulatedSeconds: number
+  // How many fluid completions have fed into timeFrame so far, capped at
+  // 14. Drives the EMA bootstrap: <14 = true running average, ≥14 = EMA.
+  measurementCount: number
   snooze: string | null
   subtasks: SubTask[]
   createdAt: Date
@@ -53,6 +71,9 @@ export type HistoryEntry = {
   userId: string
   taskId: string | null
   taskSnapshot: Task
+  // The timer value at completion, in seconds. Null on legacy rows from
+  // before the timer feature — read those as `taskSnapshot.timeFrame * 60`.
+  actualSeconds: number | null
   completedAt: Date
 }
 

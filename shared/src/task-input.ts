@@ -34,6 +34,8 @@ export const repeatOptionSchema = z.enum([
 
 export const repeatUnitSchema = z.enum(['day', 'week', 'month', 'year'])
 
+export const timeframeTypeSchema = z.enum(['fixed', 'fluid'])
+
 // Date is stored / transmitted as YYYY-M-D (no zero padding). Reject any
 // other string — in particular the legacy 'No Due Date' sentinel which the
 // app no longer supports. The parsed year/month/day must form a real date.
@@ -77,7 +79,11 @@ export const taskInputSchema = z
     repeatInterval: z.number().int().positive(),
     repeatUnit: repeatUnitSchema,
     repeatWeekdays: repeatWeekdaysSchema,
-    timeFrame: z.number().int().nonnegative(),
+    // Decimal minutes. 0 means "tracked under a timekeeper" — superRefine
+    // below requires `timekeeperId` to be set in that case.
+    timeFrame: z.number().nonnegative(),
+    timekeeperId: z.string().uuid().nullable().default(null),
+    timeframeType: timeframeTypeSchema.default('fixed'),
     subtasks: z.array(subTaskSchema),
   })
   .superRefine((data, ctx) => {
@@ -95,6 +101,25 @@ export const taskInputSchema = z
         message: 'Select at least one weekday for a custom weekly repeat.',
       })
     }
+    // XOR: either you provide a positive timeFrame OR you nominate a
+    // timekeeper that does. The CHECK constraint on the table enforces
+    // the same shape at the DB level.
+    if (data.timeFrame === 0 && data.timekeeperId === null) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ['timekeeperId'],
+        message:
+          'Tasks with no time frame must be tracked under another task.',
+      })
+    }
+    if (data.timeFrame > 0 && data.timekeeperId !== null) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ['timekeeperId'],
+        message:
+          'Remove the timekeeper, or set the time frame back to 0.',
+      })
+    }
   })
 
 export type TaskInput = z.infer<typeof taskInputSchema>
@@ -102,6 +127,7 @@ export type RepeatOption = z.infer<typeof repeatOptionSchema>
 export type RepeatUnit = z.infer<typeof repeatUnitSchema>
 export type RepeatWeekdays = z.infer<typeof repeatWeekdaysSchema>
 export type SubTask = z.infer<typeof subTaskSchema>
+export type TimeframeType = z.infer<typeof timeframeTypeSchema>
 
 // Project a stored Task back to a TaskInput so callers can update one field
 // without losing the rest. Strips server-managed fields (id, userId, snooze,
@@ -118,6 +144,8 @@ export function taskToInput(task: Task): TaskInput {
     repeatUnit: task.repeatUnit,
     repeatWeekdays: task.repeatWeekdays,
     timeFrame: task.timeFrame,
+    timekeeperId: task.timekeeperId,
+    timeframeType: task.timeframeType,
     subtasks: task.subtasks,
   }
 }

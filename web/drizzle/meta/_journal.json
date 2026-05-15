@@ -50,6 +50,13 @@
       "when": 1778599016863,
       "tag": "0006_familiar_speedball",
       "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "7",
+      "when": 1778815499458,
+      "tag": "0007_lame_nighthawk",
+      "breakpoints": true
     }
   ]
 }
