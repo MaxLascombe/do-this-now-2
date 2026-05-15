@@ -21,10 +21,12 @@ export function TimerWidget({
   task,
   actionId,
   plannedMinutes,
+  compact = false,
 }: {
   task: Task
   actionId?: string
   plannedMinutes?: number
+  compact?: boolean
 }) {
   const id = actionId ?? task.id
   const timer = useTaskTimer()
@@ -56,6 +58,71 @@ export function TimerWidget({
         onPress: () => dispatch('reset'),
       },
     ])
+  }
+
+  if (compact) {
+    return (
+      <View
+        style={{
+          flexDirection: 'row',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          borderRadius: 16,
+          borderWidth: 1,
+          borderColor: running ? ACCENT : '#27272a',
+          backgroundColor: 'rgba(24,24,27,0.4)',
+          paddingHorizontal: 18,
+          paddingVertical: 12,
+        }}
+      >
+        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
+          {running && (
+            <View
+              style={{
+                width: 6,
+                height: 6,
+                borderRadius: 3,
+                backgroundColor: ACCENT,
+              }}
+            />
+          )}
+          <Text
+            style={{
+              fontFamily: 'JetBrainsMono_700Bold',
+              color: running ? ACCENT : '#fafafa',
+              fontSize: 30,
+              lineHeight: 32,
+            }}
+          >
+            {formatTimerSeconds(seconds)}
+          </Text>
+        </View>
+        <Pressable
+          onPress={() => dispatch(running ? 'pause' : 'start')}
+          disabled={timer.isPending}
+          accessibilityLabel={running ? 'Pause timer' : 'Start timer'}
+          style={({ pressed }) => ({
+            width: 44,
+            height: 44,
+            borderRadius: 22,
+            alignItems: 'center',
+            justifyContent: 'center',
+            backgroundColor: running
+              ? pressed
+                ? '#d97706'
+                : '#f59e0b'
+              : pressed
+                ? '#e4e4e7'
+                : '#fafafa',
+            opacity: timer.isPending ? 0.6 : 1,
+          })}
+        >
+          <Text style={{ color: '#0a0a0a', fontSize: 16 }}>
+            {running ? '⏸' : '▶'}
+          </Text>
+        </Pressable>
+      </View>
+    )
   }
 
   return (

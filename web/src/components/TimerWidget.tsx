@@ -32,10 +32,16 @@ export function TimerWidget({
   task,
   actionId,
   plannedMinutes,
+  compact = false,
 }: {
   task: Task
   actionId?: string
   plannedMinutes?: number
+  // Compact = single-row iOS-lockscreen-style pill (time + start/pause).
+  // Default false = full widget with overrun warning, reset, and ±/min
+  // adjusters. Use compact for Home / Tasks-selected; keep the full
+  // widget on the edit page where the adjusters belong.
+  compact?: boolean
 }) {
   const id = actionId ?? task.id
   const timer = useTaskTimer()
@@ -57,6 +63,52 @@ export function TimerWidget({
   const dispatch = (kind: 'start' | 'pause' | 'reset') =>
     timer.mutate({ id, action: { kind } })
   const add = (sec: number) => timer.mutate({ id, action: { kind: 'add', seconds: sec } })
+
+  if (compact) {
+    return (
+      <div
+        className="flex items-center justify-between rounded-2xl border border-zinc-800 bg-zinc-900/40 px-5 py-3 font-mono"
+        style={running ? { borderColor: ACCENT } : undefined}
+      >
+        <div className="flex items-center gap-3">
+          {running && (
+            <span
+              className="h-1.5 w-1.5 rounded-full"
+              style={{
+                background: ACCENT,
+                animation: 'pulse 1.4s ease-in-out infinite',
+              }}
+            />
+          )}
+          <span
+            className="tabular-nums"
+            style={{
+              fontSize: '1.875rem',
+              fontWeight: 700,
+              color: running ? ACCENT : '#fafafa',
+              lineHeight: 1,
+            }}
+          >
+            {formatTimerSeconds(seconds)}
+          </span>
+        </div>
+        <button
+          type="button"
+          onClick={() => dispatch(running ? 'pause' : 'start')}
+          disabled={timer.isPending}
+          aria-label={running ? 'Pause timer' : 'Start timer'}
+          className={
+            'flex h-11 w-11 items-center justify-center rounded-full text-lg transition-colors disabled:opacity-60 ' +
+            (running
+              ? 'bg-amber-400/90 text-zinc-900 hover:bg-amber-400'
+              : 'bg-zinc-50 text-zinc-900 hover:bg-zinc-100')
+          }
+        >
+          {running ? '⏸' : '▶'}
+        </button>
+      </div>
+    )
+  }
 
   return (
     <div
