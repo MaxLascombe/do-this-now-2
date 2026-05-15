@@ -1,4 +1,5 @@
 import { useTaskTimer } from '@dtn/shared/queries'
+import { currentTimerSeconds } from '@dtn/shared/timer-utils'
 import { type Task } from '@dtn/shared/types'
 import { useEffect, useState } from 'react'
 import { Alert, Pressable, Text, View } from 'react-native'
@@ -14,14 +15,6 @@ function formatTimerSeconds(s: number): string {
   const pad = (n: number) => (n < 10 ? '0' + n : '' + n)
   if (h > 0) return `${h}:${pad(m)}:${pad(sec)}`
   return `${pad(m)}:${pad(sec)}`
-}
-
-function currentSeconds(task: Task, now: Date): number {
-  if (task.timerStartedAt) {
-    const elapsed = (now.getTime() - task.timerStartedAt.getTime()) / 1000
-    return Math.max(0, task.timerAccumulatedSeconds + elapsed)
-  }
-  return task.timerAccumulatedSeconds
 }
 
 export function TimerWidget({
@@ -43,7 +36,7 @@ export function TimerWidget({
     const t = setInterval(() => setNow(new Date()), 1000)
     return () => clearInterval(t)
   }, [running])
-  const seconds = currentSeconds(task, now)
+  const seconds = currentTimerSeconds(task, now)
 
   const plannedSec = (plannedMinutes ?? task.timeFrame) * 60
   const overrun = plannedSec > 0 && seconds > plannedSec * 1.5

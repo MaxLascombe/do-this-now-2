@@ -356,16 +356,25 @@ export function useSnoozeTask() {
 // server response — the next refetch fills the gap.
 function applyClientTimerAction(task: Task, action: TimerAction): Task {
   const now = new Date()
-  const next: Task = { ...task }
+  // Coerce the persisted-cache string back into a Date, same trick the
+  // timer-utils math uses. The cached row may carry an ISO string after
+  // a localStorage rehydrate; treating it as a Date below would crash.
+  const started =
+    task.timerStartedAt instanceof Date
+      ? task.timerStartedAt
+      : task.timerStartedAt
+        ? new Date(task.timerStartedAt)
+        : null
+  const next: Task = { ...task, timerStartedAt: started }
   switch (action.kind) {
     case 'start':
-      if (!task.timerStartedAt) {
+      if (!started) {
         next.timerStartedAt = now
       }
       break
     case 'pause':
-      if (task.timerStartedAt) {
-        const elapsed = (now.getTime() - task.timerStartedAt.getTime()) / 1000
+      if (started) {
+        const elapsed = (now.getTime() - started.getTime()) / 1000
         next.timerAccumulatedSeconds = Math.max(
           0,
           task.timerAccumulatedSeconds + elapsed,
@@ -374,12 +383,12 @@ function applyClientTimerAction(task: Task, action: TimerAction): Task {
       }
       break
     case 'add': {
-      const current = task.timerStartedAt
+      const current = started
         ? task.timerAccumulatedSeconds +
-          (now.getTime() - task.timerStartedAt.getTime()) / 1000
+          (now.getTime() - started.getTime()) / 1000
         : task.timerAccumulatedSeconds
       const after = Math.max(0, current + action.seconds)
-      if (task.timerStartedAt) {
+      if (started) {
         next.timerAccumulatedSeconds = after
         next.timerStartedAt = now
       } else {
