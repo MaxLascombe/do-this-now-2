@@ -43,6 +43,17 @@ describe('willAdvanceSubtask', () => {
     })
     expect(willAdvanceSubtask(t, now)).toBe(false)
   })
+
+  it('still advances when all undone subtasks are snoozed', () => {
+    const future = new Date(now.getTime() + 60 * 60 * 1000).toISOString()
+    const t = makeTask({
+      subtasks: [
+        { title: 'a', done: false, snooze: future },
+        { title: 'b', done: false, snooze: future },
+      ],
+    })
+    expect(willAdvanceSubtask(t, now)).toBe(true)
+  })
 })
 
 describe('completeTaskTransition', () => {
