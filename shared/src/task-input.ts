@@ -87,20 +87,6 @@ export const taskInputSchema = z
     subtasks: z.array(subTaskSchema),
   })
   .superRefine((data, ctx) => {
-    // Custom weekly without any selected weekdays is ambiguous: the math
-    // silently falls through to plain weekly. Force the user to pick at
-    // least one day.
-    if (
-      data.repeat === 'Custom' &&
-      data.repeatUnit === 'week' &&
-      !data.repeatWeekdays.some((d) => d)
-    ) {
-      ctx.addIssue({
-        code: z.ZodIssueCode.custom,
-        path: ['repeatWeekdays'],
-        message: 'Select at least one weekday for a custom weekly repeat.',
-      })
-    }
     // XOR: either you provide a positive timeFrame OR you nominate a
     // timekeeper that does. The CHECK constraint on the table enforces
     // the same shape at the DB level.
