@@ -66,7 +66,8 @@ function History() {
 
   const entries = data ?? []
   const totalMinutes = entries.reduce(
-    (acc, e) => acc + e.taskSnapshot.timeFrame,
+    // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition -- snapshots predate this column; may be undefined at runtime
+    (acc, e) => acc + (e.taskSnapshot.timeFrame ?? 0),
     0,
   )
   const hours = Math.floor(totalMinutes / 60)

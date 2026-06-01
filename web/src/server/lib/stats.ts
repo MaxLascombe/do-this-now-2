@@ -193,7 +193,8 @@ export async function getStats(
     dayOfWeek[localDayOfWeek(t, tzOffsetMin)]++
     const snap = row.taskSnapshot
     if (!snap.title) continue
-    const emoji = liveEmojiByTitle.get(snap.title) ?? snap.emoji
+    // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition -- snapshots predate the emoji column; may be undefined at runtime
+    const emoji = liveEmojiByTitle.get(snap.title) ?? snap.emoji ?? '📝'
     emojiCounts.set(emoji, (emojiCounts.get(emoji) ?? 0) + 1)
     titleCounts.set(snap.title, (titleCounts.get(snap.title) ?? 0) + 1)
   }
