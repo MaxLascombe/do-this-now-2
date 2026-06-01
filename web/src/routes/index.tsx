@@ -28,7 +28,6 @@ import { MobileChrome } from '../components/MobileChrome'
 import { TaskRow } from '../components/TaskRow'
 import { TimerWidget } from '../components/TimerWidget'
 import { TopBar } from '../components/TopBar'
-import useDing from '../hooks/useDing'
 import useKeyAction, { type KeyAction } from '../hooks/useKeyAction'
 
 export const Route = createFileRoute('/')({
@@ -90,7 +89,6 @@ const SecondaryAction = ({
 
 function Home() {
   const navigate = useNavigate()
-  const ding = useDing()
   const topTasksQuery = useTopTasks()
 
   const tasks = (topTasksQuery.data ?? []).filter((t) => !isSnoozed(t))
@@ -114,7 +112,6 @@ function Home() {
   } | null>(null)
 
   const runComplete = (id: string, countMeasurement: boolean) => {
-    ding()
     doneMutation.mutate({ id, countMeasurement })
   }
 

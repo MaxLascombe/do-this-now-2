@@ -36,7 +36,6 @@ import { PageHeading } from '../components/PageHeading'
 import { TaskRow } from '../components/TaskRow'
 import { TimerWidget } from '../components/TimerWidget'
 import { TopBar } from '../components/TopBar'
-import useDing from '../hooks/useDing'
 import useKeyAction, { type KeyAction } from '../hooks/useKeyAction'
 
 export const Route = createFileRoute('/tasks/')({
@@ -100,7 +99,6 @@ const groupLabel = (firstTaskDue: string): GroupLabel => {
 
 function TasksList() {
   const navigate = useNavigate()
-  const ding = useDing()
   const [selectedTask, setSelectedTask] = useState(0)
   const [sort, setSort] = useState<'CHRON' | 'TOP'>('CHRON')
   const taskElems = useRef<HTMLElement[]>([])
@@ -141,7 +139,6 @@ function TasksList() {
   } | null>(null)
 
   const runComplete = (id: string, countMeasurement: boolean) => {
-    ding()
     doneMutation.mutate({ id, countMeasurement })
   }
 
