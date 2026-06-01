@@ -1,7 +1,8 @@
-import { memo, type LegacyRef } from 'react'
-
-import { type Task } from '@dtn/shared/types'
+import { memo } from 'react'
 import { DateTag, Repeat, Strict, TimeFrame } from './Tags'
+import type { LegacyRef } from 'react'
+
+import type { Task } from '@dtn/shared/types'
 
 const TaskBoxBase = ({
   innerRef,

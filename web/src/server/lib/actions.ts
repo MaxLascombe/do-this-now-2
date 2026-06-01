@@ -1,14 +1,15 @@
 import { and, eq, gte, lt } from 'drizzle-orm'
 
-import { db } from '../../db'
-import { history, type Task, taskEvents, tasks } from '@dtn/shared/schema'
+import { history, taskEvents, tasks } from '@dtn/shared/schema'
 import {
   applyFullCompletion,
   completeTaskTransition,
   snoozeTaskTransition,
 } from '@dtn/shared/task-transitions'
+import { db } from '../../db'
 import { finalizeTodayProgress } from './progress'
 import { currentTimerSeconds } from './timer'
+import type { Task } from '@dtn/shared/schema'
 
 // `loadTask` accepts either the top-level `db` or a `tx` handle so the
 // caller can run it inside a transaction. The transaction param type is
@@ -38,7 +39,7 @@ export async function completeTask(
   // transaction, a double-tap on "Done" can race: two history rows for
   // the same completion, or insert succeeds and the follow-up update is
   // lost.
-  const result = await db.transaction(async (tx) => {
+  const completionResult = await db.transaction(async (tx) => {
     const task = await loadTask(tx, userId, id)
     if (!task) throw new Error('Task not found')
 
@@ -113,7 +114,7 @@ export async function completeTask(
     console.error('finalizeTodayProgress failed after completeTask', err)
   }
 
-  return result
+  return completionResult
 }
 
 export async function snoozeTask(
