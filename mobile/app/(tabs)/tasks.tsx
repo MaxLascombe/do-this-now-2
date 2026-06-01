@@ -31,7 +31,6 @@ import { Loading } from '../../components/Loading'
 import { PageHeading } from '../../components/PageHeading'
 import { SwipeableTaskRow } from '../../components/SwipeableTaskRow'
 import { TopProgress } from '../../components/TopProgress'
-import { useDing } from '../../hooks/useDing'
 
 type Sort = 'CHRON' | 'TOP'
 
@@ -93,7 +92,6 @@ const groupOf = (
 
 export default function TasksList() {
   const router = useRouter()
-  const ding = useDing()
   const [sort, setSort] = useState<Sort>('CHRON')
 
   const allTasks = useAllTasks({ enabled: sort === 'CHRON' })
@@ -108,20 +106,17 @@ export default function TasksList() {
     (id: string) => {
       const t = (allData ?? []).find((x) => x.id === id)
       if (!t) {
-        void ding()
         doneMutation.mutate({ id })
         return
       }
       const now = new Date()
       if (isCompletionGated(t, now)) return
       if (willAdvanceSubtask(t, now)) {
-        void ding()
         doneMutation.mutate({ id })
         return
       }
       const kind = completionConfirmKind(t, now)
       if (!kind) {
-        void ding()
         doneMutation.mutate({ id })
         return
       }
@@ -130,20 +125,18 @@ export default function TasksList() {
         {
           text: "Don't count",
           onPress: () => {
-            void ding()
             doneMutation.mutate({ id, countMeasurement: false })
           },
         },
         {
           text: 'Count it',
           onPress: () => {
-            void ding()
             doneMutation.mutate({ id, countMeasurement: true })
           },
         },
       ])
     },
-    [ding, doneMutation, allData],
+    [doneMutation, allData],
   )
   const onSnooze = useCallback(
     (id: string) => snoozeMutation.mutate({ id }),

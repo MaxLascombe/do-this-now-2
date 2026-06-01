@@ -32,13 +32,11 @@ import { Loading } from '../../components/Loading'
 import { SwipeableTaskRow } from '../../components/SwipeableTaskRow'
 import { TimerWidget } from '../../components/TimerWidget'
 import { TopProgress } from '../../components/TopProgress'
-import { useDing } from '../../hooks/useDing'
 
 const OVERDUE_ROSE = '#fb7185'
 
 export default function Home() {
   const router = useRouter()
-  const ding = useDing()
   const topTasks = useTopTasks()
   const tasks = (topTasks.data ?? []).filter((t) => !isSnoozed(t)).slice(0, 3)
 
@@ -53,20 +51,17 @@ export default function Home() {
   const onComplete = (id: string) => {
     const t = tasks.find((x) => x.id === id)
     if (!t) {
-      void ding()
       doneMutation.mutate({ id })
       return
     }
     const now = new Date()
     if (isCompletionGated(t, now)) return
     if (willAdvanceSubtask(t, now)) {
-      void ding()
       doneMutation.mutate({ id })
       return
     }
     const kind = completionConfirmKind(t, now)
     if (!kind) {
-      void ding()
       doneMutation.mutate({ id })
       return
     }
@@ -75,14 +70,12 @@ export default function Home() {
       {
         text: "Don't count",
         onPress: () => {
-          void ding()
           doneMutation.mutate({ id, countMeasurement: false })
         },
       },
       {
         text: 'Count it',
         onPress: () => {
-          void ding()
           doneMutation.mutate({ id, countMeasurement: true })
         },
       },
