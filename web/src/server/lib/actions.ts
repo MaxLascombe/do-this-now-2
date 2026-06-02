@@ -1,14 +1,16 @@
 import { and, eq, gte, lt } from 'drizzle-orm'
 
-import { db } from '../../db'
-import { history, type Task, taskEvents, tasks } from '@dtn/shared/schema'
+import { history, taskEvents, tasks } from '@dtn/shared/schema'
+import { isSnoozed } from '@dtn/shared/task-sorting'
 import {
   applyFullCompletion,
   completeTaskTransition,
   snoozeTaskTransition,
 } from '@dtn/shared/task-transitions'
+import { db } from '../../db'
 import { finalizeTodayProgress } from './progress'
 import { currentTimerSeconds } from './timer'
+import type { Task } from '@dtn/shared/schema'
 
 // `loadTask` accepts either the top-level `db` or a `tx` handle so the
 // caller can run it inside a transaction. The transaction param type is
@@ -133,7 +135,20 @@ export async function snoozeTask(
       .insert(taskEvents)
       .values({ userId, taskId: task.id, kind: 'snoozed' })
 
-    const transition = snoozeTaskTransition(task, allSubtasks, new Date())
+    const now = new Date()
+    const transition = snoozeTaskTransition(task, allSubtasks, now)
+
+    // When the snooze takes the whole task out of the active list — whether
+    // the top-level snooze is set or the last actionable subtask just got
+    // snoozed — bank a running timer so its time doesn't keep climbing while
+    // the task is away. No-op when already paused.
+    const timerFields =
+      task.timerStartedAt && isSnoozed(transition.nextTask)
+        ? {
+            timerStartedAt: null,
+            timerAccumulatedSeconds: currentTimerSeconds(task, now),
+          }
+        : {}
 
     if (transition.scope === 'subtask') {
       await tx
@@ -141,6 +156,7 @@ export async function snoozeTask(
         .set({
           subtasks: transition.nextTask.subtasks,
           updatedAt: transition.nextTask.updatedAt,
+          ...timerFields,
         })
         .where(and(eq(tasks.userId, userId), eq(tasks.id, task.id)))
     } else {
@@ -149,6 +165,7 @@ export async function snoozeTask(
         .set({
           snooze: transition.nextTask.snooze,
           updatedAt: transition.nextTask.updatedAt,
+          ...timerFields,
         })
         .where(and(eq(tasks.userId, userId), eq(tasks.id, task.id)))
     }

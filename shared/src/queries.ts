@@ -11,11 +11,12 @@ import type {
   TimerAction,
 } from './api-client'
 import { useApi } from './api-client'
-import { sortTasks } from './task-sorting'
+import { isSnoozed, sortTasks } from './task-sorting'
 import {
   completeTaskTransition,
   snoozeTaskTransition,
 } from './task-transitions'
+import { currentTimerSeconds } from './timer-utils'
 import type { TaskInput } from './task-input'
 import type { Task } from './types'
 
@@ -126,9 +127,20 @@ async function optimisticSnooze(
   const task = findTaskInCaches(qc, id)
   if (!task) return optimisticRemove(qc, id)
 
-  const transition = snoozeTaskTransition(task, allSubtasks, new Date())
+  const now = new Date()
+  const transition = snoozeTaskTransition(task, allSubtasks, now)
   if (transition.scope === 'task') return optimisticRemove(qc, id)
-  return replaceTaskInCaches(qc, id, transition.nextTask)
+  // Mirror the server: if snoozing this subtask leaves the whole task
+  // snoozed, bank the running timer so the chip stops ticking immediately.
+  const next =
+    task.timerStartedAt && isSnoozed(transition.nextTask)
+      ? {
+          ...transition.nextTask,
+          timerStartedAt: null,
+          timerAccumulatedSeconds: currentTimerSeconds(task, now),
+        }
+      : transition.nextTask
+  return replaceTaskInCaches(qc, id, next)
 }
 
 // userId borrowed from a cached task; '' fallback is harmless — onSettled refetch swaps in the real row.
