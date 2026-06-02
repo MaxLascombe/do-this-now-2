@@ -55,9 +55,6 @@ export const MobileTopBar = ({
           style={{ width: pct + '%', background: ACCENT }}
         />
       </div>
-      <div className="flex justify-center px-5 pt-2 empty:hidden">
-        <RunningTimerChip />
-      </div>
       <button
         type="button"
         onClick={onOpenSheet}
@@ -100,6 +97,9 @@ export const MobileTopBar = ({
           })}
         </span>
       </button>
+      <div className="flex justify-center px-5 pb-2 empty:hidden">
+        <RunningTimerChip />
+      </div>
     </div>
   )
 }
