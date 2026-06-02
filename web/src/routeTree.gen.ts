@@ -14,6 +14,7 @@ import { Route as NewTaskRouteImport } from './routes/new-task'
 import { Route as HistoryRouteImport } from './routes/history'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as TasksIndexRouteImport } from './routes/tasks.index'
+import { Route as TasksIdRouteImport } from './routes/tasks.$id'
 import { Route as ApiTasksRouteImport } from './routes/api/tasks'
 import { Route as ApiStatsRouteImport } from './routes/api/stats'
 import { Route as TasksIdEditRouteImport } from './routes/tasks.$id.edit'
@@ -51,6 +52,11 @@ const TasksIndexRoute = TasksIndexRouteImport.update({
   path: '/tasks/',
   getParentRoute: () => rootRouteImport,
 } as any)
+const TasksIdRoute = TasksIdRouteImport.update({
+  id: '/tasks/$id',
+  path: '/tasks/$id',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ApiTasksRoute = ApiTasksRouteImport.update({
   id: '/api/tasks',
   path: '/api/tasks',
@@ -62,9 +68,9 @@ const ApiStatsRoute = ApiStatsRouteImport.update({
   getParentRoute: () => rootRouteImport,
 } as any)
 const TasksIdEditRoute = TasksIdEditRouteImport.update({
-  id: '/tasks/$id/edit',
-  path: '/tasks/$id/edit',
-  getParentRoute: () => rootRouteImport,
+  id: '/edit',
+  path: '/edit',
+  getParentRoute: () => TasksIdRoute,
 } as any)
 const ApiTasksSuggestEmojisRoute = ApiTasksSuggestEmojisRouteImport.update({
   id: '/suggest-emojis',
@@ -114,6 +120,7 @@ export interface FileRoutesByFullPath {
   '/stats': typeof StatsRoute
   '/api/stats': typeof ApiStatsRoute
   '/api/tasks': typeof ApiTasksRouteWithChildren
+  '/tasks/$id': typeof TasksIdRouteWithChildren
   '/tasks/': typeof TasksIndexRoute
   '/api/admin/backfill-emojis': typeof ApiAdminBackfillEmojisRoute
   '/api/history/$date': typeof ApiHistoryDateRoute
@@ -132,6 +139,7 @@ export interface FileRoutesByTo {
   '/stats': typeof StatsRoute
   '/api/stats': typeof ApiStatsRoute
   '/api/tasks': typeof ApiTasksRouteWithChildren
+  '/tasks/$id': typeof TasksIdRouteWithChildren
   '/tasks': typeof TasksIndexRoute
   '/api/admin/backfill-emojis': typeof ApiAdminBackfillEmojisRoute
   '/api/history/$date': typeof ApiHistoryDateRoute
@@ -151,6 +159,7 @@ export interface FileRoutesById {
   '/stats': typeof StatsRoute
   '/api/stats': typeof ApiStatsRoute
   '/api/tasks': typeof ApiTasksRouteWithChildren
+  '/tasks/$id': typeof TasksIdRouteWithChildren
   '/tasks/': typeof TasksIndexRoute
   '/api/admin/backfill-emojis': typeof ApiAdminBackfillEmojisRoute
   '/api/history/$date': typeof ApiHistoryDateRoute
@@ -171,6 +180,7 @@ export interface FileRouteTypes {
     | '/stats'
     | '/api/stats'
     | '/api/tasks'
+    | '/tasks/$id'
     | '/tasks/'
     | '/api/admin/backfill-emojis'
     | '/api/history/$date'
@@ -189,6 +199,7 @@ export interface FileRouteTypes {
     | '/stats'
     | '/api/stats'
     | '/api/tasks'
+    | '/tasks/$id'
     | '/tasks'
     | '/api/admin/backfill-emojis'
     | '/api/history/$date'
@@ -207,6 +218,7 @@ export interface FileRouteTypes {
     | '/stats'
     | '/api/stats'
     | '/api/tasks'
+    | '/tasks/$id'
     | '/tasks/'
     | '/api/admin/backfill-emojis'
     | '/api/history/$date'
@@ -226,11 +238,11 @@ export interface RootRouteChildren {
   StatsRoute: typeof StatsRoute
   ApiStatsRoute: typeof ApiStatsRoute
   ApiTasksRoute: typeof ApiTasksRouteWithChildren
+  TasksIdRoute: typeof TasksIdRouteWithChildren
   TasksIndexRoute: typeof TasksIndexRoute
   ApiAdminBackfillEmojisRoute: typeof ApiAdminBackfillEmojisRoute
   ApiHistoryDateRoute: typeof ApiHistoryDateRoute
   ApiProgressTodayRoute: typeof ApiProgressTodayRoute
-  TasksIdEditRoute: typeof TasksIdEditRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -270,6 +282,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof TasksIndexRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/tasks/$id': {
+      id: '/tasks/$id'
+      path: '/tasks/$id'
+      fullPath: '/tasks/$id'
+      preLoaderRoute: typeof TasksIdRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/tasks': {
       id: '/api/tasks'
       path: '/api/tasks'
@@ -286,10 +305,10 @@ declare module '@tanstack/react-router' {
     }
     '/tasks/$id/edit': {
       id: '/tasks/$id/edit'
-      path: '/tasks/$id/edit'
+      path: '/edit'
       fullPath: '/tasks/$id/edit'
       preLoaderRoute: typeof TasksIdEditRouteImport
-      parentRoute: typeof rootRouteImport
+      parentRoute: typeof TasksIdRoute
     }
     '/api/tasks/suggest-emojis': {
       id: '/api/tasks/suggest-emojis'
@@ -380,6 +399,17 @@ const ApiTasksRouteWithChildren = ApiTasksRoute._addFileChildren(
   ApiTasksRouteChildren,
 )
 
+interface TasksIdRouteChildren {
+  TasksIdEditRoute: typeof TasksIdEditRoute
+}
+
+const TasksIdRouteChildren: TasksIdRouteChildren = {
+  TasksIdEditRoute: TasksIdEditRoute,
+}
+
+const TasksIdRouteWithChildren =
+  TasksIdRoute._addFileChildren(TasksIdRouteChildren)
+
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   HistoryRoute: HistoryRoute,
@@ -387,11 +417,11 @@ const rootRouteChildren: RootRouteChildren = {
   StatsRoute: StatsRoute,
   ApiStatsRoute: ApiStatsRoute,
   ApiTasksRoute: ApiTasksRouteWithChildren,
+  TasksIdRoute: TasksIdRouteWithChildren,
   TasksIndexRoute: TasksIndexRoute,
   ApiAdminBackfillEmojisRoute: ApiAdminBackfillEmojisRoute,
   ApiHistoryDateRoute: ApiHistoryDateRoute,
   ApiProgressTodayRoute: ApiProgressTodayRoute,
-  TasksIdEditRoute: TasksIdEditRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

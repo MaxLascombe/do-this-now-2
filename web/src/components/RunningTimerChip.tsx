@@ -46,7 +46,7 @@ export function RunningTimerChip() {
         }}
       />
       <Link
-        to="/tasks/$id/edit"
+        to="/tasks/$id"
         params={{ id: running.id }}
         className="flex items-center gap-1.5 hover:opacity-80"
         title={`${running.title} — open`}
