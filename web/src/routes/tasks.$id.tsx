@@ -31,10 +31,12 @@ function TaskDetail() {
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
       if (e.key === 'Escape') router.history.back()
+      if (e.key === 'e' || e.key === 'E')
+        router.navigate({ to: '/tasks/$id/edit', params: { id } })
     }
     document.addEventListener('keydown', onKey)
     return () => document.removeEventListener('keydown', onKey)
-  }, [router])
+  }, [router, id])
 
   if (taskQuery.isPending || !task) {
     return (
