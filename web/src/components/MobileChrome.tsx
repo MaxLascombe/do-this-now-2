@@ -4,6 +4,7 @@ import { Link, useLocation } from '@tanstack/react-router'
 import { type ReactNode, useEffect } from 'react'
 
 import { useComputedProgress } from './ProgressBar'
+import { RunningTimerChip } from './RunningTimerChip'
 
 const ACCENT = '#34d399'
 const STREAK = '#f59e0b'
@@ -53,6 +54,9 @@ export const MobileTopBar = ({
           className="h-full transition-[width] duration-300"
           style={{ width: pct + '%', background: ACCENT }}
         />
+      </div>
+      <div className="flex justify-center px-5 pt-2 empty:hidden">
+        <RunningTimerChip />
       </div>
       <button
         type="button"
