@@ -1,3 +1,4 @@
+import { dayIndex, startOfToday } from '@dtn/shared/day-index'
 import { newSafeDate } from '@dtn/shared/helpers'
 import {
   useAllTasks,
@@ -44,20 +45,6 @@ export const Route = createFileRoute('/tasks/')({
 })
 
 const OVERDUE = '#fb7185'
-
-const startOfToday = () => {
-  const n = new Date()
-  return new Date(n.getFullYear(), n.getMonth(), n.getDate())
-}
-
-const dayIndex = (d: Date) => {
-  const today = startOfToday()
-  return Math.round(
-    (new Date(d.getFullYear(), d.getMonth(), d.getDate()).getTime() -
-      today.getTime()) /
-      (24 * 60 * 60 * 1000),
-  )
-}
 
 type GroupLabel = {
   label: string
