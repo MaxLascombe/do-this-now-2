@@ -1,10 +1,11 @@
-import { ApiError, type ApiClient } from '@dtn/shared/api-client'
+import { ApiError } from '@dtn/shared/api-client'
 import { getTzOffsetMin } from '@dtn/shared/time'
 
 import * as actionFns from '../server/actions'
 import * as progressFns from '../server/progress'
 import * as statsFns from '../server/stats'
 import * as taskFns from '../server/tasks'
+import type { ApiClient } from '@dtn/shared/api-client'
 
 const notFound = (id: string) =>
   new ApiError({
@@ -40,8 +41,7 @@ export const webApiClient: ApiClient = {
       }),
     snooze: (id, allSubtasks = false) =>
       actionFns.snoozeTask({ data: { id, allSubtasks } }),
-    suggestEmojis: (title) =>
-      taskFns.suggestEmojis({ data: { title } }),
+    suggestEmojis: (title) => taskFns.suggestEmojis({ data: { title } }),
     timer: (id, action) => actionFns.taskTimer({ data: { id, action } }),
   },
   history: {
@@ -57,7 +57,6 @@ export const webApiClient: ApiClient = {
       }),
   },
   stats: {
-    get: () =>
-      statsFns.getStats({ data: { tzOffsetMin: getTzOffsetMin() } }),
+    get: () => statsFns.getStats({ data: { tzOffsetMin: getTzOffsetMin() } }),
   },
 }
