@@ -87,7 +87,12 @@ export default function History() {
               paddingBottom: 16,
             }}
           >
-            <DateStepperButton onPress={goOlder}>←</DateStepperButton>
+            <DateStepperButton
+              onPress={goOlder}
+              accessibilityLabel="Show the previous day"
+            >
+              ←
+            </DateStepperButton>
             <View style={{ alignItems: 'center' }}>
               <Text
                 style={{
@@ -113,7 +118,11 @@ export default function History() {
                 {relLabel}
               </Text>
             </View>
-            <DateStepperButton onPress={goNewer} disabled={daysAgo === 0}>
+            <DateStepperButton
+              onPress={goNewer}
+              disabled={daysAgo === 0}
+              accessibilityLabel="Show the next day"
+            >
               →
             </DateStepperButton>
           </View>
@@ -213,15 +222,20 @@ function DateStepperButton({
   children,
   onPress,
   disabled,
+  accessibilityLabel,
 }: {
   children: string
   onPress: () => void
   disabled?: boolean
+  accessibilityLabel: string
 }) {
   return (
     <Pressable
       onPress={onPress}
       disabled={disabled}
+      accessibilityRole="button"
+      accessibilityLabel={accessibilityLabel}
+      accessibilityState={{ disabled: !!disabled }}
       style={({ pressed }) => ({
         width: 40,
         height: 40,

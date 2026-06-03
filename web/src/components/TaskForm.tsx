@@ -411,6 +411,7 @@ const TaskForm = ({
             <Field label="Due time?">
               <div className="flex items-center gap-3 font-mono">
                 <Toggle
+                  label="Set a due time"
                   on={dueTime !== null}
                   onChange={(on) => setDueTime(on ? '09:00' : null)}
                 />
@@ -611,7 +612,11 @@ const TaskForm = ({
 
           <Field label="Strict deadline?">
             <div className="flex items-center gap-3 font-mono">
-              <Toggle on={strictDeadline} onChange={setStrictDeadline} />
+              <Toggle
+                label="Strict deadline"
+                on={strictDeadline}
+                onChange={setStrictDeadline}
+              />
             </div>
           </Field>
 
@@ -621,6 +626,7 @@ const TaskForm = ({
           >
             <div className="flex items-center gap-3 font-mono">
               <Toggle
+                label="Add subtasks"
                 on={hasSubtasks}
                 onChange={(on) => {
                   if (
@@ -844,14 +850,17 @@ const TimeframeTypeOption = ({
 const Toggle = ({
   on,
   onChange,
+  label,
 }: {
   on: boolean
   onChange: (on: boolean) => void
+  label: string
 }) => (
   <button
     type="button"
     onClick={() => onChange(!on)}
     aria-pressed={on}
+    aria-label={label}
     className={
       'relative inline-block h-6 w-11 rounded-full transition-colors ' +
       (on ? 'bg-zinc-50' : 'bg-zinc-800')
