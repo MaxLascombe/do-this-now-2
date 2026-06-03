@@ -1,4 +1,7 @@
-import { isSnoozed } from '@dtn/shared/task-sorting'
+import {
+  findNextActionableSubtask,
+  isSnoozed,
+} from '@dtn/shared/task-sorting'
 import { willAdvanceSubtask } from '@dtn/shared/task-transitions'
 import {
   useCompleteTask,
@@ -195,9 +198,7 @@ function Hero({
 }) {
   const nextSub =
     task.subtasks.length > 0
-      ? (task.subtasks.find(
-          (s) => !s.done && (!s.snooze || new Date(s.snooze) < new Date()),
-        ) ?? task.subtasks.find((s) => !s.done))
+      ? findNextActionableSubtask(task.subtasks, new Date())
       : undefined
   const doneCount = task.subtasks.filter((s) => s.done).length
   const titleText = nextSub?.title ?? task.title
