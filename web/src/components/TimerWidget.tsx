@@ -5,6 +5,7 @@ import {
 } from '@dtn/shared/timer-utils'
 import { useEffect, useState } from 'react'
 
+import { useConfirm } from './ConfirmProvider'
 import { TimerAdjustModal } from './TimerAdjustModal'
 import type { Task } from '@dtn/shared/types'
 
@@ -34,6 +35,7 @@ export function TimerWidget({
 }) {
   const id = actionId ?? task.id
   const timer = useTaskTimer()
+  const confirm = useConfirm()
   const running = !!task.timerStartedAt
 
   // Tick once per second while running so the displayed value keeps
@@ -195,9 +197,13 @@ export function TimerWidget({
 
         <button
           type="button"
-          onClick={() => {
+          onClick={async () => {
             if (seconds === 0) return
-            if (!window.confirm('Reset timer to 0?')) return
+            const ok = await confirm({
+              message: 'Reset timer to 0?',
+              confirmLabel: 'Reset',
+            })
+            if (!ok) return
             dispatch('reset')
           }}
           disabled={timer.isPending || seconds === 0}

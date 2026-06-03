@@ -2,6 +2,7 @@ import { ClerkProvider, Show, SignInButton } from '@clerk/tanstack-react-start'
 import { ApiProvider } from '@dtn/shared/api-client'
 import { HeadContent, Scripts, createRootRoute } from '@tanstack/react-router'
 
+import { ConfirmProvider } from '../components/ConfirmProvider'
 import { webApiClient } from '../lib/api-client'
 import { QueryProvider } from '../lib/query-client'
 
@@ -42,7 +43,9 @@ function RootDocument({ children }: { children: ReactNode }) {
         <body className="text-zinc-50">
           <QueryProvider>
             <ApiProvider value={webApiClient}>
-              <Show when="signed-in">{children}</Show>
+              <Show when="signed-in">
+                <ConfirmProvider>{children}</ConfirmProvider>
+              </Show>
               <Show when="signed-out">
                 <SignedOutScreen />
               </Show>
