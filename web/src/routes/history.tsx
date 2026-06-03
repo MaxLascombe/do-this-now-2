@@ -236,6 +236,7 @@ const CompletedRow = ({ entry }: { entry: HistoryEntry }) => {
   return (
     <div className="flex w-full items-center gap-4 rounded-2xl border border-zinc-800 bg-zinc-900/60 px-5 py-3 font-mono">
       <span
+        aria-hidden="true"
         className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full border"
         style={{ borderColor: ACCENT, color: ACCENT }}
       >
