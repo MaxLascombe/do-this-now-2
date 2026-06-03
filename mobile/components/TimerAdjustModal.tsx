@@ -100,7 +100,7 @@ export function TimerAdjustModal({
                 onPress={() => onAdd(m)}
                 disabled={disabled}
                 accessibilityRole="button"
-                accessibilityLabel={`${m > 0 ? 'Add' : 'Subtract'} ${Math.abs(m)} minutes`}
+                accessibilityLabel={`${m > 0 ? 'Add' : 'Subtract'} ${Math.abs(m)} ${Math.abs(m) === 1 ? 'minute' : 'minutes'}`}
                 style={({ pressed }) => ({
                   flexGrow: 1,
                   flexBasis: 0,
