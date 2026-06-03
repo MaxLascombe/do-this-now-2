@@ -1,6 +1,13 @@
 import * as Haptics from 'expo-haptics'
 import { memo, useRef, useState } from 'react'
-import { ActionSheetIOS, Alert, Platform, Text, View } from 'react-native'
+import {
+  ActionSheetIOS,
+  Alert,
+  Platform,
+  Text,
+  View,
+  type AccessibilityActionEvent,
+} from 'react-native'
 import { Swipeable } from 'react-native-gesture-handler'
 
 import type { Task } from '@dtn/shared/types'
@@ -106,6 +113,23 @@ function SwipeableTaskRowBase({
     }
   }
 
+  const onAccessibilityAction = (event: AccessibilityActionEvent) => {
+    switch (event.nativeEvent.actionName) {
+      case 'complete':
+        onComplete()
+        break
+      case 'snooze':
+        onSnooze()
+        break
+      case 'edit':
+        onEdit()
+        break
+      case 'delete':
+        onDelete()
+        break
+    }
+  }
+
   const subtasksList =
     expanded && hasSubtasks ? (
       <View
@@ -192,6 +216,18 @@ function SwipeableTaskRowBase({
             selected={selected}
             onPress={onTap}
             onLongPress={onLongPress}
+            accessibilityHint={
+              !onPress && hasSubtasks
+                ? 'Double tap to expand subtasks'
+                : undefined
+            }
+            accessibilityActions={[
+              { name: 'complete', label: 'Complete' },
+              { name: 'snooze', label: 'Snooze' },
+              { name: 'edit', label: 'Edit' },
+              { name: 'delete', label: 'Delete' },
+            ]}
+            onAccessibilityAction={onAccessibilityAction}
             containerStyle={{
               backgroundColor: 'transparent',
               borderWidth: 0,
