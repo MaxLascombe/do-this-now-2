@@ -28,6 +28,7 @@ import {
 } from 'react-native'
 import { SafeAreaView } from 'react-native-safe-area-context'
 
+import { ErrorState } from '../../components/ErrorState'
 import { Loading } from '../../components/Loading'
 import { SwipeableTaskRow } from '../../components/SwipeableTaskRow'
 import { TimerWidget } from '../../components/TimerWidget'
@@ -113,9 +114,16 @@ export default function Home() {
             padding: 24,
           }}
         >
-          <Text style={{ color: '#a1a1aa', fontSize: 14 }}>
-            No tasks for now — tap + to add one.
-          </Text>
+          {topTasks.isError ? (
+            <ErrorState
+              message="Couldn't load your tasks."
+              onRetry={() => topTasks.refetch()}
+            />
+          ) : (
+            <Text style={{ color: '#a1a1aa', fontSize: 14 }}>
+              No tasks for now — tap + to add one.
+            </Text>
+          )}
         </View>
       ) : (
         <ScrollView
