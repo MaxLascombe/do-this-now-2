@@ -1,17 +1,21 @@
 import { newSafeDate } from '@dtn/shared/helpers'
 import { useStats } from '@dtn/shared/queries'
-import type { StatsResult } from '@dtn/shared/types'
 import { createFileRoute, useNavigate } from '@tanstack/react-router'
-import { type ReactNode, useState } from 'react'
+import { useState } from 'react'
 
 import { KeyHints } from '../components/KeyHints'
+import { ErrorState } from '../components/ErrorState'
 import { Loading } from '../components/Loading'
 import { MobileChrome } from '../components/MobileChrome'
 import { PageHeading } from '../components/PageHeading'
 import { TopBar } from '../components/TopBar'
-import useKeyAction, { type KeyAction } from '../hooks/useKeyAction'
+import useKeyAction from '../hooks/useKeyAction'
+import type { ReactNode } from 'react'
+import type { KeyAction } from '../hooks/useKeyAction'
+import type { StatsResult } from '@dtn/shared/types'
 
 export const Route = createFileRoute('/stats')({
+  head: () => ({ meta: [{ title: 'Stats · Do This Now' }] }),
   component: Stats,
 })
 
@@ -20,13 +24,17 @@ const STREAK = '#f59e0b'
 
 function Stats() {
   const navigate = useNavigate()
-  const { data, isLoading } = useStats()
+  const { data, isLoading, isError, refetch } = useStats()
   const [sheetOpen, setSheetOpen] = useState(false)
 
-  const keyActions: KeyAction[] = [
+  const keyActions: Array<KeyAction> = [
     { key: 'escape', description: 'Home', action: () => navigate({ to: '/' }) },
     { key: 'n', description: 'Home', action: () => navigate({ to: '/' }) },
-    { key: 't', description: 'Tasks', action: () => navigate({ to: '/tasks' }) },
+    {
+      key: 't',
+      description: 'Tasks',
+      action: () => navigate({ to: '/tasks' }),
+    },
     {
       key: '=',
       description: 'New task',
@@ -41,7 +49,7 @@ function Stats() {
   ]
   useKeyAction(keyActions)
 
-  if (isLoading || !data) {
+  if (!data) {
     return (
       <div className="flex min-h-screen flex-col">
         <TopBar />
@@ -51,7 +59,14 @@ function Stats() {
           onCloseSheet={() => setSheetOpen(false)}
         />
         <div className="flex flex-1 items-center justify-center">
-          <Loading />
+          {isError && !isLoading ? (
+            <ErrorState
+              message="Couldn't load your stats."
+              onRetry={() => refetch()}
+            />
+          ) : (
+            <Loading />
+          )}
         </div>
       </div>
     )
@@ -92,13 +107,7 @@ function Stats() {
   )
 }
 
-function Section({
-  title,
-  children,
-}: {
-  title: string
-  children: ReactNode
-}) {
+function Section({ title, children }: { title: string; children: ReactNode }) {
   return (
     <section className="rounded-2xl border border-zinc-800 bg-zinc-900/30 p-5">
       <h2 className="mb-4 font-mono text-[10px] tracking-[0.3em] text-zinc-500 uppercase">
@@ -170,7 +179,7 @@ function StreakSummary({ data }: { data: StatsResult }) {
 
 const HEATMAP_COLS = 26
 
-function percentile(sorted: number[], p: number): number {
+function percentile(sorted: Array<number>, p: number): number {
   if (sorted.length === 0) return 0
   const idx = Math.min(
     sorted.length - 1,
@@ -192,7 +201,7 @@ function heatmapColor(
 }
 
 function Heatmap({ data }: { data: StatsResult }) {
-  const last = data.heatmap[data.heatmap.length - 1]
+  const last = data.heatmap.at(-1)
   if (!last) return null
   const today = newSafeDate(last.date)
   const todayCol = HEATMAP_COLS - 1
@@ -204,7 +213,7 @@ function Heatmap({ data }: { data: StatsResult }) {
     col: number
     row: number
   }
-  const cells: Cell[] = []
+  const cells: Array<Cell> = []
   for (let i = 0; i < data.heatmap.length; i++) {
     const offsetFromToday = data.heatmap.length - 1 - i
     const dowOffset = todayDow - offsetFromToday
@@ -235,6 +244,12 @@ function Heatmap({ data }: { data: StatsResult }) {
           ))}
         </div>
         <div
+          role="img"
+          aria-label={`Activity over the last 6 months: ${nonZeroSorted.length} active ${
+            nonZeroSorted.length === 1 ? 'day' : 'days'
+          }, ${data.totalDaysHit} ${
+            data.totalDaysHit === 1 ? 'day' : 'days'
+          } hit the daily target.`}
           className="grid gap-[3px]"
           style={{
             gridTemplateColumns: `repeat(${HEATMAP_COLS}, 14px)`,
@@ -424,9 +439,7 @@ function TopTasks({ data }: { data: StatsResult }) {
         {data.topTasks.map((t) => (
           <li key={t.title} className="flex items-center gap-3">
             <span className="w-7 text-lg">{t.emoji}</span>
-            <span
-              className="flex-1 truncate font-mono text-sm text-zinc-200"
-            >
+            <span className="flex-1 truncate font-mono text-sm text-zinc-200">
               {t.title}
             </span>
             <div className="flex w-40 items-center gap-3">
