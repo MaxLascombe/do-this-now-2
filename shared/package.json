@@ -20,6 +20,7 @@
     "./task-input": "./src/task-input.ts",
     "./format": "./src/format.ts",
     "./scoring": "./src/scoring.ts",
+    "./heatmap": "./src/heatmap.ts",
     "./api-client": "./src/api-client.ts",
     "./queries": "./src/queries.ts",
     "./timer-utils": "./src/timer-utils.ts"
