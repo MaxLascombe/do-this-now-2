@@ -15,6 +15,7 @@ import type { HistoryEntry } from '@dtn/shared/types'
 import type { KeyAction } from '../hooks/useKeyAction'
 
 export const Route = createFileRoute('/history')({
+  head: () => ({ meta: [{ title: 'History · Do This Now' }] }),
   component: History,
 })
 
