@@ -5,6 +5,7 @@ import { dailyProgress, history, taskEvents, tasks } from '@dtn/shared/schema'
 import { DAY_MS } from '@dtn/shared/time'
 import { db } from '../../db'
 import { rowCreditMinutes } from './history-credit'
+import { computeLongestStreak } from './streak'
 import type { Task } from '@dtn/shared/schema'
 
 export type StatsResult = {
@@ -148,26 +149,7 @@ export async function getStats(
     // i===0 (today): missing is fine, streak continues from yesterday if it hit.
     else if (i === 0 && !hitDates.has(key)) continue
   }
-  // Longest: walk all hitDates sorted, find longest consecutive run.
-  const sorted = [...hitDates]
-    .map((s) => {
-      const [y, m, d] = s.split('-').map((p) => parseInt(p))
-      return new Date(y, m - 1, d).getTime()
-    })
-    .sort((a, b) => a - b)
-  let longestStreak = 0
-  let run = 0
-  let prev: number | null = null
-  for (const t of sorted) {
-    if (prev === null || t - prev > DAY_MS + 60000) {
-      // gap (>1 day allowing some slack for DST)
-      run = 1
-    } else {
-      run++
-    }
-    if (run > longestStreak) longestStreak = run
-    prev = t
-  }
+  const longestStreak = computeLongestStreak(hitDates)
   const totalDaysHit = hitDates.size
 
   // --- last 30 days minutes ------------------------------------------
