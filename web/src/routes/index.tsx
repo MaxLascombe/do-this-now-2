@@ -394,6 +394,8 @@ function Hero({
       </div>
 
       <h1
+        id="main-content"
+        tabIndex={-1}
         className="dtn-task-title max-w-[20rem] text-center text-[2.6rem] leading-[1.05] text-zinc-50 md:max-w-3xl md:text-[5.5rem] md:leading-[1.02]"
         style={{
           letterSpacing: '-0.015em',

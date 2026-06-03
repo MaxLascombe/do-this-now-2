@@ -45,6 +45,12 @@ function RootDocument({ children }: { children: ReactNode }) {
             <ApiProvider value={webApiClient}>
               <RouteAnnouncer />
               <Show when="signed-in">
+                <a
+                  href="#main-content"
+                  className="sr-only focus:not-sr-only focus:fixed focus:top-3 focus:left-3 focus:z-50 focus:rounded-lg focus:bg-zinc-50 focus:px-4 focus:py-2 focus:text-sm focus:font-semibold focus:text-zinc-900"
+                >
+                  Skip to content
+                </a>
                 <ConfirmProvider>{children}</ConfirmProvider>
               </Show>
               <Show when="signed-out">
