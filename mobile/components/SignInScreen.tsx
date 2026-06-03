@@ -273,6 +273,7 @@ export function SignInScreen() {
                 Email
               </Text>
               <TextInput
+                accessibilityLabel="Email"
                 autoCapitalize="none"
                 autoCorrect={false}
                 autoComplete="email"
@@ -289,6 +290,7 @@ export function SignInScreen() {
                 Password
               </Text>
               <TextInput
+                accessibilityLabel="Password"
                 secureTextEntry
                 autoCapitalize="none"
                 autoComplete="password"
@@ -355,6 +357,7 @@ export function SignInScreen() {
               })()}
             </Text>
             <TextInput
+              accessibilityLabel="Verification code"
               autoFocus
               autoCapitalize="none"
               autoComplete="one-time-code"

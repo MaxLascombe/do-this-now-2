@@ -4,13 +4,18 @@ import { useAllTasks } from '@dtn/shared/queries'
 import { taskInputSchema } from '@dtn/shared/task-input'
 import { useNavigate } from '@tanstack/react-router'
 import { format } from 'date-fns'
-import { Fragment, useEffect, useRef, useState } from 'react'
-import useKeyAction from '../hooks/useKeyAction'
-import { KeyHints } from './KeyHints'
-import type { ReactNode } from 'react'
-import type { ZodError } from 'zod'
+import {
+  Fragment,
+  type ReactNode,
+  useEffect,
+  useId,
+  useRef,
+  useState,
+} from 'react'
+import { ZodError } from 'zod'
 
-import type { KeyAction } from '../hooks/useKeyAction'
+import useKeyAction, { type KeyAction } from '../hooks/useKeyAction'
+import { KeyHints } from './KeyHints'
 import type {
   RepeatOption,
   RepeatUnit,
@@ -49,6 +54,7 @@ const dayDiffFor = (due: string): number => {
 }
 
 const dayDiffPhrase = (diff: number): string => {
+  if (diff === -1) return 'yesterday'
   if (diff < 0) return `${Math.abs(diff)} days ago`
   if (diff === 0) return 'today'
   if (diff === 1) return 'tomorrow'
@@ -365,6 +371,7 @@ const TaskForm = ({
                   type="button"
                   onClick={() => setShowCustomEmoji(true)}
                   className="flex h-12 w-12 items-center justify-center rounded-xl border border-dashed border-zinc-700 text-lg text-zinc-500 hover:text-zinc-300"
+                  aria-label="Custom emoji"
                   title="Custom emoji"
                 >
                   ＋
@@ -406,6 +413,7 @@ const TaskForm = ({
             <Field label="Due time?">
               <div className="flex items-center gap-3 font-mono">
                 <Toggle
+                  label="Set a due time"
                   on={dueTime !== null}
                   onChange={(on) => setDueTime(on ? '09:00' : null)}
                 />
@@ -606,7 +614,11 @@ const TaskForm = ({
 
           <Field label="Strict deadline?">
             <div className="flex items-center gap-3 font-mono">
-              <Toggle on={strictDeadline} onChange={setStrictDeadline} />
+              <Toggle
+                label="Strict deadline"
+                on={strictDeadline}
+                onChange={setStrictDeadline}
+              />
             </div>
           </Field>
 
@@ -616,6 +628,7 @@ const TaskForm = ({
           >
             <div className="flex items-center gap-3 font-mono">
               <Toggle
+                label="Add subtasks"
                 on={hasSubtasks}
                 onChange={(on) => {
                   if (
@@ -685,6 +698,7 @@ const TaskForm = ({
                           ])
                         }
                         className="px-2 text-zinc-600 hover:text-rose-400"
+                        aria-label="Remove subtask"
                         title="Remove subtask"
                       >
                         ✕
@@ -760,19 +774,27 @@ const Field = ({
   label: string
   trailing?: ReactNode
   children: ReactNode
-}) => (
-  <div>
-    <div className="mb-2 flex items-baseline justify-between">
-      <div className="font-mono text-[10px] tracking-[0.3em] text-zinc-500 uppercase">
-        {label}
+}) => {
+  const labelId = useId()
+  return (
+    <div>
+      <div className="mb-2 flex items-baseline justify-between">
+        <div
+          id={labelId}
+          className="font-mono text-[10px] tracking-[0.3em] text-zinc-500 uppercase"
+        >
+          {label}
+        </div>
+        {trailing && (
+          <div className="font-mono text-[10px] text-zinc-600">{trailing}</div>
+        )}
       </div>
-      {trailing && (
-        <div className="font-mono text-[10px] text-zinc-600">{trailing}</div>
-      )}
+      <div role="group" aria-labelledby={labelId}>
+        {children}
+      </div>
     </div>
-    {children}
-  </div>
-)
+  )
+}
 
 const Stepper = ({
   onClick,
@@ -831,14 +853,17 @@ const TimeframeTypeOption = ({
 const Toggle = ({
   on,
   onChange,
+  label,
 }: {
   on: boolean
   onChange: (on: boolean) => void
+  label: string
 }) => (
   <button
     type="button"
     onClick={() => onChange(!on)}
     aria-pressed={on}
+    aria-label={label}
     className={
       'relative inline-block h-6 w-11 rounded-full transition-colors ' +
       (on ? 'bg-zinc-50' : 'bg-zinc-800')

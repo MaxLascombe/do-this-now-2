@@ -185,7 +185,9 @@ const SheetStat = ({
 }) => (
   <div>
     <div className="flex items-center gap-1.5 text-[10px] tracking-[0.25em] text-zinc-500 uppercase">
-      <span style={{ color: iconColor ?? '#fafafa' }}>{icon}</span>
+      <span aria-hidden="true" style={{ color: iconColor ?? '#fafafa' }}>
+        {icon}
+      </span>
       <span>{label}</span>
     </div>
     <div className="mt-1 flex items-baseline gap-1.5">
