@@ -5,6 +5,7 @@ import { createFileRoute, useNavigate } from '@tanstack/react-router'
 import { useState } from 'react'
 
 import { KeyHints } from '../components/KeyHints'
+import { ErrorState } from '../components/ErrorState'
 import { Loading } from '../components/Loading'
 import { MobileChrome } from '../components/MobileChrome'
 import { PageHeading } from '../components/PageHeading'
@@ -24,7 +25,7 @@ const STREAK = '#f59e0b'
 
 function Stats() {
   const navigate = useNavigate()
-  const { data, isLoading } = useStats()
+  const { data, isLoading, isError, refetch } = useStats()
   const [sheetOpen, setSheetOpen] = useState(false)
 
   const keyActions: Array<KeyAction> = [
@@ -49,7 +50,7 @@ function Stats() {
   ]
   useKeyAction(keyActions)
 
-  if (isLoading || !data) {
+  if (!data) {
     return (
       <div className="flex min-h-screen flex-col">
         <TopBar />
@@ -59,7 +60,14 @@ function Stats() {
           onCloseSheet={() => setSheetOpen(false)}
         />
         <div className="flex flex-1 items-center justify-center">
-          <Loading />
+          {isError && !isLoading ? (
+            <ErrorState
+              message="Couldn't load your stats."
+              onRetry={() => refetch()}
+            />
+          ) : (
+            <Loading />
+          )}
         </div>
       </div>
     )
