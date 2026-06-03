@@ -1,11 +1,8 @@
 import { formatScheduleStatus } from '@dtn/shared/format'
+import { computeSchedule } from '@dtn/shared/pacing'
 import { useProgressToday } from '@dtn/shared/queries'
 import { computePoints } from '@dtn/shared/scoring'
-import {
-  MINUTES_IN_DAY,
-  START_OF_DAY_MINUTES,
-  minutesToHours,
-} from '@dtn/shared/time'
+import { minutesToHours } from '@dtn/shared/time'
 import { useState } from 'react'
 import { Modal, Pressable, Text, View } from 'react-native'
 import { SafeAreaView } from 'react-native-safe-area-context'
@@ -33,18 +30,11 @@ export function TopProgress() {
     streak,
     minutesToReduceTomorrowDays,
   } = data
-  const maxTodo = Math.max(todo, minutesToReduceTomorrowDays)
-  const tod = now.getHours() * 60 + now.getMinutes()
-  const pctOfDay = Math.max(
-    0,
-    Math.min(
-      1,
-      (tod - START_OF_DAY_MINUTES) /
-        (MINUTES_IN_DAY - START_OF_DAY_MINUTES),
-    ),
+  const { shouldBeDone, isBeforeWorkday } = computeSchedule(
+    now,
+    todo,
+    minutesToReduceTomorrowDays,
   )
-  const shouldBeDone = maxTodo * pctOfDay
-  const isBeforeWorkday = tod < START_OF_DAY_MINUTES
   const scheduleShort = formatScheduleStatus({
     done,
     shouldBeDone,
@@ -174,18 +164,11 @@ function ProgressSheet({ onClose }: { onClose: () => void }) {
     daysUntilAllDone,
     minutesToReduceTomorrowDays,
   } = data
-  const maxTodo = Math.max(todo, minutesToReduceTomorrowDays)
-  const tod = now.getHours() * 60 + now.getMinutes()
-  const pctOfDay = Math.max(
-    0,
-    Math.min(
-      1,
-      (tod - START_OF_DAY_MINUTES) /
-        (MINUTES_IN_DAY - START_OF_DAY_MINUTES),
-    ),
+  const { shouldBeDone, isBeforeWorkday } = computeSchedule(
+    now,
+    todo,
+    minutesToReduceTomorrowDays,
   )
-  const shouldBeDone = maxTodo * pctOfDay
-  const isBeforeWorkday = tod < START_OF_DAY_MINUTES
   const scheduleShort = formatScheduleStatus({
     done,
     shouldBeDone,
