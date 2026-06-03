@@ -14,6 +14,7 @@ import type { KeyAction } from '../hooks/useKeyAction'
 import type { StatsResult } from '@dtn/shared/types'
 
 export const Route = createFileRoute('/stats')({
+  head: () => ({ meta: [{ title: 'Stats · Do This Now' }] }),
   component: Stats,
 })
 

@@ -10,6 +10,7 @@ import { TimerWidget } from '../components/TimerWidget'
 import { TopBar } from '../components/TopBar'
 
 export const Route = createFileRoute('/tasks/$id/edit')({
+  head: () => ({ meta: [{ title: 'Edit Task · Do This Now' }] }),
   component: EditTask,
 })
 
