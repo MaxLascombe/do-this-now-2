@@ -16,12 +16,10 @@ import {
   currentTimerSeconds,
   isCompletionGated,
 } from '@dtn/shared/timer-utils'
-import { type Task } from '@dtn/shared/types'
 import { createFileRoute, useNavigate } from '@tanstack/react-router'
 import { useEffect, useState } from 'react'
 
-
-
+import { useConfirm } from '../components/ConfirmProvider'
 import { CountConfirmModal } from '../components/CountConfirmModal'
 import { ErrorState } from '../components/ErrorState'
 import { Loading } from '../components/Loading'
@@ -29,7 +27,9 @@ import { MobileChrome } from '../components/MobileChrome'
 import { TaskRow } from '../components/TaskRow'
 import { TimerWidget } from '../components/TimerWidget'
 import { TopBar } from '../components/TopBar'
-import useKeyAction, { type KeyAction } from '../hooks/useKeyAction'
+import useKeyAction from '../hooks/useKeyAction'
+import type { Task } from '@dtn/shared/types'
+import type { KeyAction } from '../hooks/useKeyAction'
 
 export const Route = createFileRoute('/')({
   component: Home,
@@ -96,7 +96,7 @@ function Home() {
 
   const [selectedTaskIndex, setSelectedTaskIndex] = useState<0 | 1 | 2>(0)
   const selectedTask =
-    tasks.length > selectedTaskIndex ? tasks[selectedTaskIndex] : tasks[0]
+    tasks.length > selectedTaskIndex ? tasks.at(selectedTaskIndex) : tasks.at(0)
 
   if (tasks.length > 0 && tasks.length <= selectedTaskIndex)
     setSelectedTaskIndex(tasks.length === 2 ? 1 : 0)
@@ -106,6 +106,7 @@ function Home() {
   const snoozeMutation = useSnoozeTask()
   const prefetchTask = usePrefetchTask()
   const primeTaskCache = usePrimeTaskCache()
+  const confirm = useConfirm()
 
   const [pendingComplete, setPendingComplete] = useState<{
     task: Task
@@ -145,14 +146,13 @@ function Home() {
     snoozeMutation.mutate({ id: selectedTask.id, allSubtasks: true })
   }
 
-  const deleteTaskAction = () => {
+  const deleteTaskAction = async () => {
     if (!selectedTask) return
-    if (
-      !window.confirm(
-        `Are you sure you want to delete '${selectedTask.title}'?`,
-      )
-    )
-      return
+    const ok = await confirm({
+      message: `Are you sure you want to delete '${selectedTask.title}'?`,
+      confirmLabel: 'Delete',
+    })
+    if (!ok) return
     deleteMutation.mutate(selectedTask.id)
   }
 
@@ -162,10 +162,18 @@ function Home() {
     navigate({ to: '/tasks/$id/edit', params: { id: selectedTask.id } })
   }
 
-  const keyActions: KeyAction[] = [
+  const keyActions: Array<KeyAction> = [
     { key: 'd', description: 'Task done', action: completeTaskAction },
-    { key: 'h', description: 'History', action: () => navigate({ to: '/history' }) },
-    { key: 'a', description: 'Stats', action: () => navigate({ to: '/stats' }) },
+    {
+      key: 'h',
+      description: 'History',
+      action: () => navigate({ to: '/history' }),
+    },
+    {
+      key: 'a',
+      description: 'Stats',
+      action: () => navigate({ to: '/stats' }),
+    },
     {
       key: '=',
       description: 'New task',
@@ -184,7 +192,11 @@ function Home() {
       action: snoozeAllSubtasksAction,
       shift: true,
     },
-    { key: 't', description: 'Tasks', action: () => navigate({ to: '/tasks' }) },
+    {
+      key: 't',
+      description: 'Tasks',
+      action: () => navigate({ to: '/tasks' }),
+    },
     { key: 'e', description: 'Edit task', action: goEdit },
     {
       key: '1',
@@ -204,14 +216,12 @@ function Home() {
     {
       key: 'up',
       description: 'Select previous task',
-      action: () =>
-        setSelectedTaskIndex((idx) => (idx === 2 ? 1 : 0) as 0 | 1 | 2),
+      action: () => setSelectedTaskIndex((idx) => (idx === 2 ? 1 : 0)),
     },
     {
       key: 'down',
       description: 'Select next task',
-      action: () =>
-        setSelectedTaskIndex((idx) => (idx === 0 ? 1 : 2) as 0 | 1 | 2),
+      action: () => setSelectedTaskIndex((idx) => (idx === 0 ? 1 : 2)),
     },
     {
       key: 'backspace',
@@ -396,10 +406,7 @@ function Hero({
       {nextSub && (
         <div className="mt-3 font-mono text-xs text-zinc-400 md:mt-5 md:text-base">
           part of{' '}
-          <span
-            className="dtn-task-title"
-            style={{ fontSize: '1.05rem' }}
-          >
+          <span className="dtn-task-title" style={{ fontSize: '1.05rem' }}>
             {task.title}
           </span>{' '}
           <span className="text-zinc-600">·</span>{' '}

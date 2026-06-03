@@ -3,10 +3,11 @@ import {
   currentTimerSeconds,
   formatTimerSeconds,
 } from '@dtn/shared/timer-utils'
-import { type Task } from '@dtn/shared/types'
 import { useEffect, useState } from 'react'
 
+import { useConfirm } from './ConfirmProvider'
 import { TimerAdjustModal } from './TimerAdjustModal'
+import type { Task } from '@dtn/shared/types'
 
 const ACCENT = '#34d399'
 const STREAK = '#f59e0b'
@@ -34,6 +35,7 @@ export function TimerWidget({
 }) {
   const id = actionId ?? task.id
   const timer = useTaskTimer()
+  const confirm = useConfirm()
   const running = !!task.timerStartedAt
 
   // Tick once per second while running so the displayed value keeps
@@ -51,7 +53,8 @@ export function TimerWidget({
 
   const dispatch = (kind: 'start' | 'pause' | 'reset') =>
     timer.mutate({ id, action: { kind } })
-  const add = (sec: number) => timer.mutate({ id, action: { kind: 'add', seconds: sec } })
+  const add = (sec: number) =>
+    timer.mutate({ id, action: { kind: 'add', seconds: sec } })
 
   const [adjustOpen, setAdjustOpen] = useState(false)
 
@@ -141,7 +144,10 @@ export function TimerWidget({
           >
             <span
               className="h-1.5 w-1.5 rounded-full"
-              style={{ background: ACCENT, animation: 'pulse 1.4s ease-in-out infinite' }}
+              style={{
+                background: ACCENT,
+                animation: 'pulse 1.4s ease-in-out infinite',
+              }}
             />
             running
           </span>
@@ -168,7 +174,8 @@ export function TimerWidget({
             color: STREAK,
           }}
         >
-          Timer is &gt;1.5× the planned {Math.ceil(plannedSec / 60)} min — forgot to pause?
+          Timer is &gt;1.5× the planned {Math.ceil(plannedSec / 60)} min —
+          forgot to pause?
         </div>
       )}
 
@@ -190,9 +197,13 @@ export function TimerWidget({
 
         <button
           type="button"
-          onClick={() => {
+          onClick={async () => {
             if (seconds === 0) return
-            if (!window.confirm('Reset timer to 0?')) return
+            const ok = await confirm({
+              message: 'Reset timer to 0?',
+              confirmLabel: 'Reset',
+            })
+            if (!ok) return
             dispatch('reset')
           }}
           disabled={timer.isPending || seconds === 0}
