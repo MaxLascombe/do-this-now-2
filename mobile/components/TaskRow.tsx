@@ -1,5 +1,12 @@
 import { type ReactNode } from 'react'
-import { Pressable, Text, View, type ViewProps } from 'react-native'
+import {
+  Pressable,
+  Text,
+  View,
+  type AccessibilityActionEvent,
+  type AccessibilityActionInfo,
+  type ViewProps,
+} from 'react-native'
 
 import { formatDueLabel, formatRepeat } from '@dtn/shared/format'
 import { minutesToHours } from '@dtn/shared/time'
@@ -19,6 +26,9 @@ type Props = {
   onPress?: () => void
   onLongPress?: () => void
   containerStyle?: ViewProps['style']
+  accessibilityHint?: string
+  accessibilityActions?: ReadonlyArray<AccessibilityActionInfo>
+  onAccessibilityAction?: (event: AccessibilityActionEvent) => void
 }
 
 export function TaskRow({
@@ -30,6 +40,9 @@ export function TaskRow({
   onPress,
   onLongPress,
   containerStyle,
+  accessibilityHint,
+  accessibilityActions,
+  onAccessibilityAction,
 }: Props) {
   const subtaskCount = task.subtasks?.length ?? 0
   const doneCount = task.subtasks?.filter((s) => s.done).length ?? 0
@@ -47,10 +60,32 @@ export function TaskRow({
   const titleColor = selected ? '#0a0a0a' : '#fafafa'
   const metaColor = selected ? '#52525b' : '#71717a'
 
+  const a11yLabel = [
+    task.title,
+    dueLabel,
+    task.timeFrame ? minutesToHours(task.timeFrame) : null,
+    subtaskCount > 0 ? `${doneCount} of ${subtaskCount} subtasks done` : null,
+    repeatLabel ? `repeats ${repeatLabel}` : null,
+    task.strictDeadline ? 'strict deadline' : null,
+    task.timerStartedAt ? 'timer running' : null,
+  ]
+    .filter(Boolean)
+    .join(', ')
+
   const Wrapper = onPress || onLongPress ? Pressable : View
   const wrapperProps =
     onPress || onLongPress
-      ? { onPress, onLongPress, delayLongPress: 350 }
+      ? {
+          onPress,
+          onLongPress,
+          delayLongPress: 350,
+          accessibilityRole: 'button' as const,
+          accessibilityLabel: a11yLabel,
+          accessibilityState: { selected },
+          accessibilityHint,
+          accessibilityActions,
+          onAccessibilityAction,
+        }
       : {}
 
   return (
