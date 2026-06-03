@@ -15,6 +15,7 @@ import {
 import { ZodError } from 'zod'
 
 import useKeyAction, { type KeyAction } from '../hooks/useKeyAction'
+import { useConfirm } from './ConfirmProvider'
 import { KeyHints } from './KeyHints'
 import type {
   RepeatOption,
@@ -54,6 +55,7 @@ const dayDiffFor = (due: string): number => {
 }
 
 const dayDiffPhrase = (diff: number): string => {
+  if (diff === -1) return 'yesterday'
   if (diff < 0) return `${Math.abs(diff)} days ago`
   if (diff === 0) return 'today'
   if (diff === 1) return 'tomorrow'
@@ -96,6 +98,7 @@ const TaskForm = ({
 }) => {
   const api = useApi()
   const navigate = useNavigate()
+  const confirm = useConfirm()
   const [formError, setFormError] = useState<ZodError>()
   const [title, setTitle] = useState(initialTitle ?? '')
   const [emoji, setEmoji] = useState(initialEmoji ?? '')
@@ -370,6 +373,7 @@ const TaskForm = ({
                   type="button"
                   onClick={() => setShowCustomEmoji(true)}
                   className="flex h-12 w-12 items-center justify-center rounded-xl border border-dashed border-zinc-700 text-lg text-zinc-500 hover:text-zinc-300"
+                  aria-label="Custom emoji"
                   title="Custom emoji"
                 >
                   ＋
@@ -628,15 +632,14 @@ const TaskForm = ({
               <Toggle
                 label="Add subtasks"
                 on={hasSubtasks}
-                onChange={(on) => {
-                  if (
-                    !on &&
-                    subtasks.length > 0 &&
-                    !window.confirm(
-                      'Are you sure you want to remove all subtasks?',
-                    )
-                  )
-                    return
+                onChange={async (on) => {
+                  if (!on && subtasks.length > 0) {
+                    const ok = await confirm({
+                      message: 'Remove all subtasks?',
+                      confirmLabel: 'Remove',
+                    })
+                    if (!ok) return
+                  }
                   if (!on) setSubtasks([])
                   else if (subtasks.length === 0)
                     setSubtasks([{ done: false, title: '', _key: newKey() }])
@@ -696,6 +699,7 @@ const TaskForm = ({
                           ])
                         }
                         className="px-2 text-zinc-600 hover:text-rose-400"
+                        aria-label="Remove subtask"
                         title="Remove subtask"
                       >
                         ✕

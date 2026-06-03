@@ -9,6 +9,7 @@ import TaskForm from '../components/TaskForm'
 import { TopBar } from '../components/TopBar'
 
 export const Route = createFileRoute('/new-task')({
+  head: () => ({ meta: [{ title: 'New Task · Do This Now' }] }),
   component: NewTask,
 })
 
