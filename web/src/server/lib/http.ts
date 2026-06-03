@@ -16,8 +16,7 @@ export const errorJson = (
   status: number,
 ): ReturnType<typeof json> => json(body, { status })
 
-export const unauthenticated = () =>
-  errorJson({ code: 'unauthenticated' }, 401)
+export const unauthenticated = () => errorJson({ code: 'unauthenticated' }, 401)
 export const notFound = (message?: string) =>
   errorJson({ code: 'not_found', message }, 404)
 export const invalid = (details: unknown) =>
@@ -26,13 +25,13 @@ export const invalid = (details: unknown) =>
 // Wraps a REST handler with Clerk auth. The wrapped handler receives `userId`
 // directly and never has to inline the 401 check. Forwards TanStack Start's
 // route ctx (params + request) through unchanged.
-type RouteCtx<P> = { params: P; request: Request }
-export function withAuth<P = Record<string, never>>(
+type RouteCtx<TParams> = { params: TParams; request: Request }
+export function withAuth<TParams = Record<string, never>>(
   handler: (
-    ctx: { userId: string } & RouteCtx<P>,
+    ctx: { userId: string } & RouteCtx<TParams>,
   ) => Promise<Response> | Response,
 ) {
-  return async (ctx: RouteCtx<P>) => {
+  return async (ctx: RouteCtx<TParams>) => {
     const { userId } = await auth()
     if (!userId) return unauthenticated()
     return handler({ userId, ...ctx })
