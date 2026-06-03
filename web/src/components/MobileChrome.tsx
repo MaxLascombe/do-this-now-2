@@ -54,6 +54,8 @@ export const MobileTopBar = ({ onOpenSheet }: { onOpenSheet: () => void }) => {
       <button
         type="button"
         onClick={onOpenSheet}
+        aria-label="Open progress detail"
+        aria-haspopup="dialog"
         className="relative flex w-full items-center justify-between px-5 py-3 text-left font-mono text-[13px] active:bg-zinc-900/40"
       >
         <div className="flex items-center gap-3 text-zinc-400">
@@ -134,6 +136,7 @@ export const MobileTabBar = () => {
                 to={t.to}
                 className="flex justify-center"
                 aria-label={t.label}
+                aria-current={isActive ? 'page' : undefined}
               >
                 <span
                   className="flex h-12 w-12 items-center justify-center rounded-full text-xl"
@@ -153,6 +156,7 @@ export const MobileTabBar = () => {
             <Link
               key={t.id}
               to={t.to}
+              aria-current={isActive ? 'page' : undefined}
               className={
                 'flex flex-col items-center gap-0.5 py-1 transition-colors ' +
                 (isActive ? 'text-zinc-50' : 'text-zinc-500')
