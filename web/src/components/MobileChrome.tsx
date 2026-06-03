@@ -1,10 +1,11 @@
 import { useProgressToday } from '@dtn/shared/queries'
+import { computePoints } from '@dtn/shared/scoring'
 import { minutesToHours } from '@dtn/shared/time'
 import { Link, useLocation } from '@tanstack/react-router'
-import { type ReactNode, useEffect } from 'react'
-
+import { useEffect } from 'react'
 import { useComputedProgress } from './ProgressBar'
 import { RunningTimerChip } from './RunningTimerChip'
+import type { ReactNode } from 'react'
 
 const ACCENT = '#34d399'
 const STREAK = '#f59e0b'
@@ -22,11 +23,7 @@ const activeFromPath = (pathname: string): ActiveTab => {
 
 const MINI_CELLS = 14
 
-export const MobileTopBar = ({
-  onOpenSheet,
-}: {
-  onOpenSheet: () => void
-}) => {
+export const MobileTopBar = ({ onOpenSheet }: { onOpenSheet: () => void }) => {
   const p = useComputedProgress()
   const progress = useProgressToday()
   const pct = progress.data
@@ -36,12 +33,7 @@ export const MobileTopBar = ({
   let points = 0
   if (progress.data) {
     const { done, todo, lives } = progress.data
-    const doneUsingAllLives = Math.min(done, todo - lives)
-    const doneUsingLives = Math.min(done, todo)
-    points =
-      doneUsingAllLives +
-      (doneUsingLives - doneUsingAllLives) * 2 +
-      (done - doneUsingLives) * 3
+    points = computePoints(done, todo, lives)
   }
 
   const filledCount = p ? Math.round((p.done / p.todo) * MINI_CELLS) : 0
@@ -58,6 +50,8 @@ export const MobileTopBar = ({
       <button
         type="button"
         onClick={onOpenSheet}
+        aria-label="Open progress detail"
+        aria-haspopup="dialog"
         className="relative flex w-full items-center justify-between px-5 py-3 text-left font-mono text-[13px] active:bg-zinc-900/40"
       >
         <div className="flex items-center gap-3 text-zinc-400">
@@ -89,7 +83,9 @@ export const MobileTopBar = ({
                   width: 5,
                   height: 12,
                   background: filled ? ACCENT : 'rgba(255,255,255,0.12)',
-                  outline: isTick ? '1px solid rgba(255,255,255,0.9)' : undefined,
+                  outline: isTick
+                    ? '1px solid rgba(255,255,255,0.9)'
+                    : undefined,
                   outlineOffset: isTick ? -1 : undefined,
                 }}
               />
@@ -136,6 +132,7 @@ export const MobileTabBar = () => {
                 to={t.to}
                 className="flex justify-center"
                 aria-label={t.label}
+                aria-current={isActive ? 'page' : undefined}
               >
                 <span
                   className="flex h-12 w-12 items-center justify-center rounded-full text-xl"
@@ -155,6 +152,7 @@ export const MobileTabBar = () => {
             <Link
               key={t.id}
               to={t.to}
+              aria-current={isActive ? 'page' : undefined}
               className={
                 'flex flex-col items-center gap-0.5 py-1 transition-colors ' +
                 (isActive ? 'text-zinc-50' : 'text-zinc-500')
@@ -187,7 +185,9 @@ const SheetStat = ({
 }) => (
   <div>
     <div className="flex items-center gap-1.5 text-[10px] tracking-[0.25em] text-zinc-500 uppercase">
-      <span style={{ color: iconColor ?? '#fafafa' }}>{icon}</span>
+      <span aria-hidden="true" style={{ color: iconColor ?? '#fafafa' }}>
+        {icon}
+      </span>
       <span>{label}</span>
     </div>
     <div className="mt-1 flex items-baseline gap-1.5">
@@ -231,7 +231,9 @@ export const MobileProgressSheet = ({ onClose }: { onClose: () => void }) => {
       />
       <div
         className="relative w-full rounded-t-3xl border-t border-zinc-800 bg-[#0e0e10] px-5 pt-3 pb-8 font-mono"
-        style={{ paddingBottom: 'calc(env(safe-area-inset-bottom, 0px) + 1.5rem)' }}
+        style={{
+          paddingBottom: 'calc(env(safe-area-inset-bottom, 0px) + 1.5rem)',
+        }}
       >
         <div className="mx-auto mb-3 h-1 w-10 rounded-full bg-zinc-700" />
         <div className="mb-3 flex items-center justify-between">
@@ -257,7 +259,9 @@ export const MobileProgressSheet = ({ onClose }: { onClose: () => void }) => {
                   flex: 1,
                   height: 18,
                   background: f ? ACCENT : 'rgba(255,255,255,0.10)',
-                  outline: isTick ? '1px solid rgba(255,255,255,0.9)' : undefined,
+                  outline: isTick
+                    ? '1px solid rgba(255,255,255,0.9)'
+                    : undefined,
                   outlineOffset: isTick ? -1 : undefined,
                 }}
               />

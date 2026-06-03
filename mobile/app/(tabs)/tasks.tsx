@@ -27,6 +27,7 @@ import {
 } from 'react-native'
 import { SafeAreaView } from 'react-native-safe-area-context'
 
+import { ErrorState } from '../../components/ErrorState'
 import { Loading } from '../../components/Loading'
 import { PageHeading } from '../../components/PageHeading'
 import { SwipeableTaskRow } from '../../components/SwipeableTaskRow'
@@ -281,6 +282,13 @@ export default function TasksList() {
         ListEmptyComponent={
           activeQuery.isPending ? (
             <Loading />
+          ) : activeQuery.isError ? (
+            <View style={{ marginTop: 40 }}>
+              <ErrorState
+                message="Couldn't load your tasks."
+                onRetry={() => activeQuery.refetch()}
+              />
+            </View>
           ) : (
             <Text
               style={{
@@ -327,6 +335,8 @@ function SortToggle({
           <Pressable
             key={o.key}
             onPress={() => onChange(o.key)}
+            accessibilityRole="button"
+            accessibilityState={{ selected: active }}
             style={{
               flex: 1,
               alignItems: 'center',

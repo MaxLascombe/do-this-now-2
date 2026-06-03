@@ -11,6 +11,7 @@ import {
 } from 'react-native'
 import { SafeAreaView } from 'react-native-safe-area-context'
 
+import { ErrorState } from '../../components/ErrorState'
 import { Loading } from '../../components/Loading'
 import { PageHeading } from '../../components/PageHeading'
 import { TopProgress } from '../../components/TopProgress'
@@ -20,7 +21,7 @@ const STREAK = '#f59e0b'
 const OVERDUE = '#fb7185'
 
 export default function Stats() {
-  const { data, isPending, isFetching, refetch } = useStats()
+  const { data, isPending, isError, isFetching, refetch } = useStats()
 
   return (
     <SafeAreaView
@@ -30,7 +31,7 @@ export default function Stats() {
       <Stack.Screen options={{ headerShown: false }} />
       <TopProgress />
       <PageHeading eyebrow="all the numbers">Stats</PageHeading>
-      {isPending || !data ? (
+      {!data ? (
         <View
           style={{
             flex: 1,
@@ -38,7 +39,14 @@ export default function Stats() {
             justifyContent: 'center',
           }}
         >
-          <Loading />
+          {isError && !isPending ? (
+            <ErrorState
+              message="Couldn't load your stats."
+              onRetry={() => refetch()}
+            />
+          ) : (
+            <Loading />
+          )}
         </View>
       ) : (
         <ScrollView
@@ -240,7 +248,16 @@ function Heatmap({ data }: { data: StatsResult }) {
 
   return (
     <Section title="Last 6 months">
-      <View style={{ flexDirection: 'row', gap }}>
+      <View
+        accessible
+        accessibilityRole="image"
+        accessibilityLabel={`Activity over the last 6 months: ${nonZeroSorted.length} active ${
+          nonZeroSorted.length === 1 ? 'day' : 'days'
+        }, ${data.totalDaysHit} ${
+          data.totalDaysHit === 1 ? 'day' : 'days'
+        } hit the daily target.`}
+        style={{ flexDirection: 'row', gap }}
+      >
         {grid.map((col, ci) => (
           <View key={ci} style={{ gap }}>
             {col.map((cell, ri) => (

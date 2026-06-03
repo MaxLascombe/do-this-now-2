@@ -2,6 +2,7 @@ import { useDeleteTask, useTask, useUpdateTask } from '@dtn/shared/queries'
 import { createFileRoute, useRouter } from '@tanstack/react-router'
 import { useState } from 'react'
 
+import { useConfirm } from '../components/ConfirmProvider'
 import { ErrorState } from '../components/ErrorState'
 import { Loading } from '../components/Loading'
 import { MobileChrome } from '../components/MobileChrome'
@@ -11,6 +12,7 @@ import { TimerWidget } from '../components/TimerWidget'
 import { TopBar } from '../components/TopBar'
 
 export const Route = createFileRoute('/tasks/$id/edit')({
+  head: () => ({ meta: [{ title: 'Edit Task · Do This Now' }] }),
   component: EditTask,
 })
 
@@ -20,6 +22,7 @@ function EditTask() {
   const taskQuery = useTask(id)
   const mutation = useUpdateTask()
   const deleteMutation = useDeleteTask()
+  const confirm = useConfirm()
   const [sheetOpen, setSheetOpen] = useState(false)
 
   const task = taskQuery.data
@@ -54,9 +57,12 @@ function EditTask() {
     )
   }
 
-  const onDelete = () => {
-    if (!window.confirm(`Are you sure you want to delete '${task.title}'?`))
-      return
+  const onDelete = async () => {
+    const ok = await confirm({
+      message: `Are you sure you want to delete '${task.title}'?`,
+      confirmLabel: 'Delete',
+    })
+    if (!ok) return
     deleteMutation.mutate(task.id, {
       onSuccess: () => router.history.back(),
     })

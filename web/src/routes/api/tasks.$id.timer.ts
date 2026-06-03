@@ -2,10 +2,12 @@ import { createFileRoute } from '@tanstack/react-router'
 import { json } from '@tanstack/react-start'
 import { z } from 'zod'
 
-import { applyTimerAction, type TimerAction } from '../../server/lib/timer'
-import { invalid, withAuth } from '../../server/lib/http'
+import { applyTimerAction } from '../../server/lib/timer'
+import { invalid, notFound, withAuth } from '../../server/lib/http'
 
 type Params = { id: string }
+
+const idSchema = z.string().uuid()
 
 const timerBodySchema = z
   .discriminatedUnion('kind', [
@@ -20,6 +22,7 @@ export const Route = createFileRoute('/api/tasks/$id/timer')({
   server: {
     handlers: {
       POST: withAuth<Params>(async ({ userId, params, request }) => {
+        if (!idSchema.safeParse(params.id).success) return notFound()
         const raw = await request.text()
         const candidate = safeJsonParse(raw)
         if (candidate === undefined) {
@@ -27,11 +30,7 @@ export const Route = createFileRoute('/api/tasks/$id/timer')({
         }
         const parsed = timerBodySchema.safeParse(candidate)
         if (!parsed.success) return invalid(parsed.error.flatten())
-        const result = await applyTimerAction(
-          userId,
-          params.id,
-          parsed.data as TimerAction,
-        )
+        const result = await applyTimerAction(userId, params.id, parsed.data)
         return json(result)
       }),
     },
