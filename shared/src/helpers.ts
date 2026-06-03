@@ -88,8 +88,9 @@ export const nextDueDate = (task: Task): Date | undefined => {
       }
     }
   } else if (task.repeat === 'Weekdays') {
-    const daysToAdd = date.getDay() === 5 ? 3 : 1
-    date.setDate(date.getDate() + daysToAdd)
+    do {
+      date.setDate(date.getDate() + 1)
+    } while (date.getDay() === 0 || date.getDay() === 6)
   } else if (task.repeat === 'Monthly') date.setMonth(date.getMonth() + 1)
   else if (task.repeat === 'Custom' && task.repeatUnit === 'month')
     date.setMonth(date.getMonth() + task.repeatInterval)
@@ -104,4 +105,41 @@ export const nextDueDate = (task: Task): Date | undefined => {
   // safe regardless of timezone.
   date.setHours(date.getHours() + 2)
   return newSafeDate(dateString(date))
+}
+
+// Average number of days between occurrences of a repeating task — e.g.
+// Weekdays is 7/5 (5 occurrences per 7 days), a Custom M/W/F week is 7/3.
+// Returns Infinity for non-repeating tasks so `time / frequency` contributes
+// nothing to a per-day workload estimate.
+export const repeatFrequencyDays = (
+  task: Pick<
+    Task,
+    'repeat' | 'repeatUnit' | 'repeatInterval' | 'repeatWeekdays'
+  >,
+): number => {
+  switch (task.repeat) {
+    case 'No Repeat':
+      return Infinity
+    case 'Daily':
+      return 1
+    case 'Weekdays':
+      return 7 / 5
+    case 'Weekly':
+      return 7
+    case 'Monthly':
+      return 30
+    case 'Yearly':
+      return 365
+    case 'Custom': {
+      if (task.repeatUnit === 'day') return task.repeatInterval
+      if (task.repeatUnit === 'week') {
+        const selected = task.repeatWeekdays.filter((x) => x).length
+        return selected > 0
+          ? (7 * task.repeatInterval) / selected
+          : 7 * task.repeatInterval
+      }
+      if (task.repeatUnit === 'month') return 30 * task.repeatInterval
+      return 365 * task.repeatInterval
+    }
+  }
 }
