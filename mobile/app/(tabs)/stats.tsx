@@ -240,7 +240,16 @@ function Heatmap({ data }: { data: StatsResult }) {
 
   return (
     <Section title="Last 6 months">
-      <View style={{ flexDirection: 'row', gap }}>
+      <View
+        accessible
+        accessibilityRole="image"
+        accessibilityLabel={`Activity over the last 6 months: ${nonZeroSorted.length} active ${
+          nonZeroSorted.length === 1 ? 'day' : 'days'
+        }, ${data.totalDaysHit} ${
+          data.totalDaysHit === 1 ? 'day' : 'days'
+        } hit the daily target.`}
+        style={{ flexDirection: 'row', gap }}
+      >
         {grid.map((col, ci) => (
           <View key={ci} style={{ gap }}>
             {col.map((cell, ri) => (

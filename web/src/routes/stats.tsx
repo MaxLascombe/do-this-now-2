@@ -235,6 +235,12 @@ function Heatmap({ data }: { data: StatsResult }) {
           ))}
         </div>
         <div
+          role="img"
+          aria-label={`Activity over the last 6 months: ${nonZeroSorted.length} active ${
+            nonZeroSorted.length === 1 ? 'day' : 'days'
+          }, ${data.totalDaysHit} ${
+            data.totalDaysHit === 1 ? 'day' : 'days'
+          } hit the daily target.`}
           className="grid gap-[3px]"
           style={{
             gridTemplateColumns: `repeat(${HEATMAP_COLS}, 14px)`,
