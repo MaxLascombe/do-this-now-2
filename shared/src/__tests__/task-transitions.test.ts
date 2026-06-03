@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest'
 
 import {
+  applyFullCompletion,
   completeTaskTransition,
   snoozeTaskTransition,
   willAdvanceSubtask,
@@ -191,5 +192,167 @@ describe('snoozeTaskTransition', () => {
     })
     const r = snoozeTaskTransition(t, false, now)
     expect(r.scope).toBe('task')
+  })
+})
+
+describe('applyFullCompletion', () => {
+  const base = { actualSeconds: 600, now }
+
+  it('clamps negative actualSeconds to 0', () => {
+    const t = makeTask({ timeFrame: 10, timeframeType: 'fluid' })
+    const r = applyFullCompletion({ task: t, actualSeconds: -50, now })
+    expect(r.actualSecondsPerRow).toBe(0)
+  })
+
+  describe('timekeeper child / zero time frame', () => {
+    it('one-shot: 1 completion, no credit, deletes', () => {
+      const t = makeTask({ timeFrame: 0, timekeeperId: 'keeper-1' })
+      const r = applyFullCompletion({ task: t, ...base })
+      expect(r).toMatchObject({
+        completions: 1,
+        actualSecondsPerRow: 0,
+        carryoverSeconds: 0,
+        nextTask: null,
+      })
+    })
+
+    it('repeating: reschedules with reset subtasks, no credit', () => {
+      const t = makeTask({
+        timeFrame: 0,
+        timekeeperId: 'keeper-1',
+        repeat: 'Daily',
+        due: '2026-5-1',
+        subtasks: [{ title: 'a', done: true }],
+      })
+      const r = applyFullCompletion({ task: t, ...base })
+      expect(r.completions).toBe(1)
+      expect(r.actualSecondsPerRow).toBe(0)
+      expect(r.nextTask?.due).toBe('2026-5-2')
+      expect(r.nextTask?.subtasks[0].done).toBe(false)
+    })
+  })
+
+  describe('fluid', () => {
+    it('one-shot: credits full session and deletes', () => {
+      const t = makeTask({ timeFrame: 10, timeframeType: 'fluid' })
+      const r = applyFullCompletion({ task: t, actualSeconds: 900, now })
+      expect(r).toMatchObject({
+        completions: 1,
+        actualSecondsPerRow: 900,
+        nextTask: null,
+      })
+    })
+
+    it('first measurement (n=0) seeds the time frame from actual', () => {
+      const t = makeTask({
+        timeFrame: 10,
+        timeframeType: 'fluid',
+        measurementCount: 0,
+        repeat: 'Daily',
+        due: '2026-5-1',
+      })
+      const r = applyFullCompletion({ task: t, actualSeconds: 1200, now })
+      expect(r.nextTask?.timeFrame).toBe(20)
+      expect(r.nextTask?.measurementCount).toBe(1)
+      expect(r.nextTask?.timerAccumulatedSeconds).toBe(0)
+      expect(r.nextTask?.due).toBe('2026-5-2')
+    })
+
+    it('running average while n<14', () => {
+      const t = makeTask({
+        timeFrame: 10,
+        timeframeType: 'fluid',
+        measurementCount: 1,
+        repeat: 'Daily',
+      })
+      const r = applyFullCompletion({ task: t, actualSeconds: 1200, now })
+      expect(r.nextTask?.timeFrame).toBe(15) // (10*1 + 20) / 2
+      expect(r.nextTask?.measurementCount).toBe(2)
+    })
+
+    it('EMA (13/14) once n>=14 and caps measurementCount at 14', () => {
+      const t = makeTask({
+        timeFrame: 14,
+        timeframeType: 'fluid',
+        measurementCount: 14,
+        repeat: 'Daily',
+      })
+      const r = applyFullCompletion({ task: t, actualSeconds: 1680, now })
+      expect(r.nextTask?.timeFrame).toBe(15) // (14*13 + 28) / 14
+      expect(r.nextTask?.measurementCount).toBe(14)
+    })
+
+    it('countMeasurement=false leaves the estimate untouched', () => {
+      const t = makeTask({
+        timeFrame: 10,
+        timeframeType: 'fluid',
+        measurementCount: 3,
+        repeat: 'Daily',
+      })
+      const r = applyFullCompletion({
+        task: t,
+        actualSeconds: 9999,
+        now,
+        countMeasurement: false,
+      })
+      expect(r.nextTask?.timeFrame).toBe(10)
+      expect(r.nextTask?.measurementCount).toBe(3)
+    })
+  })
+
+  describe('fixed', () => {
+    it('one-shot: 1 row crediting the full session, deletes', () => {
+      const t = makeTask({ timeFrame: 10, timeframeType: 'fixed' })
+      const r = applyFullCompletion({ task: t, actualSeconds: 720, now })
+      expect(r).toMatchObject({
+        completions: 1,
+        actualSecondsPerRow: 720,
+        carryoverSeconds: 0,
+        nextTask: null,
+      })
+    })
+
+    it('repeating exactly at target: 1 completion, no carryover', () => {
+      const t = makeTask({
+        timeFrame: 10,
+        timeframeType: 'fixed',
+        repeat: 'Daily',
+        due: '2026-5-1',
+      })
+      const r = applyFullCompletion({ task: t, actualSeconds: 600, now })
+      expect(r.completions).toBe(1)
+      expect(r.actualSecondsPerRow).toBe(600)
+      expect(r.carryoverSeconds).toBe(0)
+      expect(r.nextTask?.due).toBe('2026-5-2')
+      expect(r.nextTask?.timerAccumulatedSeconds).toBe(0)
+    })
+
+    it('repeating over target: floors completions and carries the remainder', () => {
+      const t = makeTask({
+        timeFrame: 10,
+        timeframeType: 'fixed',
+        repeat: 'Daily',
+        due: '2026-5-1',
+      })
+      const r = applyFullCompletion({ task: t, actualSeconds: 1500, now })
+      expect(r.completions).toBe(2) // floor(1500 / 600)
+      expect(r.actualSecondsPerRow).toBe(600)
+      expect(r.carryoverSeconds).toBe(300) // 1500 - 2*600
+      expect(r.nextTask?.due).toBe('2026-5-3') // advanced twice
+      expect(r.nextTask?.timerAccumulatedSeconds).toBe(300)
+    })
+
+    it('repeating below target: still credits 1 (server defends direct hits)', () => {
+      const t = makeTask({
+        timeFrame: 10,
+        timeframeType: 'fixed',
+        repeat: 'Daily',
+        due: '2026-5-1',
+      })
+      const r = applyFullCompletion({ task: t, actualSeconds: 60, now })
+      expect(r.completions).toBe(1)
+      expect(r.carryoverSeconds).toBe(0)
+      expect(r.nextTask?.due).toBe('2026-5-2')
+    })
   })
 })
