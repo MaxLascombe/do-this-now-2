@@ -27,6 +27,7 @@ import {
   useState,
 } from 'react'
 
+import { useConfirm } from '../components/ConfirmProvider'
 import { CountConfirmModal } from '../components/CountConfirmModal'
 import { KeyHints } from '../components/KeyHints'
 import { Loading } from '../components/Loading'
@@ -134,6 +135,7 @@ function TasksList() {
   const snoozeMutation = useSnoozeTask()
   const prefetchTask = usePrefetchTask()
   const primeTaskCache = usePrimeTaskCache()
+  const confirm = useConfirm()
 
   const [pendingComplete, setPendingComplete] = useState<{
     task: Task
@@ -168,11 +170,14 @@ function TasksList() {
     navigate({ to: '/tasks/$id/edit', params: { id: t.id } })
   }
 
-  const deleteAction = () => {
+  const deleteAction = async () => {
     const t = tasks.at(selectedTask)
     if (!t) return
-    if (window.confirm(`Are you sure you want to delete '${t.title}'?`))
-      deleteMutation.mutate(t.id)
+    const ok = await confirm({
+      message: `Are you sure you want to delete '${t.title}'?`,
+      confirmLabel: 'Delete',
+    })
+    if (ok) deleteMutation.mutate(t.id)
   }
 
   const snoozeSubtasks = () => {

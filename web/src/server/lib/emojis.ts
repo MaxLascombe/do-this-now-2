@@ -19,7 +19,7 @@ function client(): Anthropic {
 // Pull emoji codepoints out of a string, dropping spaces / numbering / etc.
 // Returns each emoji as its own string element. Handles ZWJ sequences and
 // Variation Selector-16 (️) so flag-style emojis come through whole.
-function extractEmojis(text: string): Array<string> {
+export function extractEmojis(text: string): Array<string> {
   const matches = [
     ...text.matchAll(
       /\p{Extended_Pictographic}(️|‍\p{Extended_Pictographic}|\p{Emoji_Modifier})*/gu,
