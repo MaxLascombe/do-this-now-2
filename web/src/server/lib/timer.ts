@@ -1,8 +1,9 @@
 import { and, eq } from 'drizzle-orm'
 
-import { db } from '../../db'
-import { type Task, tasks } from '@dtn/shared/schema'
+import { tasks } from '@dtn/shared/schema'
 import { ceilTaskTime } from '@dtn/shared/timer-utils'
+import { db } from '../../db'
+import type { Task } from '@dtn/shared/schema'
 
 export type TimerAction = (
   | { kind: 'start' }
@@ -95,7 +96,10 @@ export async function applyTimerAction(
         if (target.timerStartedAt) {
           const elapsed =
             (now.getTime() - target.timerStartedAt.getTime()) / 1000
-          nextAccumulated = Math.max(0, target.timerAccumulatedSeconds + elapsed)
+          nextAccumulated = Math.max(
+            0,
+            target.timerAccumulatedSeconds + elapsed,
+          )
           nextStartedAt = null
         }
         break

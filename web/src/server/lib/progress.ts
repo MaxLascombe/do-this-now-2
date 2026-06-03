@@ -1,16 +1,17 @@
 import { and, eq, gte, lt } from 'drizzle-orm'
 
-import { db } from '../../db'
-import { dailyProgress, history, tasks, type Task } from '@dtn/shared/schema'
+import { dailyProgress, history, tasks } from '@dtn/shared/schema'
 import {
   dateString,
   getUserToday,
-  nextDueDate,
   newSafeDate,
+  nextDueDate,
 } from '@dtn/shared/helpers'
 import { DAY_MS } from '@dtn/shared/time'
 import { ceilTaskTime } from '@dtn/shared/timer-utils'
+import { db } from '../../db'
 import { rowCreditMinutes } from './history-credit'
+import type { Task } from '@dtn/shared/schema'
 
 // "todo" target floor: never report less than this many minutes of work for
 // the day even if the actual due tasks total less — keeps the bar moving.
@@ -35,7 +36,7 @@ export type ProgressTodayResult = {
 function calculateTodoForDays(
   today: Date,
   days: number,
-  allTasks: Task[],
+  allTasks: Array<Task>,
   done: number,
 ) {
   const endDate = new Date(today)
@@ -55,7 +56,7 @@ function calculateTodoForDays(
       else if (task.repeat === 'Weekly') repeatFrequency = 7
       else if (task.repeat === 'Monthly') repeatFrequency = 30
       else if (task.repeat === 'Yearly') repeatFrequency = 365
-      else if (task.repeat === 'Custom') {
+      else {
         if (task.repeatUnit === 'day') repeatFrequency = task.repeatInterval
         else if (task.repeatUnit === 'week') {
           if (task.repeatWeekdays.some((x) => x)) {
@@ -66,8 +67,7 @@ function calculateTodoForDays(
           }
         } else if (task.repeatUnit === 'month')
           repeatFrequency = 30 * task.repeatInterval
-        else if (task.repeatUnit === 'year')
-          repeatFrequency = 365 * task.repeatInterval
+        else repeatFrequency = 365 * task.repeatInterval
       }
       theoreticalMinimum += time / repeatFrequency
     }
@@ -85,7 +85,7 @@ function calculateTodoForDays(
 
 function findMinimumDaysNeeded(
   today: Date,
-  allTasks: Task[],
+  allTasks: Array<Task>,
   done: number,
   cappedTodo: number,
 ): number {
@@ -111,7 +111,7 @@ function findMinimumDaysNeeded(
 
 function findMinutesOnTargetDay(
   today: Date,
-  allTasks: Task[],
+  allTasks: Array<Task>,
   daysUntilAllDone: number,
 ): number {
   const target = new Date(today)
@@ -137,12 +137,11 @@ function findMinutesOnTargetDay(
       isDueOnTarget = due.getDate() === target.getDate()
     else if (task.repeat === 'Yearly')
       isDueOnTarget =
-        due.getDate() === target.getDate() && due.getMonth() === target.getMonth()
-    else if (task.repeat === 'Custom') {
+        due.getDate() === target.getDate() &&
+        due.getMonth() === target.getMonth()
+    else {
       if (task.repeatUnit === 'day') {
-        const daysDiff = Math.floor(
-          (target.getTime() - due.getTime()) / DAY_MS,
-        )
+        const daysDiff = Math.floor((target.getTime() - due.getTime()) / DAY_MS)
         isDueOnTarget = daysDiff >= 0 && daysDiff % task.repeatInterval === 0
       } else if (task.repeatUnit === 'week') {
         if (task.repeatWeekdays.some((x) => x)) {
@@ -152,9 +151,10 @@ function findMinutesOnTargetDay(
         }
       } else if (task.repeatUnit === 'month')
         isDueOnTarget = due.getDate() === target.getDate()
-      else if (task.repeatUnit === 'year')
+      else
         isDueOnTarget =
-          due.getDate() === target.getDate() && due.getMonth() === target.getMonth()
+          due.getDate() === target.getDate() &&
+          due.getMonth() === target.getMonth()
     }
 
     if (isDueOnTarget) minutes += time
@@ -169,7 +169,7 @@ type ProgressInputs = {
   completedTodayMin: number
   streakBeforeToday: number
   lives: number
-  allTasks: Task[]
+  allTasks: Array<Task>
 }
 
 async function loadProgressInputs(
@@ -178,7 +178,7 @@ async function loadProgressInputs(
   todayUtcStart: Date,
   tomorrowUtcStart: Date,
 ): Promise<ProgressInputs> {
-  const [completedToday, [todayProgress], allTasks] = await Promise.all([
+  const [completedToday, todayProgressRows, allTasks] = await Promise.all([
     db
       .select()
       .from(history)
@@ -193,10 +193,7 @@ async function loadProgressInputs(
       .select()
       .from(dailyProgress)
       .where(
-        and(
-          eq(dailyProgress.userId, userId),
-          eq(dailyProgress.date, todayKey),
-        ),
+        and(eq(dailyProgress.userId, userId), eq(dailyProgress.date, todayKey)),
       ),
     db.select().from(tasks).where(eq(tasks.userId, userId)),
   ])
@@ -205,6 +202,8 @@ async function loadProgressInputs(
     (acc, row) => acc + rowCreditMinutes(row),
     0,
   )
+
+  const todayProgress = todayProgressRows.at(0)
 
   return {
     completedTodayMin,
@@ -224,8 +223,7 @@ function computeProgress(
   today: Date,
   inputs: ProgressInputs,
 ): ProgressComputation {
-  const { completedTodayMin: done, streakBeforeToday, lives, allTasks } =
-    inputs
+  const { completedTodayMin: done, streakBeforeToday, lives, allTasks } = inputs
 
   const { todo, theoreticalMinimum } = calculateTodoForDays(
     today,
@@ -294,8 +292,12 @@ export async function getProgressToday(
   // (called from completeTask), not from this GET path — REST GETs must not
   // have side effects, and the previous design wrote on every refresh while
   // the target was hit.
-  const { todayDate: today, todayKey, todayUtcStart, tomorrowUtcStart } =
-    getUserToday(tzOffsetMin)
+  const {
+    todayDate: today,
+    todayKey,
+    todayUtcStart,
+    tomorrowUtcStart,
+  } = getUserToday(tzOffsetMin)
   const inputs = await loadProgressInputs(
     userId,
     todayKey,
@@ -312,8 +314,12 @@ export async function finalizeTodayProgress(
   userId: string,
   tzOffsetMin: number,
 ): Promise<void> {
-  const { todayDate: today, todayKey, todayUtcStart, tomorrowUtcStart } =
-    getUserToday(tzOffsetMin)
+  const {
+    todayDate: today,
+    todayKey,
+    todayUtcStart,
+    tomorrowUtcStart,
+  } = getUserToday(tzOffsetMin)
   const tomorrowKey = dateString(
     new Date(today.getFullYear(), today.getMonth(), today.getDate() + 1),
   )
