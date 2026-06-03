@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest'
 
 import {
+  dueTimeHasPassed,
   findNextActionableSubtask,
   isActionableSubtask,
   isSnoozed,
@@ -304,5 +305,28 @@ describe('willSnoozingRemoveTask', () => {
         false,
       ),
     ).toBe(true)
+  })
+})
+
+describe('dueTimeHasPassed', () => {
+  it('is false when the task has no due-time', () => {
+    const t = makeTask({ due: '2026-5-1', dueTime: null })
+    expect(dueTimeHasPassed(t, new Date(2026, 4, 1, 23, 0))).toBe(false)
+  })
+
+  it('is false before the due-time on the due day', () => {
+    const t = makeTask({ due: '2026-5-1', dueTime: '10:00' })
+    expect(dueTimeHasPassed(t, new Date(2026, 4, 1, 9, 0))).toBe(false)
+  })
+
+  it('is true once the local clock reaches the due-time', () => {
+    const t = makeTask({ due: '2026-5-1', dueTime: '10:00' })
+    expect(dueTimeHasPassed(t, new Date(2026, 4, 1, 10, 0))).toBe(true)
+    expect(dueTimeHasPassed(t, new Date(2026, 4, 1, 12, 0))).toBe(true)
+  })
+
+  it('is true on any later day', () => {
+    const t = makeTask({ due: '2026-5-1', dueTime: '10:00' })
+    expect(dueTimeHasPassed(t, new Date(2026, 4, 2, 8, 0))).toBe(true)
   })
 })
