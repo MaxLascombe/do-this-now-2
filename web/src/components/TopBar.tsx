@@ -1,9 +1,6 @@
 import { formatScheduleStatus } from '@dtn/shared/format'
 import { useProgressToday } from '@dtn/shared/queries'
-import {
-  MINUTES_IN_DAY,
-  START_OF_DAY_MINUTES,
-} from '@dtn/shared/time'
+import { MINUTES_IN_DAY, START_OF_DAY_MINUTES } from '@dtn/shared/time'
 import { Link, useLocation } from '@tanstack/react-router'
 import { useEffect, useRef, useState } from 'react'
 
@@ -21,7 +18,7 @@ type NavItem = {
   kbd: string
 }
 
-const ALL_NAV: readonly NavItem[] = [
+const ALL_NAV: ReadonlyArray<NavItem> = [
   { id: 'home', label: 'Now', to: '/', kbd: 'N' },
   { id: 'tasks', label: 'Tasks', to: '/tasks', kbd: 'T' },
   { id: 'new', label: 'New', to: '/new-task', kbd: '+' },
@@ -65,7 +62,10 @@ export const TopBar = () => {
       }
     }
     // Skip the click that opened the popover.
-    const t = setTimeout(() => document.addEventListener('mousedown', onDown), 0)
+    const t = setTimeout(
+      () => document.addEventListener('mousedown', onDown),
+      0,
+    )
     document.addEventListener('keydown', onKey, true)
     return () => {
       clearTimeout(t)
@@ -81,12 +81,7 @@ export const TopBar = () => {
   let scheduleShort: string | null = null
   let points = 0
   if (progress.data) {
-    const {
-      done,
-      todo,
-      lives,
-      minutesToReduceTomorrowDays,
-    } = progress.data
+    const { done, todo, lives, minutesToReduceTomorrowDays } = progress.data
     const maxTodo = Math.max(todo, minutesToReduceTomorrowDays)
     const timeOfDay = now.getHours() * 60 + now.getMinutes()
     const pctOfDay = Math.max(

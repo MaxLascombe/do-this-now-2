@@ -1,10 +1,10 @@
 import { useProgressToday } from '@dtn/shared/queries'
 import { minutesToHours } from '@dtn/shared/time'
 import { Link, useLocation } from '@tanstack/react-router'
-import { type ReactNode, useEffect } from 'react'
-
+import { useEffect } from 'react'
 import { useComputedProgress } from './ProgressBar'
 import { RunningTimerChip } from './RunningTimerChip'
+import type { ReactNode } from 'react'
 
 const ACCENT = '#34d399'
 const STREAK = '#f59e0b'
@@ -22,11 +22,7 @@ const activeFromPath = (pathname: string): ActiveTab => {
 
 const MINI_CELLS = 14
 
-export const MobileTopBar = ({
-  onOpenSheet,
-}: {
-  onOpenSheet: () => void
-}) => {
+export const MobileTopBar = ({ onOpenSheet }: { onOpenSheet: () => void }) => {
   const p = useComputedProgress()
   const progress = useProgressToday()
   const pct = progress.data
@@ -89,7 +85,9 @@ export const MobileTopBar = ({
                   width: 5,
                   height: 12,
                   background: filled ? ACCENT : 'rgba(255,255,255,0.12)',
-                  outline: isTick ? '1px solid rgba(255,255,255,0.9)' : undefined,
+                  outline: isTick
+                    ? '1px solid rgba(255,255,255,0.9)'
+                    : undefined,
                   outlineOffset: isTick ? -1 : undefined,
                 }}
               />
@@ -231,7 +229,9 @@ export const MobileProgressSheet = ({ onClose }: { onClose: () => void }) => {
       />
       <div
         className="relative w-full rounded-t-3xl border-t border-zinc-800 bg-[#0e0e10] px-5 pt-3 pb-8 font-mono"
-        style={{ paddingBottom: 'calc(env(safe-area-inset-bottom, 0px) + 1.5rem)' }}
+        style={{
+          paddingBottom: 'calc(env(safe-area-inset-bottom, 0px) + 1.5rem)',
+        }}
       >
         <div className="mx-auto mb-3 h-1 w-10 rounded-full bg-zinc-700" />
         <div className="mb-3 flex items-center justify-between">
@@ -257,7 +257,9 @@ export const MobileProgressSheet = ({ onClose }: { onClose: () => void }) => {
                   flex: 1,
                   height: 18,
                   background: f ? ACCENT : 'rgba(255,255,255,0.10)',
-                  outline: isTick ? '1px solid rgba(255,255,255,0.9)' : undefined,
+                  outline: isTick
+                    ? '1px solid rgba(255,255,255,0.9)'
+                    : undefined,
                   outlineOffset: isTick ? -1 : undefined,
                 }}
               />
