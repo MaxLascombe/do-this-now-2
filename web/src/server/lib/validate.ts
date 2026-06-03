@@ -12,8 +12,8 @@ import { ymdSchema } from '@dtn/shared/task-input'
  *   .inputValidator(validate(z.object({ id: v.id, tzOffsetMin: v.tzOffsetMin })))
  */
 export const validate =
-  <S extends z.ZodTypeAny>(schema: S) =>
-  (d: unknown): z.infer<S> =>
+  <TSchema extends z.ZodTypeAny>(schema: TSchema) =>
+  (d: unknown): z.infer<TSchema> =>
     schema.parse(d)
 
 /**

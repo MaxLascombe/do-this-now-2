@@ -24,7 +24,7 @@ export const Route = createFileRoute('/api/tasks/$id/snooze')({
         const parsed = snoozeBodySchema.safeParse(candidate)
         if (!parsed.success) return invalid(parsed.error.flatten())
         return json(
-          await snoozeTask(userId, params.id, parsed.data?.allSubtasks ?? false),
+          await snoozeTask(userId, params.id, parsed.data.allSubtasks ?? false),
         )
       }),
     },
