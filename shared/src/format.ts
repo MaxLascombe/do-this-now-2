@@ -61,10 +61,11 @@ export function formatScheduleStatus(opts: {
 }): string {
   const { done, shouldBeDone, isBeforeWorkday, short } = opts
   const diff = done - shouldBeDone
-  const suffix = short ? '' : ' of schedule'
   if (isBeforeWorkday && diff === 0) return short ? 'Ahead' : 'Ahead of schedule'
-  if (diff > 0) return `${minutesToHours(Math.floor(diff))} ahead${suffix}`
-  if (diff < 0) return `${minutesToHours(Math.ceil(-diff))} behind${suffix}`
+  if (diff > 0)
+    return `${minutesToHours(Math.floor(diff))} ahead${short ? '' : ' of schedule'}`
+  if (diff < 0)
+    return `${minutesToHours(Math.ceil(-diff))} behind${short ? '' : ' schedule'}`
   return 'On schedule'
 }
 
