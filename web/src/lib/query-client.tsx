@@ -2,9 +2,9 @@ import { registerTimerMutationDefaults } from '@dtn/shared/queries'
 import { createSyncStoragePersister } from '@tanstack/query-sync-storage-persister'
 import { QueryClient } from '@tanstack/react-query'
 import { PersistQueryClientProvider } from '@tanstack/react-query-persist-client'
-import { type ReactNode, useState } from 'react'
-
+import { useState } from 'react'
 import { webApiClient } from './api-client'
+import type { ReactNode } from 'react'
 
 const ONE_DAY_MS = 24 * 60 * 60 * 1000
 
@@ -54,6 +54,6 @@ export function QueryProvider({ children }: { children: ReactNode }) {
 // Stub persister used during SSR to satisfy the type.
 const undefinedSafe = {
   persistClient: async () => {},
-  restoreClient: async () => undefined,
+  restoreClient: () => Promise.resolve(undefined),
   removeClient: async () => {},
 }
