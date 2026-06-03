@@ -1,3 +1,4 @@
+import { dayIndex, startOfToday } from '@dtn/shared/day-index'
 import { newSafeDate } from '@dtn/shared/helpers'
 import {
   useAllTasks,
@@ -27,6 +28,7 @@ import {
 } from 'react-native'
 import { SafeAreaView } from 'react-native-safe-area-context'
 
+import { ErrorState } from '../../components/ErrorState'
 import { Loading } from '../../components/Loading'
 import { PageHeading } from '../../components/PageHeading'
 import { SwipeableTaskRow } from '../../components/SwipeableTaskRow'
@@ -43,20 +45,6 @@ type Group = {
 }
 
 const OVERDUE = '#fb7185'
-
-const startOfToday = () => {
-  const n = new Date()
-  return new Date(n.getFullYear(), n.getMonth(), n.getDate())
-}
-
-const dayIndex = (d: Date) => {
-  const today = startOfToday()
-  return Math.round(
-    (new Date(d.getFullYear(), d.getMonth(), d.getDate()).getTime() -
-      today.getTime()) /
-      (24 * 60 * 60 * 1000),
-  )
-}
 
 const groupOf = (
   firstTaskDue: string,
@@ -281,6 +269,13 @@ export default function TasksList() {
         ListEmptyComponent={
           activeQuery.isPending ? (
             <Loading />
+          ) : activeQuery.isError ? (
+            <View style={{ marginTop: 40 }}>
+              <ErrorState
+                message="Couldn't load your tasks."
+                onRetry={() => activeQuery.refetch()}
+              />
+            </View>
           ) : (
             <Text
               style={{
