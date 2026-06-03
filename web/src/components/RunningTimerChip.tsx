@@ -50,6 +50,7 @@ export function RunningTimerChip() {
         params={{ id: running.id }}
         className="flex items-center gap-1.5 hover:opacity-80"
         title={`${running.title} — open`}
+        aria-label={`Open running timer for ${running.title}`}
       >
         <span className="text-base leading-none">{running.emoji}</span>
         <span className="tabular-nums">{formatTimerSeconds(elapsed)}</span>
