@@ -1,12 +1,12 @@
 import { ClerkProvider, Show, SignInButton } from '@clerk/tanstack-react-start'
 import { ApiProvider } from '@dtn/shared/api-client'
 import { HeadContent, Scripts, createRootRoute } from '@tanstack/react-router'
-import { type ReactNode } from 'react'
 
 import { webApiClient } from '../lib/api-client'
 import { QueryProvider } from '../lib/query-client'
 
 import appCss from '../styles.css?url'
+import type { ReactNode } from 'react'
 
 export const Route = createRootRoute({
   head: () => ({
@@ -67,4 +67,3 @@ function SignedOutScreen() {
     </div>
   )
 }
-
