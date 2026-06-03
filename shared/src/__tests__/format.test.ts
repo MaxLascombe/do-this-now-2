@@ -126,10 +126,10 @@ describe('formatScheduleStatus', () => {
         shouldBeDone: 60,
         isBeforeWorkday: false,
       }),
-    ).toBe('0h30 behind of schedule')
+    ).toBe('0h30 behind schedule')
   })
 
-  it('short mode drops " of schedule"', () => {
+  it('short mode drops the schedule suffix', () => {
     expect(
       formatScheduleStatus({
         done: 90,
@@ -138,5 +138,13 @@ describe('formatScheduleStatus', () => {
         short: true,
       }),
     ).toBe('0h30 ahead')
+    expect(
+      formatScheduleStatus({
+        done: 30,
+        shouldBeDone: 60,
+        isBeforeWorkday: false,
+        short: true,
+      }),
+    ).toBe('0h30 behind')
   })
 })
