@@ -19,7 +19,9 @@ import {
 import { createFileRoute, useNavigate } from '@tanstack/react-router'
 import { useEffect, useState } from 'react'
 
+import { useConfirm } from '../components/ConfirmProvider'
 import { CountConfirmModal } from '../components/CountConfirmModal'
+import { ErrorState } from '../components/ErrorState'
 import { Loading } from '../components/Loading'
 import { MobileChrome } from '../components/MobileChrome'
 import { TaskRow } from '../components/TaskRow'
@@ -104,6 +106,7 @@ function Home() {
   const snoozeMutation = useSnoozeTask()
   const prefetchTask = usePrefetchTask()
   const primeTaskCache = usePrimeTaskCache()
+  const confirm = useConfirm()
 
   const [pendingComplete, setPendingComplete] = useState<{
     task: Task
@@ -143,14 +146,13 @@ function Home() {
     snoozeMutation.mutate({ id: selectedTask.id, allSubtasks: true })
   }
 
-  const deleteTaskAction = () => {
+  const deleteTaskAction = async () => {
     if (!selectedTask) return
-    if (
-      !window.confirm(
-        `Are you sure you want to delete '${selectedTask.title}'?`,
-      )
-    )
-      return
+    const ok = await confirm({
+      message: `Are you sure you want to delete '${selectedTask.title}'?`,
+      confirmLabel: 'Delete',
+    })
+    if (!ok) return
     deleteMutation.mutate(selectedTask.id)
   }
 
@@ -255,7 +257,14 @@ function Home() {
 
       {tasks.length === 0 ? (
         <div className="flex flex-1 items-center justify-center text-zinc-500">
-          No tasks
+          {topTasksQuery.isError ? (
+            <ErrorState
+              message="Couldn't load your tasks."
+              onRetry={() => topTasksQuery.refetch()}
+            />
+          ) : (
+            'No tasks'
+          )}
         </div>
       ) : (
         selectedTask && (

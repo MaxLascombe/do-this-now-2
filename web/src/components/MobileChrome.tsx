@@ -1,4 +1,5 @@
 import { useProgressToday } from '@dtn/shared/queries'
+import { computePoints } from '@dtn/shared/scoring'
 import { minutesToHours } from '@dtn/shared/time'
 import { Link, useLocation } from '@tanstack/react-router'
 import { useEffect } from 'react'
@@ -32,12 +33,7 @@ export const MobileTopBar = ({ onOpenSheet }: { onOpenSheet: () => void }) => {
   let points = 0
   if (progress.data) {
     const { done, todo, lives } = progress.data
-    const doneUsingAllLives = Math.min(done, todo - lives)
-    const doneUsingLives = Math.min(done, todo)
-    points =
-      doneUsingAllLives +
-      (doneUsingLives - doneUsingAllLives) * 2 +
-      (done - doneUsingLives) * 3
+    points = computePoints(done, todo, lives)
   }
 
   const filledCount = p ? Math.round((p.done / p.todo) * MINI_CELLS) : 0
@@ -189,7 +185,9 @@ const SheetStat = ({
 }) => (
   <div>
     <div className="flex items-center gap-1.5 text-[10px] tracking-[0.25em] text-zinc-500 uppercase">
-      <span style={{ color: iconColor ?? '#fafafa' }}>{icon}</span>
+      <span aria-hidden="true" style={{ color: iconColor ?? '#fafafa' }}>
+        {icon}
+      </span>
       <span>{label}</span>
     </div>
     <div className="mt-1 flex items-baseline gap-1.5">
@@ -290,7 +288,7 @@ export const MobileProgressSheet = ({ onClose }: { onClose: () => void }) => {
             iconColor={STREAK}
             label="Streak"
             value={p.streak}
-            unit="days"
+            unit={p.streak === 1 ? 'day' : 'days'}
           />
           <SheetStat
             icon="♥"

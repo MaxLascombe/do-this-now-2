@@ -3,6 +3,7 @@ import { useDeleteTask, useTask, useUpdateTask } from '@dtn/shared/queries'
 import { Stack, useLocalSearchParams, useRouter } from 'expo-router'
 import { Alert, ScrollView, View } from 'react-native'
 
+import { ErrorState } from '../../../components/ErrorState'
 import { Loading } from '../../../components/Loading'
 import { TaskForm } from '../../../components/TaskForm'
 import { TimerWidget } from '../../../components/TimerWidget'
@@ -30,7 +31,16 @@ export default function EditTask() {
         }}
       >
         <Stack.Screen options={{ title: 'Edit' }} />
-        <Loading />
+        {taskQuery.isPending ? (
+          <Loading />
+        ) : taskQuery.isError ? (
+          <ErrorState
+            message="Couldn't load this task."
+            onRetry={() => taskQuery.refetch()}
+          />
+        ) : (
+          <ErrorState message="Task not found." />
+        )}
       </View>
     )
   }

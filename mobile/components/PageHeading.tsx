@@ -38,6 +38,7 @@ export function PageHeading({
           </Text>
         )}
         <Text
+          accessibilityRole="header"
           style={{
             fontFamily: 'JetBrainsMono_700Bold',
             fontSize: size,
