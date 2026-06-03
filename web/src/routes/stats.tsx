@@ -1,9 +1,11 @@
 import { newSafeDate } from '@dtn/shared/helpers'
+import { heatmapColor, percentile } from '@dtn/shared/heatmap'
 import { useStats } from '@dtn/shared/queries'
 import { createFileRoute, useNavigate } from '@tanstack/react-router'
 import { useState } from 'react'
 
 import { KeyHints } from '../components/KeyHints'
+import { ErrorState } from '../components/ErrorState'
 import { Loading } from '../components/Loading'
 import { MobileChrome } from '../components/MobileChrome'
 import { PageHeading } from '../components/PageHeading'
@@ -23,7 +25,7 @@ const STREAK = '#f59e0b'
 
 function Stats() {
   const navigate = useNavigate()
-  const { data, isLoading } = useStats()
+  const { data, isLoading, isError, refetch } = useStats()
   const [sheetOpen, setSheetOpen] = useState(false)
 
   const keyActions: Array<KeyAction> = [
@@ -48,7 +50,7 @@ function Stats() {
   ]
   useKeyAction(keyActions)
 
-  if (isLoading || !data) {
+  if (!data) {
     return (
       <div className="flex min-h-screen flex-col">
         <TopBar />
@@ -58,7 +60,14 @@ function Stats() {
           onCloseSheet={() => setSheetOpen(false)}
         />
         <div className="flex flex-1 items-center justify-center">
-          <Loading />
+          {isError && !isLoading ? (
+            <ErrorState
+              message="Couldn't load your stats."
+              onRetry={() => refetch()}
+            />
+          ) : (
+            <Loading />
+          )}
         </div>
       </div>
     )
@@ -170,27 +179,6 @@ function StreakSummary({ data }: { data: StatsResult }) {
 }
 
 const HEATMAP_COLS = 26
-
-function percentile(sorted: Array<number>, p: number): number {
-  if (sorted.length === 0) return 0
-  const idx = Math.min(
-    sorted.length - 1,
-    Math.floor(((sorted.length - 1) * p) / 100),
-  )
-  return sorted[idx]
-}
-
-function heatmapColor(
-  minutes: number,
-  hit: boolean,
-  p33: number,
-  p66: number,
-): string {
-  if (minutes === 0) return 'rgba(255,255,255,0.04)'
-  if (hit || minutes >= p66) return '#34d399'
-  if (minutes >= p33) return '#059669'
-  return '#065f46'
-}
 
 function Heatmap({ data }: { data: StatsResult }) {
   const last = data.heatmap.at(-1)

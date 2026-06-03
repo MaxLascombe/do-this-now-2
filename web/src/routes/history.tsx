@@ -6,6 +6,7 @@ import { format } from 'date-fns'
 import { useState } from 'react'
 
 import { KeyHints } from '../components/KeyHints'
+import { ErrorState } from '../components/ErrorState'
 import { Loading } from '../components/Loading'
 import { MobileChrome } from '../components/MobileChrome'
 import { PageHeading } from '../components/PageHeading'
@@ -33,7 +34,7 @@ function History() {
   const dateKey = dateString(date)
   const isCurrentDay = daysAgo === 0
 
-  const { data, isLoading } = useHistory(dateKey)
+  const { data, isLoading, isError, refetch } = useHistory(dateKey)
   const stats = useStats()
   const dayStat = stats.data?.heatmap.find((h) => h.date === dateKey)
   const targetHit = dayStat?.hit ?? null
@@ -129,7 +130,11 @@ function History() {
 
       <div className="mb-6 px-5 md:px-10">
         <div className="grid grid-cols-2 gap-4 rounded-2xl border border-zinc-800 bg-zinc-900/40 px-5 py-4 font-mono md:grid-cols-4 md:gap-6 md:px-6 md:py-5">
-          <Stat label="Completed" value={String(entries.length)} unit="tasks" />
+          <Stat
+            label="Completed"
+            value={String(entries.length)}
+            unit={entries.length === 1 ? 'task' : 'tasks'}
+          />
           <Stat
             label="Time spent"
             value={mins === 0 ? `${hours}h` : `${hours}h ${mins}m`}
@@ -161,6 +166,13 @@ function History() {
         {isLoading ? (
           <div className="mt-8 flex justify-center">
             <Loading />
+          </div>
+        ) : isError && entries.length === 0 ? (
+          <div className="mt-8 flex justify-center">
+            <ErrorState
+              message="Couldn't load this day's history."
+              onRetry={() => refetch()}
+            />
           </div>
         ) : entries.length === 0 ? (
           <div className="mt-8 text-center font-mono text-sm text-zinc-500">
