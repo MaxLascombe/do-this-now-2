@@ -1,6 +1,14 @@
 import { describe, expect, it } from 'vitest'
 
-import { dateString, getUserToday, newSafeDate, nextDueDate } from '../helpers'
+import {
+  dateString,
+  getUserLocalNow,
+  getUserToday,
+  newSafeDate,
+  newSafeDateTime,
+  nextDueDate,
+  repeatFrequencyDays,
+} from '../helpers'
 import { makeTask } from './_factories'
 
 describe('newSafeDate', () => {
@@ -139,5 +147,121 @@ describe('getUserToday', () => {
     // 04:00 UTC - 5h = 23:00 EST previous day
     const result = getUserToday(300, new Date('2026-01-01T04:00:00Z'))
     expect(result.todayKey).toBe('2025-12-31')
+  })
+})
+
+describe('newSafeDateTime', () => {
+  it('combines YYYY-M-D and HH:MM into a local Date', () => {
+    const d = newSafeDateTime('2026-3-5', '14:30')
+    expect(d.getFullYear()).toBe(2026)
+    expect(d.getMonth()).toBe(2) // March
+    expect(d.getDate()).toBe(5)
+    expect(d.getHours()).toBe(14)
+    expect(d.getMinutes()).toBe(30)
+  })
+
+  it('handles midnight', () => {
+    const d = newSafeDateTime('2026-12-31', '00:00')
+    expect(d.getHours()).toBe(0)
+    expect(d.getMinutes()).toBe(0)
+    expect(d.getDate()).toBe(31)
+  })
+})
+
+describe('getUserLocalNow', () => {
+  it('returns wall-clock fields unchanged for a UTC user', () => {
+    const d = getUserLocalNow(0, new Date('2026-05-01T15:30:00Z'))
+    expect(d.getFullYear()).toBe(2026)
+    expect(d.getMonth()).toBe(4)
+    expect(d.getDate()).toBe(1)
+    expect(d.getHours()).toBe(15)
+    expect(d.getMinutes()).toBe(30)
+  })
+
+  it('rolls the date back when the user is behind UTC across midnight', () => {
+    // EST (tzOffsetMin 300): 02:00Z is still the previous evening locally.
+    const d = getUserLocalNow(300, new Date('2026-05-01T02:00:00Z'))
+    expect(d.getMonth()).toBe(3) // April
+    expect(d.getDate()).toBe(30)
+    expect(d.getHours()).toBe(21)
+  })
+
+  it('rolls the date forward when the user is ahead of UTC', () => {
+    // UTC+5 (tzOffsetMin -300): 22:00Z is already past local midnight.
+    const d = getUserLocalNow(-300, new Date('2026-05-01T22:00:00Z'))
+    expect(d.getDate()).toBe(2)
+    expect(d.getHours()).toBe(3)
+  })
+})
+
+describe('repeatFrequencyDays', () => {
+  it('returns Infinity for non-repeating tasks', () => {
+    expect(repeatFrequencyDays(makeTask({ repeat: 'No Repeat' }))).toBe(Infinity)
+  })
+
+  it('handles the fixed cadences', () => {
+    expect(repeatFrequencyDays(makeTask({ repeat: 'Daily' }))).toBe(1)
+    expect(repeatFrequencyDays(makeTask({ repeat: 'Weekdays' }))).toBe(7 / 5)
+    expect(repeatFrequencyDays(makeTask({ repeat: 'Weekly' }))).toBe(7)
+    expect(repeatFrequencyDays(makeTask({ repeat: 'Monthly' }))).toBe(30)
+    expect(repeatFrequencyDays(makeTask({ repeat: 'Yearly' }))).toBe(365)
+  })
+
+  it('Custom day uses the interval directly', () => {
+    expect(
+      repeatFrequencyDays(
+        makeTask({ repeat: 'Custom', repeatUnit: 'day', repeatInterval: 3 }),
+      ),
+    ).toBe(3)
+  })
+
+  it('Custom week divides 7*interval by the number of selected weekdays', () => {
+    expect(
+      repeatFrequencyDays(
+        makeTask({
+          repeat: 'Custom',
+          repeatUnit: 'week',
+          repeatInterval: 1,
+          repeatWeekdays: [false, true, false, true, false, true, false], // M/W/F
+        }),
+      ),
+    ).toBe(7 / 3)
+
+    expect(
+      repeatFrequencyDays(
+        makeTask({
+          repeat: 'Custom',
+          repeatUnit: 'week',
+          repeatInterval: 2,
+          repeatWeekdays: [true, false, false, false, false, false, true],
+        }),
+      ),
+    ).toBe((7 * 2) / 2)
+  })
+
+  it('Custom week with no weekdays selected falls back to 7*interval', () => {
+    expect(
+      repeatFrequencyDays(
+        makeTask({
+          repeat: 'Custom',
+          repeatUnit: 'week',
+          repeatInterval: 2,
+          repeatWeekdays: [false, false, false, false, false, false, false],
+        }),
+      ),
+    ).toBe(14)
+  })
+
+  it('Custom month/year scale by interval', () => {
+    expect(
+      repeatFrequencyDays(
+        makeTask({ repeat: 'Custom', repeatUnit: 'month', repeatInterval: 2 }),
+      ),
+    ).toBe(60)
+    expect(
+      repeatFrequencyDays(
+        makeTask({ repeat: 'Custom', repeatUnit: 'year', repeatInterval: 1 }),
+      ),
+    ).toBe(365)
   })
 })
