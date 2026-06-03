@@ -1,4 +1,5 @@
 import { useApi } from '@dtn/shared/api-client'
+import { formatDueDistance } from '@dtn/shared/format'
 import { dateString, newSafeDate } from '@dtn/shared/helpers'
 import { useAllTasks } from '@dtn/shared/queries'
 import { taskInputSchema } from '@dtn/shared/task-input'
@@ -52,14 +53,6 @@ const dayDiffFor = (due: string): number => {
   return Math.round(
     (target.getTime() - today.getTime()) / (1000 * 60 * 60 * 24),
   )
-}
-
-const dayDiffPhrase = (diff: number): string => {
-  if (diff === -1) return 'yesterday'
-  if (diff < 0) return `${Math.abs(diff)} days ago`
-  if (diff === 0) return 'today'
-  if (diff === 1) return 'tomorrow'
-  return `in ${diff} days`
 }
 
 type FormSub = SubTask & { _key: string }
@@ -408,7 +401,7 @@ const TaskForm = ({
               </div>
               <div className="mt-1.5 font-mono text-xs text-zinc-500">
                 {format(dueDate, 'EEEE, LLL d')} ·{' '}
-                {dayDiffPhrase(dayDiffFor(due))}
+                {formatDueDistance(dayDiffFor(due))}
               </div>
             </Field>
 
