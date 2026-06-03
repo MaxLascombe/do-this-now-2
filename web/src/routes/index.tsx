@@ -8,7 +8,10 @@ import {
   useTask,
   useTopTasks,
 } from '@dtn/shared/queries'
-import { isSnoozed } from '@dtn/shared/task-sorting'
+import {
+  findNextActionableSubtask,
+  isSnoozed,
+} from '@dtn/shared/task-sorting'
 import { willAdvanceSubtask } from '@dtn/shared/task-transitions'
 import { minutesToHours } from '@dtn/shared/time'
 import {
@@ -34,15 +37,6 @@ import type { KeyAction } from '../hooks/useKeyAction'
 export const Route = createFileRoute('/')({
   component: Home,
 })
-
-const pickNextSubtask = (task: Task) => {
-  const now = new Date()
-  return (
-    task.subtasks.find(
-      (s) => !s.done && (!s.snooze || new Date(s.snooze) < now),
-    ) ?? task.subtasks.find((s) => !s.done)
-  )
-}
 
 const Kbd = ({
   children,
@@ -356,7 +350,10 @@ function Hero({
   onEdit: () => void
   onDelete: () => void
 }) {
-  const nextSub = task.subtasks.length > 0 ? pickNextSubtask(task) : undefined
+  const nextSub =
+    task.subtasks.length > 0
+      ? findNextActionableSubtask(task.subtasks, new Date())
+      : undefined
   const doneCount = task.subtasks.filter((s) => s.done).length
   const dueLabel = formatDueLabel(task.due, task.dueTime)
   const repeatLabel = formatRepeat(
