@@ -1,5 +1,6 @@
 import { formatScheduleStatus } from '@dtn/shared/format'
 import { useProgressToday } from '@dtn/shared/queries'
+import { computePoints } from '@dtn/shared/scoring'
 import {
   MINUTES_IN_DAY,
   START_OF_DAY_MINUTES,
@@ -62,12 +63,7 @@ export const useComputedProgress = (): Computed | null => {
   const livesUsed = Math.min(lives, Math.max(0, todo - done))
   const livesLeft = lives - livesUsed
 
-  const doneUsingAllLives = Math.min(done, todo - lives)
-  const doneUsingLives = Math.min(done, todo)
-  const points =
-    doneUsingAllLives +
-    (doneUsingLives - doneUsingAllLives) * 2 +
-    (done - doneUsingLives) * 3
+  const points = computePoints(done, todo, lives)
 
   const clearByDate = new Date(
     new Date().setDate(now.getDate() + daysUntilAllDone),
