@@ -3,8 +3,8 @@
 // react-native Pressable — different render target, can't be shared.
 import { faSpinner } from '@fortawesome/free-solid-svg-icons'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
-import { type ComponentProps } from 'react'
 import { twMerge as tw } from 'tailwind-merge'
+import type { ComponentProps } from 'react'
 
 export const Button = ({
   icon,

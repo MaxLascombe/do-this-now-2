@@ -28,7 +28,7 @@ export const Route = createFileRoute('/api/tasks/$id/complete')({
             userId,
             params.id,
             getTzFromRequest(request),
-            parsed.data?.countMeasurement ?? true,
+            parsed.data.countMeasurement ?? true,
           ),
         )
       }),
