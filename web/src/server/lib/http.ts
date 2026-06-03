@@ -1,6 +1,8 @@
 import { auth } from '@clerk/tanstack-react-start/server'
 import { json } from '@tanstack/react-start'
 
+import { MAX_TZ_OFFSET_MIN } from './validate'
+
 // Uniform error envelope for REST routes.
 //   code:    machine-readable identifier ('unauthenticated', 'not_found', 'invalid')
 //   message: optional human-readable string
@@ -41,12 +43,15 @@ export function withAuth<P = Record<string, never>>(
 
 // Read the user's TZ offset (minutes west of UTC, matching
 // Date.prototype.getTimezoneOffset()) from the request header set by the
-// client adapter. Falls back to 0 (UTC) when missing — server-side day
+// client adapter. Falls back to 0 (UTC) when missing or out of range —
+// server-side day
 // boundaries will be wrong, so this is a soft failure rather than a hard 400.
 // If we want stricter, switch to throwing invalid().
 export function getTzFromRequest(request: Request): number {
   const v = request.headers.get('x-tz-offset')
   if (v === null) return 0
   const n = parseInt(v, 10)
-  return Number.isNaN(n) ? 0 : n
+  if (Number.isNaN(n) || n < -MAX_TZ_OFFSET_MIN || n > MAX_TZ_OFFSET_MIN)
+    return 0
+  return n
 }
