@@ -485,6 +485,7 @@ export function TaskForm({
               Lock this task to its due time
             </Text>
             <RNSwitch
+              accessibilityLabel="Strict deadline"
               value={strictDeadline}
               onValueChange={setStrictDeadline}
               trackColor={{ false: '#27272a', true: ACCENT }}
@@ -1035,6 +1036,8 @@ function TimeframeTypeOption({
   return (
     <Pressable
       onPress={onPress}
+      accessibilityRole="button"
+      accessibilityState={{ selected: active }}
       style={{
         borderRadius: 12,
         borderWidth: 1,

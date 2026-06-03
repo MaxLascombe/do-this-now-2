@@ -17,6 +17,7 @@ import { Route as TasksIndexRouteImport } from './routes/tasks.index'
 import { Route as TasksIdRouteImport } from './routes/tasks.$id'
 import { Route as ApiTasksRouteImport } from './routes/api/tasks'
 import { Route as ApiStatsRouteImport } from './routes/api/stats'
+import { Route as TasksIdIndexRouteImport } from './routes/tasks.$id.index'
 import { Route as TasksIdEditRouteImport } from './routes/tasks.$id.edit'
 import { Route as ApiTasksSuggestEmojisRouteImport } from './routes/api/tasks.suggest-emojis'
 import { Route as ApiTasksIdRouteImport } from './routes/api/tasks.$id'
@@ -66,6 +67,11 @@ const ApiStatsRoute = ApiStatsRouteImport.update({
   id: '/api/stats',
   path: '/api/stats',
   getParentRoute: () => rootRouteImport,
+} as any)
+const TasksIdIndexRoute = TasksIdIndexRouteImport.update({
+  id: '/',
+  path: '/',
+  getParentRoute: () => TasksIdRoute,
 } as any)
 const TasksIdEditRoute = TasksIdEditRouteImport.update({
   id: '/edit',
@@ -128,6 +134,7 @@ export interface FileRoutesByFullPath {
   '/api/tasks/$id': typeof ApiTasksIdRouteWithChildren
   '/api/tasks/suggest-emojis': typeof ApiTasksSuggestEmojisRoute
   '/tasks/$id/edit': typeof TasksIdEditRoute
+  '/tasks/$id/': typeof TasksIdIndexRoute
   '/api/tasks/$id/complete': typeof ApiTasksIdCompleteRoute
   '/api/tasks/$id/snooze': typeof ApiTasksIdSnoozeRoute
   '/api/tasks/$id/timer': typeof ApiTasksIdTimerRoute
@@ -139,7 +146,6 @@ export interface FileRoutesByTo {
   '/stats': typeof StatsRoute
   '/api/stats': typeof ApiStatsRoute
   '/api/tasks': typeof ApiTasksRouteWithChildren
-  '/tasks/$id': typeof TasksIdRouteWithChildren
   '/tasks': typeof TasksIndexRoute
   '/api/admin/backfill-emojis': typeof ApiAdminBackfillEmojisRoute
   '/api/history/$date': typeof ApiHistoryDateRoute
@@ -147,6 +153,7 @@ export interface FileRoutesByTo {
   '/api/tasks/$id': typeof ApiTasksIdRouteWithChildren
   '/api/tasks/suggest-emojis': typeof ApiTasksSuggestEmojisRoute
   '/tasks/$id/edit': typeof TasksIdEditRoute
+  '/tasks/$id': typeof TasksIdIndexRoute
   '/api/tasks/$id/complete': typeof ApiTasksIdCompleteRoute
   '/api/tasks/$id/snooze': typeof ApiTasksIdSnoozeRoute
   '/api/tasks/$id/timer': typeof ApiTasksIdTimerRoute
@@ -167,6 +174,7 @@ export interface FileRoutesById {
   '/api/tasks/$id': typeof ApiTasksIdRouteWithChildren
   '/api/tasks/suggest-emojis': typeof ApiTasksSuggestEmojisRoute
   '/tasks/$id/edit': typeof TasksIdEditRoute
+  '/tasks/$id/': typeof TasksIdIndexRoute
   '/api/tasks/$id/complete': typeof ApiTasksIdCompleteRoute
   '/api/tasks/$id/snooze': typeof ApiTasksIdSnoozeRoute
   '/api/tasks/$id/timer': typeof ApiTasksIdTimerRoute
@@ -188,6 +196,7 @@ export interface FileRouteTypes {
     | '/api/tasks/$id'
     | '/api/tasks/suggest-emojis'
     | '/tasks/$id/edit'
+    | '/tasks/$id/'
     | '/api/tasks/$id/complete'
     | '/api/tasks/$id/snooze'
     | '/api/tasks/$id/timer'
@@ -199,7 +208,6 @@ export interface FileRouteTypes {
     | '/stats'
     | '/api/stats'
     | '/api/tasks'
-    | '/tasks/$id'
     | '/tasks'
     | '/api/admin/backfill-emojis'
     | '/api/history/$date'
@@ -207,6 +215,7 @@ export interface FileRouteTypes {
     | '/api/tasks/$id'
     | '/api/tasks/suggest-emojis'
     | '/tasks/$id/edit'
+    | '/tasks/$id'
     | '/api/tasks/$id/complete'
     | '/api/tasks/$id/snooze'
     | '/api/tasks/$id/timer'
@@ -226,6 +235,7 @@ export interface FileRouteTypes {
     | '/api/tasks/$id'
     | '/api/tasks/suggest-emojis'
     | '/tasks/$id/edit'
+    | '/tasks/$id/'
     | '/api/tasks/$id/complete'
     | '/api/tasks/$id/snooze'
     | '/api/tasks/$id/timer'
@@ -302,6 +312,13 @@ declare module '@tanstack/react-router' {
       fullPath: '/api/stats'
       preLoaderRoute: typeof ApiStatsRouteImport
       parentRoute: typeof rootRouteImport
+    }
+    '/tasks/$id/': {
+      id: '/tasks/$id/'
+      path: '/'
+      fullPath: '/tasks/$id/'
+      preLoaderRoute: typeof TasksIdIndexRouteImport
+      parentRoute: typeof TasksIdRoute
     }
     '/tasks/$id/edit': {
       id: '/tasks/$id/edit'
@@ -401,10 +418,12 @@ const ApiTasksRouteWithChildren = ApiTasksRoute._addFileChildren(
 
 interface TasksIdRouteChildren {
   TasksIdEditRoute: typeof TasksIdEditRoute
+  TasksIdIndexRoute: typeof TasksIdIndexRoute
 }
 
 const TasksIdRouteChildren: TasksIdRouteChildren = {
   TasksIdEditRoute: TasksIdEditRoute,
+  TasksIdIndexRoute: TasksIdIndexRoute,
 }
 
 const TasksIdRouteWithChildren =

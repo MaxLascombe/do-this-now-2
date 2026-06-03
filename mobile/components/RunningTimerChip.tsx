@@ -47,6 +47,8 @@ export function RunningTimerChip() {
       />
       <Pressable
         onPress={() => router.push(`/tasks/${running.id}/edit`)}
+        accessibilityRole="button"
+        accessibilityLabel={`Open running timer for ${running.title}`}
         style={{ flexDirection: 'row', alignItems: 'center', gap: 5 }}
       >
         <Text style={{ fontSize: 14, lineHeight: 16 }}>{running.emoji}</Text>
@@ -65,6 +67,8 @@ export function RunningTimerChip() {
           timer.mutate({ id: running.id, action: { kind: 'pause' } })
         }
         disabled={timer.isPending}
+        accessibilityRole="button"
+        accessibilityLabel="Pause timer"
         hitSlop={4}
         style={{
           paddingHorizontal: 4,

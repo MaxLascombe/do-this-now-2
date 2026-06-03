@@ -1,6 +1,13 @@
 import { describe, expect, it } from 'vitest'
 
-import { dateString, getUserToday, newSafeDate, nextDueDate } from '../helpers'
+import {
+  dateString,
+  getUserLocalNow,
+  getUserToday,
+  newSafeDate,
+  newSafeDateTime,
+  nextDueDate,
+} from '../helpers'
 import { makeTask } from './_factories'
 
 describe('newSafeDate', () => {
@@ -139,5 +146,49 @@ describe('getUserToday', () => {
     // 04:00 UTC - 5h = 23:00 EST previous day
     const result = getUserToday(300, new Date('2026-01-01T04:00:00Z'))
     expect(result.todayKey).toBe('2025-12-31')
+  })
+})
+
+describe('newSafeDateTime', () => {
+  it('combines YYYY-M-D and HH:MM into a local Date', () => {
+    const d = newSafeDateTime('2026-3-5', '14:30')
+    expect(d.getFullYear()).toBe(2026)
+    expect(d.getMonth()).toBe(2) // March
+    expect(d.getDate()).toBe(5)
+    expect(d.getHours()).toBe(14)
+    expect(d.getMinutes()).toBe(30)
+  })
+
+  it('handles midnight', () => {
+    const d = newSafeDateTime('2026-12-31', '00:00')
+    expect(d.getHours()).toBe(0)
+    expect(d.getMinutes()).toBe(0)
+    expect(d.getDate()).toBe(31)
+  })
+})
+
+describe('getUserLocalNow', () => {
+  it('returns wall-clock fields unchanged for a UTC user', () => {
+    const d = getUserLocalNow(0, new Date('2026-05-01T15:30:00Z'))
+    expect(d.getFullYear()).toBe(2026)
+    expect(d.getMonth()).toBe(4)
+    expect(d.getDate()).toBe(1)
+    expect(d.getHours()).toBe(15)
+    expect(d.getMinutes()).toBe(30)
+  })
+
+  it('rolls the date back when the user is behind UTC across midnight', () => {
+    // EST (tzOffsetMin 300): 02:00Z is still the previous evening locally.
+    const d = getUserLocalNow(300, new Date('2026-05-01T02:00:00Z'))
+    expect(d.getMonth()).toBe(3) // April
+    expect(d.getDate()).toBe(30)
+    expect(d.getHours()).toBe(21)
+  })
+
+  it('rolls the date forward when the user is ahead of UTC', () => {
+    // UTC+5 (tzOffsetMin -300): 22:00Z is already past local midnight.
+    const d = getUserLocalNow(-300, new Date('2026-05-01T22:00:00Z'))
+    expect(d.getDate()).toBe(2)
+    expect(d.getHours()).toBe(3)
   })
 })
