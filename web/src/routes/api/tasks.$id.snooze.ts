@@ -2,7 +2,7 @@ import { createFileRoute } from '@tanstack/react-router'
 import { json } from '@tanstack/react-start'
 import { z } from 'zod'
 
-import { snoozeTask } from '../../server/lib/actions'
+import { snoozeTask, TaskNotFoundError } from '../../server/lib/actions'
 import { invalid, notFound, withAuth } from '../../server/lib/http'
 
 type Params = { id: string }
@@ -26,9 +26,18 @@ export const Route = createFileRoute('/api/tasks/$id/snooze')({
 
         const parsed = snoozeBodySchema.safeParse(candidate)
         if (!parsed.success) return invalid(parsed.error.flatten())
-        return json(
-          await snoozeTask(userId, params.id, parsed.data.allSubtasks ?? false),
-        )
+        try {
+          return json(
+            await snoozeTask(
+              userId,
+              params.id,
+              parsed.data.allSubtasks ?? false,
+            ),
+          )
+        } catch (e) {
+          if (e instanceof TaskNotFoundError) return notFound()
+          throw e
+        }
       }),
     },
   },
