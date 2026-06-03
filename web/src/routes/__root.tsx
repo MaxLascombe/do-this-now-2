@@ -2,11 +2,12 @@ import { ClerkProvider, Show, SignInButton } from '@clerk/tanstack-react-start'
 import { ApiProvider } from '@dtn/shared/api-client'
 import { HeadContent, Scripts, createRootRoute } from '@tanstack/react-router'
 
+import { ConfirmProvider } from '../components/ConfirmProvider'
 import { webApiClient } from '../lib/api-client'
 import { QueryProvider } from '../lib/query-client'
 
 import appCss from '../styles.css?url'
-import type { ReactNode } from 'react'
+import { useEffect, useState, type ReactNode } from 'react'
 
 export const Route = createRootRoute({
   head: () => ({
@@ -42,7 +43,16 @@ function RootDocument({ children }: { children: ReactNode }) {
         <body className="text-zinc-50">
           <QueryProvider>
             <ApiProvider value={webApiClient}>
-              <Show when="signed-in">{children}</Show>
+              <RouteAnnouncer />
+              <Show when="signed-in">
+                <a
+                  href="#main-content"
+                  className="sr-only focus:not-sr-only focus:fixed focus:top-3 focus:left-3 focus:z-50 focus:rounded-lg focus:bg-zinc-50 focus:px-4 focus:py-2 focus:text-sm focus:font-semibold focus:text-zinc-900"
+                >
+                  Skip to content
+                </a>
+                <ConfirmProvider>{children}</ConfirmProvider>
+              </Show>
               <Show when="signed-out">
                 <SignedOutScreen />
               </Show>
@@ -52,6 +62,27 @@ function RootDocument({ children }: { children: ReactNode }) {
         </body>
       </html>
     </ClerkProvider>
+  )
+}
+
+// Mirror <title> changes into a polite live region so screen readers hear SPA navigations.
+function RouteAnnouncer() {
+  const [message, setMessage] = useState('')
+  useEffect(() => {
+    const title = document.querySelector('title')
+    if (!title) return
+    const observer = new MutationObserver(() => setMessage(document.title))
+    observer.observe(title, {
+      childList: true,
+      characterData: true,
+      subtree: true,
+    })
+    return () => observer.disconnect()
+  }, [])
+  return (
+    <div aria-live="polite" aria-atomic="true" className="sr-only">
+      {message}
+    </div>
   )
 }
 
