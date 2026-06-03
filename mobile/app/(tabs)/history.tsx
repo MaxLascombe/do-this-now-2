@@ -141,7 +141,11 @@ export default function History() {
                 flexWrap: 'wrap',
               }}
             >
-              <Stat label="Completed" value={String(entries.length)} unit="tasks" />
+              <Stat
+                label="Completed"
+                value={String(entries.length)}
+                unit={entries.length === 1 ? 'task' : 'tasks'}
+              />
               <Stat
                 label="Time spent"
                 value={mins === 0 ? `${hours}h` : `${hours}h ${mins}m`}

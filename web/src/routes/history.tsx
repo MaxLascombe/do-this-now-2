@@ -130,7 +130,11 @@ function History() {
 
       <div className="mb-6 px-5 md:px-10">
         <div className="grid grid-cols-2 gap-4 rounded-2xl border border-zinc-800 bg-zinc-900/40 px-5 py-4 font-mono md:grid-cols-4 md:gap-6 md:px-6 md:py-5">
-          <Stat label="Completed" value={String(entries.length)} unit="tasks" />
+          <Stat
+            label="Completed"
+            value={String(entries.length)}
+            unit={entries.length === 1 ? 'task' : 'tasks'}
+          />
           <Stat
             label="Time spent"
             value={mins === 0 ? `${hours}h` : `${hours}h ${mins}m`}
