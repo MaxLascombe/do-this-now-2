@@ -6,6 +6,7 @@ import { format } from 'date-fns'
 import { useState } from 'react'
 
 import { KeyHints } from '../components/KeyHints'
+import { ErrorState } from '../components/ErrorState'
 import { Loading } from '../components/Loading'
 import { MobileChrome } from '../components/MobileChrome'
 import { PageHeading } from '../components/PageHeading'
@@ -15,6 +16,7 @@ import type { HistoryEntry } from '@dtn/shared/types'
 import type { KeyAction } from '../hooks/useKeyAction'
 
 export const Route = createFileRoute('/history')({
+  head: () => ({ meta: [{ title: 'History · Do This Now' }] }),
   component: History,
 })
 
@@ -32,7 +34,7 @@ function History() {
   const dateKey = dateString(date)
   const isCurrentDay = daysAgo === 0
 
-  const { data, isLoading } = useHistory(dateKey)
+  const { data, isLoading, isError, refetch } = useHistory(dateKey)
   const stats = useStats()
   const dayStat = stats.data?.heatmap.find((h) => h.date === dateKey)
   const targetHit = dayStat?.hit ?? null
@@ -160,6 +162,13 @@ function History() {
         {isLoading ? (
           <div className="mt-8 flex justify-center">
             <Loading />
+          </div>
+        ) : isError && entries.length === 0 ? (
+          <div className="mt-8 flex justify-center">
+            <ErrorState
+              message="Couldn't load this day's history."
+              onRetry={() => refetch()}
+            />
           </div>
         ) : entries.length === 0 ? (
           <div className="mt-8 text-center font-mono text-sm text-zinc-500">

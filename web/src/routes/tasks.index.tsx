@@ -29,6 +29,7 @@ import {
 
 import { useConfirm } from '../components/ConfirmProvider'
 import { CountConfirmModal } from '../components/CountConfirmModal'
+import { ErrorState } from '../components/ErrorState'
 import { KeyHints } from '../components/KeyHints'
 import { Loading } from '../components/Loading'
 import { MobileChrome } from '../components/MobileChrome'
@@ -41,6 +42,7 @@ import type { Task } from '@dtn/shared/types'
 import type { KeyAction } from '../hooks/useKeyAction'
 
 export const Route = createFileRoute('/tasks/')({
+  head: () => ({ meta: [{ title: 'Tasks · Do This Now' }] }),
   component: TasksList,
 })
 
@@ -314,6 +316,7 @@ function TasksList() {
   const isFetching =
     (sort === 'CHRON' && allTasks.isFetching) ||
     (sort === 'TOP' && topTasks.isFetching)
+  const activeQuery = sort === 'CHRON' ? allTasks : topTasks
 
   const [sheetOpen, setSheetOpen] = useState(false)
 
@@ -336,8 +339,15 @@ function TasksList() {
 
       <div className="flex-1 overflow-y-auto px-5 pb-28 md:px-10 md:pb-24">
         {tasks.length === 0 && !isFetching && (
-          <div className="mt-8 text-center font-mono text-sm text-zinc-500">
-            No tasks
+          <div className="mt-8 flex justify-center text-center font-mono text-sm text-zinc-500">
+            {activeQuery.isError ? (
+              <ErrorState
+                message="Couldn't load your tasks."
+                onRetry={() => activeQuery.refetch()}
+              />
+            ) : (
+              'No tasks'
+            )}
           </div>
         )}
 
