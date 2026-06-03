@@ -13,7 +13,7 @@ const ACCENT = '#34d399'
  * currently-running task (almost always the only one) with its emoji
  * and live elapsed time, plus an inline pause button so the user can
  * stop a forgotten timer from anywhere in the app. Clicking the chip
- * jumps to the task's edit page where the full widget lives.
+ * opens the task's detail page where the full widget lives.
  */
 export function RunningTimerChip() {
   const tasks = useAllTasks()
@@ -46,7 +46,7 @@ export function RunningTimerChip() {
         }}
       />
       <Link
-        to="/tasks/$id/edit"
+        to="/tasks/$id"
         params={{ id: running.id }}
         className="flex items-center gap-1.5 hover:opacity-80"
         title={`${running.title} — open`}

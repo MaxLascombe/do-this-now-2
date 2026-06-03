@@ -264,6 +264,7 @@ function Home() {
             index={selectedTaskIndex}
             onComplete={completeTaskAction}
             onSnooze={snoozeTaskAction}
+            onSnoozeSubtasks={snoozeAllSubtasksAction}
             onEdit={goEdit}
             onDelete={deleteTaskAction}
           />
@@ -334,6 +335,7 @@ function Hero({
   index,
   onComplete,
   onSnooze,
+  onSnoozeSubtasks,
   onEdit,
   onDelete,
 }: {
@@ -341,6 +343,7 @@ function Hero({
   index: 0 | 1 | 2
   onComplete: () => void
   onSnooze: () => void
+  onSnoozeSubtasks: () => void
   onEdit: () => void
   onDelete: () => void
 }) {
@@ -436,6 +439,13 @@ function Hero({
 
       <div className="mt-3 grid w-full max-w-[320px] grid-cols-3 gap-2 md:mt-4 md:flex md:max-w-none md:w-auto md:items-center md:gap-3">
         <SecondaryAction k="S" label="Snooze" onClick={onSnooze} />
+        {task.subtasks.length > 0 && (
+          <SecondaryAction
+            k="⇧S"
+            label="Snooze subtasks"
+            onClick={onSnoozeSubtasks}
+          />
+        )}
         <SecondaryAction k="E" label="Edit" onClick={onEdit} />
         <SecondaryAction k="⌫" label="Delete" onClick={onDelete} />
       </div>

@@ -1,12 +1,7 @@
 import { eq } from 'drizzle-orm'
 import { afterAll, beforeEach, describe, expect, it } from 'vitest'
 
-import {
-  dailyProgress,
-  history,
-  taskEvents,
-  tasks,
-} from '@dtn/shared/schema'
+import { dailyProgress, history, taskEvents, tasks } from '@dtn/shared/schema'
 
 import { db } from '../../../db'
 import { completeTask, snoozeTask } from '../actions'
@@ -33,7 +28,14 @@ type TaskOverrides = Partial<{
   title: string
   emoji: string
   due: string
-  repeat: 'No Repeat' | 'Daily' | 'Weekdays' | 'Weekly' | 'Monthly' | 'Yearly' | 'Custom'
+  repeat:
+    | 'No Repeat'
+    | 'Daily'
+    | 'Weekdays'
+    | 'Weekly'
+    | 'Monthly'
+    | 'Yearly'
+    | 'Custom'
   repeatInterval: number
   repeatUnit: 'day' | 'week' | 'month' | 'year'
   timeFrame: number
@@ -68,15 +70,15 @@ describe.skipIf(!process.env.DATABASE_URL)('actions (integration)', () => {
   // -------------------------------------------------------------------
   describe('regression: db.transaction works with the configured driver', () => {
     it('completeTask reaches the transaction body (throws Task not found on bogus id, NOT a driver error)', async () => {
-      await expect(
-        completeTask(TEST_USER, BOGUS_UUID, 300),
-      ).rejects.toThrow('Task not found')
+      await expect(completeTask(TEST_USER, BOGUS_UUID, 300)).rejects.toThrow(
+        'Task not found',
+      )
     })
 
     it('snoozeTask reaches the transaction body (throws Task not found on bogus id, NOT a driver error)', async () => {
-      await expect(
-        snoozeTask(TEST_USER, BOGUS_UUID, false),
-      ).rejects.toThrow('Task not found')
+      await expect(snoozeTask(TEST_USER, BOGUS_UUID, false)).rejects.toThrow(
+        'Task not found',
+      )
     })
   })
 
@@ -234,6 +236,93 @@ describe.skipIf(!process.env.DATABASE_URL)('actions (integration)', () => {
       expect(events).toHaveLength(1)
       expect(events[0].kind).toBe('snoozed')
       expect(events[0].taskId).toBe(task.id)
+    })
+
+    // Helper: start a running timer 60s in the past so the pause should
+    // bank ~60s.
+    async function startTimerSixtySecondsAgo(id: string) {
+      await db
+        .update(tasks)
+        .set({
+          timerStartedAt: new Date(Date.now() - 60_000),
+          timerAccumulatedSeconds: 0,
+        })
+        .where(eq(tasks.id, id))
+    }
+
+    it('pauses a running timer when the whole task is snoozed', async () => {
+      const task = await makeTask()
+      await startTimerSixtySecondsAgo(task.id)
+
+      await snoozeTask(TEST_USER, task.id, false)
+
+      const [updated] = await db
+        .select()
+        .from(tasks)
+        .where(eq(tasks.id, task.id))
+      expect(updated.timerStartedAt).toBeNull()
+      expect(updated.timerAccumulatedSeconds).toBeGreaterThan(55)
+      expect(updated.timerAccumulatedSeconds).toBeLessThan(65)
+    })
+
+    it('pauses a running timer when all subtasks are snoozed at once', async () => {
+      const task = await makeTask({
+        subtasks: [
+          { title: 's1', done: false },
+          { title: 's2', done: false },
+        ],
+      })
+      await startTimerSixtySecondsAgo(task.id)
+
+      await snoozeTask(TEST_USER, task.id, true)
+
+      const [updated] = await db
+        .select()
+        .from(tasks)
+        .where(eq(tasks.id, task.id))
+      expect(updated.timerStartedAt).toBeNull()
+      expect(updated.timerAccumulatedSeconds).toBeGreaterThan(55)
+    })
+
+    it('pauses a running timer when the last actionable subtask is snoozed', async () => {
+      const task = await makeTask({
+        subtasks: [
+          { title: 's1', done: true },
+          { title: 's2', done: false },
+        ],
+      })
+      await startTimerSixtySecondsAgo(task.id)
+
+      // Only one actionable subtask left — snoozing it leaves the whole
+      // task snoozed.
+      const result = await snoozeTask(TEST_USER, task.id, false)
+      expect(result).toEqual({ scope: 'subtask' })
+
+      const [updated] = await db
+        .select()
+        .from(tasks)
+        .where(eq(tasks.id, task.id))
+      expect(updated.timerStartedAt).toBeNull()
+      expect(updated.timerAccumulatedSeconds).toBeGreaterThan(55)
+    })
+
+    it('leaves a running timer alone when other subtasks remain actionable', async () => {
+      const task = await makeTask({
+        subtasks: [
+          { title: 's1', done: false },
+          { title: 's2', done: false },
+        ],
+      })
+      await startTimerSixtySecondsAgo(task.id)
+
+      await snoozeTask(TEST_USER, task.id, false)
+
+      const [updated] = await db
+        .select()
+        .from(tasks)
+        .where(eq(tasks.id, task.id))
+      expect(updated.timerStartedAt).not.toBeNull()
+      expect(updated.timerAccumulatedSeconds).toBe(0)
     })
   })
 

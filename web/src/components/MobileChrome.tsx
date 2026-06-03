@@ -3,6 +3,7 @@ import { minutesToHours } from '@dtn/shared/time'
 import { Link, useLocation } from '@tanstack/react-router'
 import { useEffect } from 'react'
 import { useComputedProgress } from './ProgressBar'
+import { RunningTimerChip } from './RunningTimerChip'
 import type { ReactNode } from 'react'
 
 const ACCENT = '#34d399'
@@ -94,6 +95,9 @@ export const MobileTopBar = ({ onOpenSheet }: { onOpenSheet: () => void }) => {
           })}
         </span>
       </button>
+      <div className="flex justify-center px-5 pb-2 empty:hidden">
+        <RunningTimerChip />
+      </div>
     </div>
   )
 }

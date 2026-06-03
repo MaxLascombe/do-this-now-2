@@ -1,6 +1,7 @@
 import { and, eq, gte, lt } from 'drizzle-orm'
 
 import { history, taskEvents, tasks } from '@dtn/shared/schema'
+import { isSnoozed } from '@dtn/shared/task-sorting'
 import {
   applyFullCompletion,
   completeTaskTransition,
@@ -134,7 +135,20 @@ export async function snoozeTask(
       .insert(taskEvents)
       .values({ userId, taskId: task.id, kind: 'snoozed' })
 
-    const transition = snoozeTaskTransition(task, allSubtasks, new Date())
+    const now = new Date()
+    const transition = snoozeTaskTransition(task, allSubtasks, now)
+
+    // When the snooze takes the whole task out of the active list — whether
+    // the top-level snooze is set or the last actionable subtask just got
+    // snoozed — bank a running timer so its time doesn't keep climbing while
+    // the task is away. No-op when already paused.
+    const timerFields =
+      task.timerStartedAt && isSnoozed(transition.nextTask)
+        ? {
+            timerStartedAt: null,
+            timerAccumulatedSeconds: currentTimerSeconds(task, now),
+          }
+        : {}
 
     if (transition.scope === 'subtask') {
       await tx
@@ -142,6 +156,7 @@ export async function snoozeTask(
         .set({
           subtasks: transition.nextTask.subtasks,
           updatedAt: transition.nextTask.updatedAt,
+          ...timerFields,
         })
         .where(and(eq(tasks.userId, userId), eq(tasks.id, task.id)))
     } else {
@@ -150,6 +165,7 @@ export async function snoozeTask(
         .set({
           snooze: transition.nextTask.snooze,
           updatedAt: transition.nextTask.updatedAt,
+          ...timerFields,
         })
         .where(and(eq(tasks.userId, userId), eq(tasks.id, task.id)))
     }
