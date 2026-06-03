@@ -1,8 +1,8 @@
-import { type useQuery } from '@tanstack/react-query'
 import { useEffect, useState } from 'react'
 import ago from 's-ago'
 
 import useKeyAction from '../hooks/useKeyAction'
+import type { useQuery } from '@tanstack/react-query'
 
 const useNow = () => {
   const [now, setNow] = useState(new Date())
