@@ -7,6 +7,7 @@ import {
   newSafeDate,
   newSafeDateTime,
   nextDueDate,
+  repeatFrequencyDays,
 } from '../helpers'
 import { makeTask } from './_factories'
 
@@ -190,5 +191,77 @@ describe('getUserLocalNow', () => {
     const d = getUserLocalNow(-300, new Date('2026-05-01T22:00:00Z'))
     expect(d.getDate()).toBe(2)
     expect(d.getHours()).toBe(3)
+  })
+})
+
+describe('repeatFrequencyDays', () => {
+  it('returns Infinity for non-repeating tasks', () => {
+    expect(repeatFrequencyDays(makeTask({ repeat: 'No Repeat' }))).toBe(Infinity)
+  })
+
+  it('handles the fixed cadences', () => {
+    expect(repeatFrequencyDays(makeTask({ repeat: 'Daily' }))).toBe(1)
+    expect(repeatFrequencyDays(makeTask({ repeat: 'Weekdays' }))).toBe(7 / 5)
+    expect(repeatFrequencyDays(makeTask({ repeat: 'Weekly' }))).toBe(7)
+    expect(repeatFrequencyDays(makeTask({ repeat: 'Monthly' }))).toBe(30)
+    expect(repeatFrequencyDays(makeTask({ repeat: 'Yearly' }))).toBe(365)
+  })
+
+  it('Custom day uses the interval directly', () => {
+    expect(
+      repeatFrequencyDays(
+        makeTask({ repeat: 'Custom', repeatUnit: 'day', repeatInterval: 3 }),
+      ),
+    ).toBe(3)
+  })
+
+  it('Custom week divides 7*interval by the number of selected weekdays', () => {
+    expect(
+      repeatFrequencyDays(
+        makeTask({
+          repeat: 'Custom',
+          repeatUnit: 'week',
+          repeatInterval: 1,
+          repeatWeekdays: [false, true, false, true, false, true, false], // M/W/F
+        }),
+      ),
+    ).toBe(7 / 3)
+
+    expect(
+      repeatFrequencyDays(
+        makeTask({
+          repeat: 'Custom',
+          repeatUnit: 'week',
+          repeatInterval: 2,
+          repeatWeekdays: [true, false, false, false, false, false, true],
+        }),
+      ),
+    ).toBe((7 * 2) / 2)
+  })
+
+  it('Custom week with no weekdays selected falls back to 7*interval', () => {
+    expect(
+      repeatFrequencyDays(
+        makeTask({
+          repeat: 'Custom',
+          repeatUnit: 'week',
+          repeatInterval: 2,
+          repeatWeekdays: [false, false, false, false, false, false, false],
+        }),
+      ),
+    ).toBe(14)
+  })
+
+  it('Custom month/year scale by interval', () => {
+    expect(
+      repeatFrequencyDays(
+        makeTask({ repeat: 'Custom', repeatUnit: 'month', repeatInterval: 2 }),
+      ),
+    ).toBe(60)
+    expect(
+      repeatFrequencyDays(
+        makeTask({ repeat: 'Custom', repeatUnit: 'year', repeatInterval: 1 }),
+      ),
+    ).toBe(365)
   })
 })
