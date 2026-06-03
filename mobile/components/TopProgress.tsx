@@ -305,7 +305,7 @@ function ProgressSheet({ onClose }: { onClose: () => void }) {
             iconColor={STREAK}
             label="Streak"
             value={streak}
-            unit={streakIsActive ? 'days · live' : 'days'}
+            unit={`${streak === 1 ? 'day' : 'days'}${streakIsActive ? ' · live' : ''}`}
           />
           <SheetStat
             icon="♥"
