@@ -52,7 +52,11 @@ export const ymdSchema = z
       if (y < 1970 || y > 9999) return false
       if (m < 1 || m > 12) return false
       if (d < 1 || d > 31) return false
-      return true
+      // Reject impossible calendar dates (Feb 30, Apr 31) via round-trip.
+      const dt = new Date(y, m - 1, d)
+      return (
+        dt.getFullYear() === y && dt.getMonth() === m - 1 && dt.getDate() === d
+      )
     },
     { message: 'Date must be a valid YYYY-M-D string' },
   )

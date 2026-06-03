@@ -2,7 +2,7 @@ import { createFileRoute } from '@tanstack/react-router'
 import { json } from '@tanstack/react-start'
 import { z } from 'zod'
 
-import { applyTimerAction, type TimerAction } from '../../server/lib/timer'
+import { applyTimerAction } from '../../server/lib/timer'
 import { invalid, withAuth } from '../../server/lib/http'
 
 type Params = { id: string }
@@ -27,11 +27,7 @@ export const Route = createFileRoute('/api/tasks/$id/timer')({
         }
         const parsed = timerBodySchema.safeParse(candidate)
         if (!parsed.success) return invalid(parsed.error.flatten())
-        const result = await applyTimerAction(
-          userId,
-          params.id,
-          parsed.data as TimerAction,
-        )
+        const result = await applyTimerAction(userId, params.id, parsed.data)
         return json(result)
       }),
     },
