@@ -75,6 +75,8 @@ export function TopProgress() {
       </View>
       <Pressable
         onPress={() => setOpen(true)}
+        accessibilityRole="button"
+        accessibilityLabel="Show today's progress detail"
         style={{
           flexDirection: 'row',
           alignItems: 'center',
@@ -238,7 +240,12 @@ function ProgressSheet({ onClose }: { onClose: () => void }) {
         >
           Today · progress
         </Text>
-        <Pressable onPress={onClose} hitSlop={12}>
+        <Pressable
+          onPress={onClose}
+          hitSlop={12}
+          accessibilityRole="button"
+          accessibilityLabel="Close"
+        >
           <Text style={{ color: '#a1a1aa', fontSize: 18 }}>✕</Text>
         </Pressable>
       </View>
