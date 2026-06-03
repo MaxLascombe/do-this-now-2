@@ -19,7 +19,7 @@ function client(): Anthropic {
 // Pull emoji codepoints out of a string, dropping spaces / numbering / etc.
 // Returns each emoji as its own string element. Handles ZWJ sequences and
 // Variation Selector-16 (️) so flag-style emojis come through whole.
-function extractEmojis(text: string): string[] {
+export function extractEmojis(text: string): Array<string> {
   const matches = [
     ...text.matchAll(
       /\p{Extended_Pictographic}(️|‍\p{Extended_Pictographic}|\p{Emoji_Modifier})*/gu,
@@ -31,7 +31,7 @@ function extractEmojis(text: string): string[] {
 const MODEL = 'claude-haiku-4-5-20251001'
 
 /** Suggest 5 emoji for a task title. Returns at most 5 strings. */
-export async function suggestEmojis(title: string): Promise<string[]> {
+export async function suggestEmojis(title: string): Promise<Array<string>> {
   const trimmed = title.trim()
   if (!trimmed) return []
   const resp = await client().messages.create({
@@ -45,9 +45,7 @@ export async function suggestEmojis(title: string): Promise<string[]> {
     ],
   })
   const text = resp.content
-    .filter(
-      (b): b is Extract<typeof b, { type: 'text' }> => b.type === 'text',
-    )
+    .filter((b): b is Extract<typeof b, { type: 'text' }> => b.type === 'text')
     .map((b) => b.text)
     .join('')
   const emojis = extractEmojis(text).slice(0, 5)
@@ -59,7 +57,9 @@ export async function suggestEmojis(title: string): Promise<string[]> {
  * admin backfill to upgrade legacy '📝' tasks. Returns parallel array.
  * Missing entries fall back to '📝'.
  */
-export async function bulkPickEmoji(titles: string[]): Promise<string[]> {
+export async function bulkPickEmoji(
+  titles: Array<string>,
+): Promise<Array<string>> {
   if (titles.length === 0) return []
   const list = titles.map((t, i) => `${i + 1}. ${t}`).join('\n')
   const resp = await client().messages.create({
@@ -73,9 +73,7 @@ export async function bulkPickEmoji(titles: string[]): Promise<string[]> {
     ],
   })
   const text = resp.content
-    .filter(
-      (b): b is Extract<typeof b, { type: 'text' }> => b.type === 'text',
-    )
+    .filter((b): b is Extract<typeof b, { type: 'text' }> => b.type === 'text')
     .map((b) => b.text)
     .join('')
   // One emoji per line; if Claude collapses to spaces we still recover.
