@@ -34,6 +34,8 @@ function PlusButton({
 }) {
   return (
     <Pressable
+      accessibilityRole="button"
+      accessibilityLabel="New task"
       accessibilityState={accessibilityState}
       onPress={() => {
         void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium)
