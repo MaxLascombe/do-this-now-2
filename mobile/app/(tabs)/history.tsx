@@ -16,6 +16,7 @@ import {
 import { Gesture, GestureDetector } from 'react-native-gesture-handler'
 import { SafeAreaView } from 'react-native-safe-area-context'
 
+import { ErrorState } from '../../components/ErrorState'
 import { Loading } from '../../components/Loading'
 import { PageHeading } from '../../components/PageHeading'
 import { TopProgress } from '../../components/TopProgress'
@@ -136,7 +137,11 @@ export default function History() {
                 flexWrap: 'wrap',
               }}
             >
-              <Stat label="Completed" value={String(entries.length)} unit="tasks" />
+              <Stat
+                label="Completed"
+                value={String(entries.length)}
+                unit={entries.length === 1 ? 'task' : 'tasks'}
+              />
               <Stat
                 label="Time spent"
                 value={mins === 0 ? `${hours}h` : `${hours}h ${mins}m`}
@@ -176,6 +181,13 @@ export default function History() {
             {historyQuery.isLoading ? (
               <View style={{ paddingVertical: 40 }}>
                 <Loading />
+              </View>
+            ) : historyQuery.isError && entries.length === 0 ? (
+              <View style={{ paddingVertical: 40 }}>
+                <ErrorState
+                  message="Couldn't load this day's history."
+                  onRetry={() => historyQuery.refetch()}
+                />
               </View>
             ) : entries.length === 0 ? (
               <Text

@@ -3,9 +3,11 @@ import { json } from '@tanstack/react-start'
 import { z } from 'zod'
 
 import { snoozeTask } from '../../server/lib/actions'
-import { invalid, withAuth } from '../../server/lib/http'
+import { invalid, notFound, withAuth } from '../../server/lib/http'
 
 type Params = { id: string }
+
+const idSchema = z.string().uuid()
 
 const snoozeBodySchema = z
   .object({ allSubtasks: z.boolean().optional() })
@@ -16,6 +18,7 @@ export const Route = createFileRoute('/api/tasks/$id/snooze')({
   server: {
     handlers: {
       POST: withAuth<Params>(async ({ userId, params, request }) => {
+        if (!idSchema.safeParse(params.id).success) return notFound()
         const raw = await request.text()
         const candidate = raw.length === 0 ? {} : safeJsonParse(raw)
         if (candidate === undefined)

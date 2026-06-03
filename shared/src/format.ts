@@ -61,10 +61,11 @@ export function formatScheduleStatus(opts: {
 }): string {
   const { done, shouldBeDone, isBeforeWorkday, short } = opts
   const diff = done - shouldBeDone
-  const suffix = short ? '' : ' of schedule'
   if (isBeforeWorkday && diff === 0) return short ? 'Ahead' : 'Ahead of schedule'
-  if (diff > 0) return `${minutesToHours(Math.floor(diff))} ahead${suffix}`
-  if (diff < 0) return `${minutesToHours(Math.ceil(-diff))} behind${suffix}`
+  if (diff > 0)
+    return `${minutesToHours(Math.floor(diff))} ahead${short ? '' : ' of schedule'}`
+  if (diff < 0)
+    return `${minutesToHours(Math.ceil(-diff))} behind${short ? '' : ' schedule'}`
   return 'On schedule'
 }
 
@@ -91,14 +92,18 @@ export function formatDueLabel(
   try {
     const dueDate = newSafeDate(due)
     const ref = today ?? new Date()
-    const today0 = new Date(ref.getFullYear(), ref.getMonth(), ref.getDate())
+    const y = ref.getFullYear()
+    const m = ref.getMonth()
+    const d = ref.getDate()
     const t = dueDate.getTime()
-    if (t === today0.getTime()) {
+    // Build the neighbouring days as calendar dates, not via ±24h: a DST
+    // transition day is 23 or 25 hours long, so the ms offset misses.
+    if (t === new Date(y, m, d).getTime()) {
       if (dueTime) return format(newSafeDateTime(due, dueTime), 'h:mm a')
       return 'Today'
     }
-    if (t === today0.getTime() + 24 * 60 * 60 * 1000) return 'Tomorrow'
-    if (t === today0.getTime() - 24 * 60 * 60 * 1000) return 'Yesterday'
+    if (t === new Date(y, m, d + 1).getTime()) return 'Tomorrow'
+    if (t === new Date(y, m, d - 1).getTime()) return 'Yesterday'
     return format(dueDate, 'iii LLL d')
   } catch {
     return null
