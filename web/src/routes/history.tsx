@@ -1,7 +1,6 @@
 import { dateString } from '@dtn/shared/helpers'
 import { useHistory, useStats } from '@dtn/shared/queries'
 import { minutesToHours } from '@dtn/shared/time'
-import { type HistoryEntry } from '@dtn/shared/types'
 import { createFileRoute, useNavigate } from '@tanstack/react-router'
 import { format } from 'date-fns'
 import { useState } from 'react'
@@ -11,9 +10,12 @@ import { Loading } from '../components/Loading'
 import { MobileChrome } from '../components/MobileChrome'
 import { PageHeading } from '../components/PageHeading'
 import { TopBar } from '../components/TopBar'
-import useKeyAction, { type KeyAction } from '../hooks/useKeyAction'
+import useKeyAction from '../hooks/useKeyAction'
+import type { HistoryEntry } from '@dtn/shared/types'
+import type { KeyAction } from '../hooks/useKeyAction'
 
 export const Route = createFileRoute('/history')({
+  head: () => ({ meta: [{ title: 'History · Do This Now' }] }),
   component: History,
 })
 
@@ -39,17 +41,25 @@ function History() {
   const prev = () => setDaysAgo((d) => d + 1)
   const next = () => setDaysAgo((d) => Math.max(0, d - 1))
 
-  const keyActions: KeyAction[] = [
+  const keyActions: Array<KeyAction> = [
     { key: 'escape', description: 'Home', action: () => navigate({ to: '/' }) },
     { key: 'n', description: 'Home', action: () => navigate({ to: '/' }) },
-    { key: 't', description: 'Tasks', action: () => navigate({ to: '/tasks' }) },
+    {
+      key: 't',
+      description: 'Tasks',
+      action: () => navigate({ to: '/tasks' }),
+    },
     {
       key: '=',
       description: 'New task',
       shift: true,
       action: () => navigate({ to: '/new-task' }),
     },
-    { key: 'a', description: 'Stats', action: () => navigate({ to: '/stats' }) },
+    {
+      key: 'a',
+      description: 'Stats',
+      action: () => navigate({ to: '/stats' }),
+    },
     { key: 'left', description: 'Previous day', action: prev },
     { key: 'right', description: 'Next day', action: next },
   ]
@@ -57,6 +67,7 @@ function History() {
 
   const entries = data ?? []
   const totalMinutes = entries.reduce(
+    // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition -- snapshots predate this column; may be undefined at runtime
     (acc, e) => acc + (e.taskSnapshot.timeFrame ?? 0),
     0,
   )
@@ -118,19 +129,24 @@ function History() {
 
       <div className="mb-6 px-5 md:px-10">
         <div className="grid grid-cols-2 gap-4 rounded-2xl border border-zinc-800 bg-zinc-900/40 px-5 py-4 font-mono md:grid-cols-4 md:gap-6 md:px-6 md:py-5">
-          <Stat
-            label="Completed"
-            value={String(entries.length)}
-            unit="tasks"
-          />
+          <Stat label="Completed" value={String(entries.length)} unit="tasks" />
           <Stat
             label="Time spent"
             value={mins === 0 ? `${hours}h` : `${hours}h ${mins}m`}
             unit=""
           />
-          <Stat label="On this day" value={format(date, 'd')} unit={format(date, 'LLL')} />
+          <Stat
+            label="On this day"
+            value={format(date, 'd')}
+            unit={format(date, 'LLL')}
+          />
           {isCurrentDay ? (
-            <Stat label="Hit target" value="not yet" unit="⚡" accent={STREAK} />
+            <Stat
+              label="Hit target"
+              value="not yet"
+              unit="⚡"
+              accent={STREAK}
+            />
           ) : targetHit === null ? (
             <Stat label="Hit target" value="—" unit="" />
           ) : targetHit ? (
@@ -241,7 +257,9 @@ const CompletedRow = ({ entry }: { entry: HistoryEntry }) => {
         <div className="mt-1 flex flex-wrap items-center gap-x-4 gap-y-0.5 text-xs text-zinc-500">
           <span>at {completedLabel}</span>
           {task.dueTime && <span>due {task.dueTime}</span>}
-          {task.timeFrame ? <span>{minutesToHours(task.timeFrame)}</span> : null}
+          {task.timeFrame ? (
+            <span>{minutesToHours(task.timeFrame)}</span>
+          ) : null}
         </div>
       </div>
     </div>
