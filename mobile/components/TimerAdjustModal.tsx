@@ -43,6 +43,7 @@ export function TimerAdjustModal({
         }}
       >
         <View
+          accessibilityViewIsModal
           style={{
             width: '100%',
             maxWidth: 380,
@@ -55,6 +56,7 @@ export function TimerAdjustModal({
         >
           <Pressable
             onPress={onClose}
+            accessibilityRole="button"
             accessibilityLabel="Close"
             hitSlop={8}
             style={{ position: 'absolute', top: 10, right: 12, padding: 4 }}
@@ -97,6 +99,8 @@ export function TimerAdjustModal({
                 key={m}
                 onPress={() => onAdd(m)}
                 disabled={disabled}
+                accessibilityRole="button"
+                accessibilityLabel={`${m > 0 ? 'Add' : 'Subtract'} ${Math.abs(m)} ${Math.abs(m) === 1 ? 'minute' : 'minutes'}`}
                 style={({ pressed }) => ({
                   flexGrow: 1,
                   flexBasis: 0,
@@ -122,6 +126,8 @@ export function TimerAdjustModal({
           </View>
           <Pressable
             onPress={confirmClear}
+            accessibilityRole="button"
+            accessibilityLabel="Clear timer"
             disabled={disabled || seconds === 0}
             style={({ pressed }) => ({
               marginTop: 18,
