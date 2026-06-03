@@ -1,30 +1,26 @@
 import { useApi } from '@dtn/shared/api-client'
 import { dateString, newSafeDate } from '@dtn/shared/helpers'
 import { useAllTasks } from '@dtn/shared/queries'
-import {
-  type RepeatOption,
-  type RepeatUnit,
-  type RepeatWeekdays,
-  type SubTask,
-  type TaskInput,
-  type TimeframeType,
-  taskInputSchema,
-} from '@dtn/shared/task-input'
+import { taskInputSchema } from '@dtn/shared/task-input'
 import { useNavigate } from '@tanstack/react-router'
 import { format } from 'date-fns'
-import {
-  Fragment,
-  type ReactNode,
-  useEffect,
-  useRef,
-  useState,
-} from 'react'
-import { ZodError } from 'zod'
-
-import useKeyAction, { type KeyAction } from '../hooks/useKeyAction'
+import { Fragment, useEffect, useRef, useState } from 'react'
+import useKeyAction from '../hooks/useKeyAction'
 import { KeyHints } from './KeyHints'
+import type { ReactNode } from 'react'
+import type { ZodError } from 'zod'
 
-const repeatOptions: RepeatOption[] = [
+import type { KeyAction } from '../hooks/useKeyAction'
+import type {
+  RepeatOption,
+  RepeatUnit,
+  RepeatWeekdays,
+  SubTask,
+  TaskInput,
+  TimeframeType,
+} from '@dtn/shared/task-input'
+
+const repeatOptions: Array<RepeatOption> = [
   'No Repeat',
   'Daily',
   'Weekdays',
@@ -34,7 +30,7 @@ const repeatOptions: RepeatOption[] = [
   'Custom',
 ]
 
-const repeatUnits: RepeatUnit[] = ['day', 'week', 'month', 'year']
+const repeatUnits: Array<RepeatUnit> = ['day', 'week', 'month', 'year']
 
 const dayShort = ['Su', 'Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa'] as const
 
@@ -98,7 +94,7 @@ const TaskForm = ({
   const [formError, setFormError] = useState<ZodError>()
   const [title, setTitle] = useState(initialTitle ?? '')
   const [emoji, setEmoji] = useState(initialEmoji ?? '')
-  const [emojiOptions, setEmojiOptions] = useState<string[]>(
+  const [emojiOptions, setEmojiOptions] = useState<Array<string>>(
     initialEmoji ? [initialEmoji] : [],
   )
   const [emojiLoading, setEmojiLoading] = useState(false)
@@ -124,15 +120,15 @@ const TaskForm = ({
   )
   const [timeFrame, setTimeFrame] = useState(initialTimeFrame ?? 0)
   const [timekeeperId, setTimekeeperId] = useState<string | null>(
-    (initialTimekeeperId ?? null) as string | null,
+    initialTimekeeperId ?? null,
   )
   const [timeframeType, setTimeframeType] = useState<TimeframeType>(
-    (initialTimeframeType as TimeframeType | undefined) ?? 'fixed',
+    initialTimeframeType ?? 'fixed',
   )
 
   const nextSubtaskKey = useRef(0)
   const newKey = () => `s${++nextSubtaskKey.current}`
-  const [subtasks, setSubtasks] = useState<FormSub[]>(() =>
+  const [subtasks, setSubtasks] = useState<Array<FormSub>>(() =>
     (initialSubtasks ?? []).map((s) => ({ ...s, _key: newKey() })),
   )
   const [hasSubtasks, setHasSubtasks] = useState(subtasks.length > 0)
@@ -179,7 +175,7 @@ const TaskForm = ({
   const [draggedSubtask, setDraggedSubtask] = useState<FormSub | undefined>()
   const handleDragStart = (e: React.DragEvent, item: FormSub) => {
     setDraggedSubtask(item)
-    e.dataTransfer?.setData('text/plain', '')
+    e.dataTransfer.setData('text/plain', '')
   }
   const handleDragEnd = () => setDraggedSubtask(undefined)
   const handleDragOver = (e: React.DragEvent) => e.preventDefault()
@@ -217,7 +213,7 @@ const TaskForm = ({
     submitForm(input.data)
   }
 
-  const keyActions: KeyAction[] = [
+  const keyActions: Array<KeyAction> = [
     {
       key: 'escape',
       description: 'Cancel',
@@ -300,7 +296,9 @@ const TaskForm = ({
       <div className="flex-1 px-5 pb-[200px] md:px-10 md:pb-32">
         <div className="mx-auto flex max-w-2xl flex-col gap-6">
           {errorMessage && (
-            <div className="font-mono text-sm text-rose-400">{errorMessage}</div>
+            <div className="font-mono text-sm text-rose-400">
+              {errorMessage}
+            </div>
           )}
 
           <Field label="Title">
@@ -355,7 +353,9 @@ const TaskForm = ({
                   type="text"
                   value={customEmoji}
                   onChange={(e) =>
-                    setCustomEmoji(Array.from(e.target.value).slice(0, 2).join(''))
+                    setCustomEmoji(
+                      Array.from(e.target.value).slice(0, 2).join(''),
+                    )
                   }
                   autoFocus
                   className="h-12 w-12 rounded-xl border border-zinc-100 bg-zinc-100/10 text-center text-2xl outline-none"
@@ -501,13 +501,12 @@ const TaskForm = ({
 
           <Field
             label="Time frame"
-            trailing={timeFrame === 0 ? 'tracked under another task' : 'minutes'}
+            trailing={
+              timeFrame === 0 ? 'tracked under another task' : 'minutes'
+            }
           >
             <div className="flex flex-wrap items-center gap-2 font-mono">
-              <Stepper
-                onClick={() => stepMins(-15)}
-                disabled={timeFrame === 0}
-              >
+              <Stepper onClick={() => stepMins(-15)} disabled={timeFrame === 0}>
                 −15
               </Stepper>
               <Stepper onClick={() => stepMins(-1)} disabled={timeFrame === 0}>
@@ -528,7 +527,7 @@ const TaskForm = ({
             </div>
             {errors.timeFrame && (
               <div className="mt-2 font-mono text-xs text-rose-400">
-                {errors.timeFrame as string}
+                {errors.timeFrame}
               </div>
             )}
           </Field>
@@ -600,7 +599,7 @@ const TaskForm = ({
               </div>
               {errors.timekeeperId && (
                 <div className="mt-2 font-mono text-xs text-rose-400">
-                  {errors.timekeeperId as string}
+                  {errors.timekeeperId}
                 </div>
               )}
             </Field>
