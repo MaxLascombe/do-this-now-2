@@ -15,7 +15,6 @@ import {
   completionConfirmKind,
   isCompletionGated,
 } from '@dtn/shared/timer-utils'
-import { type Task } from '@dtn/shared/types'
 
 import { createFileRoute, useNavigate } from '@tanstack/react-router'
 import { format } from 'date-fns'
@@ -36,7 +35,9 @@ import { PageHeading } from '../components/PageHeading'
 import { TaskRow } from '../components/TaskRow'
 import { TimerWidget } from '../components/TimerWidget'
 import { TopBar } from '../components/TopBar'
-import useKeyAction, { type KeyAction } from '../hooks/useKeyAction'
+import useKeyAction from '../hooks/useKeyAction'
+import type { Task } from '@dtn/shared/types'
+import type { KeyAction } from '../hooks/useKeyAction'
 
 export const Route = createFileRoute('/tasks/')({
   component: TasksList,
@@ -101,7 +102,7 @@ function TasksList() {
   const navigate = useNavigate()
   const [selectedTask, setSelectedTask] = useState(0)
   const [sort, setSort] = useState<'CHRON' | 'TOP'>('CHRON')
-  const taskElems = useRef<HTMLElement[]>([])
+  const taskElems = useRef<Array<HTMLElement>>([])
 
   const allTasks = useAllTasks({ enabled: sort === 'CHRON' })
   const topTasks = useTopTasks({ enabled: sort === 'TOP' })
@@ -143,7 +144,7 @@ function TasksList() {
   }
 
   const completeAction = () => {
-    const t = tasks[selectedTask]
+    const t = tasks.at(selectedTask)
     if (!t) return
     const now = new Date()
     if (isCompletionGated(t, now)) return
@@ -160,21 +161,21 @@ function TasksList() {
   }
 
   const editAction = () => {
-    const t = tasks[selectedTask]
+    const t = tasks.at(selectedTask)
     if (!t) return
     primeTaskCache(t)
     navigate({ to: '/tasks/$id/edit', params: { id: t.id } })
   }
 
   const deleteAction = () => {
-    const t = tasks[selectedTask]
+    const t = tasks.at(selectedTask)
     if (!t) return
     if (window.confirm(`Are you sure you want to delete '${t.title}'?`))
       deleteMutation.mutate(t.id)
   }
 
   const snoozeSubtasks = () => {
-    const t = tasks[selectedTask]
+    const t = tasks.at(selectedTask)
     if (!t) return
     snoozeMutation.mutate({ id: t.id, allSubtasks: true })
   }
@@ -183,7 +184,7 @@ function TasksList() {
   // ~70px and the bottom KeyHints strip ~50px — we add a little extra padding
   // on each side so a row never feels glued to an edge before triggering.
   useEffect(() => {
-    const el = taskElems.current[selectedTask]
+    const el = taskElems.current.at(selectedTask)
     if (!el) return
     const rect = el.getBoundingClientRect()
     const TOP_PAD = 120
@@ -201,7 +202,7 @@ function TasksList() {
     }
   }, [selectedTask])
 
-  const keyActions: KeyAction[] = [
+  const keyActions: Array<KeyAction> = [
     { key: 'd', description: 'Mark task as done', action: completeAction },
     {
       key: 'n',
@@ -257,10 +258,10 @@ function TasksList() {
 
   const groupedChron = useMemo(() => {
     if (sort !== 'CHRON') return []
-    const groups: Array<{ key: string; tasks: Task[] }> = []
+    const groups: Array<{ key: string; tasks: Array<Task> }> = []
     for (const t of tasks) {
       const key = t.due
-      const existing = groups[groups.length - 1]
+      const existing = groups.at(-1)
       if (existing && existing.key === key) existing.tasks.push(t)
       else groups.push({ key, tasks: [t] })
     }

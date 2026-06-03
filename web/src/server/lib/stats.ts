@@ -1,16 +1,11 @@
 import { eq } from 'drizzle-orm'
 
 import { newSafeDate } from '@dtn/shared/helpers'
-import {
-  dailyProgress,
-  history,
-  taskEvents,
-  tasks,
-  type Task,
-} from '@dtn/shared/schema'
+import { dailyProgress, history, taskEvents, tasks } from '@dtn/shared/schema'
 import { DAY_MS } from '@dtn/shared/time'
 import { db } from '../../db'
 import { rowCreditMinutes } from './history-credit'
+import type { Task } from '@dtn/shared/schema'
 
 export type StatsResult = {
   // Calendar heatmap: last 182 days (26 weeks ≈ 6 months), oldest first.
@@ -31,9 +26,9 @@ export type StatsResult = {
   last30Days: Array<{ date: string; minutes: number }>
 
   // 24-bucket array, count of completions per hour-of-day (local time)
-  hourOfDay: number[]
+  hourOfDay: Array<number>
   // 7-bucket, 0=Sun .. 6=Sat
-  dayOfWeek: number[]
+  dayOfWeek: Array<number>
 
   // Top 10 most-completed task titles
   topTasks: Array<{ title: string; emoji: string; count: number }>
@@ -197,7 +192,8 @@ export async function getStats(
     hourOfDay[localHour(t, tzOffsetMin)]++
     dayOfWeek[localDayOfWeek(t, tzOffsetMin)]++
     const snap = row.taskSnapshot
-    if (!snap?.title) continue
+    if (!snap.title) continue
+    // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition -- snapshots predate the emoji column; may be undefined at runtime
     const emoji = liveEmojiByTitle.get(snap.title) ?? snap.emoji ?? '📝'
     emojiCounts.set(emoji, (emojiCounts.get(emoji) ?? 0) + 1)
     titleCounts.set(snap.title, (titleCounts.get(snap.title) ?? 0) + 1)
@@ -224,17 +220,14 @@ export async function getStats(
     if (!snap) continue
     onTimeTotal++
     // On-time iff the local date of completedAt is <= the task's due date.
-    const completedKey = localDateKey(
-      row.completedAt.getTime(),
-      tzOffsetMin,
-    )
+    const completedKey = localDateKey(row.completedAt.getTime(), tzOffsetMin)
     try {
       if (newSafeDate(completedKey) <= newSafeDate(snap.due)) onTimeHits++
     } catch {
       // bad snapshot data — skip
     }
     // Latency only for non-repeating tasks (others recreate themselves).
-    if (snap.repeat === 'No Repeat' && snap.createdAt) {
+    if (snap.repeat === 'No Repeat') {
       const createdMs = new Date(snap.createdAt).getTime()
       const latencyMs = row.completedAt.getTime() - createdMs
       if (latencyMs >= 0) {
@@ -271,7 +264,7 @@ export async function getStats(
     if (ev.kind === 'snoozed') {
       snoozesAllTime++
       if (ev.at.getTime() >= weekStartMs) snoozesThisWeek++
-    } else if (ev.kind === 'deleted') {
+    } else {
       abandonedCount++
     }
   }
