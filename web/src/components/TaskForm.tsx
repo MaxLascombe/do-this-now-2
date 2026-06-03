@@ -49,6 +49,7 @@ const dayDiffFor = (due: string): number => {
 }
 
 const dayDiffPhrase = (diff: number): string => {
+  if (diff === -1) return 'yesterday'
   if (diff < 0) return `${Math.abs(diff)} days ago`
   if (diff === 0) return 'today'
   if (diff === 1) return 'tomorrow'
