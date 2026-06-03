@@ -41,6 +41,7 @@ import type { Task } from '@dtn/shared/types'
 import type { KeyAction } from '../hooks/useKeyAction'
 
 export const Route = createFileRoute('/tasks/')({
+  head: () => ({ meta: [{ title: 'Tasks · Do This Now' }] }),
   component: TasksList,
 })
 

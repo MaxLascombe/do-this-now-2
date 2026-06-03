@@ -6,6 +6,7 @@ import {
   getUserToday,
   newSafeDate,
   nextDueDate,
+  repeatFrequencyDays,
 } from '@dtn/shared/helpers'
 import { DAY_MS } from '@dtn/shared/time'
 import { ceilTaskTime } from '@dtn/shared/timer-utils'
@@ -50,26 +51,7 @@ function calculateTodoForDays(
     let due: Date | undefined = newSafeDate(task.due)
 
     if (task.repeat !== 'No Repeat') {
-      let repeatFrequency = 1
-      if (task.repeat === 'Daily') repeatFrequency = 1
-      else if (task.repeat === 'Weekdays') repeatFrequency = 7 / 5
-      else if (task.repeat === 'Weekly') repeatFrequency = 7
-      else if (task.repeat === 'Monthly') repeatFrequency = 30
-      else if (task.repeat === 'Yearly') repeatFrequency = 365
-      else {
-        if (task.repeatUnit === 'day') repeatFrequency = task.repeatInterval
-        else if (task.repeatUnit === 'week') {
-          if (task.repeatWeekdays.some((x) => x)) {
-            const selected = task.repeatWeekdays.filter((x) => x).length
-            repeatFrequency = (7 * task.repeatInterval) / selected
-          } else {
-            repeatFrequency = 7 * task.repeatInterval
-          }
-        } else if (task.repeatUnit === 'month')
-          repeatFrequency = 30 * task.repeatInterval
-        else repeatFrequency = 365 * task.repeatInterval
-      }
-      theoreticalMinimum += time / repeatFrequency
+      theoreticalMinimum += time / repeatFrequencyDays(task)
     }
 
     while (due !== undefined && due <= endDate) {
