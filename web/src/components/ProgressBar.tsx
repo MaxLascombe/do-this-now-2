@@ -116,6 +116,11 @@ export const ProgressBlocks = () => {
     <span
       className="inline-flex items-center gap-[2px]"
       title="Today's progress"
+      role="progressbar"
+      aria-valuemin={0}
+      aria-valuemax={p.todo}
+      aria-valuenow={Math.min(p.done, p.todo)}
+      aria-valuetext={`${minutesToHours(p.done)} of ${minutesToHours(p.todo)} done today`}
     >
       {cells(CELLS, filledCount, tickAt).map(({ key, filled, isTick }) => (
         <span
@@ -153,6 +158,7 @@ const DetailRow = ({
   <div className={dim ? 'opacity-60' : ''}>
     <div className="flex items-center gap-2 text-[10px] tracking-[0.25em] text-zinc-500 uppercase">
       <span
+        aria-hidden="true"
         className="text-sm leading-none"
         style={{ color: iconColor ?? '#fafafa' }}
       >
@@ -203,7 +209,14 @@ export const ProgressPopover = () => {
         <span className="text-xs text-zinc-500 tabular-nums">{nowLabel}</span>
       </div>
 
-      <div className="mt-3 flex items-center gap-[2px]">
+      <div
+        className="mt-3 flex items-center gap-[2px]"
+        role="progressbar"
+        aria-valuemin={0}
+        aria-valuemax={p.todo}
+        aria-valuenow={Math.min(p.done, p.todo)}
+        aria-valuetext={`${minutesToHours(p.done)} of ${minutesToHours(p.todo)} done today`}
+      >
         {cells(POPOVER_CELLS, filledCount, tickAt).map(
           ({ key, filled, isTick }) => (
             <span
