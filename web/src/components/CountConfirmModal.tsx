@@ -5,7 +5,7 @@ import {
   DialogTitle,
 } from '@headlessui/react'
 import { confirmMessage } from '@dtn/shared/timer-utils'
-import { type Task } from '@dtn/shared/types'
+import type { Task } from '@dtn/shared/types'
 
 export function CountConfirmModal({
   open,

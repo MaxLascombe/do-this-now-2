@@ -9,7 +9,7 @@ export type KeyAction = {
 }
 
 const useKeyAction = (
-  keyActions: KeyAction[],
+  keyActions: Array<KeyAction>,
   event: 'keydown' | 'keyup' = 'keydown',
 ) => {
   const callback = useCallback(

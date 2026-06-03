@@ -97,6 +97,8 @@ export default function Profile() {
 
         <Pressable
           onPress={onSignOut}
+          accessibilityRole="button"
+          accessibilityLabel="Sign out"
           style={({ pressed }) => ({
             flexDirection: 'row',
             alignItems: 'center',
