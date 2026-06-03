@@ -673,6 +673,7 @@ const TaskForm = ({
                           ])
                         }
                         placeholder={`Subtask ${i + 1}`}
+                        aria-label={`Subtask ${i + 1}`}
                         className="flex-1 bg-transparent font-mono text-base text-zinc-100 outline-none placeholder:text-zinc-700"
                       />
                       <label className="flex items-center gap-1.5 text-[10px] tracking-wider text-zinc-500 uppercase">
