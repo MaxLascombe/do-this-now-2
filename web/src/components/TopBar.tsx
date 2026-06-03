@@ -1,6 +1,7 @@
 import { formatScheduleStatus } from '@dtn/shared/format'
+import { computeSchedule } from '@dtn/shared/pacing'
 import { useProgressToday } from '@dtn/shared/queries'
-import { MINUTES_IN_DAY, START_OF_DAY_MINUTES } from '@dtn/shared/time'
+import { computePoints } from '@dtn/shared/scoring'
 import { Link, useLocation } from '@tanstack/react-router'
 import { useEffect, useRef, useState } from 'react'
 
@@ -82,30 +83,18 @@ export const TopBar = () => {
   let points = 0
   if (progress.data) {
     const { done, todo, lives, minutesToReduceTomorrowDays } = progress.data
-    const maxTodo = Math.max(todo, minutesToReduceTomorrowDays)
-    const timeOfDay = now.getHours() * 60 + now.getMinutes()
-    const pctOfDay = Math.max(
-      0,
-      Math.min(
-        1,
-        (timeOfDay - START_OF_DAY_MINUTES) /
-          (MINUTES_IN_DAY - START_OF_DAY_MINUTES),
-      ),
+    const { shouldBeDone, isBeforeWorkday } = computeSchedule(
+      now,
+      todo,
+      minutesToReduceTomorrowDays,
     )
-    const shouldBeDone = maxTodo * pctOfDay
-    const isBeforeWorkday = timeOfDay < START_OF_DAY_MINUTES
     scheduleShort = formatScheduleStatus({
       done,
       shouldBeDone,
       isBeforeWorkday,
       short: true,
     })
-    const doneUsingAllLives = Math.min(done, todo - lives)
-    const doneUsingLives = Math.min(done, todo)
-    points =
-      doneUsingAllLives +
-      (doneUsingLives - doneUsingAllLives) * 2 +
-      (done - doneUsingLives) * 3
+    points = computePoints(done, todo, lives)
   }
 
   return (
@@ -122,6 +111,9 @@ export const TopBar = () => {
           <button
             type="button"
             onClick={() => setOpen((v) => !v)}
+            aria-label="Today's progress"
+            aria-haspopup="dialog"
+            aria-expanded={open}
             className={
               '-mx-3 flex items-center gap-5 rounded-lg px-3 py-1.5 transition-colors ' +
               (open ? 'bg-zinc-900' : 'hover:bg-zinc-900/50')
@@ -152,13 +144,14 @@ export const TopBar = () => {
           <RunningTimerChip />
         </div>
 
-        <div className="flex items-center gap-1">
+        <nav aria-label="Primary" className="flex items-center gap-1">
           {ALL_NAV.map((it) => {
             const isActive = it.id === active
             return (
               <Link
                 key={it.id}
                 to={it.to}
+                aria-current={isActive ? 'page' : undefined}
                 className={
                   'flex items-center gap-1.5 rounded-full px-3 py-1.5 text-sm transition-colors ' +
                   (isActive
@@ -171,7 +164,7 @@ export const TopBar = () => {
               </Link>
             )
           })}
-        </div>
+        </nav>
       </div>
     </div>
   )
