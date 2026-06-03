@@ -27,7 +27,12 @@ export function Loading() {
   }, [opacity])
 
   return (
-    <Animated.View style={{ opacity, alignItems: 'center', padding: 8 }}>
+    <Animated.View
+      accessible
+      accessibilityRole="progressbar"
+      accessibilityLabel="Loading"
+      style={{ opacity, alignItems: 'center', padding: 8 }}
+    >
       <FontAwesomeIcon icon={faCube} size={20} color="#d1d5db" />
     </Animated.View>
   )
