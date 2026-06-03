@@ -370,6 +370,7 @@ const TaskForm = ({
                   type="button"
                   onClick={() => setShowCustomEmoji(true)}
                   className="flex h-12 w-12 items-center justify-center rounded-xl border border-dashed border-zinc-700 text-lg text-zinc-500 hover:text-zinc-300"
+                  aria-label="Custom emoji"
                   title="Custom emoji"
                 >
                   ＋
@@ -696,6 +697,7 @@ const TaskForm = ({
                           ])
                         }
                         className="px-2 text-zinc-600 hover:text-rose-400"
+                        aria-label="Remove subtask"
                         title="Remove subtask"
                       >
                         ✕
