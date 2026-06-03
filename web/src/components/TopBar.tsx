@@ -127,6 +127,9 @@ export const TopBar = () => {
           <button
             type="button"
             onClick={() => setOpen((v) => !v)}
+            aria-label="Today's progress"
+            aria-haspopup="dialog"
+            aria-expanded={open}
             className={
               '-mx-3 flex items-center gap-5 rounded-lg px-3 py-1.5 transition-colors ' +
               (open ? 'bg-zinc-900' : 'hover:bg-zinc-900/50')
@@ -157,13 +160,14 @@ export const TopBar = () => {
           <RunningTimerChip />
         </div>
 
-        <div className="flex items-center gap-1">
+        <nav aria-label="Primary" className="flex items-center gap-1">
           {ALL_NAV.map((it) => {
             const isActive = it.id === active
             return (
               <Link
                 key={it.id}
                 to={it.to}
+                aria-current={isActive ? 'page' : undefined}
                 className={
                   'flex items-center gap-1.5 rounded-full px-3 py-1.5 text-sm transition-colors ' +
                   (isActive
@@ -176,7 +180,7 @@ export const TopBar = () => {
               </Link>
             )
           })}
-        </div>
+        </nav>
       </div>
     </div>
   )
