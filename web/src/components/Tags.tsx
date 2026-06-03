@@ -60,7 +60,7 @@ export const Repeat = ({
   repeat: string
   repeatInterval: number
   repeatUnit: string
-  repeatWeekdays: readonly boolean[]
+  repeatWeekdays: ReadonlyArray<boolean>
 }) => {
   const text = formatRepeat(repeat, repeatInterval, repeatUnit, repeatWeekdays)
   if (!text) return null

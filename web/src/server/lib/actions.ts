@@ -40,7 +40,7 @@ export async function completeTask(
   // transaction, a double-tap on "Done" can race: two history rows for
   // the same completion, or insert succeeds and the follow-up update is
   // lost.
-  const result = await db.transaction(async (tx) => {
+  const completionResult = await db.transaction(async (tx) => {
     const task = await loadTask(tx, userId, id)
     if (!task) throw new Error('Task not found')
 
@@ -115,7 +115,7 @@ export async function completeTask(
     console.error('finalizeTodayProgress failed after completeTask', err)
   }
 
-  return result
+  return completionResult
 }
 
 export async function snoozeTask(

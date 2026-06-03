@@ -310,6 +310,8 @@ function Hero({
       <Pressable
         onPress={onComplete}
         disabled={gated}
+        accessibilityRole="button"
+        accessibilityState={{ disabled: gated }}
         style={({ pressed }) => ({
           marginTop: 24,
           paddingVertical: 14,
@@ -408,6 +410,8 @@ function Ghost({
   return (
     <Pressable
       onPress={onPress}
+      accessibilityRole="button"
+      accessibilityLabel={label}
       style={({ pressed }) => ({
         flex: 1,
         flexDirection: 'row',

@@ -1,7 +1,7 @@
 import { formatDueLabel, formatRepeat } from '@dtn/shared/format'
 import { minutesToHours } from '@dtn/shared/time'
-import { type Task } from '@dtn/shared/types'
 import { memo } from 'react'
+import type { Task } from '@dtn/shared/types'
 
 const OVERDUE = '#fb7185'
 
@@ -20,8 +20,8 @@ const TaskRowBase = ({
   onClick?: () => void
   onMouseEnter?: () => void
 }) => {
-  const subtaskCount = task.subtasks?.length ?? 0
-  const doneCount = task.subtasks?.filter((s) => s.done).length ?? 0
+  const subtaskCount = task.subtasks.length
+  const doneCount = task.subtasks.filter((s) => s.done).length
   const dueLabel = formatDueLabel(task.due, task.dueTime)
   const repeatLabel = formatRepeat(
     task.repeat,
@@ -91,12 +91,16 @@ const TaskRowBase = ({
           {dueLabel && (
             <span>
               {isOverdue && (
-                <span style={{ color: selected ? '#9f1239' : OVERDUE }}>‼ </span>
+                <span style={{ color: selected ? '#9f1239' : OVERDUE }}>
+                  ‼{' '}
+                </span>
               )}
               {dueLabel}
             </span>
           )}
-          {task.timeFrame ? <span>{minutesToHours(task.timeFrame)}</span> : null}
+          {task.timeFrame ? (
+            <span>{minutesToHours(task.timeFrame)}</span>
+          ) : null}
           {repeatLabel && <span>↻ {repeatLabel}</span>}
           {subtaskCount > 0 && (
             <span className="tabular-nums">
@@ -104,7 +108,9 @@ const TaskRowBase = ({
             </span>
           )}
           {task.strictDeadline && (
-            <span style={{ color: selected ? '#9f1239' : OVERDUE }}>strict</span>
+            <span style={{ color: selected ? '#9f1239' : OVERDUE }}>
+              strict
+            </span>
           )}
         </div>
       </div>

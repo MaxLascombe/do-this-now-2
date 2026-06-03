@@ -335,6 +335,8 @@ function SortToggle({
           <Pressable
             key={o.key}
             onPress={() => onChange(o.key)}
+            accessibilityRole="button"
+            accessibilityState={{ selected: active }}
             style={{
               flex: 1,
               alignItems: 'center',
