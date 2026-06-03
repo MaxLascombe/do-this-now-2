@@ -158,6 +158,7 @@ const DetailRow = ({
   <div className={dim ? 'opacity-60' : ''}>
     <div className="flex items-center gap-2 text-[10px] tracking-[0.25em] text-zinc-500 uppercase">
       <span
+        aria-hidden="true"
         className="text-sm leading-none"
         style={{ color: iconColor ?? '#fafafa' }}
       >
