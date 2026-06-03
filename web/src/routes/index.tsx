@@ -8,7 +8,10 @@ import {
   useTask,
   useTopTasks,
 } from '@dtn/shared/queries'
-import { isSnoozed } from '@dtn/shared/task-sorting'
+import {
+  findNextActionableSubtask,
+  isSnoozed,
+} from '@dtn/shared/task-sorting'
 import { willAdvanceSubtask } from '@dtn/shared/task-transitions'
 import { minutesToHours } from '@dtn/shared/time'
 import {
@@ -21,6 +24,7 @@ import { useEffect, useState } from 'react'
 
 import { useConfirm } from '../components/ConfirmProvider'
 import { CountConfirmModal } from '../components/CountConfirmModal'
+import { ErrorState } from '../components/ErrorState'
 import { Loading } from '../components/Loading'
 import { MobileChrome } from '../components/MobileChrome'
 import { TaskRow } from '../components/TaskRow'
@@ -33,15 +37,6 @@ import type { KeyAction } from '../hooks/useKeyAction'
 export const Route = createFileRoute('/')({
   component: Home,
 })
-
-const pickNextSubtask = (task: Task) => {
-  const now = new Date()
-  return (
-    task.subtasks.find(
-      (s) => !s.done && (!s.snooze || new Date(s.snooze) < now),
-    ) ?? task.subtasks.find((s) => !s.done)
-  )
-}
 
 const Kbd = ({
   children,
@@ -256,7 +251,14 @@ function Home() {
 
       {tasks.length === 0 ? (
         <div className="flex flex-1 items-center justify-center text-zinc-500">
-          No tasks
+          {topTasksQuery.isError ? (
+            <ErrorState
+              message="Couldn't load your tasks."
+              onRetry={() => topTasksQuery.refetch()}
+            />
+          ) : (
+            'No tasks'
+          )}
         </div>
       ) : (
         selectedTask && (
@@ -348,7 +350,10 @@ function Hero({
   onEdit: () => void
   onDelete: () => void
 }) {
-  const nextSub = task.subtasks.length > 0 ? pickNextSubtask(task) : undefined
+  const nextSub =
+    task.subtasks.length > 0
+      ? findNextActionableSubtask(task.subtasks, new Date())
+      : undefined
   const doneCount = task.subtasks.filter((s) => s.done).length
   const dueLabel = formatDueLabel(task.due, task.dueTime)
   const repeatLabel = formatRepeat(
@@ -386,6 +391,8 @@ function Hero({
       </div>
 
       <h1
+        id="main-content"
+        tabIndex={-1}
         className="dtn-task-title max-w-[20rem] text-center text-[2.6rem] leading-[1.05] text-zinc-50 md:max-w-3xl md:text-[5.5rem] md:leading-[1.02]"
         style={{
           letterSpacing: '-0.015em',
