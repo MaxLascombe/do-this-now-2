@@ -21,6 +21,7 @@ import { useEffect, useState } from 'react'
 
 import { useConfirm } from '../components/ConfirmProvider'
 import { CountConfirmModal } from '../components/CountConfirmModal'
+import { ErrorState } from '../components/ErrorState'
 import { Loading } from '../components/Loading'
 import { MobileChrome } from '../components/MobileChrome'
 import { TaskRow } from '../components/TaskRow'
@@ -256,7 +257,14 @@ function Home() {
 
       {tasks.length === 0 ? (
         <div className="flex flex-1 items-center justify-center text-zinc-500">
-          No tasks
+          {topTasksQuery.isError ? (
+            <ErrorState
+              message="Couldn't load your tasks."
+              onRetry={() => topTasksQuery.refetch()}
+            />
+          ) : (
+            'No tasks'
+          )}
         </div>
       ) : (
         selectedTask && (

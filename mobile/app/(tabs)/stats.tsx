@@ -1,4 +1,5 @@
 import { newSafeDate } from '@dtn/shared/helpers'
+import { heatmapColor, percentile } from '@dtn/shared/heatmap'
 import { useStats } from '@dtn/shared/queries'
 import type { StatsResult } from '@dtn/shared/types'
 import { Stack } from 'expo-router'
@@ -11,6 +12,7 @@ import {
 } from 'react-native'
 import { SafeAreaView } from 'react-native-safe-area-context'
 
+import { ErrorState } from '../../components/ErrorState'
 import { Loading } from '../../components/Loading'
 import { PageHeading } from '../../components/PageHeading'
 import { TopProgress } from '../../components/TopProgress'
@@ -20,7 +22,7 @@ const STREAK = '#f59e0b'
 const OVERDUE = '#fb7185'
 
 export default function Stats() {
-  const { data, isPending, isFetching, refetch } = useStats()
+  const { data, isPending, isError, isFetching, refetch } = useStats()
 
   return (
     <SafeAreaView
@@ -30,7 +32,7 @@ export default function Stats() {
       <Stack.Screen options={{ headerShown: false }} />
       <TopProgress />
       <PageHeading eyebrow="all the numbers">Stats</PageHeading>
-      {isPending || !data ? (
+      {!data ? (
         <View
           style={{
             flex: 1,
@@ -38,7 +40,14 @@ export default function Stats() {
             justifyContent: 'center',
           }}
         >
-          <Loading />
+          {isError && !isPending ? (
+            <ErrorState
+              message="Couldn't load your stats."
+              onRetry={() => refetch()}
+            />
+          ) : (
+            <Loading />
+          )}
         </View>
       ) : (
         <ScrollView
@@ -189,27 +198,6 @@ function StreakSummary({ data }: { data: StatsResult }) {
 }
 
 const HEATMAP_COLS = 22
-
-function percentile(sorted: number[], p: number): number {
-  if (sorted.length === 0) return 0
-  const idx = Math.min(
-    sorted.length - 1,
-    Math.floor(((sorted.length - 1) * p) / 100),
-  )
-  return sorted[idx]
-}
-
-function heatmapColor(
-  minutes: number,
-  hit: boolean,
-  p33: number,
-  p66: number,
-): string {
-  if (minutes === 0) return 'rgba(255,255,255,0.04)'
-  if (hit || minutes >= p66) return '#34d399'
-  if (minutes >= p33) return '#059669'
-  return '#065f46'
-}
 
 function Heatmap({ data }: { data: StatsResult }) {
   const last = data.heatmap[data.heatmap.length - 1]
