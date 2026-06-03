@@ -217,7 +217,9 @@ function SwipeableTaskRowBase({
             onPress={onTap}
             onLongPress={onLongPress}
             accessibilityHint={
-              hasSubtasks ? 'Double tap to expand subtasks' : undefined
+              !onPress && hasSubtasks
+                ? 'Double tap to expand subtasks'
+                : undefined
             }
             accessibilityActions={[
               { name: 'complete', label: 'Complete' },
