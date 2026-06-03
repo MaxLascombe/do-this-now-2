@@ -1,3 +1,4 @@
+import { formatDaysAgo } from '@dtn/shared/format'
 import { dateString } from '@dtn/shared/helpers'
 import { useHistory, useStats } from '@dtn/shared/queries'
 import { minutesToHours } from '@dtn/shared/time'
@@ -75,12 +76,7 @@ function History() {
   const hours = Math.floor(totalMinutes / 60)
   const mins = totalMinutes % 60
 
-  const relLabel =
-    daysAgo === 0
-      ? 'today'
-      : daysAgo === 1
-        ? '1 day ago'
-        : `${daysAgo} days ago`
+  const relLabel = formatDaysAgo(daysAgo)
 
   return (
     <div className="flex min-h-screen flex-col">
