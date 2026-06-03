@@ -4,13 +4,18 @@ import { useAllTasks } from '@dtn/shared/queries'
 import { taskInputSchema } from '@dtn/shared/task-input'
 import { useNavigate } from '@tanstack/react-router'
 import { format } from 'date-fns'
-import { Fragment, useEffect, useRef, useState } from 'react'
-import useKeyAction from '../hooks/useKeyAction'
-import { KeyHints } from './KeyHints'
-import type { ReactNode } from 'react'
-import type { ZodError } from 'zod'
+import {
+  Fragment,
+  type ReactNode,
+  useEffect,
+  useId,
+  useRef,
+  useState,
+} from 'react'
+import { ZodError } from 'zod'
 
-import type { KeyAction } from '../hooks/useKeyAction'
+import useKeyAction, { type KeyAction } from '../hooks/useKeyAction'
+import { KeyHints } from './KeyHints'
 import type {
   RepeatOption,
   RepeatUnit,
@@ -760,19 +765,27 @@ const Field = ({
   label: string
   trailing?: ReactNode
   children: ReactNode
-}) => (
-  <div>
-    <div className="mb-2 flex items-baseline justify-between">
-      <div className="font-mono text-[10px] tracking-[0.3em] text-zinc-500 uppercase">
-        {label}
+}) => {
+  const labelId = useId()
+  return (
+    <div>
+      <div className="mb-2 flex items-baseline justify-between">
+        <div
+          id={labelId}
+          className="font-mono text-[10px] tracking-[0.3em] text-zinc-500 uppercase"
+        >
+          {label}
+        </div>
+        {trailing && (
+          <div className="font-mono text-[10px] text-zinc-600">{trailing}</div>
+        )}
       </div>
-      {trailing && (
-        <div className="font-mono text-[10px] text-zinc-600">{trailing}</div>
-      )}
+      <div role="group" aria-labelledby={labelId}>
+        {children}
+      </div>
     </div>
-    {children}
-  </div>
-)
+  )
+}
 
 const Stepper = ({
   onClick,
