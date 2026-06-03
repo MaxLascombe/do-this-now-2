@@ -1,4 +1,3 @@
-// Tiered scoring: on-target minutes below the lives cushion score 1x, the top `lives` cushion minutes 2x, over-target minutes 3x.
 export const computePoints = (
   done: number,
   todo: number,
