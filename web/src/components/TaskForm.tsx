@@ -4,13 +4,18 @@ import { useAllTasks } from '@dtn/shared/queries'
 import { taskInputSchema } from '@dtn/shared/task-input'
 import { useNavigate } from '@tanstack/react-router'
 import { format } from 'date-fns'
-import { Fragment, useEffect, useRef, useState } from 'react'
-import useKeyAction from '../hooks/useKeyAction'
-import { KeyHints } from './KeyHints'
-import type { ReactNode } from 'react'
-import type { ZodError } from 'zod'
+import {
+  Fragment,
+  type ReactNode,
+  useEffect,
+  useRef,
+  useState,
+} from 'react'
+import { ZodError } from 'zod'
 
-import type { KeyAction } from '../hooks/useKeyAction'
+import useKeyAction, { type KeyAction } from '../hooks/useKeyAction'
+import { useConfirm } from './ConfirmProvider'
+import { KeyHints } from './KeyHints'
 import type {
   RepeatOption,
   RepeatUnit,
@@ -91,6 +96,7 @@ const TaskForm = ({
 }) => {
   const api = useApi()
   const navigate = useNavigate()
+  const confirm = useConfirm()
   const [formError, setFormError] = useState<ZodError>()
   const [title, setTitle] = useState(initialTitle ?? '')
   const [emoji, setEmoji] = useState(initialEmoji ?? '')
@@ -617,15 +623,14 @@ const TaskForm = ({
             <div className="flex items-center gap-3 font-mono">
               <Toggle
                 on={hasSubtasks}
-                onChange={(on) => {
-                  if (
-                    !on &&
-                    subtasks.length > 0 &&
-                    !window.confirm(
-                      'Are you sure you want to remove all subtasks?',
-                    )
-                  )
-                    return
+                onChange={async (on) => {
+                  if (!on && subtasks.length > 0) {
+                    const ok = await confirm({
+                      message: 'Remove all subtasks?',
+                      confirmLabel: 'Remove',
+                    })
+                    if (!ok) return
+                  }
                   if (!on) setSubtasks([])
                   else if (subtasks.length === 0)
                     setSubtasks([{ done: false, title: '', _key: newKey() }])
