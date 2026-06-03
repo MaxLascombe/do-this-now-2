@@ -98,6 +98,7 @@ function History() {
           <button
             type="button"
             onClick={prev}
+            aria-label="Previous day"
             className="flex h-10 w-10 items-center justify-center rounded-full border border-zinc-800 text-zinc-300 hover:border-zinc-600"
           >
             ←
@@ -121,6 +122,7 @@ function History() {
             type="button"
             onClick={next}
             disabled={daysAgo === 0}
+            aria-label="Next day"
             className="flex h-10 w-10 items-center justify-center rounded-full border border-zinc-800 text-zinc-300 hover:border-zinc-600 disabled:opacity-30 disabled:hover:border-zinc-800"
           >
             →
