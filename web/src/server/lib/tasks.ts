@@ -1,11 +1,12 @@
 import { and, eq } from 'drizzle-orm'
 
-import { db } from '../../db'
 import { getUserLocalNow, getUserToday } from '@dtn/shared/helpers'
-import { type Task, taskEvents, tasks } from '@dtn/shared/schema'
-import { type TaskInput } from '@dtn/shared/task-input'
+import { taskEvents, tasks } from '@dtn/shared/schema'
 import { sortTasks } from '@dtn/shared/task-sorting'
 import { ceilTaskTime } from '@dtn/shared/timer-utils'
+import { db } from '../../db'
+import type { TaskInput } from '@dtn/shared/task-input'
+import type { Task } from '@dtn/shared/schema'
 
 export {
   repeatOptionSchema,
@@ -23,15 +24,15 @@ export {
 async function assertKeeperEligible(
   userId: string,
   keeperId: string,
-  conn:
-    | typeof db
-    | Parameters<Parameters<typeof db.transaction>[0]>[0] = db,
+  conn: typeof db | Parameters<Parameters<typeof db.transaction>[0]>[0] = db,
 ): Promise<void> {
-  const [keeper] = await conn
-    .select()
-    .from(tasks)
-    .where(and(eq(tasks.userId, userId), eq(tasks.id, keeperId)))
-    .limit(1)
+  const keeper = (
+    await conn
+      .select()
+      .from(tasks)
+      .where(and(eq(tasks.userId, userId), eq(tasks.id, keeperId)))
+      .limit(1)
+  ).at(0)
   if (!keeper) {
     throw new Error('Timekeeper not found')
   }
@@ -49,9 +50,7 @@ async function assertKeeperEligible(
 async function countChildren(
   userId: string,
   id: string,
-  conn:
-    | typeof db
-    | Parameters<Parameters<typeof db.transaction>[0]>[0] = db,
+  conn: typeof db | Parameters<Parameters<typeof db.transaction>[0]>[0] = db,
 ): Promise<number> {
   const rows = await conn
     .select({ id: tasks.id })
@@ -60,7 +59,7 @@ async function countChildren(
   return rows.length
 }
 
-export async function listTasks(userId: string): Promise<Task[]> {
+export async function listTasks(userId: string): Promise<Array<Task>> {
   const rows = await db.select().from(tasks).where(eq(tasks.userId, userId))
   return rows.map(ceilTaskTime)
 }
@@ -68,7 +67,7 @@ export async function listTasks(userId: string): Promise<Task[]> {
 export async function listTopTasks(
   userId: string,
   tzOffsetMin: number,
-): Promise<Task[]> {
+): Promise<Array<Task>> {
   const all = await listTasks(userId)
   const { todayDate } = getUserToday(tzOffsetMin)
   sortTasks(all, todayDate, getUserLocalNow(tzOffsetMin))
@@ -133,11 +132,13 @@ export async function updateTask(
         )
       }
     }
-    const [row] = await tx
-      .update(tasks)
-      .set({ ...input, updatedAt: new Date() })
-      .where(and(eq(tasks.userId, userId), eq(tasks.id, id)))
-      .returning()
+    const row = (
+      await tx
+        .update(tasks)
+        .set({ ...input, updatedAt: new Date() })
+        .where(and(eq(tasks.userId, userId), eq(tasks.id, id)))
+        .returning()
+    ).at(0)
     return row ? ceilTaskTime(row) : null
   })
 }
@@ -155,9 +156,7 @@ export async function deleteTask(userId: string, id: string): Promise<void> {
         `Can't delete: ${childCount} task${childCount === 1 ? '' : 's'} track time under this one. Detach them first.`,
       )
     }
-    await tx
-      .insert(taskEvents)
-      .values({ userId, taskId: id, kind: 'deleted' })
+    await tx.insert(taskEvents).values({ userId, taskId: id, kind: 'deleted' })
     await tx
       .delete(tasks)
       .where(and(eq(tasks.userId, userId), eq(tasks.id, id)))
