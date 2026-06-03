@@ -1,21 +1,14 @@
 import { useApi } from '@dtn/shared/api-client'
 import { dateString, newSafeDate } from '@dtn/shared/helpers'
 import { useAllTasks } from '@dtn/shared/queries'
-import {
-  type RepeatOption,
-  type RepeatUnit,
-  type RepeatWeekdays,
-  type SubTask,
-  type TaskInput,
-  type TimeframeType,
-  taskInputSchema,
-} from '@dtn/shared/task-input'
+import { taskInputSchema } from '@dtn/shared/task-input'
 import { useNavigate } from '@tanstack/react-router'
 import { format } from 'date-fns'
 import {
   Fragment,
   type ReactNode,
   useEffect,
+  useId,
   useRef,
   useState,
 } from 'react'
@@ -23,8 +16,16 @@ import { ZodError } from 'zod'
 
 import useKeyAction, { type KeyAction } from '../hooks/useKeyAction'
 import { KeyHints } from './KeyHints'
+import type {
+  RepeatOption,
+  RepeatUnit,
+  RepeatWeekdays,
+  SubTask,
+  TaskInput,
+  TimeframeType,
+} from '@dtn/shared/task-input'
 
-const repeatOptions: RepeatOption[] = [
+const repeatOptions: Array<RepeatOption> = [
   'No Repeat',
   'Daily',
   'Weekdays',
@@ -34,7 +35,7 @@ const repeatOptions: RepeatOption[] = [
   'Custom',
 ]
 
-const repeatUnits: RepeatUnit[] = ['day', 'week', 'month', 'year']
+const repeatUnits: Array<RepeatUnit> = ['day', 'week', 'month', 'year']
 
 const dayShort = ['Su', 'Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa'] as const
 
@@ -98,7 +99,7 @@ const TaskForm = ({
   const [formError, setFormError] = useState<ZodError>()
   const [title, setTitle] = useState(initialTitle ?? '')
   const [emoji, setEmoji] = useState(initialEmoji ?? '')
-  const [emojiOptions, setEmojiOptions] = useState<string[]>(
+  const [emojiOptions, setEmojiOptions] = useState<Array<string>>(
     initialEmoji ? [initialEmoji] : [],
   )
   const [emojiLoading, setEmojiLoading] = useState(false)
@@ -124,15 +125,15 @@ const TaskForm = ({
   )
   const [timeFrame, setTimeFrame] = useState(initialTimeFrame ?? 0)
   const [timekeeperId, setTimekeeperId] = useState<string | null>(
-    (initialTimekeeperId ?? null) as string | null,
+    initialTimekeeperId ?? null,
   )
   const [timeframeType, setTimeframeType] = useState<TimeframeType>(
-    (initialTimeframeType as TimeframeType | undefined) ?? 'fixed',
+    initialTimeframeType ?? 'fixed',
   )
 
   const nextSubtaskKey = useRef(0)
   const newKey = () => `s${++nextSubtaskKey.current}`
-  const [subtasks, setSubtasks] = useState<FormSub[]>(() =>
+  const [subtasks, setSubtasks] = useState<Array<FormSub>>(() =>
     (initialSubtasks ?? []).map((s) => ({ ...s, _key: newKey() })),
   )
   const [hasSubtasks, setHasSubtasks] = useState(subtasks.length > 0)
@@ -179,7 +180,7 @@ const TaskForm = ({
   const [draggedSubtask, setDraggedSubtask] = useState<FormSub | undefined>()
   const handleDragStart = (e: React.DragEvent, item: FormSub) => {
     setDraggedSubtask(item)
-    e.dataTransfer?.setData('text/plain', '')
+    e.dataTransfer.setData('text/plain', '')
   }
   const handleDragEnd = () => setDraggedSubtask(undefined)
   const handleDragOver = (e: React.DragEvent) => e.preventDefault()
@@ -217,7 +218,7 @@ const TaskForm = ({
     submitForm(input.data)
   }
 
-  const keyActions: KeyAction[] = [
+  const keyActions: Array<KeyAction> = [
     {
       key: 'escape',
       description: 'Cancel',
@@ -300,7 +301,9 @@ const TaskForm = ({
       <div className="flex-1 px-5 pb-[200px] md:px-10 md:pb-32">
         <div className="mx-auto flex max-w-2xl flex-col gap-6">
           {errorMessage && (
-            <div className="font-mono text-sm text-rose-400">{errorMessage}</div>
+            <div className="font-mono text-sm text-rose-400">
+              {errorMessage}
+            </div>
           )}
 
           <Field label="Title">
@@ -355,7 +358,9 @@ const TaskForm = ({
                   type="text"
                   value={customEmoji}
                   onChange={(e) =>
-                    setCustomEmoji(Array.from(e.target.value).slice(0, 2).join(''))
+                    setCustomEmoji(
+                      Array.from(e.target.value).slice(0, 2).join(''),
+                    )
                   }
                   autoFocus
                   className="h-12 w-12 rounded-xl border border-zinc-100 bg-zinc-100/10 text-center text-2xl outline-none"
@@ -365,6 +370,7 @@ const TaskForm = ({
                   type="button"
                   onClick={() => setShowCustomEmoji(true)}
                   className="flex h-12 w-12 items-center justify-center rounded-xl border border-dashed border-zinc-700 text-lg text-zinc-500 hover:text-zinc-300"
+                  aria-label="Custom emoji"
                   title="Custom emoji"
                 >
                   ＋
@@ -406,6 +412,7 @@ const TaskForm = ({
             <Field label="Due time?">
               <div className="flex items-center gap-3 font-mono">
                 <Toggle
+                  label="Set a due time"
                   on={dueTime !== null}
                   onChange={(on) => setDueTime(on ? '09:00' : null)}
                 />
@@ -500,13 +507,12 @@ const TaskForm = ({
 
           <Field
             label="Time frame"
-            trailing={timeFrame === 0 ? 'tracked under another task' : 'minutes'}
+            trailing={
+              timeFrame === 0 ? 'tracked under another task' : 'minutes'
+            }
           >
             <div className="flex flex-wrap items-center gap-2 font-mono">
-              <Stepper
-                onClick={() => stepMins(-15)}
-                disabled={timeFrame === 0}
-              >
+              <Stepper onClick={() => stepMins(-15)} disabled={timeFrame === 0}>
                 −15
               </Stepper>
               <Stepper onClick={() => stepMins(-1)} disabled={timeFrame === 0}>
@@ -527,7 +533,7 @@ const TaskForm = ({
             </div>
             {errors.timeFrame && (
               <div className="mt-2 font-mono text-xs text-rose-400">
-                {errors.timeFrame as string}
+                {errors.timeFrame}
               </div>
             )}
           </Field>
@@ -599,7 +605,7 @@ const TaskForm = ({
               </div>
               {errors.timekeeperId && (
                 <div className="mt-2 font-mono text-xs text-rose-400">
-                  {errors.timekeeperId as string}
+                  {errors.timekeeperId}
                 </div>
               )}
             </Field>
@@ -607,7 +613,11 @@ const TaskForm = ({
 
           <Field label="Strict deadline?">
             <div className="flex items-center gap-3 font-mono">
-              <Toggle on={strictDeadline} onChange={setStrictDeadline} />
+              <Toggle
+                label="Strict deadline"
+                on={strictDeadline}
+                onChange={setStrictDeadline}
+              />
             </div>
           </Field>
 
@@ -617,6 +627,7 @@ const TaskForm = ({
           >
             <div className="flex items-center gap-3 font-mono">
               <Toggle
+                label="Add subtasks"
                 on={hasSubtasks}
                 onChange={(on) => {
                   if (
@@ -686,6 +697,7 @@ const TaskForm = ({
                           ])
                         }
                         className="px-2 text-zinc-600 hover:text-rose-400"
+                        aria-label="Remove subtask"
                         title="Remove subtask"
                       >
                         ✕
@@ -761,19 +773,27 @@ const Field = ({
   label: string
   trailing?: ReactNode
   children: ReactNode
-}) => (
-  <div>
-    <div className="mb-2 flex items-baseline justify-between">
-      <div className="font-mono text-[10px] tracking-[0.3em] text-zinc-500 uppercase">
-        {label}
+}) => {
+  const labelId = useId()
+  return (
+    <div>
+      <div className="mb-2 flex items-baseline justify-between">
+        <div
+          id={labelId}
+          className="font-mono text-[10px] tracking-[0.3em] text-zinc-500 uppercase"
+        >
+          {label}
+        </div>
+        {trailing && (
+          <div className="font-mono text-[10px] text-zinc-600">{trailing}</div>
+        )}
       </div>
-      {trailing && (
-        <div className="font-mono text-[10px] text-zinc-600">{trailing}</div>
-      )}
+      <div role="group" aria-labelledby={labelId}>
+        {children}
+      </div>
     </div>
-    {children}
-  </div>
-)
+  )
+}
 
 const Stepper = ({
   onClick,
@@ -832,14 +852,17 @@ const TimeframeTypeOption = ({
 const Toggle = ({
   on,
   onChange,
+  label,
 }: {
   on: boolean
   onChange: (on: boolean) => void
+  label: string
 }) => (
   <button
     type="button"
     onClick={() => onChange(!on)}
     aria-pressed={on}
+    aria-label={label}
     className={
       'relative inline-block h-6 w-11 rounded-full transition-colors ' +
       (on ? 'bg-zinc-50' : 'bg-zinc-800')
