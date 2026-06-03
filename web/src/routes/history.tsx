@@ -1,3 +1,4 @@
+import { formatDaysAgo } from '@dtn/shared/format'
 import { dateString } from '@dtn/shared/helpers'
 import { useHistory, useStats } from '@dtn/shared/queries'
 import { minutesToHours } from '@dtn/shared/time'
@@ -6,6 +7,7 @@ import { format } from 'date-fns'
 import { useState } from 'react'
 
 import { KeyHints } from '../components/KeyHints'
+import { ErrorState } from '../components/ErrorState'
 import { Loading } from '../components/Loading'
 import { MobileChrome } from '../components/MobileChrome'
 import { PageHeading } from '../components/PageHeading'
@@ -15,6 +17,7 @@ import type { HistoryEntry } from '@dtn/shared/types'
 import type { KeyAction } from '../hooks/useKeyAction'
 
 export const Route = createFileRoute('/history')({
+  head: () => ({ meta: [{ title: 'History · Do This Now' }] }),
   component: History,
 })
 
@@ -32,7 +35,7 @@ function History() {
   const dateKey = dateString(date)
   const isCurrentDay = daysAgo === 0
 
-  const { data, isLoading } = useHistory(dateKey)
+  const { data, isLoading, isError, refetch } = useHistory(dateKey)
   const stats = useStats()
   const dayStat = stats.data?.heatmap.find((h) => h.date === dateKey)
   const targetHit = dayStat?.hit ?? null
@@ -73,12 +76,7 @@ function History() {
   const hours = Math.floor(totalMinutes / 60)
   const mins = totalMinutes % 60
 
-  const relLabel =
-    daysAgo === 0
-      ? 'today'
-      : daysAgo === 1
-        ? '1 day ago'
-        : `${daysAgo} days ago`
+  const relLabel = formatDaysAgo(daysAgo)
 
   return (
     <div className="flex min-h-screen flex-col">
@@ -96,6 +94,7 @@ function History() {
           <button
             type="button"
             onClick={prev}
+            aria-label="Previous day"
             className="flex h-10 w-10 items-center justify-center rounded-full border border-zinc-800 text-zinc-300 hover:border-zinc-600"
           >
             ←
@@ -119,6 +118,7 @@ function History() {
             type="button"
             onClick={next}
             disabled={daysAgo === 0}
+            aria-label="Next day"
             className="flex h-10 w-10 items-center justify-center rounded-full border border-zinc-800 text-zinc-300 hover:border-zinc-600 disabled:opacity-30 disabled:hover:border-zinc-800"
           >
             →
@@ -128,7 +128,11 @@ function History() {
 
       <div className="mb-6 px-5 md:px-10">
         <div className="grid grid-cols-2 gap-4 rounded-2xl border border-zinc-800 bg-zinc-900/40 px-5 py-4 font-mono md:grid-cols-4 md:gap-6 md:px-6 md:py-5">
-          <Stat label="Completed" value={String(entries.length)} unit="tasks" />
+          <Stat
+            label="Completed"
+            value={String(entries.length)}
+            unit={entries.length === 1 ? 'task' : 'tasks'}
+          />
           <Stat
             label="Time spent"
             value={mins === 0 ? `${hours}h` : `${hours}h ${mins}m`}
@@ -160,6 +164,13 @@ function History() {
         {isLoading ? (
           <div className="mt-8 flex justify-center">
             <Loading />
+          </div>
+        ) : isError && entries.length === 0 ? (
+          <div className="mt-8 flex justify-center">
+            <ErrorState
+              message="Couldn't load this day's history."
+              onRetry={() => refetch()}
+            />
           </div>
         ) : entries.length === 0 ? (
           <div className="mt-8 text-center font-mono text-sm text-zinc-500">
