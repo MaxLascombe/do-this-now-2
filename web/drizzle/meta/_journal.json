@@ -71,6 +71,13 @@
       "when": 1780545321309,
       "tag": "0009_hard_the_leader",
       "breakpoints": true
+    },
+    {
+      "idx": 10,
+      "version": "7",
+      "when": 1780573340188,
+      "tag": "0010_pinned_column",
+      "breakpoints": true
     }
   ]
 }

@@ -24,6 +24,7 @@ export const makeTask = (over: Partial<Task> = {}): Task => ({
   snooze: over.snooze ?? null,
   notes: over.notes ?? null,
   tags: over.tags ?? [],
+  pinned: over.pinned ?? false,
   subtasks: over.subtasks ?? [],
   createdAt: over.createdAt ?? new Date('2026-01-01T00:00:00Z'),
   updatedAt: over.updatedAt ?? new Date('2026-01-01T00:00:00Z'),
