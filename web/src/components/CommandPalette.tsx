@@ -91,9 +91,23 @@ export function CommandPalette() {
       run: () => navigate({ to: '/tasks/$id', params: { id: t.id } }),
     }))
 
+  const createItems: Item[] = query.trim()
+    ? [
+        {
+          key: 'create',
+          glyph: '＋',
+          label: `Create "${query.trim()}"`,
+          hint: 'New',
+          run: () =>
+            navigate({ to: '/new-task', search: { title: query.trim() } }),
+        },
+      ]
+    : []
+
   const results = [
     ...pages.filter((p) => !q || p.label.toLowerCase().includes(q)),
     ...taskItems,
+    ...createItems,
   ]
   const active = Math.min(selected, Math.max(0, results.length - 1))
 
