@@ -1,7 +1,7 @@
 import { useClerk } from '@clerk/tanstack-react-start'
 import { formatDueLabel } from '@dtn/shared/format'
-import { newSafeDate } from '@dtn/shared/helpers'
-import { useAllTasks } from '@dtn/shared/queries'
+import { dateString, newSafeDate } from '@dtn/shared/helpers'
+import { useAllTasks, useCreateTask } from '@dtn/shared/queries'
 import { useNavigate } from '@tanstack/react-router'
 import { useEffect, useRef, useState } from 'react'
 
@@ -16,6 +16,7 @@ type Item = {
 export function CommandPalette() {
   const navigate = useNavigate()
   const { signOut } = useClerk()
+  const createTask = useCreateTask()
   const tasksQuery = useAllTasks({ enabled: false })
   const [open, setOpen] = useState(false)
   const [query, setQuery] = useState('')
@@ -113,13 +114,40 @@ export function CommandPalette() {
       }
     })
 
+  const quickAdd = (title: string) => {
+    createTask.mutate({
+      title,
+      emoji: '📝',
+      due: dateString(new Date()),
+      dueTime: null,
+      strictDeadline: false,
+      repeat: 'No Repeat',
+      repeatInterval: 1,
+      repeatUnit: 'day',
+      repeatWeekdays: [false, false, false, false, false, false, false],
+      timeFrame: 30,
+      timekeeperId: null,
+      timeframeType: 'fixed',
+      subtasks: [],
+      notes: null,
+      tags: [],
+    })
+  }
+
   const createItems: Item[] = query.trim()
     ? [
         {
+          key: 'quick-add',
+          glyph: '⚡',
+          label: `Quick-add "${query.trim()}" for today`,
+          hint: 'New',
+          run: () => quickAdd(query.trim()),
+        },
+        {
           key: 'create',
           glyph: '＋',
-          label: `Create "${query.trim()}"`,
-          hint: 'New',
+          label: `Create "${query.trim()}"…`,
+          hint: 'Form',
           run: () =>
             navigate({ to: '/new-task', search: { title: query.trim() } }),
         },
