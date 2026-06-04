@@ -60,20 +60,28 @@ function Settings() {
 
   // Accepts both the raw-task export above and any TaskInput-shaped JSON —
   // taskInputSchema strips server-only fields (id/userId/timers) and
-  // validates the rest, so a backup round-trips cleanly. Bad entries are
+  // validates the rest. Bad entries (and ones the server rejects) are
   // skipped, not fatal.
   const onImportFile = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
     e.target.value = ''
     if (!file) return
     setImportMsg(null)
+
+    let raw: unknown
+    try {
+      raw = JSON.parse(await file.text())
+    } catch {
+      setImportMsg("Couldn't read that file — is it valid JSON?")
+      return
+    }
+    if (!Array.isArray(raw)) {
+      setImportMsg("That file isn't a task list.")
+      return
+    }
+
     setImporting(true)
     try {
-      const raw = JSON.parse(await file.text())
-      if (!Array.isArray(raw)) {
-        setImportMsg("That file isn't a task list.")
-        return
-      }
       let imported = 0
       let skipped = 0
       for (const entry of raw) {
@@ -82,15 +90,19 @@ function Settings() {
           skipped++
           continue
         }
-        await createTask.mutateAsync(parsed.data)
-        imported++
+        try {
+          // Drop the timekeeper link — the exported UUID won't resolve in
+          // this account and would otherwise abort the whole import.
+          await createTask.mutateAsync({ ...parsed.data, timekeeperId: null })
+          imported++
+        } catch {
+          skipped++
+        }
       }
       setImportMsg(
         `Imported ${imported} task${imported === 1 ? '' : 's'}` +
-          (skipped ? `, skipped ${skipped} invalid.` : '.'),
+          (skipped ? `, skipped ${skipped}.` : '.'),
       )
-    } catch {
-      setImportMsg("Couldn't read that file — is it valid JSON?")
     } finally {
       setImporting(false)
     }
