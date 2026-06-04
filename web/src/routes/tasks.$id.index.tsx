@@ -108,7 +108,10 @@ function TaskDetail() {
 
       <div className="flex items-end justify-between px-5 pt-2 pb-6 md:px-10">
         <div className="flex min-w-0 items-center gap-4">
-          <span className="text-5xl leading-none select-none md:text-6xl">
+          <span
+            aria-hidden="true"
+            className="text-5xl leading-none select-none md:text-6xl"
+          >
             {task.emoji}
           </span>
           <PageHeading eyebrow="task">{task.title}</PageHeading>
