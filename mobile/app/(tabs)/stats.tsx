@@ -324,7 +324,7 @@ function HourOfDay({ data }: { data: StatsResult }) {
         accessibilityRole="image"
         accessibilityLabel={`Completions by hour of day. Busiest hour ${peakHour
           .toString()
-          .padStart(2, '0')}:00 with ${max} completions.`}
+          .padStart(2, '0')}:00 with ${max} completion${max === 1 ? '' : 's'}.`}
         style={{ flexDirection: 'row', height: 50, alignItems: 'flex-end' }}
       >
         {data.hourOfDay.map((c, i) => (
@@ -374,7 +374,7 @@ function DayOfWeek({ data }: { data: StatsResult }) {
     <Section title="Day of week">
       <View
         accessibilityRole="image"
-        accessibilityLabel={`Completions by day of week. Busiest day ${peakDay} with ${max} completions.`}
+        accessibilityLabel={`Completions by day of week. Busiest day ${peakDay} with ${max} completion${max === 1 ? '' : 's'}.`}
         style={{
           flexDirection: 'row',
           height: 60,
