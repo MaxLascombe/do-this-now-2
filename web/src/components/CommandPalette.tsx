@@ -195,6 +195,14 @@ export function CommandPalette() {
     (t) => !isSnoozed(t) && newSafeDate(t.due).getTime() < todayMs,
   )
 
+  const confirmSignOut = async () => {
+    const ok = await confirm({
+      message: 'Sign out of Do This Now?',
+      confirmLabel: 'Sign out',
+    })
+    if (ok) void signOut()
+  }
+
   const snoozeOverdue = async () => {
     const ok = await confirm({
       message: `Snooze all ${overdue.length} overdue task${overdue.length === 1 ? '' : 's'}?`,
@@ -228,7 +236,7 @@ export function CommandPalette() {
       glyph: '⏻',
       label: 'Sign out',
       hint: 'Action',
-      run: () => void signOut(),
+      run: () => void confirmSignOut(),
     },
   ]
 
