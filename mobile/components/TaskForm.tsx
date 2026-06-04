@@ -1,4 +1,5 @@
 import { useApi } from '@dtn/shared/api-client'
+import { formatDueDistance } from '@dtn/shared/format'
 import {
   dateString,
   newSafeDate,
@@ -172,16 +173,7 @@ export function TaskForm({
     (dueDate.getTime() - newSafeDate(dateString(new Date())).getTime()) /
       (1000 * 60 * 60 * 24),
   )
-  const dayDiffPhrase =
-    dayDiff === -1
-      ? 'yesterday'
-      : dayDiff < 0
-        ? `${Math.abs(dayDiff)} days ago`
-        : dayDiff === 0
-          ? 'today'
-          : dayDiff === 1
-            ? 'tomorrow'
-            : `in ${dayDiff} days`
+  const dayDiffPhrase = formatDueDistance(dayDiff)
 
   const repeatSummary =
     repeat === 'No Repeat'
@@ -601,6 +593,7 @@ export function TaskForm({
                     }
                     placeholder={`Subtask ${i + 1}`}
                     placeholderTextColor="#3f3f46"
+                    accessibilityLabel={`Subtask ${i + 1}`}
                     style={{
                       flex: 1,
                       fontFamily: 'JetBrainsMono_400Regular',
