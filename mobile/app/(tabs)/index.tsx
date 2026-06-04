@@ -310,6 +310,22 @@ function Hero({
         {repeatLabel && <Chip>↻ {repeatLabel}</Chip>}
       </View>
 
+      {task.notes ? (
+        <Text
+          style={{
+            marginTop: 16,
+            maxWidth: 360,
+            textAlign: 'center',
+            fontFamily: 'JetBrainsMono_400Regular',
+            fontSize: 13,
+            lineHeight: 19,
+            color: '#71717a',
+          }}
+        >
+          {task.notes}
+        </Text>
+      ) : null}
+
       <Pressable
         onPress={onComplete}
         disabled={gated}
