@@ -24,6 +24,7 @@ import {
   RefreshControl,
   SectionList,
   Text,
+  TextInput,
   View,
 } from 'react-native'
 import { SafeAreaView } from 'react-native-safe-area-context'
@@ -49,6 +50,7 @@ const OVERDUE = '#fb7185'
 export default function TasksList() {
   const router = useRouter()
   const [sort, setSort] = useState<Sort>('CHRON')
+  const [query, setQuery] = useState('')
 
   const allTasks = useAllTasks({ enabled: sort === 'CHRON' })
   const topTasks = useTopTasks({ enabled: sort === 'TOP' })
@@ -114,8 +116,10 @@ export default function TasksList() {
 
   const sections: Group[] = useMemo(() => {
     const today0 = startOfToday()
-    const tasks =
+    let tasks =
       sort === 'CHRON' ? [...(allTasks.data ?? [])] : [...(topTasks.data ?? [])]
+    const q = query.trim().toLowerCase()
+    if (q) tasks = tasks.filter((t) => t.title.toLowerCase().includes(q))
     if (tasks.length === 0) return []
 
     if (sort === 'CHRON') {
@@ -169,7 +173,7 @@ export default function TasksList() {
         data: snoozed,
       })
     return result
-  }, [sort, allTasks.data, topTasks.data])
+  }, [sort, allTasks.data, topTasks.data, query])
 
   const eyebrow = useMemo(
     () =>
@@ -208,8 +212,30 @@ export default function TasksList() {
       <Stack.Screen options={{ headerShown: false }} />
       <TopProgress />
       <PageHeading eyebrow={eyebrow}>All tasks</PageHeading>
-      <View style={{ paddingHorizontal: 20, paddingBottom: 12 }}>
+      <View style={{ paddingHorizontal: 20, paddingBottom: 12, gap: 10 }}>
         <SortToggle value={sort} onChange={setSort} />
+        <TextInput
+          value={query}
+          onChangeText={setQuery}
+          placeholder="Search tasks…"
+          placeholderTextColor="#52525b"
+          autoCapitalize="none"
+          autoCorrect={false}
+          clearButtonMode="while-editing"
+          returnKeyType="search"
+          accessibilityLabel="Search tasks"
+          style={{
+            borderWidth: 1,
+            borderColor: '#27272a',
+            backgroundColor: 'rgba(24,24,27,0.5)',
+            borderRadius: 999,
+            paddingHorizontal: 16,
+            paddingVertical: 9,
+            fontFamily: 'JetBrainsMono_400Regular',
+            fontSize: 14,
+            color: '#fafafa',
+          }}
+        />
       </View>
       <SectionList
         style={{ flex: 1 }}
@@ -246,7 +272,7 @@ export default function TasksList() {
                 fontFamily: 'JetBrainsMono_400Regular',
               }}
             >
-              No tasks
+              {query ? `No tasks match "${query.trim()}"` : 'No tasks'}
             </Text>
           )
         }
