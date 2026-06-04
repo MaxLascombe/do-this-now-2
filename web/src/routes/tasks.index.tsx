@@ -1,4 +1,5 @@
-import { dayIndex, startOfToday } from '@dtn/shared/day-index'
+import { startOfToday } from '@dtn/shared/day-index'
+import { dueGroupLabel, tasksListEyebrow } from '@dtn/shared/format'
 import { newSafeDate } from '@dtn/shared/helpers'
 import {
   useAllTasks,
@@ -9,8 +10,9 @@ import {
   useSnoozeTask,
   useTask,
   useTopTasks,
+  useUnsnoozeTask,
 } from '@dtn/shared/queries'
-import { sortTasks } from '@dtn/shared/task-sorting'
+import { isSnoozed, sortTasks } from '@dtn/shared/task-sorting'
 import { willAdvanceSubtask } from '@dtn/shared/task-transitions'
 import {
   completionConfirmKind,
@@ -18,7 +20,6 @@ import {
 } from '@dtn/shared/timer-utils'
 
 import { createFileRoute, useNavigate } from '@tanstack/react-router'
-import { format } from 'date-fns'
 import {
   Fragment,
   useCallback,
@@ -48,45 +49,6 @@ export const Route = createFileRoute('/tasks/')({
 })
 
 const OVERDUE = '#fb7185'
-
-type GroupLabel = {
-  label: string
-  eyebrow: string
-  overdueSuffix: string | null
-}
-
-const groupLabel = (firstTaskDue: string): GroupLabel => {
-  const d = newSafeDate(firstTaskDue)
-  const idx = dayIndex(d)
-  if (idx < 0) {
-    const days = Math.abs(idx)
-    return {
-      // Treat overdue days like any other dated group — label is the
-      // weekday, rose accent stays *only* on the trailing days-overdue
-      // tag so a long list of overdues doesn't drown the page in red.
-      label: format(d, 'EEEE'),
-      eyebrow: format(d, 'LLL d'),
-      overdueSuffix: `${days} day${days === 1 ? '' : 's'} overdue`,
-    }
-  }
-  if (idx === 0)
-    return {
-      label: 'Today',
-      eyebrow: format(d, 'EEEE, LLL d'),
-      overdueSuffix: null,
-    }
-  if (idx === 1)
-    return {
-      label: 'Tomorrow',
-      eyebrow: format(d, 'EEEE, LLL d'),
-      overdueSuffix: null,
-    }
-  return {
-    label: format(d, 'EEEE'),
-    eyebrow: format(d, 'LLL d'),
-    overdueSuffix: null,
-  }
-}
 
 function TasksList() {
   const navigate = useNavigate()
@@ -121,6 +83,7 @@ function TasksList() {
   const doneMutation = useCompleteTask()
   const deleteMutation = useDeleteTask()
   const snoozeMutation = useSnoozeTask()
+  const unsnoozeMutation = useUnsnoozeTask()
   const prefetchTask = usePrefetchTask()
   const primeTaskCache = usePrimeTaskCache()
   const confirm = useConfirm()
@@ -174,6 +137,12 @@ function TasksList() {
     snoozeMutation.mutate({ id: t.id, allSubtasks: true })
   }
 
+  const wakeAction = () => {
+    const t = tasks.at(selectedTask)
+    if (!t) return
+    unsnoozeMutation.mutate(t.id)
+  }
+
   // Only scroll when the selected row leaves the viewport. The top-bar is
   // ~70px and the bottom KeyHints strip ~50px — we add a little extra padding
   // on each side so a row never feels glued to an edge before triggering.
@@ -225,6 +194,7 @@ function TasksList() {
       action: () => setSort((s) => (s === 'CHRON' ? 'TOP' : 'CHRON')),
     },
     { key: 'e', description: 'Edit task', action: editAction },
+    { key: 'w', description: 'Wake snoozed task', action: wakeAction },
     {
       key: 'S',
       description: 'Snooze all subtasks',
@@ -279,18 +249,7 @@ function TasksList() {
     [sort, tasks],
   )
 
-  const eyebrow = useMemo(() => {
-    const total = tasks.length
-    const weekStart = startOfToday()
-    weekStart.setDate(weekStart.getDate() - weekStart.getDay())
-    const weekEnd = new Date(weekStart)
-    weekEnd.setDate(weekEnd.getDate() + 7)
-    const thisWeek = tasks.filter((t) => {
-      const d = newSafeDate(t.due)
-      return d >= weekStart && d < weekEnd
-    }).length
-    return `${total} active · ${thisWeek} this week`
-  }, [tasks])
+  const eyebrow = useMemo(() => tasksListEyebrow(tasks), [tasks])
 
   const setRef = useCallback(
     (id: string) => (e: HTMLButtonElement | null) => {
@@ -341,7 +300,7 @@ function TasksList() {
         {sort === 'CHRON' ? (
           <div className="flex flex-col gap-6">
             {groupedChron.map(({ key, tasks: gTasks }) => {
-              const g = groupLabel(key)
+              const g = dueGroupLabel(key)
               return (
                 <div key={key}>
                   <div className="mb-2 flex items-baseline gap-3">
@@ -389,9 +348,11 @@ function TasksList() {
                               <SelectedActions
                                 hasSubtasks={t.subtasks.length > 0}
                                 advance={willAdvanceSubtask(t, new Date())}
+                                snoozed={isSnoozed(t)}
                                 onComplete={completeAction}
                                 onEdit={editAction}
                                 onSnoozeSubtasks={snoozeSubtasks}
+                                onWake={wakeAction}
                                 onDelete={deleteAction}
                               />
                               <SelectedTimer task={t} />
@@ -431,9 +392,11 @@ function TasksList() {
                       <SelectedActions
                         hasSubtasks={t.subtasks.length > 0}
                         advance={willAdvanceSubtask(t, new Date())}
+                        snoozed={isSnoozed(t)}
                         onComplete={completeAction}
                         onEdit={editAction}
                         onSnoozeSubtasks={snoozeSubtasks}
+                        onWake={wakeAction}
                         onDelete={deleteAction}
                       />
                       <SelectedTimer task={t} />
@@ -551,16 +514,20 @@ const Separator = ({ label }: { label: string }) => (
 const SelectedActions = ({
   hasSubtasks,
   advance,
+  snoozed,
   onComplete,
   onEdit,
   onSnoozeSubtasks,
+  onWake,
   onDelete,
 }: {
   hasSubtasks: boolean
   advance: boolean
+  snoozed: boolean
   onComplete: () => void
   onEdit: () => void
   onSnoozeSubtasks: () => void
+  onWake: () => void
   onDelete: () => void
 }) => (
   <div className="mb-2 ml-12 flex flex-wrap items-center gap-2">
@@ -575,6 +542,7 @@ const SelectedActions = ({
       </kbd>
     </button>
     <ActionGhost k="E" label="Edit" onClick={onEdit} />
+    {snoozed && <ActionGhost k="W" label="Wake" onClick={onWake} />}
     {hasSubtasks && (
       <ActionGhost k="⇧S" label="Snooze subtasks" onClick={onSnoozeSubtasks} />
     )}

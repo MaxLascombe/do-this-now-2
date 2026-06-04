@@ -2,7 +2,7 @@ import { formatDueLabel, formatRepeat } from '@dtn/shared/format'
 import { useArchiveTask, useTask, useUnarchiveTask } from '@dtn/shared/queries'
 import { minutesToHours } from '@dtn/shared/time'
 import { Link, createFileRoute, useRouter } from '@tanstack/react-router'
-import { useEffect, useState } from 'react'
+import { useState } from 'react'
 
 import { ErrorState } from '../components/ErrorState'
 import { Loading } from '../components/Loading'
@@ -11,6 +11,8 @@ import { PageHeading } from '../components/PageHeading'
 import { TimerWidget } from '../components/TimerWidget'
 import { useToast } from '../components/ToastProvider'
 import { TopBar } from '../components/TopBar'
+import useKeyAction from '../hooks/useKeyAction'
+import type { KeyAction } from '../hooks/useKeyAction'
 
 const OVERDUE = '#fb7185'
 
@@ -47,15 +49,37 @@ function TaskDetail() {
   const unarchiveAction = () =>
     unarchive.mutate(id, { onSuccess: () => router.navigate({ to: '/tasks' }) })
 
-  useEffect(() => {
-    const onKey = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') router.history.back()
-      if (e.key === 'e' || e.key === 'E')
-        router.navigate({ to: '/tasks/$id/edit', params: { id } })
-    }
-    document.addEventListener('keydown', onKey)
-    return () => document.removeEventListener('keydown', onKey)
-  }, [router, id])
+  const keyActions: Array<KeyAction> = [
+    { key: 'escape', description: 'Back', action: () => router.history.back() },
+    {
+      key: 'e',
+      description: 'Edit',
+      action: () => router.navigate({ to: '/tasks/$id/edit', params: { id } }),
+    },
+    { key: 'n', description: 'Home', action: () => router.navigate({ to: '/' }) },
+    {
+      key: 't',
+      description: 'Tasks',
+      action: () => router.navigate({ to: '/tasks' }),
+    },
+    {
+      key: 'h',
+      description: 'History',
+      action: () => router.navigate({ to: '/history' }),
+    },
+    {
+      key: 'a',
+      description: 'Stats',
+      action: () => router.navigate({ to: '/stats' }),
+    },
+    {
+      key: '=',
+      description: 'New task',
+      shift: true,
+      action: () => router.navigate({ to: '/new-task' }),
+    },
+  ]
+  useKeyAction(keyActions)
 
   if (taskQuery.isPending || !task) {
     return (

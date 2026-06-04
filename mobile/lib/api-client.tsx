@@ -75,6 +75,8 @@ function createMobileApi(
           method: 'POST',
           body: { allSubtasks },
         }),
+      unsnooze: (id) =>
+        call<Task>(`/api/tasks/${id}/unsnooze`, { method: 'POST' }),
       suggestEmojis: (title) =>
         call<string[]>('/api/tasks/suggest-emojis', {
           method: 'POST',
