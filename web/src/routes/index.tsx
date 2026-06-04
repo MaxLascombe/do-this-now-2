@@ -26,6 +26,7 @@ import { useConfirm } from '../components/ConfirmProvider'
 import { CountConfirmModal } from '../components/CountConfirmModal'
 import { ErrorState } from '../components/ErrorState'
 import { Loading } from '../components/Loading'
+import { LinkifiedNotes } from '../components/LinkifiedNotes'
 import { MobileChrome } from '../components/MobileChrome'
 import { TaskRow } from '../components/TaskRow'
 import { TimerWidget } from '../components/TimerWidget'
@@ -466,9 +467,10 @@ function Hero({
       </div>
 
       {task.notes && (
-        <p className="mt-5 max-w-md text-center font-mono text-xs whitespace-pre-wrap text-zinc-500 md:text-sm">
-          {task.notes}
-        </p>
+        <LinkifiedNotes
+          text={task.notes}
+          className="mt-5 max-w-md text-center font-mono text-xs whitespace-pre-wrap text-zinc-500 md:text-sm"
+        />
       )}
 
       <button
