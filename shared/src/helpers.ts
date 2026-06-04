@@ -68,6 +68,19 @@ export const getUserLocalNow = (
   )
 }
 
+// Clamp the day to the target month's length so Jan 31 + 1mo → Feb 28, not a skipped month.
+const addMonthsClamped = (date: Date, months: number): void => {
+  const day = date.getDate()
+  date.setDate(1)
+  date.setMonth(date.getMonth() + months)
+  const daysInMonth = new Date(
+    date.getFullYear(),
+    date.getMonth() + 1,
+    0,
+  ).getDate()
+  date.setDate(Math.min(day, daysInMonth))
+}
+
 export const nextDueDate = (task: Task): Date | undefined => {
   if (task.repeat === 'No Repeat') return undefined
   const date = newSafeDate(task.due)
@@ -91,12 +104,12 @@ export const nextDueDate = (task: Task): Date | undefined => {
     do {
       date.setDate(date.getDate() + 1)
     } while (date.getDay() === 0 || date.getDay() === 6)
-  } else if (task.repeat === 'Monthly') date.setMonth(date.getMonth() + 1)
+  } else if (task.repeat === 'Monthly') addMonthsClamped(date, 1)
   else if (task.repeat === 'Custom' && task.repeatUnit === 'month')
-    date.setMonth(date.getMonth() + task.repeatInterval)
-  else if (task.repeat === 'Yearly') date.setFullYear(date.getFullYear() + 1)
+    addMonthsClamped(date, task.repeatInterval)
+  else if (task.repeat === 'Yearly') addMonthsClamped(date, 12)
   else if (task.repeat === 'Custom' && task.repeatUnit === 'year')
-    date.setFullYear(date.getFullYear() + task.repeatInterval)
+    addMonthsClamped(date, 12 * task.repeatInterval)
   // DST safety: shift past 02:00 before round-tripping through dateString +
   // newSafeDate. If the previous arithmetic lands on a spring-forward day,
   // local midnight can be a non-existent instant and JS shifts the Date
