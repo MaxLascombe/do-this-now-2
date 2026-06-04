@@ -11,8 +11,9 @@ import {
   useSnoozeTask,
   useTask,
   useTopTasks,
+  useUnsnoozeTask,
 } from '@dtn/shared/queries'
-import { sortTasks } from '@dtn/shared/task-sorting'
+import { isSnoozed, sortTasks } from '@dtn/shared/task-sorting'
 import { willAdvanceSubtask } from '@dtn/shared/task-transitions'
 import {
   completionConfirmKind,
@@ -40,6 +41,7 @@ import { TaskRow } from '../components/TaskRow'
 import { TimerWidget } from '../components/TimerWidget'
 import { TopBar } from '../components/TopBar'
 import useKeyAction from '../hooks/useKeyAction'
+import { usePersistedState } from '../hooks/usePersistedState'
 import type { Task } from '@dtn/shared/types'
 import type { KeyAction } from '../hooks/useKeyAction'
 
@@ -53,7 +55,10 @@ const OVERDUE = '#fb7185'
 function TasksList() {
   const navigate = useNavigate()
   const [selectedTask, setSelectedTask] = useState(0)
-  const [sort, setSort] = useState<'CHRON' | 'TOP'>('CHRON')
+  const [sort, setSort] = usePersistedState<'CHRON' | 'TOP'>(
+    'dtn.tasks.sort',
+    'CHRON',
+  )
   const [query, setQuery] = useState('')
   const taskElems = useRef<Array<HTMLElement>>([])
   const searchRef = useRef<HTMLInputElement>(null)
@@ -89,6 +94,7 @@ function TasksList() {
   const doneMutation = useCompleteTask()
   const deleteMutation = useDeleteTask()
   const snoozeMutation = useSnoozeTask()
+  const unsnoozeMutation = useUnsnoozeTask()
   const createMutation = useCreateTask()
   const prefetchTask = usePrefetchTask()
   const primeTaskCache = usePrimeTaskCache()
@@ -168,6 +174,12 @@ function TasksList() {
     snoozeMutation.mutate({ id: t.id, allSubtasks: true })
   }
 
+  const wakeAction = () => {
+    const t = tasks.at(selectedTask)
+    if (!t) return
+    unsnoozeMutation.mutate(t.id)
+  }
+
   // Only scroll when the selected row leaves the viewport. The top-bar is
   // ~70px and the bottom KeyHints strip ~50px — we add a little extra padding
   // on each side so a row never feels glued to an edge before triggering.
@@ -224,6 +236,7 @@ function TasksList() {
       action: () => setSort((s) => (s === 'CHRON' ? 'TOP' : 'CHRON')),
     },
     { key: 'e', description: 'Edit task', action: editAction },
+    { key: 'w', description: 'Wake snoozed task', action: wakeAction },
     {
       key: 'S',
       description: 'Snooze all subtasks',
@@ -434,9 +447,11 @@ function TasksList() {
                               <SelectedActions
                                 hasSubtasks={t.subtasks.length > 0}
                                 advance={willAdvanceSubtask(t, new Date())}
+                                snoozed={isSnoozed(t)}
                                 onComplete={completeAction}
                                 onEdit={editAction}
                                 onSnoozeSubtasks={snoozeSubtasks}
+                                onWake={wakeAction}
                                 onDelete={deleteAction}
                               />
                               <SelectedTimer task={t} />
@@ -476,9 +491,11 @@ function TasksList() {
                       <SelectedActions
                         hasSubtasks={t.subtasks.length > 0}
                         advance={willAdvanceSubtask(t, new Date())}
+                        snoozed={isSnoozed(t)}
                         onComplete={completeAction}
                         onEdit={editAction}
                         onSnoozeSubtasks={snoozeSubtasks}
+                        onWake={wakeAction}
                         onDelete={deleteAction}
                       />
                       <SelectedTimer task={t} />
@@ -586,16 +603,20 @@ const Separator = ({ label }: { label: string }) => (
 const SelectedActions = ({
   hasSubtasks,
   advance,
+  snoozed,
   onComplete,
   onEdit,
   onSnoozeSubtasks,
+  onWake,
   onDelete,
 }: {
   hasSubtasks: boolean
   advance: boolean
+  snoozed: boolean
   onComplete: () => void
   onEdit: () => void
   onSnoozeSubtasks: () => void
+  onWake: () => void
   onDelete: () => void
 }) => (
   <div className="mb-2 ml-12 flex flex-wrap items-center gap-2">
@@ -610,6 +631,7 @@ const SelectedActions = ({
       </kbd>
     </button>
     <ActionGhost k="E" label="Edit" onClick={onEdit} />
+    {snoozed && <ActionGhost k="W" label="Wake" onClick={onWake} />}
     {hasSubtasks && (
       <ActionGhost k="⇧S" label="Snooze subtasks" onClick={onSnoozeSubtasks} />
     )}

@@ -54,3 +54,16 @@ code {
   font-weight: 700;
   letter-spacing: -0.02em;
 }
+
+/* Respect users who've asked the OS to minimize motion (WCAG 2.3.3) —
+   neutralizes the timer pulse and transitions without disabling layout. */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}

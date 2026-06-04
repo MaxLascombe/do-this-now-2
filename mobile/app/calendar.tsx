@@ -1,11 +1,13 @@
 import { dateString, newSafeDate } from '@dtn/shared/helpers'
 import { useAllTasks } from '@dtn/shared/queries'
+import { minutesToHours } from '@dtn/shared/time'
 import type { Task } from '@dtn/shared/types'
 import { Stack, useRouter } from 'expo-router'
 import { useMemo, useState } from 'react'
 import {
   ActivityIndicator,
   Pressable,
+  RefreshControl,
   ScrollView,
   Text,
   View,
@@ -32,7 +34,7 @@ const mono = 'JetBrainsMono_400Regular'
 
 export default function Calendar() {
   const router = useRouter()
-  const { data, isLoading } = useAllTasks()
+  const { data, isLoading, isFetching, refetch } = useAllTasks()
   const [cursor, setCursor] = useState(() => startOfMonth(new Date()))
   const [selectedKey, setSelectedKey] = useState<string | null>(null)
 
@@ -69,6 +71,13 @@ export default function Calendar() {
   ]
 
   const selectedTasks = selectedKey ? (byDay[selectedKey] ?? []) : []
+  const selectedMinutes = selectedTasks.reduce((s, t) => s + t.timeFrame, 0)
+  const selectedLabel = selectedKey
+    ? (() => {
+        const [, m, d] = selectedKey.split('-').map(Number)
+        return `${MONTHS[m - 1]} ${d}`
+      })()
+    : ''
 
   const shiftMonth = (delta: number) => {
     setCursor(new Date(year, month + delta, 1))
@@ -82,7 +91,17 @@ export default function Calendar() {
   return (
     <View style={{ flex: 1, backgroundColor: '#0a0a0a' }}>
       <Stack.Screen options={{ title: 'Calendar' }} />
-      <ScrollView contentContainerStyle={{ padding: 16, paddingBottom: 40 }}>
+      <ScrollView
+        contentContainerStyle={{ padding: 16, paddingBottom: 40 }}
+        refreshControl={
+          <RefreshControl
+            refreshing={isFetching && !isLoading}
+            onRefresh={() => refetch()}
+            tintColor="#fafafa"
+            colors={['#fafafa']}
+          />
+        }
+      >
         <View
           style={{
             flexDirection: 'row',
@@ -223,6 +242,27 @@ export default function Calendar() {
                 </Text>
               ) : (
                 <>
+                  <View
+                    style={{
+                      flexDirection: 'row',
+                      alignItems: 'baseline',
+                      justifyContent: 'space-between',
+                      marginBottom: 2,
+                    }}
+                  >
+                    <Text style={{ fontFamily: mono, fontSize: 13, color: '#e4e4e7' }}>
+                      {selectedLabel}
+                    </Text>
+                    {selectedTasks.length > 0 && (
+                      <Text style={{ fontFamily: mono, fontSize: 11, color: '#71717a' }}>
+                        {selectedTasks.length}{' '}
+                        {selectedTasks.length === 1 ? 'task' : 'tasks'}
+                        {selectedMinutes > 0
+                          ? ` · ${minutesToHours(selectedMinutes)}`
+                          : ''}
+                      </Text>
+                    )}
+                  </View>
                   {selectedTasks.length === 0 ? (
                     <Text
                       style={{
