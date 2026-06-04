@@ -1,5 +1,5 @@
 import { formatDueLabel, formatRepeat } from '@dtn/shared/format'
-import { useTask } from '@dtn/shared/queries'
+import { useArchiveTask, useTask } from '@dtn/shared/queries'
 import { minutesToHours } from '@dtn/shared/time'
 import { Link, createFileRoute, useRouter } from '@tanstack/react-router'
 import { useEffect, useState } from 'react'
@@ -28,6 +28,10 @@ function TaskDetail() {
   // edit page does — load it so the widget shows + mutates the right task.
   const keeperQuery = useTask(task?.timekeeperId ?? '')
   const timerTask = task?.timekeeperId ? keeperQuery.data : task
+
+  const archive = useArchiveTask()
+  const archiveAction = () =>
+    archive.mutate(id, { onSuccess: () => router.navigate({ to: '/archive' }) })
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
@@ -93,6 +97,13 @@ function TaskDetail() {
           <PageHeading eyebrow="task">{task.title}</PageHeading>
         </div>
         <div className="hidden items-center gap-2 md:flex">
+          <button
+            type="button"
+            onClick={archiveAction}
+            className="flex items-center gap-2 rounded-full border border-zinc-800 px-3 py-1.5 font-mono text-sm text-zinc-400 hover:bg-zinc-900 hover:text-zinc-50"
+          >
+            <span>Archive</span>
+          </button>
           <Link
             to="/tasks/$id/edit"
             params={{ id }}
