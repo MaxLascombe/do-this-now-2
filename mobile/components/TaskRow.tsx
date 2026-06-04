@@ -174,7 +174,7 @@ export function TaskRow({
             <Meta color={selected ? '#9f1239' : OVERDUE}>strict</Meta>
           )}
           {task.tags.map((t) => (
-            <Meta key={t} color={selected ? '#52525b' : '#52525b'}>
+            <Meta key={t} color={metaColor}>
               #{t}
             </Meta>
           ))}
