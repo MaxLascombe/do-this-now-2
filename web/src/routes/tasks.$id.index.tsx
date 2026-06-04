@@ -159,6 +159,30 @@ function TaskDetail() {
           )}
         </div>
 
+        {task.tags.length > 0 && (
+          <div className="flex flex-wrap gap-1.5">
+            {task.tags.map((t) => (
+              <span
+                key={t}
+                className="rounded-full border border-zinc-800 bg-zinc-900 px-2.5 py-1 font-mono text-xs text-zinc-300"
+              >
+                #{t}
+              </span>
+            ))}
+          </div>
+        )}
+
+        {task.notes && (
+          <div>
+            <div className="mb-2 font-mono text-[10px] tracking-[0.3em] text-zinc-500 uppercase">
+              Notes
+            </div>
+            <p className="font-mono text-sm whitespace-pre-wrap text-zinc-300">
+              {task.notes}
+            </p>
+          </div>
+        )}
+
         {task.subtasks.length > 0 && (
           <div>
             <div className="mb-3 flex items-baseline justify-between font-mono text-[10px] tracking-[0.3em] text-zinc-500 uppercase">
