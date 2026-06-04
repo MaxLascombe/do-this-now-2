@@ -171,8 +171,17 @@ function Calendar() {
           )}
 
           <div>
-            <div className="mb-3 font-mono text-[10px] tracking-[0.3em] text-zinc-500 uppercase">
-              {selectedKey === todayKey ? 'Today' : selectedKey}
+            <div className="mb-3 flex items-center justify-between font-mono text-[10px] tracking-[0.3em] text-zinc-500 uppercase">
+              <span>{selectedKey === todayKey ? 'Today' : selectedKey}</span>
+              <button
+                type="button"
+                onClick={() =>
+                  navigate({ to: '/new-task', search: { due: selectedKey } })
+                }
+                className="rounded-full border border-zinc-800 px-3 py-1 tracking-normal text-zinc-400 normal-case hover:bg-zinc-900 hover:text-zinc-50"
+              >
+                + New task
+              </button>
             </div>
             {selectedTasks.length === 0 ? (
               <p className="font-mono text-sm text-zinc-600">
