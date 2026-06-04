@@ -26,9 +26,15 @@ const MINI_CELLS = 14
 export const MobileTopBar = ({ onOpenSheet }: { onOpenSheet: () => void }) => {
   const p = useComputedProgress()
   const progress = useProgressToday()
-  const pct = progress.data
-    ? Math.min(100, Math.round((progress.data.done / progress.data.todo) * 100))
-    : 0
+  // todo is 0 on a no-tasks day; guard so the bar reads empty (0%) rather
+  // than a NaN width.
+  const pct =
+    progress.data && progress.data.todo > 0
+      ? Math.min(
+          100,
+          Math.round((progress.data.done / progress.data.todo) * 100),
+        )
+      : 0
 
   let points = 0
   if (progress.data) {
@@ -36,8 +42,10 @@ export const MobileTopBar = ({ onOpenSheet }: { onOpenSheet: () => void }) => {
     points = computePoints(done, todo, lives)
   }
 
-  const filledCount = p ? Math.round((p.done / p.todo) * MINI_CELLS) : 0
-  const tickAt = p ? Math.round((p.shouldBeDone / p.todo) * MINI_CELLS) : 0
+  const filledCount =
+    p && p.todo > 0 ? Math.round((p.done / p.todo) * MINI_CELLS) : 0
+  const tickAt =
+    p && p.todo > 0 ? Math.round((p.shouldBeDone / p.todo) * MINI_CELLS) : 0
 
   return (
     <div className="md:hidden">
