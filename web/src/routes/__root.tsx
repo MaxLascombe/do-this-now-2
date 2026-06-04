@@ -1,10 +1,11 @@
-import { ClerkProvider, Show, SignInButton } from '@clerk/tanstack-react-start'
+import { ClerkProvider, Show, SignIn } from '@clerk/tanstack-react-start'
 import { ApiProvider } from '@dtn/shared/api-client'
 import { HeadContent, Scripts, createRootRoute } from '@tanstack/react-router'
 
 import { CommandPalette } from '../components/CommandPalette'
 import { ConfirmProvider } from '../components/ConfirmProvider'
 import { ShortcutsHelp } from '../components/ShortcutsHelp'
+import { ToastProvider } from '../components/ToastProvider'
 import { webApiClient } from '../lib/api-client'
 import { QueryProvider } from '../lib/query-client'
 
@@ -66,9 +67,11 @@ function RootDocument({ children }: { children: ReactNode }) {
                   Skip to content
                 </a>
                 <ConfirmProvider>
-                  <CommandPalette />
-                  <ShortcutsHelp />
-                  {children}
+                  <ToastProvider>
+                    <CommandPalette />
+                    <ShortcutsHelp />
+                    {children}
+                  </ToastProvider>
                 </ConfirmProvider>
               </Show>
               <Show when="signed-out">
@@ -127,11 +130,26 @@ function SignedOutScreen() {
           and gets out of your way.
         </p>
       </div>
-      <SignInButton mode="modal">
-        <button className="rounded-full border border-zinc-700 bg-zinc-900 px-6 py-2.5 font-mono text-sm font-medium text-zinc-100 transition-colors hover:border-zinc-500 hover:bg-zinc-800">
-          Sign in to start
-        </button>
-      </SignInButton>
+      <SignIn
+        routing="hash"
+        appearance={{
+          variables: {
+            colorPrimary: '#34d399',
+            colorBackground: '#0d0d0e',
+            colorText: '#fafafa',
+            colorTextSecondary: '#a1a1aa',
+            colorInputBackground: '#18181b',
+            colorInputText: '#fafafa',
+            colorDanger: '#fb7185',
+            fontFamily: "'JetBrains Mono', ui-monospace, monospace",
+            borderRadius: '0.75rem',
+          },
+          elements: {
+            rootBox: 'mx-auto',
+            card: 'border border-zinc-800 shadow-2xl shadow-black/40',
+          },
+        }}
+      />
     </div>
   )
 }

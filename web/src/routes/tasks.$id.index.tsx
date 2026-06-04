@@ -2,9 +2,11 @@ import { formatDueLabel, formatRepeat } from '@dtn/shared/format'
 import { dateString, nextDueDate } from '@dtn/shared/helpers'
 import {
   useCompleteTask,
+  useCreateTask,
   useDeleteTask,
   useSnoozeTask,
   useTask,
+  useTaskTimer,
   useUpdateTask,
 } from '@dtn/shared/queries'
 import { taskToInput } from '@dtn/shared/task-input'
@@ -21,7 +23,8 @@ import { useEffect, useState } from 'react'
 import { useConfirm } from '../components/ConfirmProvider'
 import { CountConfirmModal } from '../components/CountConfirmModal'
 import { ErrorState } from '../components/ErrorState'
-import { Loading } from '../components/Loading'
+import { LinkifiedNotes } from '../components/LinkifiedNotes'
+import { Skeleton } from '../components/Skeleton'
 import { MobileChrome } from '../components/MobileChrome'
 import { PageHeading } from '../components/PageHeading'
 import { TimerWidget } from '../components/TimerWidget'
@@ -54,11 +57,38 @@ function TaskDetail() {
   const deleteMutation = useDeleteTask()
   const doneMutation = useCompleteTask()
   const updateTask = useUpdateTask()
+  const createTask = useCreateTask()
+  const timer = useTaskTimer()
   const confirm = useConfirm()
+
+  // The mutation targets the route id; the server maps a 0-frame child to
+  // its keeper, while timerTask gives the correct running state to read.
+  const toggleTimerAction = () =>
+    timer.mutate({
+      id,
+      action: { kind: timerTask?.timerStartedAt ? 'pause' : 'start' },
+    })
 
   const reschedule = (due: string) => {
     if (!task) return
     updateTask.mutate({ id, input: { ...taskToInput(task), due } })
+  }
+
+  // Clone the task's config as a fresh task and jump to it. Timer state,
+  // completion history, and subtask `done` flags don't carry over —
+  // taskToInput keeps only the user-authored fields.
+  const duplicateAction = async () => {
+    if (!task) return
+    const copy = await createTask.mutateAsync({
+      ...taskToInput(task),
+      title: `${task.title} (copy)`,
+      subtasks: task.subtasks.map((s) => ({
+        ...s,
+        done: false,
+        snooze: undefined,
+      })),
+    })
+    router.navigate({ to: '/tasks/$id', params: { id: copy.id } })
   }
 
   const toggleSubtask = (index: number) => {
@@ -146,6 +176,11 @@ function TaskDetail() {
     },
     { key: 'd', description: 'Done', action: completeAction },
     { key: 's', description: 'Snooze', action: snoozeAction },
+    {
+      key: 'p',
+      description: timerTask?.timerStartedAt ? 'Pause timer' : 'Start timer',
+      action: toggleTimerAction,
+    },
     { key: 'backspace', description: 'Delete', action: deleteAction },
     { key: 'n', description: 'Home', action: () => router.navigate({ to: '/' }) },
     {
@@ -181,18 +216,28 @@ function TaskDetail() {
           onOpenSheet={() => setSheetOpen(true)}
           onCloseSheet={() => setSheetOpen(false)}
         />
-        <div className="flex flex-1 items-center justify-center">
-          {taskQuery.isPending ? (
-            <Loading />
-          ) : taskQuery.isError ? (
-            <ErrorState
-              message="Couldn't load this task."
-              onRetry={() => taskQuery.refetch()}
-            />
-          ) : (
-            <ErrorState message="Task not found." />
-          )}
-        </div>
+        {taskQuery.isPending ? (
+          <div
+            className="mx-auto w-full max-w-2xl space-y-6 px-5 pt-2 pb-12 md:px-10"
+            role="status"
+            aria-label="Loading task"
+          >
+            <Skeleton className="h-24 w-full rounded-2xl" />
+            <Skeleton className="h-4 w-2/3" />
+            <Skeleton className="h-40 w-full rounded-2xl" />
+          </div>
+        ) : (
+          <div className="flex flex-1 items-center justify-center">
+            {taskQuery.isError ? (
+              <ErrorState
+                message="Couldn't load this task."
+                onRetry={() => taskQuery.refetch()}
+              />
+            ) : (
+              <ErrorState message="Task not found." />
+            )}
+          </div>
+        )}
       </div>
     )
   }
@@ -365,9 +410,10 @@ function TaskDetail() {
             <div className="mb-2 font-mono text-[10px] tracking-[0.3em] text-zinc-500 uppercase">
               Notes
             </div>
-            <p className="font-mono text-sm whitespace-pre-wrap text-zinc-300">
-              {task.notes}
-            </p>
+            <LinkifiedNotes
+              text={task.notes}
+              className="font-mono text-sm whitespace-pre-wrap text-zinc-300"
+            />
           </div>
         )}
 
@@ -411,6 +457,14 @@ function TaskDetail() {
             className="flex items-center gap-2 rounded-full border border-zinc-800 px-4 py-1.5 text-zinc-400 hover:bg-zinc-900 hover:text-zinc-50"
           >
             {copied ? 'Copied' : 'Copy link'}
+          </button>
+          <button
+            type="button"
+            onClick={duplicateAction}
+            disabled={createTask.isPending}
+            className="flex items-center gap-2 rounded-full border border-zinc-800 px-4 py-1.5 text-zinc-400 hover:bg-zinc-900 hover:text-zinc-50 disabled:opacity-40"
+          >
+            {createTask.isPending ? 'Duplicating…' : 'Duplicate'}
           </button>
         </div>
 

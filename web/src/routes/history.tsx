@@ -8,7 +8,7 @@ import { useState } from 'react'
 
 import { KeyHints } from '../components/KeyHints'
 import { ErrorState } from '../components/ErrorState'
-import { Loading } from '../components/Loading'
+import { TaskListSkeleton } from '../components/Skeleton'
 import { MobileChrome } from '../components/MobileChrome'
 import { PageHeading } from '../components/PageHeading'
 import { TopBar } from '../components/TopBar'
@@ -184,9 +184,7 @@ function History() {
 
       <div className="flex-1 px-5 pb-28 md:px-10 md:pb-20">
         {isLoading ? (
-          <div className="mt-8 flex justify-center">
-            <Loading />
-          </div>
+          <TaskListSkeleton rows={5} />
         ) : isError && entries.length === 0 ? (
           <div className="mt-8 flex justify-center">
             <ErrorState

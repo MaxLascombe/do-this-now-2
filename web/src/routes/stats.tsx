@@ -3,6 +3,7 @@ import {
   heatmapCellPosition,
   heatmapColor,
   percentile,
+  robustChartMax,
 } from '@dtn/shared/heatmap'
 import { useStats } from '@dtn/shared/queries'
 import { createFileRoute, useNavigate } from '@tanstack/react-router'
@@ -10,7 +11,7 @@ import { useState } from 'react'
 
 import { KeyHints } from '../components/KeyHints'
 import { ErrorState } from '../components/ErrorState'
-import { Loading } from '../components/Loading'
+import { Skeleton } from '../components/Skeleton'
 import { MobileChrome } from '../components/MobileChrome'
 import { PageHeading } from '../components/PageHeading'
 import { TopBar } from '../components/TopBar'
@@ -63,16 +64,27 @@ function Stats() {
           onOpenSheet={() => setSheetOpen(true)}
           onCloseSheet={() => setSheetOpen(false)}
         />
-        <div className="flex flex-1 items-center justify-center">
-          {isError && !isLoading ? (
+        {isError && !isLoading ? (
+          <div className="flex flex-1 items-center justify-center">
             <ErrorState
               message="Couldn't load your stats."
               onRetry={() => refetch()}
             />
-          ) : (
-            <Loading />
-          )}
-        </div>
+          </div>
+        ) : (
+          <div
+            className="flex-1 px-5 pt-2 pb-28 md:px-10 md:pb-24"
+            role="status"
+            aria-label="Loading stats"
+          >
+            <div className="mx-auto flex max-w-5xl flex-col gap-6">
+              <Skeleton className="h-8 w-40" />
+              {Array.from({ length: 4 }).map((_, i) => (
+                <Skeleton key={i} className="h-28 w-full rounded-2xl" />
+              ))}
+            </div>
+          </div>
+        )}
       </div>
     )
   }
@@ -327,6 +339,7 @@ function DailyBars({ data }: { data: StatsResult }) {
 
 function HourOfDay({ data }: { data: StatsResult }) {
   const max = Math.max(...data.hourOfDay)
+  const scaleMax = robustChartMax(data.hourOfDay)
   const total = data.hourOfDay.reduce((a, b) => a + b, 0)
   const peakHour = data.hourOfDay.indexOf(max)
   if (total === 0) {
@@ -354,7 +367,7 @@ function HourOfDay({ data }: { data: StatsResult }) {
         className="flex h-20 items-end gap-[2px]"
       >
         {data.hourOfDay.map((c, i) => {
-          const pct = (c / max) * 100
+          const pct = Math.min(100, (c / scaleMax) * 100)
           return (
             <div
               key={i}
@@ -363,7 +376,7 @@ function HourOfDay({ data }: { data: StatsResult }) {
               style={{
                 height: c === 0 ? '4px' : `${Math.max(8, pct)}%`,
                 background: c === 0 ? 'rgba(255,255,255,0.06)' : '#e4e4e7',
-                opacity: c === 0 ? 1 : 0.55 + (c / max) * 0.45,
+                opacity: c === 0 ? 1 : 0.55 + Math.min(1, c / scaleMax) * 0.45,
               }}
             />
           )
@@ -383,6 +396,7 @@ function HourOfDay({ data }: { data: StatsResult }) {
 function DayOfWeek({ data }: { data: StatsResult }) {
   const labels = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat']
   const max = Math.max(...data.dayOfWeek)
+  const scaleMax = robustChartMax(data.dayOfWeek)
   const total = data.dayOfWeek.reduce((a, b) => a + b, 0)
   const peakDay = labels[data.dayOfWeek.indexOf(max)]
   if (total === 0) {
@@ -408,7 +422,7 @@ function DayOfWeek({ data }: { data: StatsResult }) {
         className="flex h-20 items-end gap-1.5"
       >
         {data.dayOfWeek.map((c, i) => {
-          const pct = (c / max) * 100
+          const pct = Math.min(100, (c / scaleMax) * 100)
           return (
             <div key={i} className="flex flex-1 flex-col items-center gap-1">
               <div
@@ -417,7 +431,7 @@ function DayOfWeek({ data }: { data: StatsResult }) {
                 style={{
                   height: c === 0 ? '4px' : `${Math.max(8, pct)}%`,
                   background: c === 0 ? 'rgba(255,255,255,0.06)' : STREAK,
-                  opacity: c === 0 ? 1 : 0.55 + (c / max) * 0.45,
+                  opacity: c === 0 ? 1 : 0.55 + Math.min(1, c / scaleMax) * 0.45,
                 }}
               />
               <div className="font-mono text-[10px] text-zinc-600">
