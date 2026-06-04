@@ -109,3 +109,8 @@ export function formatDueLabel(
     return null
   }
 }
+
+// Relative label for a count of whole days in the past, as used by the
+// History page's day picker: 0 → 'today', 1 → '1 day ago', n → 'n days ago'.
+export const formatDaysAgo = (daysAgo: number): string =>
+  daysAgo === 0 ? 'today' : daysAgo === 1 ? '1 day ago' : `${daysAgo} days ago`
