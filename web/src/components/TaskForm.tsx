@@ -1,4 +1,5 @@
 import { useApi } from '@dtn/shared/api-client'
+import { formatDueDistance } from '@dtn/shared/format'
 import { dateString, newSafeDate } from '@dtn/shared/helpers'
 import { useAllTasks } from '@dtn/shared/queries'
 import { taskInputSchema } from '@dtn/shared/task-input'
@@ -39,6 +40,15 @@ const repeatOptions: Array<RepeatOption> = [
 const repeatUnits: Array<RepeatUnit> = ['day', 'week', 'month', 'year']
 
 const dayShort = ['Su', 'Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa'] as const
+const dayFull = [
+  'Sunday',
+  'Monday',
+  'Tuesday',
+  'Wednesday',
+  'Thursday',
+  'Friday',
+  'Saturday',
+] as const
 
 const toIso = (due: string): string => {
   const [y, m, d] = due.split('-').map((s) => parseInt(s))
@@ -52,14 +62,6 @@ const dayDiffFor = (due: string): number => {
   return Math.round(
     (target.getTime() - today.getTime()) / (1000 * 60 * 60 * 24),
   )
-}
-
-const dayDiffPhrase = (diff: number): string => {
-  if (diff === -1) return 'yesterday'
-  if (diff < 0) return `${Math.abs(diff)} days ago`
-  if (diff === 0) return 'today'
-  if (diff === 1) return 'tomorrow'
-  return `in ${diff} days`
 }
 
 type FormSub = SubTask & { _key: string }
@@ -408,7 +410,7 @@ const TaskForm = ({
               </div>
               <div className="mt-1.5 font-mono text-xs text-zinc-500">
                 {format(dueDate, 'EEEE, LLL d')} ·{' '}
-                {dayDiffPhrase(dayDiffFor(due))}
+                {formatDueDistance(dayDiffFor(due))}
               </div>
             </Field>
 
@@ -457,6 +459,8 @@ const TaskForm = ({
                     <button
                       key={d}
                       type="button"
+                      aria-pressed={on}
+                      aria-label={dayFull[i]}
                       onClick={() =>
                         setRepeatWeekdays((s) => [
                           i === 0 ? !on : s[0],
@@ -673,6 +677,7 @@ const TaskForm = ({
                           ])
                         }
                         placeholder={`Subtask ${i + 1}`}
+                        aria-label={`Subtask ${i + 1}`}
                         className="flex-1 bg-transparent font-mono text-base text-zinc-100 outline-none placeholder:text-zinc-700"
                       />
                       <label className="flex items-center gap-1.5 text-[10px] tracking-wider text-zinc-500 uppercase">

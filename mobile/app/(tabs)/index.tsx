@@ -247,6 +247,8 @@ function Hero({
         Task {index + 1} of {total} · Right now
       </Text>
       <Text
+        accessibilityElementsHidden={true}
+        importantForAccessibility="no-hide-descendants"
         style={{
           textAlign: 'center',
           fontSize: 64,

@@ -1,5 +1,9 @@
 import { newSafeDate } from '@dtn/shared/helpers'
-import { heatmapColor, percentile } from '@dtn/shared/heatmap'
+import {
+  heatmapCellPosition,
+  heatmapColor,
+  percentile,
+} from '@dtn/shared/heatmap'
 import { useStats } from '@dtn/shared/queries'
 import type { StatsResult } from '@dtn/shared/types'
 import { Stack } from 'expo-router'
@@ -212,11 +216,12 @@ function Heatmap({ data }: { data: StatsResult }) {
     Array.from({ length: 7 }, () => empty),
   )
   for (let i = 0; i < data.heatmap.length; i++) {
-    const offsetFromToday = data.heatmap.length - 1 - i
-    const dowOffset = todayDow - offsetFromToday
-    const colsBack = Math.ceil(-dowOffset / 7)
-    const col = HEATMAP_COLS - 1 - colsBack
-    const row = ((dowOffset % 7) + 7) % 7
+    const { col, row } = heatmapCellPosition(
+      i,
+      data.heatmap.length,
+      todayDow,
+      HEATMAP_COLS,
+    )
     if (col >= 0 && col < HEATMAP_COLS) grid[col][row] = data.heatmap[i]
   }
   const nonZeroSorted = data.heatmap
