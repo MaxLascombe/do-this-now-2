@@ -140,6 +140,34 @@ export default function Profile() {
         </Pressable>
 
         <Pressable
+          onPress={() => router.push('/tags')}
+          accessibilityRole="button"
+          accessibilityLabel="Tags"
+          style={({ pressed }) => ({
+            flexDirection: 'row',
+            alignItems: 'center',
+            gap: 10,
+            paddingVertical: 14,
+            paddingHorizontal: 18,
+            borderRadius: 999,
+            borderWidth: 1,
+            borderColor: '#27272a',
+            backgroundColor: pressed ? 'rgba(24,24,27,0.8)' : 'transparent',
+          })}
+        >
+          <Text style={{ fontSize: 16 }}>🏷</Text>
+          <Text
+            style={{
+              fontFamily: 'JetBrainsMono_400Regular',
+              fontSize: 14,
+              color: '#fafafa',
+            }}
+          >
+            Tags
+          </Text>
+        </Pressable>
+
+        <Pressable
           onPress={onExport}
           accessibilityRole="button"
           accessibilityLabel="Export your tasks"

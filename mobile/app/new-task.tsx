@@ -7,14 +7,18 @@ import { TaskForm } from '../components/TaskForm'
 export default function NewTask() {
   const router = useRouter()
   const mutation = useCreateTask()
-  const { due } = useLocalSearchParams<{ due?: string }>()
+  const { due, tag } = useLocalSearchParams<{ due?: string; tag?: string }>()
 
-  // Calendar's "add for this day" passes a YYYY-M-D due to pre-fill the date.
+  // Calendar's "add for this day" passes a YYYY-M-D due to pre-fill the date;
+  // the Tags screen passes a tag to pre-fill it on the new task.
   const initial = (() => {
-    if (!due) return undefined
-    const [y, m, d] = due.split('-').map((s) => parseInt(s, 10))
-    if (!y || !m || !d) return undefined
-    return { dueYear: y, dueMonth: m, dueDay: d }
+    const init: { dueYear?: number; dueMonth?: number; dueDay?: number; tags?: string[] } = {}
+    if (due) {
+      const [y, m, d] = due.split('-').map((s) => parseInt(s, 10))
+      if (y && m && d) Object.assign(init, { dueYear: y, dueMonth: m, dueDay: d })
+    }
+    if (tag) init.tags = [tag]
+    return Object.keys(init).length > 0 ? init : undefined
   })()
 
   return (
