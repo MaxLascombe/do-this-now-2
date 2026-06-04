@@ -240,7 +240,7 @@ export const ProgressPopover = () => {
           iconColor={STREAK}
           label="Streak"
           value={p.streak}
-          unit="days"
+          unit={p.streak === 1 ? 'day' : 'days'}
           active={p.streakIsActive}
         />
         <DetailRow

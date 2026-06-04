@@ -280,7 +280,7 @@ export const MobileProgressSheet = ({ onClose }: { onClose: () => void }) => {
             iconColor={STREAK}
             label="Streak"
             value={p.streak}
-            unit="days"
+            unit={p.streak === 1 ? 'day' : 'days'}
           />
           <SheetStat
             icon="♥"
