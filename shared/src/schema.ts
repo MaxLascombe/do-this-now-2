@@ -114,6 +114,9 @@ export const tasks = pgTable(
     notes: text('notes'),
     // User-defined labels for grouping/filtering.
     tags: jsonb('tags').$type<string[]>().notNull().default([]),
+    // When set, the task is archived: hidden from active lists/progress but
+    // not deleted. Null means active.
+    archivedAt: timestamp('archived_at', { withTimezone: true }),
     subtasks: jsonb('subtasks').$type<SubTask[]>().notNull().default([]),
     createdAt: timestamp('created_at', { withTimezone: true })
       .notNull()
