@@ -1,9 +1,10 @@
 import { startOfToday } from '@dtn/shared/day-index'
 import { dueGroupLabel, tasksListEyebrow } from '@dtn/shared/format'
-import { newSafeDate } from '@dtn/shared/helpers'
+import { dateString, newSafeDate } from '@dtn/shared/helpers'
 import {
   useAllTasks,
   useCompleteTask,
+  useCreateTask,
   useDeleteTask,
   usePrefetchTask,
   usePrimeTaskCache,
@@ -54,7 +55,9 @@ function TasksList() {
   const navigate = useNavigate()
   const [selectedTask, setSelectedTask] = useState(0)
   const [sort, setSort] = useState<'CHRON' | 'TOP'>('CHRON')
+  const [query, setQuery] = useState('')
   const taskElems = useRef<Array<HTMLElement>>([])
+  const searchRef = useRef<HTMLInputElement>(null)
 
   const allTasks = useAllTasks({ enabled: sort === 'CHRON' })
   const topTasks = useTopTasks({ enabled: sort === 'TOP' })
@@ -71,8 +74,9 @@ function TasksList() {
     } else {
       sortTasks(arr, startOfToday())
     }
-    return arr
-  }, [sort, data, dataTop])
+    const q = query.trim().toLowerCase()
+    return q ? arr.filter((t) => t.title.toLowerCase().includes(q)) : arr
+  }, [sort, data, dataTop, query])
 
   const indexOf = useMemo(() => {
     const m = new Map<string, number>()
@@ -80,13 +84,42 @@ function TasksList() {
     return (id: string) => m.get(id) ?? -1
   }, [tasks])
 
+  // A new search resets the cursor to the top result.
+  useEffect(() => setSelectedTask(0), [query])
+
   const doneMutation = useCompleteTask()
   const deleteMutation = useDeleteTask()
   const snoozeMutation = useSnoozeTask()
   const unsnoozeMutation = useUnsnoozeTask()
+  const createMutation = useCreateTask()
   const prefetchTask = usePrefetchTask()
   const primeTaskCache = usePrimeTaskCache()
   const confirm = useConfirm()
+
+  const [quickTitle, setQuickTitle] = useState('')
+  // Capture a task fast: a title plus sensible defaults (due today, 30 min).
+  const quickAdd = () => {
+    const title = quickTitle.trim()
+    if (!title || createMutation.isPending) return
+    createMutation.mutate({
+      title,
+      emoji: '📝',
+      due: dateString(new Date()),
+      dueTime: null,
+      strictDeadline: false,
+      repeat: 'No Repeat',
+      repeatInterval: 1,
+      repeatUnit: 'day',
+      repeatWeekdays: [false, false, false, false, false, false, false],
+      timeFrame: 30,
+      timekeeperId: null,
+      timeframeType: 'fixed',
+      subtasks: [],
+      notes: '',
+      tags: [],
+    })
+    setQuickTitle('')
+  }
 
   const [pendingComplete, setPendingComplete] = useState<{
     task: Task
@@ -166,6 +199,11 @@ function TasksList() {
   }, [selectedTask])
 
   const keyActions: Array<KeyAction> = [
+    {
+      key: '/',
+      description: 'Search tasks',
+      action: () => searchRef.current?.focus(),
+    },
     { key: 'd', description: 'Mark task as done', action: completeAction },
     {
       key: 'n',
@@ -283,6 +321,61 @@ function TasksList() {
         />
       </div>
 
+      <form
+        onSubmit={(e) => {
+          e.preventDefault()
+          quickAdd()
+        }}
+        className="relative px-5 pb-3 md:px-10"
+      >
+        <span className="pointer-events-none absolute top-1/2 left-9 -translate-y-1/2 font-mono text-sm text-zinc-500 md:left-14">
+          ＋
+        </span>
+        <input
+          type="text"
+          value={quickTitle}
+          onChange={(e) => setQuickTitle(e.target.value)}
+          placeholder="Add a task — press Enter"
+          aria-label="Quick-add a task"
+          className="w-full rounded-full border border-zinc-800 bg-zinc-900/50 py-2 pr-4 pl-9 font-mono text-sm text-zinc-100 outline-none placeholder:text-zinc-600 focus:border-zinc-600 md:pl-10"
+        />
+      </form>
+
+      <div className="relative px-5 pb-3 md:px-10">
+        <input
+          ref={searchRef}
+          type="text"
+          value={query}
+          onChange={(e) => setQuery(e.target.value)}
+          onKeyDown={(e) => {
+            if (e.key === 'Escape') {
+              if (query) setQuery('')
+              else e.currentTarget.blur()
+            }
+          }}
+          placeholder="Search tasks…"
+          aria-label="Search tasks"
+          className="w-full rounded-full border border-zinc-800 bg-zinc-900/50 px-4 py-2 pr-9 font-mono text-sm text-zinc-100 outline-none placeholder:text-zinc-600 focus:border-zinc-600"
+        />
+        {query ? (
+          <button
+            type="button"
+            onClick={() => {
+              setQuery('')
+              searchRef.current?.focus()
+            }}
+            aria-label="Clear search"
+            className="absolute top-1/2 right-8 -translate-y-1/2 px-1 font-mono text-sm text-zinc-500 hover:text-zinc-200 md:right-12"
+          >
+            ✕
+          </button>
+        ) : (
+          <kbd className="absolute top-1/2 right-8 -translate-y-1/2 rounded border border-zinc-800 bg-zinc-900 px-1 py-0.5 font-mono text-[10px] font-bold text-zinc-500 md:right-12">
+            /
+          </kbd>
+        )}
+      </div>
+
       <div className="flex-1 overflow-y-auto px-5 pb-28 md:px-10 md:pb-24">
         {tasks.length === 0 && !isFetching && (
           <div className="mt-8 flex justify-center text-center font-mono text-sm text-zinc-500">
@@ -291,6 +384,8 @@ function TasksList() {
                 message="Couldn't load your tasks."
                 onRetry={() => activeQuery.refetch()}
               />
+            ) : query ? (
+              `No tasks match "${query.trim()}"`
             ) : (
               'No tasks'
             )}
