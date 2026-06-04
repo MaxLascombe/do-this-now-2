@@ -7,6 +7,7 @@ import { useMemo, useState } from 'react'
 import {
   ActivityIndicator,
   Pressable,
+  RefreshControl,
   ScrollView,
   Text,
   View,
@@ -33,7 +34,7 @@ const mono = 'JetBrainsMono_400Regular'
 
 export default function Calendar() {
   const router = useRouter()
-  const { data, isLoading } = useAllTasks()
+  const { data, isLoading, isFetching, refetch } = useAllTasks()
   const [cursor, setCursor] = useState(() => startOfMonth(new Date()))
   const [selectedKey, setSelectedKey] = useState<string | null>(null)
 
@@ -90,7 +91,17 @@ export default function Calendar() {
   return (
     <View style={{ flex: 1, backgroundColor: '#0a0a0a' }}>
       <Stack.Screen options={{ title: 'Calendar' }} />
-      <ScrollView contentContainerStyle={{ padding: 16, paddingBottom: 40 }}>
+      <ScrollView
+        contentContainerStyle={{ padding: 16, paddingBottom: 40 }}
+        refreshControl={
+          <RefreshControl
+            refreshing={isFetching && !isLoading}
+            onRefresh={() => refetch()}
+            tintColor="#fafafa"
+            colors={['#fafafa']}
+          />
+        }
+      >
         <View
           style={{
             flexDirection: 'row',
