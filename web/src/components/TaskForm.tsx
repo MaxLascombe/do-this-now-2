@@ -15,6 +15,7 @@ import {
 import { ZodError } from 'zod'
 
 import useKeyAction, { type KeyAction } from '../hooks/useKeyAction'
+import { useConfirm } from './ConfirmProvider'
 import { KeyHints } from './KeyHints'
 import type {
   RepeatOption,
@@ -97,6 +98,7 @@ const TaskForm = ({
 }) => {
   const api = useApi()
   const navigate = useNavigate()
+  const confirm = useConfirm()
   const [formError, setFormError] = useState<ZodError>()
   const [title, setTitle] = useState(initialTitle ?? '')
   const [emoji, setEmoji] = useState(initialEmoji ?? '')
@@ -302,7 +304,7 @@ const TaskForm = ({
       <div className="flex-1 px-5 pb-[200px] md:px-10 md:pb-32">
         <div className="mx-auto flex max-w-2xl flex-col gap-6">
           {errorMessage && (
-            <div className="font-mono text-sm text-rose-400">
+            <div role="alert" className="font-mono text-sm text-rose-400">
               {errorMessage}
             </div>
           )}
@@ -630,15 +632,14 @@ const TaskForm = ({
               <Toggle
                 label="Add subtasks"
                 on={hasSubtasks}
-                onChange={(on) => {
-                  if (
-                    !on &&
-                    subtasks.length > 0 &&
-                    !window.confirm(
-                      'Are you sure you want to remove all subtasks?',
-                    )
-                  )
-                    return
+                onChange={async (on) => {
+                  if (!on && subtasks.length > 0) {
+                    const ok = await confirm({
+                      message: 'Remove all subtasks?',
+                      confirmLabel: 'Remove',
+                    })
+                    if (!ok) return
+                  }
                   if (!on) setSubtasks([])
                   else if (subtasks.length === 0)
                     setSubtasks([{ done: false, title: '', _key: newKey() }])

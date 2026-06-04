@@ -8,6 +8,18 @@ export type KeyAction = {
   shift?: boolean
 }
 
+// True when a keydown should trigger this action: the named key matches and
+// no alt/ctrl/meta is held, with shift required to match only when specified.
+export const matchesKeyAction = (
+  e: Pick<KeyboardEvent, 'altKey' | 'ctrlKey' | 'metaKey' | 'shiftKey' | 'which'>,
+  kA: KeyAction,
+): boolean =>
+  !e.altKey &&
+  !e.ctrlKey &&
+  !e.metaKey &&
+  keycode(kA.key) === e.which &&
+  (kA.shift === undefined || kA.shift === e.shiftKey)
+
 const useKeyAction = (
   keyActions: Array<KeyAction>,
   event: 'keydown' | 'keyup' = 'keydown',
@@ -21,13 +33,7 @@ const useKeyAction = (
       )
         return
       for (const kA of keyActions) {
-        if (
-          !e.altKey &&
-          !e.ctrlKey &&
-          !e.metaKey &&
-          keycode(kA.key) === e.which &&
-          (kA.shift === undefined || kA.shift === e.shiftKey)
-        ) {
+        if (matchesKeyAction(e, kA)) {
           e.preventDefault()
           kA.action(e)
         }
