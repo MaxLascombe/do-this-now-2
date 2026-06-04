@@ -1,3 +1,4 @@
+import { formatDaysAgo } from '@dtn/shared/format'
 import { dateString } from '@dtn/shared/helpers'
 import { useHistory, useStats } from '@dtn/shared/queries'
 import { DAY_MS, minutesToHours } from '@dtn/shared/time'
@@ -61,12 +62,7 @@ export default function History() {
   const hours = Math.floor(totalMinutes / 60)
   const mins = totalMinutes % 60
 
-  const relLabel =
-    daysAgo === 0
-      ? 'today'
-      : daysAgo === 1
-        ? '1 day ago'
-        : `${daysAgo} days ago`
+  const relLabel = formatDaysAgo(daysAgo)
 
   return (
     <SafeAreaView
@@ -141,7 +137,11 @@ export default function History() {
                 flexWrap: 'wrap',
               }}
             >
-              <Stat label="Completed" value={String(entries.length)} unit="tasks" />
+              <Stat
+                label="Completed"
+                value={String(entries.length)}
+                unit={entries.length === 1 ? 'task' : 'tasks'}
+              />
               <Stat
                 label="Time spent"
                 value={mins === 0 ? `${hours}h` : `${hours}h ${mins}m`}
@@ -341,6 +341,8 @@ function CompletedRow({ entry }: { entry: HistoryEntry }) {
       }}
     >
       <View
+        accessibilityElementsHidden={true}
+        importantForAccessibility="no-hide-descendants"
         style={{
           width: 26,
           height: 26,
