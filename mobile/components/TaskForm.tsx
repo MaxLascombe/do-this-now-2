@@ -601,6 +601,7 @@ export function TaskForm({
                     }
                     placeholder={`Subtask ${i + 1}`}
                     placeholderTextColor="#3f3f46"
+                    accessibilityLabel={`Subtask ${i + 1}`}
                     style={{
                       flex: 1,
                       fontFamily: 'JetBrainsMono_400Regular',
