@@ -1,7 +1,13 @@
 import { newSafeDate } from '@dtn/shared/helpers'
-import { useDeleteTask, useTask, useUpdateTask } from '@dtn/shared/queries'
+import {
+  useCreateTask,
+  useDeleteTask,
+  useTask,
+  useUpdateTask,
+} from '@dtn/shared/queries'
+import { taskToInput } from '@dtn/shared/task-input'
 import { Stack, useLocalSearchParams, useRouter } from 'expo-router'
-import { Alert, ScrollView, View } from 'react-native'
+import { Alert, Pressable, ScrollView, Text, View } from 'react-native'
 
 import { ErrorState } from '../../../components/ErrorState'
 import { Loading } from '../../../components/Loading'
@@ -14,6 +20,7 @@ export default function EditTask() {
   const taskQuery = useTask(id ?? '')
   const mutation = useUpdateTask()
   const deleteMutation = useDeleteTask()
+  const createMutation = useCreateTask()
   // 0-time-frame children show their keeper's timer.
   const keeperQuery = useTask(taskQuery.data?.timekeeperId ?? '')
   const timerTask = taskQuery.data?.timekeeperId
@@ -48,6 +55,20 @@ export default function EditTask() {
   const task = taskQuery.data
   const dueDate = newSafeDate(task.due)
 
+  const duplicate = () => {
+    if (createMutation.isPending) return
+    createMutation.mutate(
+      { ...taskToInput(task), title: `${task.title} (copy)` },
+      {
+        onSuccess: (created) =>
+          router.replace({
+            pathname: '/tasks/[id]/edit',
+            params: { id: created.id },
+          }),
+      },
+    )
+  }
+
   const onDelete = () => {
     Alert.alert('Delete task', `Delete '${task.title}'?`, [
       { text: 'Cancel', style: 'cancel' },
@@ -64,7 +85,21 @@ export default function EditTask() {
 
   return (
     <View style={{ flex: 1, backgroundColor: '#0a0a0a' }}>
-      <Stack.Screen options={{ title: `Edit: ${task.title}` }} />
+      <Stack.Screen
+        options={{
+          title: `Edit: ${task.title}`,
+          headerRight: () => (
+            <Pressable
+              onPress={duplicate}
+              accessibilityRole="button"
+              accessibilityLabel="Duplicate task"
+              hitSlop={8}
+            >
+              <Text style={{ color: '#a1a1aa', fontSize: 15 }}>⧉ Copy</Text>
+            </Pressable>
+          ),
+        }}
+      />
       {timerTask && (
         <ScrollView
           horizontal={false}

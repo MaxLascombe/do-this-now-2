@@ -1,5 +1,6 @@
 import { formatDueLabel, formatRepeat } from '@dtn/shared/format'
-import { useTask } from '@dtn/shared/queries'
+import { useCreateTask, useTask } from '@dtn/shared/queries'
+import { taskToInput } from '@dtn/shared/task-input'
 import { minutesToHours } from '@dtn/shared/time'
 import { Link, createFileRoute, useRouter } from '@tanstack/react-router'
 import { useState } from 'react'
@@ -23,9 +24,25 @@ function TaskDetail() {
   const { id } = Route.useParams()
   const router = useRouter()
   const taskQuery = useTask(id)
+  const createMutation = useCreateTask()
   const [sheetOpen, setSheetOpen] = useState(false)
 
   const task = taskQuery.data
+
+  // Copy this task and jump straight into editing the copy.
+  const duplicate = () => {
+    if (!task || createMutation.isPending) return
+    createMutation.mutate(
+      { ...taskToInput(task), title: `${task.title} (copy)` },
+      {
+        onSuccess: (created) =>
+          router.navigate({
+            to: '/tasks/$id/edit',
+            params: { id: created.id },
+          }),
+      },
+    )
+  }
   // 0-time-frame children track their timer on the keeper row, like the
   // edit page does — load it so the widget shows + mutates the right task.
   const keeperQuery = useTask(task?.timekeeperId ?? '')
@@ -117,6 +134,14 @@ function TaskDetail() {
           <PageHeading eyebrow="task">{task.title}</PageHeading>
         </div>
         <div className="hidden items-center gap-2 md:flex">
+          <button
+            type="button"
+            onClick={duplicate}
+            disabled={createMutation.isPending}
+            className="flex items-center gap-2 rounded-full border border-zinc-800 px-3 py-1.5 font-mono text-sm text-zinc-400 hover:bg-zinc-900 hover:text-zinc-50 disabled:opacity-50"
+          >
+            <span>⧉ Duplicate</span>
+          </button>
           <Link
             to="/tasks/$id/edit"
             params={{ id }}
@@ -196,13 +221,23 @@ function TaskDetail() {
           </div>
         )}
 
-        <Link
-          to="/tasks/$id/edit"
-          params={{ id }}
-          className="flex w-full items-center justify-center gap-2 rounded-full border border-zinc-800 px-4 py-2.5 font-mono text-sm text-zinc-300 hover:bg-zinc-900 hover:text-zinc-50 md:hidden"
-        >
-          Edit task
-        </Link>
+        <div className="flex gap-2 md:hidden">
+          <Link
+            to="/tasks/$id/edit"
+            params={{ id }}
+            className="flex flex-1 items-center justify-center gap-2 rounded-full border border-zinc-800 px-4 py-2.5 font-mono text-sm text-zinc-300 hover:bg-zinc-900 hover:text-zinc-50"
+          >
+            Edit task
+          </Link>
+          <button
+            type="button"
+            onClick={duplicate}
+            disabled={createMutation.isPending}
+            className="flex items-center justify-center gap-2 rounded-full border border-zinc-800 px-4 py-2.5 font-mono text-sm text-zinc-300 hover:bg-zinc-900 hover:text-zinc-50 disabled:opacity-50"
+          >
+            ⧉ Duplicate
+          </button>
+        </div>
       </div>
     </div>
   )
