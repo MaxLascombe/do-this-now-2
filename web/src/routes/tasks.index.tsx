@@ -54,6 +54,7 @@ function TasksList() {
   const [selectedTask, setSelectedTask] = useState(0)
   const [sort, setSort] = useState<'CHRON' | 'TOP'>('CHRON')
   const [tagFilter, setTagFilter] = useState<string | null>(null)
+  const [query, setQuery] = useState('')
   const taskElems = useRef<Array<HTMLElement>>([])
 
   const allTasks = useAllTasks({ enabled: sort === 'CHRON' })
@@ -74,6 +75,13 @@ function TasksList() {
   const tasks = useMemo(() => {
     let arr = sort === 'CHRON' ? [...data] : [...dataTop]
     if (tagFilter) arr = arr.filter((t) => t.tags.includes(tagFilter))
+    const q = query.trim().toLowerCase()
+    if (q)
+      arr = arr.filter(
+        (t) =>
+          t.title.toLowerCase().includes(q) ||
+          t.tags.some((tag) => tag.toLowerCase().includes(q)),
+      )
     if (sort === 'CHRON') {
       arr.sort(
         (a, b) => newSafeDate(a.due).getTime() - newSafeDate(b.due).getTime(),
@@ -82,7 +90,7 @@ function TasksList() {
       sortTasks(arr, startOfToday())
     }
     return arr
-  }, [sort, data, dataTop, tagFilter])
+  }, [sort, data, dataTop, tagFilter, query])
 
   const indexOf = useMemo(() => {
     const m = new Map<string, number>()
@@ -285,6 +293,35 @@ function TasksList() {
         />
       </div>
 
+      <div className="px-5 pb-3 md:px-10">
+        <div className="relative max-w-md">
+          <input
+            type="text"
+            value={query}
+            onChange={(e) => {
+              setQuery(e.target.value)
+              setSelectedTask(0)
+            }}
+            placeholder="Search tasks…"
+            aria-label="Search tasks"
+            className="w-full rounded-full border border-zinc-800 bg-zinc-900/60 px-4 py-2 pr-9 font-mono text-sm text-zinc-100 placeholder:text-zinc-600 focus:border-zinc-600 focus:outline-none"
+          />
+          {query && (
+            <button
+              type="button"
+              onClick={() => {
+                setQuery('')
+                setSelectedTask(0)
+              }}
+              aria-label="Clear search"
+              className="absolute top-1/2 right-3 -translate-y-1/2 font-mono text-sm text-zinc-500 hover:text-zinc-200"
+            >
+              ✕
+            </button>
+          )}
+        </div>
+      </div>
+
       {allTags.length > 0 && (
         <TagFilterBar
           tags={allTags}
@@ -304,6 +341,8 @@ function TasksList() {
                 message="Couldn't load your tasks."
                 onRetry={() => activeQuery.refetch()}
               />
+            ) : query.trim() || tagFilter ? (
+              'No matching tasks'
             ) : (
               'No tasks'
             )}
