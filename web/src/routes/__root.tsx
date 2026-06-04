@@ -15,6 +15,18 @@ export const Route = createRootRoute({
       { charSet: 'utf-8' },
       { name: 'viewport', content: 'width=device-width, initial-scale=1' },
       { title: 'Do This Now' },
+      {
+        name: 'description',
+        content:
+          'A focus-first to-do app that surfaces the single thing to do next — and gets out of your way.',
+      },
+      { name: 'theme-color', content: '#0a0a0a' },
+      { name: 'apple-mobile-web-app-capable', content: 'yes' },
+      {
+        name: 'apple-mobile-web-app-status-bar-style',
+        content: 'black-translucent',
+      },
+      { name: 'apple-mobile-web-app-title', content: 'Do This Now' },
     ],
     links: [
       { rel: 'preconnect', href: 'https://fonts.googleapis.com' },
