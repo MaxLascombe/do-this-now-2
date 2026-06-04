@@ -1,4 +1,8 @@
 import Anthropic from '@anthropic-ai/sdk'
+import { eq } from 'drizzle-orm'
+
+import { emojiSuggestions } from '@dtn/shared/schema'
+import { db } from '../../db'
 
 // Lazy singleton — instantiating at import time would crash any code path
 // that imports this lib in an environment where the key isn't set (tests,
@@ -30,10 +34,25 @@ export function extractEmojis(text: string): Array<string> {
 
 const MODEL = 'claude-haiku-4-5-20251001'
 
+// Cache key: case- and whitespace-insensitive so "Buy milk", "buy  milk",
+// and "buy milk " all share one cached entry.
+export function normalizeTitle(title: string): string {
+  return title.trim().toLowerCase().replace(/\s+/g, ' ')
+}
+
 /** Suggest 5 emoji for a task title. Returns at most 5 strings. */
 export async function suggestEmojis(title: string): Promise<Array<string>> {
   const trimmed = title.trim()
   if (!trimmed) return []
+  const key = normalizeTitle(title)
+
+  const cached = await db
+    .select({ emojis: emojiSuggestions.emojis })
+    .from(emojiSuggestions)
+    .where(eq(emojiSuggestions.title, key))
+    .limit(1)
+  if (cached[0]) return cached[0].emojis
+
   const resp = await client().messages.create({
     model: MODEL,
     max_tokens: 60,
@@ -49,6 +68,16 @@ export async function suggestEmojis(title: string): Promise<Array<string>> {
     .map((b) => b.text)
     .join('')
   const emojis = extractEmojis(text).slice(0, 5)
+
+  // Pin non-empty results only; a blank/garbled reply isn't worth caching —
+  // let the next request retry. Concurrent misses race: first insert wins,
+  // the rest no-op.
+  if (emojis.length > 0) {
+    await db
+      .insert(emojiSuggestions)
+      .values({ title: key, emojis })
+      .onConflictDoNothing()
+  }
   return emojis
 }
 

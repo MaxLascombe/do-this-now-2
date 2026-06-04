@@ -37,6 +37,18 @@ export const snoozeTask = createServerFn({ method: 'POST' })
     ),
   )
 
+export const unsnoozeTask = createServerFn({ method: 'POST' })
+  .inputValidator(validate(z.object({ id: v.id })))
+  .handler(async ({ data }) =>
+    actionsLib.unsnoozeTask(await requireUserId(), data.id),
+  )
+
+export const snoozeManyTasks = createServerFn({ method: 'POST' })
+  .inputValidator(validate(z.object({ ids: z.array(v.id).max(500) })))
+  .handler(async ({ data }) =>
+    actionsLib.snoozeManyTasks(await requireUserId(), data.ids),
+  )
+
 const timerActionSchema = z
   .discriminatedUnion('kind', [
     z.object({ kind: z.literal('start') }),
