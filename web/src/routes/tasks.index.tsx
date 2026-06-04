@@ -1,4 +1,5 @@
-import { dayIndex, startOfToday } from '@dtn/shared/day-index'
+import { startOfToday } from '@dtn/shared/day-index'
+import { dueGroupLabel, tasksListEyebrow } from '@dtn/shared/format'
 import { newSafeDate } from '@dtn/shared/helpers'
 import {
   useAllTasks,
@@ -18,7 +19,6 @@ import {
 } from '@dtn/shared/timer-utils'
 
 import { createFileRoute, useNavigate } from '@tanstack/react-router'
-import { format } from 'date-fns'
 import {
   Fragment,
   useCallback,
@@ -48,45 +48,6 @@ export const Route = createFileRoute('/tasks/')({
 })
 
 const OVERDUE = '#fb7185'
-
-type GroupLabel = {
-  label: string
-  eyebrow: string
-  overdueSuffix: string | null
-}
-
-const groupLabel = (firstTaskDue: string): GroupLabel => {
-  const d = newSafeDate(firstTaskDue)
-  const idx = dayIndex(d)
-  if (idx < 0) {
-    const days = Math.abs(idx)
-    return {
-      // Treat overdue days like any other dated group — label is the
-      // weekday, rose accent stays *only* on the trailing days-overdue
-      // tag so a long list of overdues doesn't drown the page in red.
-      label: format(d, 'EEEE'),
-      eyebrow: format(d, 'LLL d'),
-      overdueSuffix: `${days} day${days === 1 ? '' : 's'} overdue`,
-    }
-  }
-  if (idx === 0)
-    return {
-      label: 'Today',
-      eyebrow: format(d, 'EEEE, LLL d'),
-      overdueSuffix: null,
-    }
-  if (idx === 1)
-    return {
-      label: 'Tomorrow',
-      eyebrow: format(d, 'EEEE, LLL d'),
-      overdueSuffix: null,
-    }
-  return {
-    label: format(d, 'EEEE'),
-    eyebrow: format(d, 'LLL d'),
-    overdueSuffix: null,
-  }
-}
 
 function TasksList() {
   const navigate = useNavigate()
@@ -279,18 +240,7 @@ function TasksList() {
     [sort, tasks],
   )
 
-  const eyebrow = useMemo(() => {
-    const total = tasks.length
-    const weekStart = startOfToday()
-    weekStart.setDate(weekStart.getDate() - weekStart.getDay())
-    const weekEnd = new Date(weekStart)
-    weekEnd.setDate(weekEnd.getDate() + 7)
-    const thisWeek = tasks.filter((t) => {
-      const d = newSafeDate(t.due)
-      return d >= weekStart && d < weekEnd
-    }).length
-    return `${total} active · ${thisWeek} this week`
-  }, [tasks])
+  const eyebrow = useMemo(() => tasksListEyebrow(tasks), [tasks])
 
   const setRef = useCallback(
     (id: string) => (e: HTMLButtonElement | null) => {
@@ -341,7 +291,7 @@ function TasksList() {
         {sort === 'CHRON' ? (
           <div className="flex flex-col gap-6">
             {groupedChron.map(({ key, tasks: gTasks }) => {
-              const g = groupLabel(key)
+              const g = dueGroupLabel(key)
               return (
                 <div key={key}>
                   <div className="mb-2 flex items-baseline gap-3">
@@ -509,6 +459,7 @@ const SortPill = ({
   <button
     type="button"
     onClick={onClick}
+    aria-pressed={active}
     className={
       'flex flex-1 items-center justify-center gap-2 rounded-full px-3 py-1.5 transition-colors md:flex-none ' +
       (active
