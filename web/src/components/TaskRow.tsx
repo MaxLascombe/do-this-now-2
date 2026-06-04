@@ -126,6 +126,9 @@ const TaskRowBase = ({
               strict
             </span>
           )}
+          {task.tags.map((t) => (
+            <span key={t}>#{t}</span>
+          ))}
         </div>
       </div>
       {kbd && (
