@@ -1,7 +1,7 @@
 import { formatScheduleStatus } from '@dtn/shared/format'
+import { computeSchedule } from '@dtn/shared/pacing'
 import { useProgressToday } from '@dtn/shared/queries'
 import { computePoints } from '@dtn/shared/scoring'
-import { MINUTES_IN_DAY, START_OF_DAY_MINUTES } from '@dtn/shared/time'
 import { Link, useLocation } from '@tanstack/react-router'
 import { useEffect, useRef, useState } from 'react'
 
@@ -83,18 +83,11 @@ export const TopBar = () => {
   let points = 0
   if (progress.data) {
     const { done, todo, lives, minutesToReduceTomorrowDays } = progress.data
-    const maxTodo = Math.max(todo, minutesToReduceTomorrowDays)
-    const timeOfDay = now.getHours() * 60 + now.getMinutes()
-    const pctOfDay = Math.max(
-      0,
-      Math.min(
-        1,
-        (timeOfDay - START_OF_DAY_MINUTES) /
-          (MINUTES_IN_DAY - START_OF_DAY_MINUTES),
-      ),
+    const { shouldBeDone, isBeforeWorkday } = computeSchedule(
+      now,
+      todo,
+      minutesToReduceTomorrowDays,
     )
-    const shouldBeDone = maxTodo * pctOfDay
-    const isBeforeWorkday = timeOfDay < START_OF_DAY_MINUTES
     scheduleShort = formatScheduleStatus({
       done,
       shouldBeDone,

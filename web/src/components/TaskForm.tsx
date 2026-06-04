@@ -304,7 +304,7 @@ const TaskForm = ({
       <div className="flex-1 px-5 pb-[200px] md:px-10 md:pb-32">
         <div className="mx-auto flex max-w-2xl flex-col gap-6">
           {errorMessage && (
-            <div className="font-mono text-sm text-rose-400">
+            <div role="alert" className="font-mono text-sm text-rose-400">
               {errorMessage}
             </div>
           )}
