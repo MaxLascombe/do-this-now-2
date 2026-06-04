@@ -450,6 +450,16 @@ function TasksList() {
             <Loading />
           </div>
         )}
+
+        <div className="mt-8 flex justify-center">
+          <button
+            type="button"
+            onClick={() => navigate({ to: '/archive' })}
+            className="font-mono text-xs text-zinc-600 transition-colors hover:text-zinc-300"
+          >
+            View archived →
+          </button>
+        </div>
       </div>
 
       <div className="fixed right-10 bottom-6 left-10 hidden md:block">
