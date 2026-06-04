@@ -1,4 +1,5 @@
-import { newSafeDate } from '@dtn/shared/helpers'
+import { useApi } from '@dtn/shared/api-client'
+import { dateString, newSafeDate } from '@dtn/shared/helpers'
 import {
   heatmapCellPosition,
   heatmapColor,
@@ -7,6 +8,8 @@ import {
 import { useStats } from '@dtn/shared/queries'
 import { createFileRoute, useNavigate } from '@tanstack/react-router'
 import { useState } from 'react'
+
+import { tasksToExportJson } from '../lib/export'
 
 import { KeyHints } from '../components/KeyHints'
 import { ErrorState } from '../components/ErrorState'
@@ -103,6 +106,7 @@ function Stats() {
           <TopTasks data={data} />
           <EmojiMix data={data} />
           <Discipline data={data} />
+          <ExportData />
         </div>
       </div>
 
@@ -121,6 +125,45 @@ function Section({ title, children }: { title: string; children: ReactNode }) {
       </h2>
       {children}
     </section>
+  )
+}
+
+function ExportData() {
+  const api = useApi()
+  const [busy, setBusy] = useState(false)
+  const onExport = async () => {
+    setBusy(true)
+    try {
+      const tasks = await api.tasks.list()
+      const blob = new Blob([tasksToExportJson(tasks)], {
+        type: 'application/json',
+      })
+      const url = URL.createObjectURL(blob)
+      const a = document.createElement('a')
+      a.href = url
+      a.download = `do-this-now-tasks-${dateString(new Date())}.json`
+      a.click()
+      URL.revokeObjectURL(url)
+    } finally {
+      setBusy(false)
+    }
+  }
+  return (
+    <Section title="Your data">
+      <div className="flex flex-wrap items-center justify-between gap-4">
+        <p className="font-mono text-xs text-zinc-500">
+          Download all your tasks as JSON — a backup you can re-import.
+        </p>
+        <button
+          type="button"
+          onClick={onExport}
+          disabled={busy}
+          className="shrink-0 rounded-full border border-zinc-700 px-4 py-2 font-mono text-sm text-zinc-200 transition-colors hover:border-zinc-500 hover:bg-zinc-900 disabled:opacity-40"
+        >
+          {busy ? 'Exporting…' : 'Export tasks (JSON)'}
+        </button>
+      </div>
+    </Section>
   )
 }
 
