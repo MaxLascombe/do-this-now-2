@@ -71,7 +71,11 @@ function TaskDetail() {
     const copy = await createTask.mutateAsync({
       ...taskToInput(task),
       title: `${task.title} (copy)`,
-      subtasks: task.subtasks.map((s) => ({ ...s, done: false })),
+      subtasks: task.subtasks.map((s) => ({
+        ...s,
+        done: false,
+        snooze: undefined,
+      })),
     })
     router.navigate({ to: '/tasks/$id', params: { id: copy.id } })
   }
