@@ -24,7 +24,6 @@ export function usePersistedState<T>(
     } catch {
       // unavailable or corrupt — keep the initial value
     }
-    loaded.current = true
   }, [key])
 
   useEffect(() => {
@@ -35,6 +34,13 @@ export function usePersistedState<T>(
       // quota / unavailable — ignore
     }
   }, [key, state])
+
+  // Registered after the write effect so it runs last on mount: the write
+  // effect skips the initial render (loaded still false) and only persists
+  // once the user actually changes the value.
+  useEffect(() => {
+    loaded.current = true
+  }, [])
 
   return [state, setState]
 }
