@@ -44,11 +44,9 @@ export const ymdSchema = z
   .string()
   .refine(
     (s) => {
-      const parts = s.split('-')
-      if (parts.length !== 3) return false
-      const [y, m, d] = parts.map((p) => parseInt(p))
-      if (!Number.isInteger(y) || !Number.isInteger(m) || !Number.isInteger(d))
-        return false
+      // All-digit parts only — parseInt() alone accepts '2026-5-1x', ' 5', '+5', '5.9'.
+      if (!/^\d+-\d+-\d+$/.test(s)) return false
+      const [y, m, d] = s.split('-').map((p) => parseInt(p))
       if (y < 1970 || y > 9999) return false
       if (m < 1 || m > 12) return false
       if (d < 1 || d > 31) return false
