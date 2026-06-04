@@ -9,6 +9,7 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
+import { Route as TagsRouteImport } from './routes/tags'
 import { Route as StatsRouteImport } from './routes/stats'
 import { Route as SettingsRouteImport } from './routes/settings'
 import { Route as NewTaskRouteImport } from './routes/new-task'
@@ -31,6 +32,11 @@ import { Route as ApiTasksIdTimerRouteImport } from './routes/api/tasks.$id.time
 import { Route as ApiTasksIdSnoozeRouteImport } from './routes/api/tasks.$id.snooze'
 import { Route as ApiTasksIdCompleteRouteImport } from './routes/api/tasks.$id.complete'
 
+const TagsRoute = TagsRouteImport.update({
+  id: '/tags',
+  path: '/tags',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const StatsRoute = StatsRouteImport.update({
   id: '/stats',
   path: '/stats',
@@ -144,6 +150,7 @@ export interface FileRoutesByFullPath {
   '/new-task': typeof NewTaskRoute
   '/settings': typeof SettingsRoute
   '/stats': typeof StatsRoute
+  '/tags': typeof TagsRoute
   '/api/stats': typeof ApiStatsRoute
   '/api/tasks': typeof ApiTasksRouteWithChildren
   '/tasks/$id': typeof TasksIdRouteWithChildren
@@ -167,6 +174,7 @@ export interface FileRoutesByTo {
   '/new-task': typeof NewTaskRoute
   '/settings': typeof SettingsRoute
   '/stats': typeof StatsRoute
+  '/tags': typeof TagsRoute
   '/api/stats': typeof ApiStatsRoute
   '/api/tasks': typeof ApiTasksRouteWithChildren
   '/tasks': typeof TasksIndexRoute
@@ -190,6 +198,7 @@ export interface FileRoutesById {
   '/new-task': typeof NewTaskRoute
   '/settings': typeof SettingsRoute
   '/stats': typeof StatsRoute
+  '/tags': typeof TagsRoute
   '/api/stats': typeof ApiStatsRoute
   '/api/tasks': typeof ApiTasksRouteWithChildren
   '/tasks/$id': typeof TasksIdRouteWithChildren
@@ -215,6 +224,7 @@ export interface FileRouteTypes {
     | '/new-task'
     | '/settings'
     | '/stats'
+    | '/tags'
     | '/api/stats'
     | '/api/tasks'
     | '/tasks/$id'
@@ -238,6 +248,7 @@ export interface FileRouteTypes {
     | '/new-task'
     | '/settings'
     | '/stats'
+    | '/tags'
     | '/api/stats'
     | '/api/tasks'
     | '/tasks'
@@ -260,6 +271,7 @@ export interface FileRouteTypes {
     | '/new-task'
     | '/settings'
     | '/stats'
+    | '/tags'
     | '/api/stats'
     | '/api/tasks'
     | '/tasks/$id'
@@ -284,6 +296,7 @@ export interface RootRouteChildren {
   NewTaskRoute: typeof NewTaskRoute
   SettingsRoute: typeof SettingsRoute
   StatsRoute: typeof StatsRoute
+  TagsRoute: typeof TagsRoute
   ApiStatsRoute: typeof ApiStatsRoute
   ApiTasksRoute: typeof ApiTasksRouteWithChildren
   TasksIdRoute: typeof TasksIdRouteWithChildren
@@ -295,6 +308,13 @@ export interface RootRouteChildren {
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
+    '/tags': {
+      id: '/tags'
+      path: '/tags'
+      fullPath: '/tags'
+      preLoaderRoute: typeof TagsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/stats': {
       id: '/stats'
       path: '/stats'
@@ -497,6 +517,7 @@ const rootRouteChildren: RootRouteChildren = {
   NewTaskRoute: NewTaskRoute,
   SettingsRoute: SettingsRoute,
   StatsRoute: StatsRoute,
+  TagsRoute: TagsRoute,
   ApiStatsRoute: ApiStatsRoute,
   ApiTasksRoute: ApiTasksRouteWithChildren,
   TasksIdRoute: TasksIdRouteWithChildren,

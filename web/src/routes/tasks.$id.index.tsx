@@ -367,12 +367,14 @@ function TaskDetail() {
         {task.tags.length > 0 && (
           <div className="flex flex-wrap gap-1.5">
             {task.tags.map((t) => (
-              <span
+              <Link
                 key={t}
-                className="rounded-full border border-zinc-800 bg-zinc-900 px-2.5 py-1 font-mono text-xs text-zinc-300"
+                to="/tags"
+                search={{ tag: t }}
+                className="rounded-full border border-zinc-800 bg-zinc-900 px-2.5 py-1 font-mono text-xs text-zinc-300 hover:border-zinc-600 hover:text-zinc-50"
               >
                 #{t}
-              </span>
+              </Link>
             ))}
           </div>
         )}
