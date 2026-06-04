@@ -7,6 +7,7 @@ import {
   useCreateTask,
   useSnoozeTask,
 } from '@dtn/shared/queries'
+import { taskInputSchema } from '@dtn/shared/task-input'
 import { isSnoozed } from '@dtn/shared/task-sorting'
 import { useNavigate } from '@tanstack/react-router'
 import { useEffect, useRef, useState } from 'react'
@@ -190,6 +191,34 @@ export function CommandPalette() {
     URL.revokeObjectURL(url)
   }
 
+  const importTasks = () => {
+    const input = document.createElement('input')
+    input.type = 'file'
+    input.accept = 'application/json,.json'
+    input.onchange = async () => {
+      const file = input.files?.[0]
+      if (!file) return
+      try {
+        const parsed: unknown = JSON.parse(await file.text())
+        if (!Array.isArray(parsed)) return
+        // Each item is validated as a task input — extra fields from an
+        // export (id, userId, timestamps) are stripped; invalid rows skip.
+        let imported = 0
+        for (const item of parsed) {
+          const result = taskInputSchema.safeParse(item)
+          if (result.success) {
+            createTask.mutate(result.data)
+            imported++
+          }
+        }
+        if (imported > 0) navigate({ to: '/tasks' })
+      } catch {
+        // not valid JSON — nothing actionable
+      }
+    }
+    input.click()
+  }
+
   const todayMs = startOfToday().getTime()
   const overdue = (tasksQuery.data ?? []).filter(
     (t) => !isSnoozed(t) && newSafeDate(t.due).getTime() < todayMs,
@@ -230,6 +259,13 @@ export function CommandPalette() {
       label: 'Export tasks (JSON)',
       hint: 'Action',
       run: exportTasks,
+    },
+    {
+      key: 'a:import',
+      glyph: '⤒',
+      label: 'Import tasks (JSON)',
+      hint: 'Action',
+      run: importTasks,
     },
     {
       key: 'a:signout',
