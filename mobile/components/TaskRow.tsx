@@ -70,6 +70,7 @@ export function TaskRow({
     repeatLabel ? `repeats ${repeatLabel}` : null,
     task.strictDeadline ? 'strict deadline' : null,
     task.timerStartedAt ? 'timer running' : null,
+    task.tags.length ? `tags ${task.tags.join(', ')}` : null,
   ]
     .filter(Boolean)
     .join(', ')
@@ -180,6 +181,11 @@ export function TaskRow({
           {task.strictDeadline && (
             <Meta color={selected ? '#9f1239' : OVERDUE}>strict</Meta>
           )}
+          {task.tags.map((t) => (
+            <Meta key={t} color={metaColor}>
+              #{t}
+            </Meta>
+          ))}
         </View>
       </View>
       {trailing}
