@@ -67,9 +67,14 @@ export const TopBar = () => {
     }
   }, [open])
 
-  const pct = progress.data
-    ? Math.min(100, Math.round((progress.data.done / progress.data.todo) * 100))
-    : 0
+  // todo is 0 on a no-tasks day; guard so the bar reads empty (0%) not NaN%.
+  const pct =
+    progress.data && progress.data.todo > 0
+      ? Math.min(
+          100,
+          Math.round((progress.data.done / progress.data.todo) * 100),
+        )
+      : 0
 
   let scheduleShort: string | null = null
   let points = 0

@@ -40,6 +40,15 @@ const repeatOptions: Array<RepeatOption> = [
 const repeatUnits: Array<RepeatUnit> = ['day', 'week', 'month', 'year']
 
 const dayShort = ['Su', 'Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa'] as const
+const dayFull = [
+  'Sunday',
+  'Monday',
+  'Tuesday',
+  'Wednesday',
+  'Thursday',
+  'Friday',
+  'Saturday',
+] as const
 
 const toIso = (due: string): string => {
   const [y, m, d] = due.split('-').map((s) => parseInt(s))
@@ -469,6 +478,8 @@ const TaskForm = ({
                     <button
                       key={d}
                       type="button"
+                      aria-pressed={on}
+                      aria-label={dayFull[i]}
                       onClick={() =>
                         setRepeatWeekdays((s) => [
                           i === 0 ? !on : s[0],
