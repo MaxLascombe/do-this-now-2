@@ -1,5 +1,6 @@
 import { dateString, newSafeDate } from '@dtn/shared/helpers'
 import { useAllTasks } from '@dtn/shared/queries'
+import { minutesToHours } from '@dtn/shared/time'
 import type { Task } from '@dtn/shared/types'
 import { createFileRoute, useNavigate } from '@tanstack/react-router'
 import { useMemo, useState } from 'react'
@@ -78,6 +79,21 @@ function Calendar() {
     year: 'numeric',
   })
   const selectedTasks = byDay.get(selectedKey) ?? []
+  const selectedMinutes = selectedTasks.reduce(
+    (sum, t) => sum + (t.timeFrame || 0),
+    0,
+  )
+
+  const minutesByDay = useMemo(() => {
+    const map = new Map<string, number>()
+    for (const [key, list] of byDay)
+      map.set(
+        key,
+        list.reduce((sum, t) => sum + (t.timeFrame || 0), 0),
+      )
+    return map
+  }, [byDay])
+  const maxMinutes = Math.max(1, ...minutesByDay.values())
 
   return (
     <div className="flex min-h-screen flex-col">
@@ -143,6 +159,7 @@ function Calendar() {
                 if (day === null) return <div key={`b${i}`} />
                 const key = dateString(new Date(year, month, day))
                 const tasks = byDay.get(key) ?? []
+                const mins = minutesByDay.get(key) ?? 0
                 const isToday = key === todayKey
                 const isSelected = key === selectedKey
                 return (
@@ -182,6 +199,16 @@ function Calendar() {
                         </span>
                       )}
                     </span>
+                    {mins > 0 && (
+                      <span
+                        aria-hidden="true"
+                        className="mt-auto h-1 w-full rounded-full"
+                        style={{
+                          background: ACCENT,
+                          opacity: 0.25 + 0.75 * (mins / maxMinutes),
+                        }}
+                      />
+                    )}
                   </button>
                 )
               })}
@@ -190,7 +217,14 @@ function Calendar() {
 
           <div>
             <div className="mb-3 flex items-center justify-between font-mono text-[10px] tracking-[0.3em] text-zinc-500 uppercase">
-              <span>{selectedKey === todayKey ? 'Today' : selectedKey}</span>
+              <span>
+                {selectedKey === todayKey ? 'Today' : selectedKey}
+                {selectedMinutes > 0 && (
+                  <span className="ml-2 tracking-normal text-zinc-600 normal-case">
+                    {minutesToHours(selectedMinutes)} planned
+                  </span>
+                )}
+              </span>
               <button
                 type="button"
                 onClick={() =>
