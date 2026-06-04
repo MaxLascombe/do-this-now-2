@@ -35,6 +35,7 @@ import type { Task } from '@dtn/shared/types'
 import type { KeyAction } from '../hooks/useKeyAction'
 
 export const Route = createFileRoute('/')({
+  head: () => ({ meta: [{ title: 'Now · Do This Now' }] }),
   component: Home,
 })
 
