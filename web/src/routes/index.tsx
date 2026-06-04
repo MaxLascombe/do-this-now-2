@@ -425,6 +425,12 @@ function Hero({
         {repeatLabel && <Chip>↻ {repeatLabel}</Chip>}
       </div>
 
+      {task.notes && (
+        <p className="mt-5 max-w-md text-center font-mono text-xs whitespace-pre-wrap text-zinc-500 md:text-sm">
+          {task.notes}
+        </p>
+      )}
+
       <button
         type="button"
         onClick={onComplete}
