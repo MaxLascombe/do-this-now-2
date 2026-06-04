@@ -1,4 +1,4 @@
-import { and, eq, gte, lt } from 'drizzle-orm'
+import { and, eq, gte, isNull, lt } from 'drizzle-orm'
 
 import { dailyProgress, history, tasks } from '@dtn/shared/schema'
 import { dateString, getUserToday } from '@dtn/shared/helpers'
@@ -38,7 +38,10 @@ async function loadProgressInputs(
       .where(
         and(eq(dailyProgress.userId, userId), eq(dailyProgress.date, todayKey)),
       ),
-    db.select().from(tasks).where(eq(tasks.userId, userId)),
+    db
+      .select()
+      .from(tasks)
+      .where(and(eq(tasks.userId, userId), isNull(tasks.archivedAt))),
   ])
 
   const completedTodayMin = completedToday.reduce(

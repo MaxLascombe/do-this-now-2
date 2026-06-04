@@ -10,6 +10,10 @@ export const listTasks = createServerFn({ method: 'GET' }).handler(
   async () => tasksLib.listTasks(await requireUserId()),
 )
 
+export const listArchivedTasks = createServerFn({ method: 'GET' }).handler(
+  async () => tasksLib.listArchivedTasks(await requireUserId()),
+)
+
 export const listTopTasks = createServerFn({ method: 'GET' })
   .inputValidator(validate(z.object({ tzOffsetMin: v.tzOffsetMin })))
   .handler(async ({ data }) =>
@@ -40,6 +44,18 @@ export const deleteTask = createServerFn({ method: 'POST' })
     await tasksLib.deleteTask(await requireUserId(), data.id)
     return {}
   })
+
+export const archiveTask = createServerFn({ method: 'POST' })
+  .inputValidator(validate(z.object({ id: v.id })))
+  .handler(async ({ data }) =>
+    tasksLib.archiveTask(await requireUserId(), data.id),
+  )
+
+export const unarchiveTask = createServerFn({ method: 'POST' })
+  .inputValidator(validate(z.object({ id: v.id })))
+  .handler(async ({ data }) =>
+    tasksLib.unarchiveTask(await requireUserId(), data.id),
+  )
 
 export const suggestEmojis = createServerFn({ method: 'POST' })
   .inputValidator(validate(z.object({ title: z.string().min(1).max(500) })))

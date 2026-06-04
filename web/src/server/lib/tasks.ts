@@ -1,4 +1,4 @@
-import { and, eq } from 'drizzle-orm'
+import { and, eq, isNotNull, isNull } from 'drizzle-orm'
 
 import { getUserLocalNow, getUserToday } from '@dtn/shared/helpers'
 import { taskEvents, tasks } from '@dtn/shared/schema'
@@ -60,8 +60,48 @@ async function countChildren(
 }
 
 export async function listTasks(userId: string): Promise<Array<Task>> {
-  const rows = await db.select().from(tasks).where(eq(tasks.userId, userId))
+  const rows = await db
+    .select()
+    .from(tasks)
+    .where(and(eq(tasks.userId, userId), isNull(tasks.archivedAt)))
   return rows.map(ceilTaskTime)
+}
+
+export async function listArchivedTasks(userId: string): Promise<Array<Task>> {
+  const rows = await db
+    .select()
+    .from(tasks)
+    .where(and(eq(tasks.userId, userId), isNotNull(tasks.archivedAt)))
+  return rows.map(ceilTaskTime)
+}
+
+export async function archiveTask(userId: string, id: string): Promise<Task> {
+  const updated = await db.transaction(async (tx) => {
+    const childCount = await countChildren(userId, id, tx)
+    if (childCount > 0) {
+      throw new Error(
+        `Can't archive: ${childCount} task${childCount === 1 ? '' : 's'} track time under this one. Detach them first.`,
+      )
+    }
+    const [row] = await tx
+      .update(tasks)
+      .set({ archivedAt: new Date(), updatedAt: new Date() })
+      .where(and(eq(tasks.userId, userId), eq(tasks.id, id)))
+      .returning()
+    return row
+  })
+  if (!updated) throw new Error('Task not found')
+  return ceilTaskTime(updated)
+}
+
+export async function unarchiveTask(userId: string, id: string): Promise<Task> {
+  const [row] = await db
+    .update(tasks)
+    .set({ archivedAt: null, updatedAt: new Date() })
+    .where(and(eq(tasks.userId, userId), eq(tasks.id, id)))
+    .returning()
+  if (!row) throw new Error('Task not found')
+  return ceilTaskTime(row)
 }
 
 export async function listTopTasks(
