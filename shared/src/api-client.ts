@@ -86,6 +86,7 @@ export interface ApiClient {
     delete(id: string): Promise<DeleteTaskResult>
     complete(id: string, opts?: CompleteTaskOptions): Promise<CompleteTaskResult>
     snooze(id: string, allSubtasks?: boolean): Promise<SnoozeTaskResult>
+    unsnooze(id: string): Promise<Task>
     suggestEmojis(title: string): Promise<string[]>
     // Returns the task whose row actually holds the timer state — for
     // 0-time-frame children that's the keeper, not the task you passed.
