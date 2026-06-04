@@ -3,6 +3,7 @@ import {
   heatmapCellPosition,
   heatmapColor,
   percentile,
+  robustChartMax,
 } from '@dtn/shared/heatmap'
 import { useStats } from '@dtn/shared/queries'
 import { createFileRoute, useNavigate } from '@tanstack/react-router'
@@ -101,6 +102,7 @@ function Stats() {
             <DayOfWeek data={data} />
           </div>
           <TopTasks data={data} />
+          <EmojiMix data={data} />
           <Discipline data={data} />
         </div>
       </div>
@@ -326,6 +328,7 @@ function DailyBars({ data }: { data: StatsResult }) {
 
 function HourOfDay({ data }: { data: StatsResult }) {
   const max = Math.max(...data.hourOfDay)
+  const scaleMax = robustChartMax(data.hourOfDay)
   const total = data.hourOfDay.reduce((a, b) => a + b, 0)
   const peakHour = data.hourOfDay.indexOf(max)
   if (total === 0) {
@@ -353,7 +356,7 @@ function HourOfDay({ data }: { data: StatsResult }) {
         className="flex h-20 items-end gap-[2px]"
       >
         {data.hourOfDay.map((c, i) => {
-          const pct = (c / max) * 100
+          const pct = Math.min(100, (c / scaleMax) * 100)
           return (
             <div
               key={i}
@@ -362,7 +365,7 @@ function HourOfDay({ data }: { data: StatsResult }) {
               style={{
                 height: c === 0 ? '4px' : `${Math.max(8, pct)}%`,
                 background: c === 0 ? 'rgba(255,255,255,0.06)' : '#e4e4e7',
-                opacity: c === 0 ? 1 : 0.55 + (c / max) * 0.45,
+                opacity: c === 0 ? 1 : 0.55 + Math.min(1, c / scaleMax) * 0.45,
               }}
             />
           )
@@ -382,6 +385,7 @@ function HourOfDay({ data }: { data: StatsResult }) {
 function DayOfWeek({ data }: { data: StatsResult }) {
   const labels = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat']
   const max = Math.max(...data.dayOfWeek)
+  const scaleMax = robustChartMax(data.dayOfWeek)
   const total = data.dayOfWeek.reduce((a, b) => a + b, 0)
   const peakDay = labels[data.dayOfWeek.indexOf(max)]
   if (total === 0) {
@@ -407,7 +411,7 @@ function DayOfWeek({ data }: { data: StatsResult }) {
         className="flex h-20 items-end gap-1.5"
       >
         {data.dayOfWeek.map((c, i) => {
-          const pct = (c / max) * 100
+          const pct = Math.min(100, (c / scaleMax) * 100)
           return (
             <div key={i} className="flex flex-1 flex-col items-center gap-1">
               <div
@@ -416,7 +420,7 @@ function DayOfWeek({ data }: { data: StatsResult }) {
                 style={{
                   height: c === 0 ? '4px' : `${Math.max(8, pct)}%`,
                   background: c === 0 ? 'rgba(255,255,255,0.06)' : STREAK,
-                  opacity: c === 0 ? 1 : 0.55 + (c / max) * 0.45,
+                  opacity: c === 0 ? 1 : 0.55 + Math.min(1, c / scaleMax) * 0.45,
                 }}
               />
               <div className="font-mono text-[10px] text-zinc-600">
@@ -463,6 +467,39 @@ function TopTasks({ data }: { data: StatsResult }) {
               </div>
               <span className="w-8 text-right font-mono text-xs text-zinc-400 tabular-nums">
                 {t.count}
+              </span>
+            </div>
+          </li>
+        ))}
+      </ul>
+    </Section>
+  )
+}
+
+function EmojiMix({ data }: { data: StatsResult }) {
+  if (data.emojiFreq.length === 0) return null
+  const max = Math.max(1, ...data.emojiFreq.map((e) => e.count))
+  return (
+    <Section title="Your task mix">
+      <ul className="flex flex-col gap-2">
+        {data.emojiFreq.map((e) => (
+          <li key={e.emoji} className="flex items-center gap-3">
+            <span className="w-7 text-lg" aria-hidden="true">
+              {e.emoji}
+            </span>
+            <div className="flex flex-1 items-center gap-3">
+              <div className="h-2 flex-1 overflow-hidden rounded bg-zinc-900">
+                <div
+                  className="h-full"
+                  style={{
+                    width: `${(e.count / max) * 100}%`,
+                    background: STREAK,
+                    opacity: 0.85,
+                  }}
+                />
+              </div>
+              <span className="w-8 text-right font-mono text-xs text-zinc-400 tabular-nums">
+                {e.count}
               </span>
             </div>
           </li>
