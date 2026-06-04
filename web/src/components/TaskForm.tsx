@@ -81,6 +81,8 @@ const TaskForm = ({
   timekeeperId: initialTimekeeperId,
   timeframeType: initialTimeframeType,
   subtasks: initialSubtasks,
+  notes: initialNotes,
+  tags: initialTags,
   submitForm,
   isSaving = false,
   isEdit = false,
@@ -143,6 +145,16 @@ const TaskForm = ({
   )
   const [hasSubtasks, setHasSubtasks] = useState(subtasks.length > 0)
   if (subtasks.length > 0 && !hasSubtasks) setHasSubtasks(true)
+
+  const [notes, setNotes] = useState(initialNotes ?? '')
+  const [tags, setTags] = useState<Array<string>>(initialTags ?? [])
+  const [tagDraft, setTagDraft] = useState('')
+  const addTag = () => {
+    const t = tagDraft.trim()
+    if (t && !tags.some((x) => x.toLowerCase() === t.toLowerCase()))
+      setTags([...tags, t])
+    setTagDraft('')
+  }
 
   // Debounced emoji suggestions.
   useEffect(() => {
@@ -218,6 +230,8 @@ const TaskForm = ({
       timekeeperId,
       timeframeType,
       subtasks,
+      notes,
+      tags,
     })
     if (!input.success) return setFormError(input.error)
     submitForm(input.data)
@@ -266,6 +280,15 @@ const TaskForm = ({
   useKeyAction(keyActions)
 
   const dueDate = newSafeDate(due)
+  const quickDues = [
+    { label: 'Today', delta: 0 },
+    { label: 'Tomorrow', delta: 1 },
+    { label: '+1 wk', delta: 7 },
+  ].map((o) => {
+    const d = new Date()
+    d.setDate(d.getDate() + o.delta)
+    return { ...o, due: dateString(d) }
+  })
   // Time frame is stored as decimal minutes after the timer redesign; UI
   // rounds up so a 30.4-min EMA still reads "31 min" rather than "30".
   const displayedMinutes = Math.ceil(timeFrame)
@@ -323,6 +346,65 @@ const TaskForm = ({
             {errors.title && (
               <div className="mt-2 font-mono text-xs text-rose-400">
                 {errors.title}
+              </div>
+            )}
+          </Field>
+
+          <Field label="Notes" trailing="optional">
+            <textarea
+              value={notes}
+              onChange={(e) => setNotes(e.target.value)}
+              placeholder="Context, links, anything you want to remember…"
+              rows={3}
+              className="w-full resize-y rounded-lg border border-zinc-800 bg-zinc-900/40 px-3 py-2 font-mono text-sm text-zinc-200 outline-none placeholder:text-zinc-700 focus:border-zinc-600"
+            />
+            {errors.notes && (
+              <div className="mt-2 font-mono text-xs text-rose-400">
+                {errors.notes}
+              </div>
+            )}
+          </Field>
+
+          <Field label="Tags" trailing="optional">
+            {tags.length > 0 && (
+              <div className="mb-2 flex flex-wrap gap-1.5">
+                {tags.map((t) => (
+                  <span
+                    key={t}
+                    className="flex items-center gap-1 rounded-full border border-zinc-700 bg-zinc-900 px-2.5 py-1 font-mono text-xs text-zinc-200"
+                  >
+                    {t}
+                    <button
+                      type="button"
+                      onClick={() => setTags(tags.filter((x) => x !== t))}
+                      aria-label={`Remove tag ${t}`}
+                      className="text-zinc-500 hover:text-zinc-100"
+                    >
+                      ✕
+                    </button>
+                  </span>
+                ))}
+              </div>
+            )}
+            <input
+              type="text"
+              value={tagDraft}
+              onChange={(e) => setTagDraft(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter' || e.key === ',') {
+                  e.preventDefault()
+                  addTag()
+                } else if (e.key === 'Backspace' && !tagDraft && tags.length) {
+                  setTags(tags.slice(0, -1))
+                }
+              }}
+              onBlur={addTag}
+              placeholder="Add a tag, press Enter"
+              className="w-full rounded-lg border border-zinc-800 bg-zinc-900/40 px-3 py-2 font-mono text-sm text-zinc-200 outline-none placeholder:text-zinc-700 focus:border-zinc-600"
+            />
+            {errors.tags && (
+              <div className="mt-2 font-mono text-xs text-rose-400">
+                {errors.tags}
               </div>
             )}
           </Field>
@@ -411,6 +493,23 @@ const TaskForm = ({
               <div className="mt-1.5 font-mono text-xs text-zinc-500">
                 {format(dueDate, 'EEEE, LLL d')} ·{' '}
                 {formatDueDistance(dayDiffFor(due))}
+              </div>
+              <div className="mt-2 flex flex-wrap gap-1.5">
+                {quickDues.map((q) => (
+                  <button
+                    key={q.label}
+                    type="button"
+                    onClick={() => setDue(q.due)}
+                    className={
+                      'rounded-full border px-3 py-1 font-mono text-xs ' +
+                      (due === q.due
+                        ? 'border-zinc-100 bg-zinc-50 text-zinc-950'
+                        : 'border-zinc-800 text-zinc-400 hover:border-zinc-600 hover:text-zinc-100')
+                    }
+                  >
+                    {q.label}
+                  </button>
+                ))}
               </div>
             </Field>
 

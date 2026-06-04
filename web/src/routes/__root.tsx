@@ -2,7 +2,9 @@ import { ClerkProvider, Show, SignInButton } from '@clerk/tanstack-react-start'
 import { ApiProvider } from '@dtn/shared/api-client'
 import { HeadContent, Scripts, createRootRoute } from '@tanstack/react-router'
 
+import { CommandPalette } from '../components/CommandPalette'
 import { ConfirmProvider } from '../components/ConfirmProvider'
+import { ShortcutsHelp } from '../components/ShortcutsHelp'
 import { webApiClient } from '../lib/api-client'
 import { QueryProvider } from '../lib/query-client'
 
@@ -15,6 +17,18 @@ export const Route = createRootRoute({
       { charSet: 'utf-8' },
       { name: 'viewport', content: 'width=device-width, initial-scale=1' },
       { title: 'Do This Now' },
+      {
+        name: 'description',
+        content:
+          'A focus-first to-do app that surfaces the single thing to do next — and gets out of your way.',
+      },
+      { name: 'theme-color', content: '#0a0a0a' },
+      { name: 'apple-mobile-web-app-capable', content: 'yes' },
+      {
+        name: 'apple-mobile-web-app-status-bar-style',
+        content: 'black-translucent',
+      },
+      { name: 'apple-mobile-web-app-title', content: 'Do This Now' },
     ],
     links: [
       { rel: 'preconnect', href: 'https://fonts.googleapis.com' },
@@ -51,7 +65,11 @@ function RootDocument({ children }: { children: ReactNode }) {
                 >
                   Skip to content
                 </a>
-                <ConfirmProvider>{children}</ConfirmProvider>
+                <ConfirmProvider>
+                  <CommandPalette />
+                  <ShortcutsHelp />
+                  {children}
+                </ConfirmProvider>
               </Show>
               <Show when="signed-out">
                 <SignedOutScreen />
@@ -88,11 +106,30 @@ function RouteAnnouncer() {
 
 function SignedOutScreen() {
   return (
-    <div className="flex h-screen w-screen flex-col items-center justify-center gap-4">
-      <h1 className="text-2xl font-bold">Do This Now</h1>
+    <div className="flex min-h-screen w-screen flex-col items-center justify-center gap-8 px-6 text-center">
+      <div className="flex flex-col items-center gap-4">
+        <span aria-hidden="true" className="text-xl" style={{ color: '#34d399' }}>
+          ✦
+        </span>
+        <div className="font-mono text-[10px] tracking-[0.4em] text-zinc-500 uppercase">
+          Do This Now
+        </div>
+        <h1
+          className="dtn-task-title text-zinc-50"
+          style={{ fontSize: '3rem', lineHeight: 1.05 }}
+        >
+          One task.
+          <br />
+          Right now.
+        </h1>
+        <p className="max-w-xs font-mono text-sm leading-relaxed text-zinc-400">
+          A focus-first to-do app that surfaces the single thing to do next —
+          and gets out of your way.
+        </p>
+      </div>
       <SignInButton mode="modal">
-        <button className="rounded-full border border-gray-700 bg-gray-900 px-4 py-2 text-sm font-medium hover:border-gray-500 hover:bg-gray-800">
-          Sign in
+        <button className="rounded-full border border-zinc-700 bg-zinc-900 px-6 py-2.5 font-mono text-sm font-medium text-zinc-100 transition-colors hover:border-zinc-500 hover:bg-zinc-800">
+          Sign in to start
         </button>
       </SignInButton>
     </div>
