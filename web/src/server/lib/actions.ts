@@ -12,6 +12,10 @@ import { finalizeTodayProgress } from './progress'
 import { currentTimerSeconds } from './timer'
 import type { Task } from '@dtn/shared/schema'
 
+// Thrown when an action targets a task id that doesn't exist (e.g. a stale
+// client acting on a task deleted elsewhere). REST routes map it to 404.
+export class TaskNotFoundError extends Error {}
+
 // `loadTask` accepts either the top-level `db` or a `tx` handle so the
 // caller can run it inside a transaction. The transaction param type is
 // inferred from db.transaction's callback signature.
@@ -42,7 +46,7 @@ export async function completeTask(
   // lost.
   const completionResult = await db.transaction(async (tx) => {
     const task = await loadTask(tx, userId, id)
-    if (!task) throw new Error('Task not found')
+    if (!task) throw new TaskNotFoundError('Task not found')
 
     const now = new Date()
     const transition = completeTaskTransition(task, now)
@@ -129,7 +133,7 @@ export async function snoozeTask(
   // motivated wrapping completeTask in a tx.
   return db.transaction(async (tx) => {
     const task = await loadTask(tx, userId, id)
-    if (!task) throw new Error('Task not found')
+    if (!task) throw new TaskNotFoundError('Task not found')
 
     await tx
       .insert(taskEvents)

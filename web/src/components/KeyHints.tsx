@@ -14,7 +14,9 @@ export const KeyHints = ({
         </kbd>
         <span>{label}</span>
         {i < items.length - 1 && (
-          <span className="ml-2 text-zinc-700">·</span>
+          <span aria-hidden="true" className="ml-2 text-zinc-700">
+            ·
+          </span>
         )}
       </span>
     ))}

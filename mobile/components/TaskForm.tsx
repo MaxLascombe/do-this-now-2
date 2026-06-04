@@ -243,7 +243,10 @@ export function TaskForm({
         }}
       >
         {errorMessage && (
-          <Text style={{ color: OVERDUE, fontSize: 13, marginTop: 4 }}>
+          <Text
+            accessibilityLiveRegion="assertive"
+            style={{ color: OVERDUE, fontSize: 13, marginTop: 4 }}
+          >
             {errorMessage}
           </Text>
         )}
