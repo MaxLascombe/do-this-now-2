@@ -63,6 +63,8 @@ const TaskRowBase = ({
               boxShadow: '0 0 6px rgba(52,211,153,0.7)',
               animation: 'pulse 1.4s ease-in-out infinite',
             }}
+            role="img"
+            aria-label="Timer running"
             title="Timer running"
           />
         )}

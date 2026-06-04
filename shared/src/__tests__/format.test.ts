@@ -84,6 +84,20 @@ describe('formatDueLabel', () => {
       formatDueLabel('2026-5-15', '07:00', new Date(2026, 0, 1)),
     ).toMatch(/^Fri May 15$/)
   })
+
+  it('detects Tomorrow/Yesterday across a month boundary', () => {
+    const jan31 = new Date(2026, 0, 31)
+    expect(formatDueLabel('2026-2-1', null, jan31)).toBe('Tomorrow')
+    const feb1 = new Date(2026, 1, 1)
+    expect(formatDueLabel('2026-1-31', null, feb1)).toBe('Yesterday')
+  })
+
+  it('detects Tomorrow/Yesterday across a year boundary', () => {
+    const dec31 = new Date(2025, 11, 31)
+    expect(formatDueLabel('2026-1-1', null, dec31)).toBe('Tomorrow')
+    const jan1 = new Date(2026, 0, 1)
+    expect(formatDueLabel('2025-12-31', null, jan1)).toBe('Yesterday')
+  })
 })
 
 describe('formatScheduleStatus', () => {

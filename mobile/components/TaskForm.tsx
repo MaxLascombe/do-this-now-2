@@ -173,13 +173,15 @@ export function TaskForm({
       (1000 * 60 * 60 * 24),
   )
   const dayDiffPhrase =
-    dayDiff < 0
-      ? `${Math.abs(dayDiff)} days ago`
-      : dayDiff === 0
-        ? 'today'
-        : dayDiff === 1
-          ? 'tomorrow'
-          : `in ${dayDiff} days`
+    dayDiff === -1
+      ? 'yesterday'
+      : dayDiff < 0
+        ? `${Math.abs(dayDiff)} days ago`
+        : dayDiff === 0
+          ? 'today'
+          : dayDiff === 1
+            ? 'tomorrow'
+            : `in ${dayDiff} days`
 
   const repeatSummary =
     repeat === 'No Repeat'
@@ -241,7 +243,10 @@ export function TaskForm({
         }}
       >
         {errorMessage && (
-          <Text style={{ color: OVERDUE, fontSize: 13, marginTop: 4 }}>
+          <Text
+            accessibilityLiveRegion="assertive"
+            style={{ color: OVERDUE, fontSize: 13, marginTop: 4 }}
+          >
             {errorMessage}
           </Text>
         )}

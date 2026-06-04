@@ -1,10 +1,8 @@
 import { formatScheduleStatus } from '@dtn/shared/format'
+import { computeSchedule } from '@dtn/shared/pacing'
 import { useProgressToday } from '@dtn/shared/queries'
-import {
-  MINUTES_IN_DAY,
-  START_OF_DAY_MINUTES,
-  minutesToHours,
-} from '@dtn/shared/time'
+import { computePoints } from '@dtn/shared/scoring'
+import { minutesToHours } from '@dtn/shared/time'
 import { useState } from 'react'
 import { Modal, Pressable, Text, View } from 'react-native'
 import { SafeAreaView } from 'react-native-safe-area-context'
@@ -32,18 +30,11 @@ export function TopProgress() {
     streak,
     minutesToReduceTomorrowDays,
   } = data
-  const maxTodo = Math.max(todo, minutesToReduceTomorrowDays)
-  const tod = now.getHours() * 60 + now.getMinutes()
-  const pctOfDay = Math.max(
-    0,
-    Math.min(
-      1,
-      (tod - START_OF_DAY_MINUTES) /
-        (MINUTES_IN_DAY - START_OF_DAY_MINUTES),
-    ),
+  const { shouldBeDone, isBeforeWorkday } = computeSchedule(
+    now,
+    todo,
+    minutesToReduceTomorrowDays,
   )
-  const shouldBeDone = maxTodo * pctOfDay
-  const isBeforeWorkday = tod < START_OF_DAY_MINUTES
   const scheduleShort = formatScheduleStatus({
     done,
     shouldBeDone,
@@ -51,12 +42,7 @@ export function TopProgress() {
     short: true,
   })
 
-  const doneUsingAllLives = Math.min(done, todo - lives)
-  const doneUsingLives = Math.min(done, todo)
-  const points =
-    doneUsingAllLives +
-    (doneUsingLives - doneUsingAllLives) * 2 +
-    (done - doneUsingLives) * 3
+  const points = computePoints(done, todo, lives)
 
   const pct = Math.min(100, Math.round((done / todo) * 100))
   const filledCount = Math.round((done / todo) * MINI_CELLS)
@@ -178,18 +164,11 @@ function ProgressSheet({ onClose }: { onClose: () => void }) {
     daysUntilAllDone,
     minutesToReduceTomorrowDays,
   } = data
-  const maxTodo = Math.max(todo, minutesToReduceTomorrowDays)
-  const tod = now.getHours() * 60 + now.getMinutes()
-  const pctOfDay = Math.max(
-    0,
-    Math.min(
-      1,
-      (tod - START_OF_DAY_MINUTES) /
-        (MINUTES_IN_DAY - START_OF_DAY_MINUTES),
-    ),
+  const { shouldBeDone, isBeforeWorkday } = computeSchedule(
+    now,
+    todo,
+    minutesToReduceTomorrowDays,
   )
-  const shouldBeDone = maxTodo * pctOfDay
-  const isBeforeWorkday = tod < START_OF_DAY_MINUTES
   const scheduleShort = formatScheduleStatus({
     done,
     shouldBeDone,
@@ -198,12 +177,7 @@ function ProgressSheet({ onClose }: { onClose: () => void }) {
   })
   const livesUsed = Math.min(lives, Math.max(0, todo - done))
   const livesLeft = lives - livesUsed
-  const doneUsingAllLives = Math.min(done, todo - lives)
-  const doneUsingLives = Math.min(done, todo)
-  const points =
-    doneUsingAllLives +
-    (doneUsingLives - doneUsingAllLives) * 2 +
-    (done - doneUsingLives) * 3
+  const points = computePoints(done, todo, lives)
   const clearByDate = new Date(
     new Date().setDate(now.getDate() + daysUntilAllDone),
   )
@@ -312,7 +286,7 @@ function ProgressSheet({ onClose }: { onClose: () => void }) {
             iconColor={STREAK}
             label="Streak"
             value={streak}
-            unit={streakIsActive ? 'days · live' : 'days'}
+            unit={`${streak === 1 ? 'day' : 'days'}${streakIsActive ? ' · live' : ''}`}
           />
           <SheetStat
             icon="♥"
