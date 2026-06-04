@@ -4,6 +4,7 @@ import { HeadContent, Scripts, createRootRoute } from '@tanstack/react-router'
 
 import { CommandPalette } from '../components/CommandPalette'
 import { ConfirmProvider } from '../components/ConfirmProvider'
+import { ShortcutsHelp } from '../components/ShortcutsHelp'
 import { webApiClient } from '../lib/api-client'
 import { QueryProvider } from '../lib/query-client'
 
@@ -54,6 +55,7 @@ function RootDocument({ children }: { children: ReactNode }) {
                 </a>
                 <ConfirmProvider>
                   <CommandPalette />
+                  <ShortcutsHelp />
                   {children}
                 </ConfirmProvider>
               </Show>
