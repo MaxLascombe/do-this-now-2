@@ -50,6 +50,30 @@ describe('taskInputSchema', () => {
     })
   })
 
+  describe('tags', () => {
+    it('defaults to an empty array when omitted', () => {
+      const r = taskInputSchema.safeParse(base)
+      expect(r.success && r.data.tags).toEqual([])
+    })
+
+    it('trims, drops blanks, and dedupes case-insensitively', () => {
+      const r = taskInputSchema.safeParse({
+        ...base,
+        tags: ['  work ', 'Work', '', 'home', 'home'],
+      })
+      expect(r.success && r.data.tags).toEqual(['work', 'home'])
+    })
+
+    it('rejects too many tags', () => {
+      expect(
+        taskInputSchema.safeParse({
+          ...base,
+          tags: Array.from({ length: 21 }, (_, i) => `t${i}`),
+        }).success,
+      ).toBe(false)
+    })
+  })
+
   it('requires a non-empty title and a sane emoji', () => {
     expect(taskInputSchema.safeParse({ ...base, title: '' }).success).toBe(false)
     expect(
