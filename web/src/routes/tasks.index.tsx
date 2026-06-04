@@ -35,12 +35,14 @@ import { CountConfirmModal } from '../components/CountConfirmModal'
 import { ErrorState } from '../components/ErrorState'
 import { KeyHints } from '../components/KeyHints'
 import { Loading } from '../components/Loading'
+import { TaskListSkeleton } from '../components/Skeleton'
 import { MobileChrome } from '../components/MobileChrome'
 import { PageHeading } from '../components/PageHeading'
 import { TaskRow } from '../components/TaskRow'
 import { TimerWidget } from '../components/TimerWidget'
 import { TopBar } from '../components/TopBar'
 import useKeyAction from '../hooks/useKeyAction'
+import { usePersistedState } from '../hooks/usePersistedState'
 import type { Task } from '@dtn/shared/types'
 import type { KeyAction } from '../hooks/useKeyAction'
 
@@ -54,7 +56,10 @@ const OVERDUE = '#fb7185'
 function TasksList() {
   const navigate = useNavigate()
   const [selectedTask, setSelectedTask] = useState(0)
-  const [sort, setSort] = useState<'CHRON' | 'TOP'>('CHRON')
+  const [sort, setSort] = usePersistedState<'CHRON' | 'TOP'>(
+    'dtn.tasks.sort',
+    'CHRON',
+  )
   const [query, setQuery] = useState('')
   const taskElems = useRef<Array<HTMLElement>>([])
   const searchRef = useRef<HTMLInputElement>(null)
@@ -113,7 +118,7 @@ function TasksList() {
       repeatWeekdays: [false, false, false, false, false, false, false],
       timeFrame: 30,
       timekeeperId: null,
-      timeframeType: 'fixed',
+      timeframeType: 'fluid',
       subtasks: [],
       notes: '',
       tags: [],
@@ -392,6 +397,10 @@ function TasksList() {
           </div>
         )}
 
+        {isFetching && tasks.length === 0 && !activeQuery.isError && (
+          <TaskListSkeleton rows={6} />
+        )}
+
         {sort === 'CHRON' ? (
           <div className="flex flex-col gap-6">
             {groupedChron.map(({ key, tasks: gTasks }) => {
@@ -503,7 +512,7 @@ function TasksList() {
           </div>
         )}
 
-        {isFetching && (
+        {isFetching && tasks.length > 0 && (
           <div className="mt-4 flex justify-center">
             <Loading />
           </div>

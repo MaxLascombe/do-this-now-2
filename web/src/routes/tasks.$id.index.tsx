@@ -2,9 +2,11 @@ import { formatDueLabel, formatRepeat } from '@dtn/shared/format'
 import { dateString, nextDueDate } from '@dtn/shared/helpers'
 import {
   useCompleteTask,
+  useCreateTask,
   useDeleteTask,
   useSnoozeTask,
   useTask,
+  useTaskTimer,
   useUpdateTask,
 } from '@dtn/shared/queries'
 import { taskToInput } from '@dtn/shared/task-input'
@@ -21,6 +23,7 @@ import { useEffect, useState } from 'react'
 import { useConfirm } from '../components/ConfirmProvider'
 import { CountConfirmModal } from '../components/CountConfirmModal'
 import { ErrorState } from '../components/ErrorState'
+import { LinkifiedNotes } from '../components/LinkifiedNotes'
 import { Loading } from '../components/Loading'
 import { MobileChrome } from '../components/MobileChrome'
 import { PageHeading } from '../components/PageHeading'
@@ -54,7 +57,39 @@ function TaskDetail() {
   const deleteMutation = useDeleteTask()
   const doneMutation = useCompleteTask()
   const updateTask = useUpdateTask()
+  const createTask = useCreateTask()
+  const timer = useTaskTimer()
   const confirm = useConfirm()
+
+  // The mutation targets the route id; the server maps a 0-frame child to
+  // its keeper, while timerTask gives the correct running state to read.
+  const toggleTimerAction = () =>
+    timer.mutate({
+      id,
+      action: { kind: timerTask?.timerStartedAt ? 'pause' : 'start' },
+    })
+
+  const reschedule = (due: string) => {
+    if (!task) return
+    updateTask.mutate({ id, input: { ...taskToInput(task), due } })
+  }
+
+  // Clone the task's config as a fresh task and jump to it. Timer state,
+  // completion history, and subtask `done` flags don't carry over —
+  // taskToInput keeps only the user-authored fields.
+  const duplicateAction = async () => {
+    if (!task) return
+    const copy = await createTask.mutateAsync({
+      ...taskToInput(task),
+      title: `${task.title} (copy)`,
+      subtasks: task.subtasks.map((s) => ({
+        ...s,
+        done: false,
+        snooze: undefined,
+      })),
+    })
+    router.navigate({ to: '/tasks/$id', params: { id: copy.id } })
+  }
 
   const toggleSubtask = (index: number) => {
     if (!task) return
@@ -141,6 +176,11 @@ function TaskDetail() {
     },
     { key: 'd', description: 'Done', action: completeAction },
     { key: 's', description: 'Snooze', action: snoozeAction },
+    {
+      key: 'p',
+      description: timerTask?.timerStartedAt ? 'Pause timer' : 'Start timer',
+      action: toggleTimerAction,
+    },
     { key: 'backspace', description: 'Delete', action: deleteAction },
     { key: 'n', description: 'Home', action: () => router.navigate({ to: '/' }) },
     {
@@ -200,6 +240,22 @@ function TaskDetail() {
     task.repeatWeekdays,
   )
   const doneCount = task.subtasks.filter((s) => s.done).length
+
+  const rescheduleOptions = [
+    { label: 'Today', due: dateString(now) },
+    {
+      label: 'Tomorrow',
+      due: dateString(
+        new Date(now.getFullYear(), now.getMonth(), now.getDate() + 1),
+      ),
+    },
+    {
+      label: '+1 week',
+      due: dateString(
+        new Date(now.getFullYear(), now.getMonth(), now.getDate() + 7),
+      ),
+    },
+  ]
 
   const upcoming: Date[] = []
   {
@@ -284,6 +340,30 @@ function TaskDetail() {
           )}
         </div>
 
+        {task.repeat === 'No Repeat' && (
+          <div className="flex flex-wrap items-center gap-2">
+            <span className="font-mono text-[10px] tracking-[0.3em] text-zinc-500 uppercase">
+              Reschedule
+            </span>
+            {rescheduleOptions.map((o) => (
+              <button
+                key={o.label}
+                type="button"
+                disabled={task.due === o.due || updateTask.isPending}
+                onClick={() => reschedule(o.due)}
+                className={
+                  'rounded-full border px-3 py-1 font-mono text-xs ' +
+                  (task.due === o.due
+                    ? 'border-zinc-100 bg-zinc-50 text-zinc-950'
+                    : 'border-zinc-800 text-zinc-400 hover:border-zinc-600 hover:text-zinc-100 disabled:opacity-50')
+                }
+              >
+                {o.label}
+              </button>
+            ))}
+          </div>
+        )}
+
         {upcoming.length > 0 && (
           <div className="font-mono text-xs text-zinc-500">
             <span className="tracking-[0.2em] text-zinc-600 uppercase">
@@ -303,12 +383,14 @@ function TaskDetail() {
         {task.tags.length > 0 && (
           <div className="flex flex-wrap gap-1.5">
             {task.tags.map((t) => (
-              <span
+              <Link
                 key={t}
-                className="rounded-full border border-zinc-800 bg-zinc-900 px-2.5 py-1 font-mono text-xs text-zinc-300"
+                to="/tags"
+                search={{ tag: t }}
+                className="rounded-full border border-zinc-800 bg-zinc-900 px-2.5 py-1 font-mono text-xs text-zinc-300 hover:border-zinc-600 hover:text-zinc-50"
               >
                 #{t}
-              </span>
+              </Link>
             ))}
           </div>
         )}
@@ -318,9 +400,10 @@ function TaskDetail() {
             <div className="mb-2 font-mono text-[10px] tracking-[0.3em] text-zinc-500 uppercase">
               Notes
             </div>
-            <p className="font-mono text-sm whitespace-pre-wrap text-zinc-300">
-              {task.notes}
-            </p>
+            <LinkifiedNotes
+              text={task.notes}
+              className="font-mono text-sm whitespace-pre-wrap text-zinc-300"
+            />
           </div>
         )}
 
@@ -364,6 +447,14 @@ function TaskDetail() {
             className="flex items-center gap-2 rounded-full border border-zinc-800 px-4 py-1.5 text-zinc-400 hover:bg-zinc-900 hover:text-zinc-50"
           >
             {copied ? 'Copied' : 'Copy link'}
+          </button>
+          <button
+            type="button"
+            onClick={duplicateAction}
+            disabled={createTask.isPending}
+            className="flex items-center gap-2 rounded-full border border-zinc-800 px-4 py-1.5 text-zinc-400 hover:bg-zinc-900 hover:text-zinc-50 disabled:opacity-40"
+          >
+            {createTask.isPending ? 'Duplicating…' : 'Duplicate'}
           </button>
         </div>
 

@@ -4,6 +4,7 @@ import {
   formatTimerSeconds,
 } from '@dtn/shared/timer-utils'
 import { Link } from '@tanstack/react-router'
+import { Pause } from 'lucide-react'
 import { useEffect, useState } from 'react'
 
 const ACCENT = '#34d399'
@@ -63,9 +64,9 @@ export function RunningTimerChip() {
         }}
         disabled={timer.isPending}
         aria-label="Pause timer"
-        className="-mr-1 rounded-full px-1.5 leading-none hover:bg-emerald-500/15 disabled:opacity-40"
+        className="-mr-1 flex items-center rounded-full px-1.5 leading-none hover:bg-emerald-500/15 disabled:opacity-40"
       >
-        ⏸
+        <Pause size={13} fill="currentColor" aria-hidden />
       </button>
     </div>
   )
