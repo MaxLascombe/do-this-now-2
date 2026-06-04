@@ -88,8 +88,9 @@ export const nextDueDate = (task: Task): Date | undefined => {
       }
     }
   } else if (task.repeat === 'Weekdays') {
-    const daysToAdd = date.getDay() === 5 ? 3 : 1
-    date.setDate(date.getDate() + daysToAdd)
+    do {
+      date.setDate(date.getDate() + 1)
+    } while (date.getDay() === 0 || date.getDay() === 6)
   } else if (task.repeat === 'Monthly') date.setMonth(date.getMonth() + 1)
   else if (task.repeat === 'Custom' && task.repeatUnit === 'month')
     date.setMonth(date.getMonth() + task.repeatInterval)
