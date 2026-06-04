@@ -1,5 +1,9 @@
 import { newSafeDate } from '@dtn/shared/helpers'
-import { heatmapColor, percentile } from '@dtn/shared/heatmap'
+import {
+  heatmapCellPosition,
+  heatmapColor,
+  percentile,
+} from '@dtn/shared/heatmap'
 import { useStats } from '@dtn/shared/queries'
 import { createFileRoute, useNavigate } from '@tanstack/react-router'
 import { useState } from 'react'
@@ -184,7 +188,6 @@ function Heatmap({ data }: { data: StatsResult }) {
   const last = data.heatmap.at(-1)
   if (!last) return null
   const today = newSafeDate(last.date)
-  const todayCol = HEATMAP_COLS - 1
   const todayDow = today.getDay()
   type Cell = {
     date: string
@@ -195,11 +198,12 @@ function Heatmap({ data }: { data: StatsResult }) {
   }
   const cells: Array<Cell> = []
   for (let i = 0; i < data.heatmap.length; i++) {
-    const offsetFromToday = data.heatmap.length - 1 - i
-    const dowOffset = todayDow - offsetFromToday
-    const colsBack = Math.ceil(-dowOffset / 7)
-    const col = todayCol - colsBack
-    const row = ((dowOffset % 7) + 7) % 7
+    const { col, row } = heatmapCellPosition(
+      i,
+      data.heatmap.length,
+      todayDow,
+      HEATMAP_COLS,
+    )
     cells.push({ ...data.heatmap[i], col, row })
   }
   const visible = cells.filter((c) => c.col >= 0)

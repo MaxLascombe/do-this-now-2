@@ -341,6 +341,8 @@ function CompletedRow({ entry }: { entry: HistoryEntry }) {
       }}
     >
       <View
+        accessibilityElementsHidden={true}
+        importantForAccessibility="no-hide-descendants"
         style={{
           width: 26,
           height: 26,
