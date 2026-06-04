@@ -203,10 +203,15 @@ export function CommandPalette() {
         if (!Array.isArray(parsed)) return
         // Each item is validated as a task input — extra fields from an
         // export (id, userId, timestamps) are stripped; invalid rows skip.
+        let imported = 0
         for (const item of parsed) {
           const result = taskInputSchema.safeParse(item)
-          if (result.success) createTask.mutate(result.data)
+          if (result.success) {
+            createTask.mutate(result.data)
+            imported++
+          }
         }
+        if (imported > 0) navigate({ to: '/tasks' })
       } catch {
         // not valid JSON — nothing actionable
       }
