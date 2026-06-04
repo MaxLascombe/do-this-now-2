@@ -266,6 +266,15 @@ const TaskForm = ({
   useKeyAction(keyActions)
 
   const dueDate = newSafeDate(due)
+  const quickDues = [
+    { label: 'Today', delta: 0 },
+    { label: 'Tomorrow', delta: 1 },
+    { label: '+1 wk', delta: 7 },
+  ].map((o) => {
+    const d = new Date()
+    d.setDate(d.getDate() + o.delta)
+    return { ...o, due: dateString(d) }
+  })
   // Time frame is stored as decimal minutes after the timer redesign; UI
   // rounds up so a 30.4-min EMA still reads "31 min" rather than "30".
   const displayedMinutes = Math.ceil(timeFrame)
@@ -411,6 +420,23 @@ const TaskForm = ({
               <div className="mt-1.5 font-mono text-xs text-zinc-500">
                 {format(dueDate, 'EEEE, LLL d')} ·{' '}
                 {formatDueDistance(dayDiffFor(due))}
+              </div>
+              <div className="mt-2 flex flex-wrap gap-1.5">
+                {quickDues.map((q) => (
+                  <button
+                    key={q.label}
+                    type="button"
+                    onClick={() => setDue(q.due)}
+                    className={
+                      'rounded-full border px-3 py-1 font-mono text-xs ' +
+                      (due === q.due
+                        ? 'border-zinc-100 bg-zinc-50 text-zinc-950'
+                        : 'border-zinc-800 text-zinc-400 hover:border-zinc-600 hover:text-zinc-100')
+                    }
+                  >
+                    {q.label}
+                  </button>
+                ))}
               </div>
             </Field>
 
