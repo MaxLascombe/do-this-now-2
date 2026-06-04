@@ -16,7 +16,7 @@ import {
   completeTaskTransition,
   snoozeTaskTransition,
 } from './task-transitions'
-import { currentTimerSeconds } from './timer-utils'
+import { currentTimerSeconds, shouldCompleteOnPause } from './timer-utils'
 import { HOUR_MS } from './time'
 import type { TaskInput } from './task-input'
 import type { Task } from './types'
@@ -555,6 +555,10 @@ type TimerCtx = {
   prevOne?: { id: string; value: Task | undefined }
   prevTop?: Task[]
   prevList?: Task[]
+  // Whether the timer was running before this action — so a pause that
+  // actually stops a running timer (not a no-op re-pause) can trigger the
+  // auto-complete below.
+  wasRunning?: boolean
 }
 
 // Call once after the QueryClient and ApiClient exist (web: at client
@@ -587,14 +591,33 @@ export function registerTimerMutationDefaults(qc: QueryClient, api: ApiClient) {
         qc.setQueryData<Task[]>(taskKeys.top, patch)
         qc.setQueryData<Task[]>(taskKeys.list, patch)
       }
-      return { prevOne, prevTop, prevList }
+      return { prevOne, prevTop, prevList, wasRunning: target?.timerStartedAt != null }
     },
-    onSuccess: (server: Task) => {
+    onSuccess: async (
+      server: Task,
+      vars: TimerVars,
+      ctx: TimerCtx | undefined,
+    ) => {
       qc.setQueryData<Task>(taskKeys.one(server.id), server)
       const patch = (xs: Task[] | undefined) =>
         xs?.map((t) => (t.id === server.id ? server : t))
       qc.setQueryData<Task[]>(taskKeys.top, patch)
       qc.setQueryData<Task[]>(taskKeys.list, patch)
+
+      // Pausing a fixed-time-frame task once its timer has reached the target
+      // is the "I'm done" signal — auto-complete it. Guard on wasRunning so a
+      // no-op re-pause of an already-paused task doesn't re-fire completion.
+      if (
+        vars.action.kind === 'pause' &&
+        ctx?.wasRunning &&
+        shouldCompleteOnPause(server, new Date())
+      ) {
+        try {
+          await api.tasks.complete(server.id)
+        } finally {
+          invalidateTaskCaches(qc)
+        }
+      }
     },
     onError: (_e: unknown, _vars: TimerVars, ctx: TimerCtx | undefined) => {
       if (!ctx) return

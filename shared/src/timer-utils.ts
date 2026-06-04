@@ -56,6 +56,16 @@ export function isCompletionGated(task: Task, now: Date): boolean {
   return currentTimerSeconds(task, now) < targetSec
 }
 
+// Pausing a fixed-time-frame task whose timer has reached its planned target
+// is the "I'm done" signal — the caller completes it. True only for fixed
+// tasks with a real target whose elapsed time is at or over that target.
+export function shouldCompleteOnPause(task: Task, now: Date): boolean {
+  if (task.timeframeType !== 'fixed') return false
+  const targetSec = task.timeFrame * 60
+  if (targetSec <= 0) return false
+  return currentTimerSeconds(task, now) >= targetSec
+}
+
 // "When the user clicks Done, do we need to ask whether to count this
 // time toward the estimate?" Only fires for fluid tasks where the
 // estimate exists and the recorded time is far from the planned target
