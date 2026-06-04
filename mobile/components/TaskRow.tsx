@@ -124,7 +124,13 @@ export function TaskRow({
         </View>
       )}
       <View>
-        <Text style={{ fontSize: 22, lineHeight: 24 }}>{task.emoji}</Text>
+        <Text
+          accessibilityElementsHidden={true}
+          importantForAccessibility="no-hide-descendants"
+          style={{ fontSize: 22, lineHeight: 24 }}
+        >
+          {task.emoji}
+        </Text>
         {task.timerStartedAt && (
           <View
             style={{

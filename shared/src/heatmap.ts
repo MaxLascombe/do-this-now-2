@@ -8,6 +8,24 @@ export function percentile(sorted: number[], p: number): number {
   return sorted[idx]
 }
 
+// Grid position for the `index`-th day in an oldest-first heatmap series:
+// the latest day sits in the last column on its weekday row, and earlier days
+// step back through the weeks. `col` may be negative when a day predates the
+// leftmost rendered column — callers clip it.
+export function heatmapCellPosition(
+  index: number,
+  total: number,
+  todayDow: number,
+  numCols: number,
+): { col: number; row: number } {
+  const dowOffset = todayDow - (total - 1 - index)
+  const colsBack = Math.ceil(-dowOffset / 7)
+  return {
+    col: numCols - 1 - colsBack,
+    row: ((dowOffset % 7) + 7) % 7,
+  }
+}
+
 // Heatmap cell color: empty days are faint, target-hit and top-tier days are
 // the accent, with two mid tiers above the p33/p66 thresholds.
 export function heatmapColor(

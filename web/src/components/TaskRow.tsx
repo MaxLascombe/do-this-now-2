@@ -1,4 +1,5 @@
 import { formatDueLabel, formatRepeat } from '@dtn/shared/format'
+import { newSafeDate } from '@dtn/shared/helpers'
 import { minutesToHours } from '@dtn/shared/time'
 import { memo } from 'react'
 import type { Task } from '@dtn/shared/types'
@@ -33,7 +34,7 @@ const TaskRowBase = ({
     try {
       const today = new Date()
       today.setHours(0, 0, 0, 0)
-      const dueDate = new Date(task.due)
+      const dueDate = newSafeDate(task.due)
       return dueDate.getTime() < today.getTime()
     } catch {
       return false
@@ -54,7 +55,7 @@ const TaskRowBase = ({
       }
     >
       <span className="relative text-2xl leading-none">
-        {task.emoji}
+        <span aria-hidden="true">{task.emoji}</span>
         {task.timerStartedAt && (
           <span
             className="absolute -top-1 -right-1 h-2 w-2 rounded-full"
