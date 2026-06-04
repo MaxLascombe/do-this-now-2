@@ -10,7 +10,7 @@ import { useState } from 'react'
 
 import { KeyHints } from '../components/KeyHints'
 import { ErrorState } from '../components/ErrorState'
-import { Loading } from '../components/Loading'
+import { Skeleton } from '../components/Skeleton'
 import { MobileChrome } from '../components/MobileChrome'
 import { PageHeading } from '../components/PageHeading'
 import { TopBar } from '../components/TopBar'
@@ -63,16 +63,27 @@ function Stats() {
           onOpenSheet={() => setSheetOpen(true)}
           onCloseSheet={() => setSheetOpen(false)}
         />
-        <div className="flex flex-1 items-center justify-center">
-          {isError && !isLoading ? (
+        {isError && !isLoading ? (
+          <div className="flex flex-1 items-center justify-center">
             <ErrorState
               message="Couldn't load your stats."
               onRetry={() => refetch()}
             />
-          ) : (
-            <Loading />
-          )}
-        </div>
+          </div>
+        ) : (
+          <div
+            className="flex-1 px-5 pt-2 pb-28 md:px-10 md:pb-24"
+            role="status"
+            aria-label="Loading stats"
+          >
+            <div className="mx-auto flex max-w-5xl flex-col gap-6">
+              <Skeleton className="h-8 w-40" />
+              {Array.from({ length: 4 }).map((_, i) => (
+                <Skeleton key={i} className="h-28 w-full rounded-2xl" />
+              ))}
+            </div>
+          </div>
+        )}
       </div>
     )
   }
