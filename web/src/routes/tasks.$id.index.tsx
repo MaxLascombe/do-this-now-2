@@ -1,9 +1,10 @@
 import { formatDueLabel, formatRepeat } from '@dtn/shared/format'
-import { useTask } from '@dtn/shared/queries'
+import { useDeleteTask, useSnoozeTask, useTask } from '@dtn/shared/queries'
 import { minutesToHours } from '@dtn/shared/time'
 import { Link, createFileRoute, useRouter } from '@tanstack/react-router'
 import { useState } from 'react'
 
+import { useConfirm } from '../components/ConfirmProvider'
 import { ErrorState } from '../components/ErrorState'
 import { Loading } from '../components/Loading'
 import { MobileChrome } from '../components/MobileChrome'
@@ -31,6 +32,20 @@ function TaskDetail() {
   const keeperQuery = useTask(task?.timekeeperId ?? '')
   const timerTask = task?.timekeeperId ? keeperQuery.data : task
 
+  const snoozeMutation = useSnoozeTask()
+  const deleteMutation = useDeleteTask()
+  const confirm = useConfirm()
+
+  const snoozeAction = () => snoozeMutation.mutate({ id })
+  const deleteAction = async () => {
+    const ok = await confirm({
+      message: `Are you sure you want to delete '${task?.title ?? 'this task'}'?`,
+      confirmLabel: 'Delete',
+    })
+    if (!ok) return
+    deleteMutation.mutate(id, { onSuccess: () => router.history.back() })
+  }
+
   const keyActions: Array<KeyAction> = [
     { key: 'escape', description: 'Back', action: () => router.history.back() },
     {
@@ -38,6 +53,8 @@ function TaskDetail() {
       description: 'Edit',
       action: () => router.navigate({ to: '/tasks/$id/edit', params: { id } }),
     },
+    { key: 's', description: 'Snooze', action: snoozeAction },
+    { key: 'backspace', description: 'Delete', action: deleteAction },
     { key: 'n', description: 'Home', action: () => router.navigate({ to: '/' }) },
     {
       key: 't',
@@ -182,6 +199,30 @@ function TaskDetail() {
             </p>
           </div>
         )}
+
+        <div className="flex flex-wrap items-center gap-2 font-mono text-sm">
+          <button
+            type="button"
+            onClick={snoozeAction}
+            className="flex items-center gap-2 rounded-full border border-zinc-800 px-4 py-1.5 text-zinc-300 hover:bg-zinc-900 hover:text-zinc-50"
+          >
+            <span>Snooze</span>
+            <kbd className="rounded border border-zinc-700 bg-zinc-900 px-1 py-0.5 text-[10px] font-bold text-zinc-300">
+              S
+            </kbd>
+          </button>
+          <button
+            type="button"
+            onClick={deleteAction}
+            className="flex items-center gap-2 rounded-full border px-4 py-1.5 hover:bg-zinc-900"
+            style={{ borderColor: 'rgba(251,113,133,0.3)', color: OVERDUE }}
+          >
+            <span>Delete</span>
+            <kbd className="rounded border border-zinc-800 bg-zinc-900 px-1 py-0.5 text-[10px] font-bold text-zinc-400">
+              ⌫
+            </kbd>
+          </button>
+        </div>
 
         {task.subtasks.length > 0 && (
           <div>
