@@ -90,8 +90,10 @@ export const sortTasks = (
   in2Days.setDate(in2Days.getDate() + 2)
 
   const sortFlags: Array<(t: Task) => boolean> = [
-    // pinned tasks float above everything else
-    (t) => t.pinned,
+    // pinned tasks float to the top — but only among the actionable ones;
+    // listTopTasks doesn't filter snoozed tasks, it relies on the sort to
+    // sink them, so a pinned+snoozed task must not jump the Now view.
+    (t) => t.pinned && !isSnoozed(t),
 
     // not snoozed (true = higher priority)
     (t) => !isSnoozed(t),

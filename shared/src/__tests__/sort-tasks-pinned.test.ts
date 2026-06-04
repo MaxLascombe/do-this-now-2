@@ -25,4 +25,18 @@ describe('sortTasks — pinned float to the top', () => {
     sortTasks(arr, today)
     expect(arr[0].id).toBe('b')
   })
+
+  it('does not float a pinned task that is currently snoozed', () => {
+    const future = new Date(Date.now() + 60 * 60_000).toISOString()
+    const pinnedSnoozed = makeTask({
+      id: 'pinned-snoozed',
+      due: '2026-5-15',
+      pinned: true,
+      snooze: future,
+    })
+    const actionable = makeTask({ id: 'actionable', due: '2026-5-15' })
+    const arr = [pinnedSnoozed, actionable]
+    sortTasks(arr, today)
+    expect(arr[0].id).toBe('actionable')
+  })
 })
