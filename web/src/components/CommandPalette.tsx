@@ -1,3 +1,4 @@
+import { useClerk } from '@clerk/tanstack-react-start'
 import { formatDueLabel } from '@dtn/shared/format'
 import { newSafeDate } from '@dtn/shared/helpers'
 import { useAllTasks } from '@dtn/shared/queries'
@@ -14,6 +15,7 @@ type Item = {
 
 export function CommandPalette() {
   const navigate = useNavigate()
+  const { signOut } = useClerk()
   const tasksQuery = useAllTasks({ enabled: false })
   const [open, setOpen] = useState(false)
   const [query, setQuery] = useState('')
@@ -119,10 +121,42 @@ export function CommandPalette() {
       ]
     : []
 
+  const exportTasks = () => {
+    const tasks = tasksQuery.data ?? []
+    if (tasks.length === 0) return
+    const blob = new Blob([JSON.stringify(tasks, null, 2)], {
+      type: 'application/json',
+    })
+    const url = URL.createObjectURL(blob)
+    const a = document.createElement('a')
+    a.href = url
+    a.download = 'do-this-now-tasks.json'
+    a.click()
+    URL.revokeObjectURL(url)
+  }
+
+  const actions: Item[] = [
+    {
+      key: 'a:export',
+      glyph: '⤓',
+      label: 'Export tasks (JSON)',
+      hint: 'Action',
+      run: exportTasks,
+    },
+    {
+      key: 'a:signout',
+      glyph: '⏻',
+      label: 'Sign out',
+      hint: 'Action',
+      run: () => void signOut(),
+    },
+  ]
+
   const results = [
     ...pages.filter((p) => !q || p.label.toLowerCase().includes(q)),
     ...taskItems,
     ...createItems,
+    ...actions.filter((a) => !q || a.label.toLowerCase().includes(q)),
   ]
   const active = Math.min(selected, Math.max(0, results.length - 1))
 
