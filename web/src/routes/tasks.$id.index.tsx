@@ -2,9 +2,11 @@ import { formatDueLabel, formatRepeat } from '@dtn/shared/format'
 import { dateString, nextDueDate } from '@dtn/shared/helpers'
 import {
   useCompleteTask,
+  useCreateTask,
   useDeleteTask,
   useSnoozeTask,
   useTask,
+  useTaskTimer,
   useUpdateTask,
 } from '@dtn/shared/queries'
 import { taskToInput } from '@dtn/shared/task-input'
@@ -21,6 +23,7 @@ import { useEffect, useState } from 'react'
 import { useConfirm } from '../components/ConfirmProvider'
 import { CountConfirmModal } from '../components/CountConfirmModal'
 import { ErrorState } from '../components/ErrorState'
+import { LinkifiedNotes } from '../components/LinkifiedNotes'
 import { Loading } from '../components/Loading'
 import { MobileChrome } from '../components/MobileChrome'
 import { PageHeading } from '../components/PageHeading'
@@ -33,6 +36,7 @@ import type { KeyAction } from '../hooks/useKeyAction'
 const OVERDUE = '#fb7185'
 
 export const Route = createFileRoute('/tasks/$id/')({
+  head: () => ({ meta: [{ title: 'Task · Do This Now' }] }),
   component: TaskDetail,
 })
 
@@ -41,6 +45,7 @@ function TaskDetail() {
   const router = useRouter()
   const taskQuery = useTask(id)
   const [sheetOpen, setSheetOpen] = useState(false)
+  const [subtaskDraft, setSubtaskDraft] = useState('')
 
   const task = taskQuery.data
   // 0-time-frame children track their timer on the keeper row, like the
@@ -52,13 +57,57 @@ function TaskDetail() {
   const deleteMutation = useDeleteTask()
   const doneMutation = useCompleteTask()
   const updateTask = useUpdateTask()
+  const createTask = useCreateTask()
+  const timer = useTaskTimer()
   const confirm = useConfirm()
+
+  // The mutation targets the route id; the server maps a 0-frame child to
+  // its keeper, while timerTask gives the correct running state to read.
+  const toggleTimerAction = () =>
+    timer.mutate({
+      id,
+      action: { kind: timerTask?.timerStartedAt ? 'pause' : 'start' },
+    })
+
+  const reschedule = (due: string) => {
+    if (!task) return
+    updateTask.mutate({ id, input: { ...taskToInput(task), due } })
+  }
+
+  // Clone the task's config as a fresh task and jump to it. Timer state,
+  // completion history, and subtask `done` flags don't carry over —
+  // taskToInput keeps only the user-authored fields.
+  const duplicateAction = async () => {
+    if (!task) return
+    const copy = await createTask.mutateAsync({
+      ...taskToInput(task),
+      title: `${task.title} (copy)`,
+      subtasks: task.subtasks.map((s) => ({
+        ...s,
+        done: false,
+        snooze: undefined,
+      })),
+    })
+    router.navigate({ to: '/tasks/$id', params: { id: copy.id } })
+  }
 
   const toggleSubtask = (index: number) => {
     if (!task) return
     const subtasks = task.subtasks.map((s, i) =>
       i === index ? { ...s, done: !s.done } : s,
     )
+    updateTask.mutate({ id, input: { ...taskToInput(task), subtasks } })
+  }
+  const addSubtask = () => {
+    const title = subtaskDraft.trim()
+    if (!task || !title) return
+    const subtasks = [...task.subtasks, { title, done: false }]
+    updateTask.mutate({ id, input: { ...taskToInput(task), subtasks } })
+    setSubtaskDraft('')
+  }
+  const removeSubtask = (index: number) => {
+    if (!task) return
+    const subtasks = task.subtasks.filter((_, i) => i !== index)
     updateTask.mutate({ id, input: { ...taskToInput(task), subtasks } })
   }
 
@@ -127,6 +176,11 @@ function TaskDetail() {
     },
     { key: 'd', description: 'Done', action: completeAction },
     { key: 's', description: 'Snooze', action: snoozeAction },
+    {
+      key: 'p',
+      description: timerTask?.timerStartedAt ? 'Pause timer' : 'Start timer',
+      action: toggleTimerAction,
+    },
     { key: 'backspace', description: 'Delete', action: deleteAction },
     { key: 'n', description: 'Home', action: () => router.navigate({ to: '/' }) },
     {
@@ -186,6 +240,22 @@ function TaskDetail() {
     task.repeatWeekdays,
   )
   const doneCount = task.subtasks.filter((s) => s.done).length
+
+  const rescheduleOptions = [
+    { label: 'Today', due: dateString(now) },
+    {
+      label: 'Tomorrow',
+      due: dateString(
+        new Date(now.getFullYear(), now.getMonth(), now.getDate() + 1),
+      ),
+    },
+    {
+      label: '+1 week',
+      due: dateString(
+        new Date(now.getFullYear(), now.getMonth(), now.getDate() + 7),
+      ),
+    },
+  ]
 
   const upcoming: Date[] = []
   {
@@ -270,6 +340,30 @@ function TaskDetail() {
           )}
         </div>
 
+        {task.repeat === 'No Repeat' && (
+          <div className="flex flex-wrap items-center gap-2">
+            <span className="font-mono text-[10px] tracking-[0.3em] text-zinc-500 uppercase">
+              Reschedule
+            </span>
+            {rescheduleOptions.map((o) => (
+              <button
+                key={o.label}
+                type="button"
+                disabled={task.due === o.due || updateTask.isPending}
+                onClick={() => reschedule(o.due)}
+                className={
+                  'rounded-full border px-3 py-1 font-mono text-xs ' +
+                  (task.due === o.due
+                    ? 'border-zinc-100 bg-zinc-50 text-zinc-950'
+                    : 'border-zinc-800 text-zinc-400 hover:border-zinc-600 hover:text-zinc-100 disabled:opacity-50')
+                }
+              >
+                {o.label}
+              </button>
+            ))}
+          </div>
+        )}
+
         {upcoming.length > 0 && (
           <div className="font-mono text-xs text-zinc-500">
             <span className="tracking-[0.2em] text-zinc-600 uppercase">
@@ -289,12 +383,14 @@ function TaskDetail() {
         {task.tags.length > 0 && (
           <div className="flex flex-wrap gap-1.5">
             {task.tags.map((t) => (
-              <span
+              <Link
                 key={t}
-                className="rounded-full border border-zinc-800 bg-zinc-900 px-2.5 py-1 font-mono text-xs text-zinc-300"
+                to="/tags"
+                search={{ tag: t }}
+                className="rounded-full border border-zinc-800 bg-zinc-900 px-2.5 py-1 font-mono text-xs text-zinc-300 hover:border-zinc-600 hover:text-zinc-50"
               >
                 #{t}
-              </span>
+              </Link>
             ))}
           </div>
         )}
@@ -304,9 +400,10 @@ function TaskDetail() {
             <div className="mb-2 font-mono text-[10px] tracking-[0.3em] text-zinc-500 uppercase">
               Notes
             </div>
-            <p className="font-mono text-sm whitespace-pre-wrap text-zinc-300">
-              {task.notes}
-            </p>
+            <LinkifiedNotes
+              text={task.notes}
+              className="font-mono text-sm whitespace-pre-wrap text-zinc-300"
+            />
           </div>
         )}
 
@@ -351,24 +448,34 @@ function TaskDetail() {
           >
             {copied ? 'Copied' : 'Copy link'}
           </button>
+          <button
+            type="button"
+            onClick={duplicateAction}
+            disabled={createTask.isPending}
+            className="flex items-center gap-2 rounded-full border border-zinc-800 px-4 py-1.5 text-zinc-400 hover:bg-zinc-900 hover:text-zinc-50 disabled:opacity-40"
+          >
+            {createTask.isPending ? 'Duplicating…' : 'Duplicate'}
+          </button>
         </div>
 
-        {task.subtasks.length > 0 && (
-          <div>
-            <div className="mb-3 flex items-baseline justify-between font-mono text-[10px] tracking-[0.3em] text-zinc-500 uppercase">
-              <span>Subtasks</span>
+        <div>
+          <div className="mb-3 flex items-baseline justify-between font-mono text-[10px] tracking-[0.3em] text-zinc-500 uppercase">
+            <span>Subtasks</span>
+            {task.subtasks.length > 0 && (
               <span className="tabular-nums">
                 {doneCount}/{task.subtasks.length}
               </span>
-            </div>
+            )}
+          </div>
+          {task.subtasks.length > 0 && (
             <ul className="space-y-1">
               {task.subtasks.map((sub, i) => (
-                <li key={i}>
+                <li key={i} className="flex items-center gap-1">
                   <button
                     type="button"
                     onClick={() => toggleSubtask(i)}
                     aria-pressed={sub.done}
-                    className="flex w-full items-center gap-3 rounded-xl border border-zinc-800 bg-zinc-900/60 px-4 py-2.5 text-left font-mono text-sm hover:border-zinc-700 hover:bg-zinc-900"
+                    className="flex min-w-0 flex-1 items-center gap-3 rounded-xl border border-zinc-800 bg-zinc-900/60 px-4 py-2.5 text-left font-mono text-sm hover:border-zinc-700 hover:bg-zinc-900"
                   >
                     <span
                       aria-hidden="true"
@@ -390,11 +497,41 @@ function TaskDetail() {
                       {sub.title}
                     </span>
                   </button>
+                  <button
+                    type="button"
+                    onClick={() => removeSubtask(i)}
+                    aria-label={`Remove subtask: ${sub.title}`}
+                    className="rounded-lg px-2 py-2 font-mono text-sm text-zinc-600 hover:text-rose-400"
+                  >
+                    ✕
+                  </button>
                 </li>
               ))}
             </ul>
+          )}
+            <form
+              onSubmit={(e) => {
+                e.preventDefault()
+                addSubtask()
+              }}
+              className="mt-2 flex items-center gap-2"
+            >
+              <input
+                value={subtaskDraft}
+                onChange={(e) => setSubtaskDraft(e.target.value)}
+                placeholder="Add a subtask…"
+                aria-label="Add a subtask"
+                className="flex-1 rounded-xl border border-zinc-800 bg-zinc-900/60 px-4 py-2 font-mono text-sm text-zinc-100 placeholder:text-zinc-600 focus:border-zinc-600 focus:outline-none"
+              />
+              <button
+                type="submit"
+                disabled={!subtaskDraft.trim() || updateTask.isPending}
+                className="rounded-full border border-zinc-800 px-4 py-2 font-mono text-sm text-zinc-400 hover:border-zinc-600 hover:text-zinc-100 disabled:opacity-50"
+              >
+                Add
+              </button>
+            </form>
           </div>
-        )}
 
         <Link
           to="/tasks/$id/edit"
