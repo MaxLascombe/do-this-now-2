@@ -125,6 +125,11 @@ const TaskRowBase = ({
               strict
             </span>
           )}
+          {task.tags.map((t) => (
+            <span key={t} className={selected ? 'text-zinc-500' : 'text-zinc-600'}>
+              #{t}
+            </span>
+          ))}
         </div>
       </div>
       {kbd && (
