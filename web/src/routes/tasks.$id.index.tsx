@@ -2,6 +2,7 @@ import { formatDueLabel, formatRepeat } from '@dtn/shared/format'
 import { dateString, nextDueDate } from '@dtn/shared/helpers'
 import {
   useCompleteTask,
+  useCreateTask,
   useDeleteTask,
   useSnoozeTask,
   useTask,
@@ -54,11 +55,25 @@ function TaskDetail() {
   const deleteMutation = useDeleteTask()
   const doneMutation = useCompleteTask()
   const updateTask = useUpdateTask()
+  const createTask = useCreateTask()
   const confirm = useConfirm()
 
   const reschedule = (due: string) => {
     if (!task) return
     updateTask.mutate({ id, input: { ...taskToInput(task), due } })
+  }
+
+  // Clone the task's config as a fresh task and jump to it. Timer state,
+  // completion history, and subtask `done` flags don't carry over —
+  // taskToInput keeps only the user-authored fields.
+  const duplicateAction = async () => {
+    if (!task) return
+    const copy = await createTask.mutateAsync({
+      ...taskToInput(task),
+      title: `${task.title} (copy)`,
+      subtasks: task.subtasks.map((s) => ({ ...s, done: false })),
+    })
+    router.navigate({ to: '/tasks/$id', params: { id: copy.id } })
   }
 
   const toggleSubtask = (index: number) => {
@@ -409,6 +424,14 @@ function TaskDetail() {
             className="flex items-center gap-2 rounded-full border border-zinc-800 px-4 py-1.5 text-zinc-400 hover:bg-zinc-900 hover:text-zinc-50"
           >
             {copied ? 'Copied' : 'Copy link'}
+          </button>
+          <button
+            type="button"
+            onClick={duplicateAction}
+            disabled={createTask.isPending}
+            className="flex items-center gap-2 rounded-full border border-zinc-800 px-4 py-1.5 text-zinc-400 hover:bg-zinc-900 hover:text-zinc-50 disabled:opacity-40"
+          >
+            {createTask.isPending ? 'Duplicating…' : 'Duplicate'}
           </button>
         </div>
 
