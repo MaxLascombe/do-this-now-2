@@ -64,7 +64,9 @@ export function TaskRow({
     task.title,
     dueLabel,
     task.timeFrame ? minutesToHours(task.timeFrame) : null,
-    subtaskCount > 0 ? `${doneCount} of ${subtaskCount} subtasks done` : null,
+    subtaskCount > 0
+      ? `${doneCount} of ${subtaskCount} ${subtaskCount === 1 ? 'subtask' : 'subtasks'} done`
+      : null,
     repeatLabel ? `repeats ${repeatLabel}` : null,
     task.strictDeadline ? 'strict deadline' : null,
     task.timerStartedAt ? 'timer running' : null,
@@ -123,7 +125,13 @@ export function TaskRow({
         </View>
       )}
       <View>
-        <Text style={{ fontSize: 22, lineHeight: 24 }}>{task.emoji}</Text>
+        <Text
+          accessibilityElementsHidden={true}
+          importantForAccessibility="no-hide-descendants"
+          style={{ fontSize: 22, lineHeight: 24 }}
+        >
+          {task.emoji}
+        </Text>
         {task.timerStartedAt && (
           <View
             style={{

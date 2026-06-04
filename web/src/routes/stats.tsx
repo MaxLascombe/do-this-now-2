@@ -340,14 +340,16 @@ function HourOfDay({ data }: { data: StatsResult }) {
   return (
     <Section title="Hour of day">
       <div className="mb-2 flex items-baseline justify-between font-mono text-[10px] text-zinc-500">
-        <span>{total} completions</span>
+        <span>
+          {total} completion{total === 1 ? '' : 's'}
+        </span>
         <span>peak {max}/hr</span>
       </div>
       <div
         role="img"
         aria-label={`Completions by hour of day. Busiest hour ${peakHour
           .toString()
-          .padStart(2, '0')}:00 with ${max} completions.`}
+          .padStart(2, '0')}:00 with ${max} completion${max === 1 ? '' : 's'}.`}
         className="flex h-20 items-end gap-[2px]"
       >
         {data.hourOfDay.map((c, i) => {
@@ -355,7 +357,7 @@ function HourOfDay({ data }: { data: StatsResult }) {
           return (
             <div
               key={i}
-              title={`${i.toString().padStart(2, '0')}:00 — ${c} completions`}
+              title={`${i.toString().padStart(2, '0')}:00 — ${c} completion${c === 1 ? '' : 's'}`}
               className="flex-1 rounded-sm"
               style={{
                 height: c === 0 ? '4px' : `${Math.max(8, pct)}%`,
@@ -394,12 +396,14 @@ function DayOfWeek({ data }: { data: StatsResult }) {
   return (
     <Section title="Day of week">
       <div className="mb-2 flex items-baseline justify-between font-mono text-[10px] text-zinc-500">
-        <span>{total} completions</span>
+        <span>
+          {total} completion{total === 1 ? '' : 's'}
+        </span>
         <span>peak {max}</span>
       </div>
       <div
         role="img"
-        aria-label={`Completions by day of week. Busiest day ${peakDay} with ${max} completions.`}
+        aria-label={`Completions by day of week. Busiest day ${peakDay} with ${max} completion${max === 1 ? '' : 's'}.`}
         className="flex h-20 items-end gap-1.5"
       >
         {data.dayOfWeek.map((c, i) => {
