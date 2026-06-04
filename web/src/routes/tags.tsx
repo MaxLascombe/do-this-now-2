@@ -12,14 +12,19 @@ import useKeyAction, { type KeyAction } from '../hooks/useKeyAction'
 
 export const Route = createFileRoute('/tags')({
   head: () => ({ meta: [{ title: 'Tags · Do This Now' }] }),
+  validateSearch: (search: Record<string, unknown>): { tag?: string } => {
+    const tag = typeof search.tag === 'string' ? search.tag.trim() : ''
+    return tag ? { tag } : {}
+  },
   component: TagBrowse,
 })
 
 function TagBrowse() {
   const navigate = useNavigate()
   const { data, isLoading } = useAllTasks()
+  const { tag: initialTag } = Route.useSearch()
   const [sheetOpen, setSheetOpen] = useState(false)
-  const [selected, setSelected] = useState<string | null>(null)
+  const [selected, setSelected] = useState<string | null>(initialTag ?? null)
 
   const keyActions: KeyAction[] = [
     { key: 'escape', description: 'Home', action: () => navigate({ to: '/' }) },
