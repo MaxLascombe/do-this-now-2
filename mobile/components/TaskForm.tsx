@@ -175,6 +175,21 @@ export function TaskForm({
   )
   const dayDiffPhrase = formatDueDistance(dayDiff)
 
+  const quickDue = (deltaDays: number) => {
+    const d = new Date()
+    d.setDate(d.getDate() + deltaDays)
+    setDueDate(d)
+  }
+  const dueQuickOptions = [
+    { label: 'Today', delta: 0 },
+    { label: 'Tomorrow', delta: 1 },
+    { label: '+1 wk', delta: 7 },
+  ].map((o) => {
+    const d = new Date()
+    d.setDate(d.getDate() + o.delta)
+    return { ...o, due: dateString(d) }
+  })
+
   const repeatSummary =
     repeat === 'No Repeat'
       ? 'Never'
@@ -317,6 +332,42 @@ export function TaskForm({
             sub={dayDiffPhrase}
             onPress={() => setOpenSheet('date')}
           />
+          <View
+            style={{
+              flexDirection: 'row',
+              flexWrap: 'wrap',
+              gap: 6,
+              marginTop: 8,
+            }}
+          >
+            {dueQuickOptions.map((o) => {
+              const active = dateString(dueDate) === o.due
+              return (
+                <Pressable
+                  key={o.label}
+                  onPress={() => quickDue(o.delta)}
+                  style={{
+                    borderWidth: 1,
+                    borderColor: active ? '#f4f4f5' : '#27272a',
+                    backgroundColor: active ? '#fafafa' : 'rgba(24,24,27,0.6)',
+                    paddingHorizontal: 12,
+                    paddingVertical: 7,
+                    borderRadius: 999,
+                  }}
+                >
+                  <Text
+                    style={{
+                      fontFamily: 'JetBrainsMono_400Regular',
+                      fontSize: 12,
+                      color: active ? '#0a0a0a' : '#a1a1aa',
+                    }}
+                  >
+                    {o.label}
+                  </Text>
+                </Pressable>
+              )
+            })}
+          </View>
         </Field>
 
         <Field label="Due time">
