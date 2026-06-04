@@ -32,8 +32,18 @@ function TaskDetail() {
   // Copy this task and jump straight into editing the copy.
   const duplicate = () => {
     if (!task || createMutation.isPending) return
+    const input = taskToInput(task)
     createMutation.mutate(
-      { ...taskToInput(task), title: `${task.title} (copy)` },
+      {
+        ...input,
+        title: `${task.title} (copy)`,
+        // A fresh copy starts un-done and un-snoozed, not mid-progress.
+        subtasks: input.subtasks.map((s) => ({
+          ...s,
+          done: false,
+          snooze: undefined,
+        })),
+      },
       {
         onSuccess: (created) =>
           router.navigate({
