@@ -1,7 +1,8 @@
 import { useClerk, useUser } from '@clerk/tanstack-react-start'
-import { useAllTasks } from '@dtn/shared/queries'
+import { useAllTasks, useCreateTask } from '@dtn/shared/queries'
+import { taskInputSchema } from '@dtn/shared/task-input'
 import { createFileRoute, useNavigate } from '@tanstack/react-router'
-import { useState } from 'react'
+import { useRef, useState } from 'react'
 
 import { MobileChrome } from '../components/MobileChrome'
 import { PageHeading } from '../components/PageHeading'
@@ -52,6 +53,49 @@ function Settings() {
     URL.revokeObjectURL(url)
   }
 
+  const createTask = useCreateTask()
+  const fileRef = useRef<HTMLInputElement>(null)
+  const [importMsg, setImportMsg] = useState<string | null>(null)
+  const [importing, setImporting] = useState(false)
+
+  // Accepts both the raw-task export above and any TaskInput-shaped JSON —
+  // taskInputSchema strips server-only fields (id/userId/timers) and
+  // validates the rest, so a backup round-trips cleanly. Bad entries are
+  // skipped, not fatal.
+  const onImportFile = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    e.target.value = ''
+    if (!file) return
+    setImportMsg(null)
+    setImporting(true)
+    try {
+      const raw = JSON.parse(await file.text())
+      if (!Array.isArray(raw)) {
+        setImportMsg("That file isn't a task list.")
+        return
+      }
+      let imported = 0
+      let skipped = 0
+      for (const entry of raw) {
+        const parsed = taskInputSchema.safeParse(entry)
+        if (!parsed.success) {
+          skipped++
+          continue
+        }
+        await createTask.mutateAsync(parsed.data)
+        imported++
+      }
+      setImportMsg(
+        `Imported ${imported} task${imported === 1 ? '' : 's'}` +
+          (skipped ? `, skipped ${skipped} invalid.` : '.'),
+      )
+    } catch {
+      setImportMsg("Couldn't read that file — is it valid JSON?")
+    } finally {
+      setImporting(false)
+    }
+  }
+
   const taskCount = tasksQuery.data?.length ?? 0
 
   return (
@@ -92,6 +136,31 @@ function Settings() {
             <span aria-hidden="true">⤓</span>
             Export tasks (JSON)
           </button>
+
+          <input
+            ref={fileRef}
+            type="file"
+            accept="application/json,.json"
+            onChange={onImportFile}
+            className="hidden"
+          />
+          <button
+            type="button"
+            onClick={() => fileRef.current?.click()}
+            disabled={importing}
+            className="flex items-center justify-center gap-2 rounded-full border border-zinc-800 px-4 py-3 font-mono text-sm text-zinc-300 transition-colors hover:bg-zinc-900 disabled:opacity-40 disabled:hover:bg-transparent"
+          >
+            <span aria-hidden="true">⤒</span>
+            {importing ? 'Importing…' : 'Import tasks (JSON)'}
+          </button>
+          {importMsg && (
+            <p
+              role="status"
+              className="-mt-3 text-center font-mono text-xs text-zinc-500"
+            >
+              {importMsg}
+            </p>
+          )}
 
           <button
             type="button"
