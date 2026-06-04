@@ -1,9 +1,10 @@
 import { startOfToday } from '@dtn/shared/day-index'
 import { dueGroupLabel, tasksListEyebrow } from '@dtn/shared/format'
-import { newSafeDate } from '@dtn/shared/helpers'
+import { dateString, newSafeDate } from '@dtn/shared/helpers'
 import {
   useAllTasks,
   useCompleteTask,
+  useCreateTask,
   useDeleteTask,
   useSnoozeTask,
   useTopTasks,
@@ -24,15 +25,18 @@ import {
   RefreshControl,
   SectionList,
   Text,
+  TextInput,
   View,
 } from 'react-native'
 import { SafeAreaView } from 'react-native-safe-area-context'
 
+import { EmptyTasks } from '../../components/EmptyTasks'
 import { ErrorState } from '../../components/ErrorState'
 import { Loading } from '../../components/Loading'
 import { PageHeading } from '../../components/PageHeading'
 import { SwipeableTaskRow } from '../../components/SwipeableTaskRow'
 import { TopProgress } from '../../components/TopProgress'
+import { usePersistedState } from '../../hooks/usePersistedState'
 
 type Sort = 'CHRON' | 'TOP'
 
@@ -48,12 +52,37 @@ const OVERDUE = '#fb7185'
 
 export default function TasksList() {
   const router = useRouter()
-  const [sort, setSort] = useState<Sort>('CHRON')
+  const [sort, setSort] = usePersistedState<Sort>('dtn.tasks.sort', 'CHRON')
+  const [query, setQuery] = useState('')
+  const [quickTitle, setQuickTitle] = useState('')
 
   const allTasks = useAllTasks({ enabled: sort === 'CHRON' })
   const topTasks = useTopTasks({ enabled: sort === 'TOP' })
 
   const doneMutation = useCompleteTask()
+  const createMutation = useCreateTask()
+  const quickAdd = () => {
+    const title = quickTitle.trim()
+    if (!title || createMutation.isPending) return
+    createMutation.mutate({
+      title,
+      emoji: '📝',
+      due: dateString(new Date()),
+      dueTime: null,
+      strictDeadline: false,
+      repeat: 'No Repeat',
+      repeatInterval: 1,
+      repeatUnit: 'day',
+      repeatWeekdays: [false, false, false, false, false, false, false],
+      timeFrame: 30,
+      timekeeperId: null,
+      timeframeType: 'fixed',
+      subtasks: [],
+      notes: '',
+      tags: [],
+    })
+    setQuickTitle('')
+  }
   const deleteMutation = useDeleteTask()
   const snoozeMutation = useSnoozeTask()
 
@@ -114,8 +143,10 @@ export default function TasksList() {
 
   const sections: Group[] = useMemo(() => {
     const today0 = startOfToday()
-    const tasks =
+    let tasks =
       sort === 'CHRON' ? [...(allTasks.data ?? [])] : [...(topTasks.data ?? [])]
+    const q = query.trim().toLowerCase()
+    if (q) tasks = tasks.filter((t) => t.title.toLowerCase().includes(q))
     if (tasks.length === 0) return []
 
     if (sort === 'CHRON') {
@@ -169,7 +200,7 @@ export default function TasksList() {
         data: snoozed,
       })
     return result
-  }, [sort, allTasks.data, topTasks.data])
+  }, [sort, allTasks.data, topTasks.data, query])
 
   const eyebrow = useMemo(
     () =>
@@ -208,8 +239,51 @@ export default function TasksList() {
       <Stack.Screen options={{ headerShown: false }} />
       <TopProgress />
       <PageHeading eyebrow={eyebrow}>All tasks</PageHeading>
-      <View style={{ paddingHorizontal: 20, paddingBottom: 12 }}>
+      <View style={{ paddingHorizontal: 20, paddingBottom: 12, gap: 10 }}>
         <SortToggle value={sort} onChange={setSort} />
+        <TextInput
+          value={quickTitle}
+          onChangeText={setQuickTitle}
+          onSubmitEditing={quickAdd}
+          blurOnSubmit={false}
+          placeholder="＋ Add a task…"
+          placeholderTextColor="#52525b"
+          returnKeyType="done"
+          accessibilityLabel="Quick-add a task"
+          style={{
+            borderWidth: 1,
+            borderColor: '#27272a',
+            backgroundColor: 'rgba(24,24,27,0.5)',
+            borderRadius: 999,
+            paddingHorizontal: 16,
+            paddingVertical: 9,
+            fontFamily: 'JetBrainsMono_400Regular',
+            fontSize: 14,
+            color: '#fafafa',
+          }}
+        />
+        <TextInput
+          value={query}
+          onChangeText={setQuery}
+          placeholder="Search tasks…"
+          placeholderTextColor="#52525b"
+          autoCapitalize="none"
+          autoCorrect={false}
+          clearButtonMode="while-editing"
+          returnKeyType="search"
+          accessibilityLabel="Search tasks"
+          style={{
+            borderWidth: 1,
+            borderColor: '#27272a',
+            backgroundColor: 'rgba(24,24,27,0.5)',
+            borderRadius: 999,
+            paddingHorizontal: 16,
+            paddingVertical: 9,
+            fontFamily: 'JetBrainsMono_400Regular',
+            fontSize: 14,
+            color: '#fafafa',
+          }}
+        />
       </View>
       <SectionList
         style={{ flex: 1 }}
@@ -238,16 +312,26 @@ export default function TasksList() {
               />
             </View>
           ) : (
-            <Text
-              style={{
-                textAlign: 'center',
-                marginTop: 40,
-                color: '#71717a',
-                fontFamily: 'JetBrainsMono_400Regular',
-              }}
-            >
-              No tasks
-            </Text>
+            query ? (
+              <Text
+                style={{
+                  textAlign: 'center',
+                  marginTop: 40,
+                  color: '#71717a',
+                  fontFamily: 'JetBrainsMono_400Regular',
+                }}
+              >
+                {`No tasks match "${query.trim()}"`}
+              </Text>
+            ) : (
+              <View style={{ marginTop: 48 }}>
+                <EmptyTasks
+                  title="No tasks yet"
+                  subtitle="Create your first task to get started."
+                  onNewTask={() => router.push('/new-task')}
+                />
+              </View>
+            )
           )
         }
       />

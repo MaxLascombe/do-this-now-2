@@ -10,7 +10,7 @@ import {
   JetBrainsMono_700Bold,
 } from "@expo-google-fonts/jetbrains-mono";
 import { useFonts } from "expo-font";
-import { Stack } from "expo-router";
+import { Stack, type ErrorBoundaryProps } from "expo-router";
 import * as SplashScreen from "expo-splash-screen";
 import { StatusBar } from "expo-status-bar";
 import { useEffect } from "react";
@@ -18,11 +18,17 @@ import { Text, TextInput } from "react-native";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { SafeAreaProvider } from "react-native-safe-area-context";
 
+import { ErrorScreen } from "../components/ErrorScreen";
 import { SignInScreen } from "../components/SignInScreen";
 import { MobileApiAndQuery } from "../lib/api-client";
 import { tokenCache } from "../lib/token-cache";
 
 import "../global.css";
+
+// expo-router renders this for any uncaught render error in the tree.
+export function ErrorBoundary(props: ErrorBoundaryProps) {
+  return <ErrorScreen {...props} />;
+}
 
 void SplashScreen.preventAutoHideAsync();
 
