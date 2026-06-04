@@ -7,6 +7,7 @@ import {
   useSnoozeTask,
   useTask,
   useTopTasks,
+  useUnsnoozeTask,
 } from '@dtn/shared/queries'
 import {
   findNextActionableSubtask,
@@ -29,6 +30,7 @@ import { Loading } from '../components/Loading'
 import { MobileChrome } from '../components/MobileChrome'
 import { TaskRow } from '../components/TaskRow'
 import { TimerWidget } from '../components/TimerWidget'
+import { useToast } from '../components/ToastProvider'
 import { TopBar } from '../components/TopBar'
 import useKeyAction from '../hooks/useKeyAction'
 import type { Task } from '@dtn/shared/types'
@@ -98,9 +100,11 @@ function Home() {
   const doneMutation = useCompleteTask()
   const deleteMutation = useDeleteTask()
   const snoozeMutation = useSnoozeTask()
+  const unsnoozeMutation = useUnsnoozeTask()
   const prefetchTask = usePrefetchTask()
   const primeTaskCache = usePrimeTaskCache()
   const confirm = useConfirm()
+  const toast = useToast()
 
   const [pendingComplete, setPendingComplete] = useState<{
     task: Task
@@ -132,12 +136,34 @@ function Home() {
 
   const snoozeTaskAction = () => {
     if (!selectedTask) return
-    snoozeMutation.mutate({ id: selectedTask.id })
+    const { id } = selectedTask
+    snoozeMutation.mutate(
+      { id },
+      {
+        onSuccess: () =>
+          toast({
+            message: 'Task snoozed',
+            actionLabel: 'Undo',
+            onAction: () => unsnoozeMutation.mutate(id),
+          }),
+      },
+    )
   }
 
   const snoozeAllSubtasksAction = () => {
     if (!selectedTask) return
-    snoozeMutation.mutate({ id: selectedTask.id, allSubtasks: true })
+    const { id } = selectedTask
+    snoozeMutation.mutate(
+      { id, allSubtasks: true },
+      {
+        onSuccess: () =>
+          toast({
+            message: 'Subtasks snoozed',
+            actionLabel: 'Undo',
+            onAction: () => unsnoozeMutation.mutate(id),
+          }),
+      },
+    )
   }
 
   const deleteTaskAction = async () => {
