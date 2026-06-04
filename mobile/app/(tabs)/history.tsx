@@ -3,6 +3,7 @@ import { dateString } from '@dtn/shared/helpers'
 import { useHistory, useStats } from '@dtn/shared/queries'
 import { DAY_MS, minutesToHours } from '@dtn/shared/time'
 import { type HistoryEntry } from '@dtn/shared/types'
+import DateTimePicker from '@react-native-community/datetimepicker'
 import { Stack } from 'expo-router'
 import { format } from 'date-fns'
 import { useCallback, useState } from 'react'
@@ -29,6 +30,15 @@ const SWIPE_THRESHOLD = 50
 
 export default function History() {
   const [daysAgo, setDaysAgo] = useState(0)
+  const [pickerOpen, setPickerOpen] = useState(false)
+  const jumpToDate = (picked: Date) => {
+    const today = new Date()
+    today.setHours(0, 0, 0, 0)
+    const p = new Date(picked)
+    p.setHours(0, 0, 0, 0)
+    const diff = Math.round((today.getTime() - p.getTime()) / DAY_MS)
+    setDaysAgo(Math.max(0, diff))
+  }
 
   const goOlder = useCallback(() => setDaysAgo((d) => d + 1), [])
   const goNewer = useCallback(
@@ -90,7 +100,12 @@ export default function History() {
             >
               ←
             </DateStepperButton>
-            <View style={{ alignItems: 'center' }}>
+            <Pressable
+              onPress={() => setPickerOpen(true)}
+              accessibilityRole="button"
+              accessibilityLabel="Jump to a date"
+              style={{ alignItems: 'center' }}
+            >
               <Text
                 style={{
                   fontFamily: 'JetBrainsMono_700Bold',
@@ -112,9 +127,20 @@ export default function History() {
                   marginTop: 4,
                 }}
               >
-                {relLabel}
+                {relLabel} · tap to jump
               </Text>
-            </View>
+            </Pressable>
+            {pickerOpen && (
+              <DateTimePicker
+                value={dayDate}
+                mode="date"
+                maximumDate={new Date()}
+                onChange={(_, picked) => {
+                  setPickerOpen(false)
+                  if (picked) jumpToDate(picked)
+                }}
+              />
+            )}
             <DateStepperButton
               onPress={goNewer}
               disabled={daysAgo === 0}
