@@ -5,7 +5,9 @@ import {
   useDeleteTask,
   useSnoozeTask,
   useTask,
+  useUpdateTask,
 } from '@dtn/shared/queries'
+import { taskToInput } from '@dtn/shared/task-input'
 import { willAdvanceSubtask } from '@dtn/shared/task-transitions'
 import { minutesToHours } from '@dtn/shared/time'
 import {
@@ -49,7 +51,16 @@ function TaskDetail() {
   const snoozeMutation = useSnoozeTask()
   const deleteMutation = useDeleteTask()
   const doneMutation = useCompleteTask()
+  const updateTask = useUpdateTask()
   const confirm = useConfirm()
+
+  const toggleSubtask = (index: number) => {
+    if (!task) return
+    const subtasks = task.subtasks.map((s, i) =>
+      i === index ? { ...s, done: !s.done } : s,
+    )
+    updateTask.mutate({ id, input: { ...taskToInput(task), subtasks } })
+  }
 
   const [pendingComplete, setPendingComplete] = useState<{
     task: Task
@@ -352,27 +363,33 @@ function TaskDetail() {
             </div>
             <ul className="space-y-1">
               {task.subtasks.map((sub, i) => (
-                <li
-                  key={i}
-                  className="flex items-center gap-3 rounded-xl border border-zinc-800 bg-zinc-900/60 px-4 py-2.5 font-mono text-sm"
-                >
-                  <span
-                    aria-hidden="true"
-                    className={sub.done ? 'text-emerald-400' : 'text-zinc-600'}
+                <li key={i}>
+                  <button
+                    type="button"
+                    onClick={() => toggleSubtask(i)}
+                    aria-pressed={sub.done}
+                    className="flex w-full items-center gap-3 rounded-xl border border-zinc-800 bg-zinc-900/60 px-4 py-2.5 text-left font-mono text-sm hover:border-zinc-700 hover:bg-zinc-900"
                   >
-                    {sub.done ? '☑' : '☐'}
-                  </span>
-                  <span
-                    className={
-                      'min-w-0 flex-1 truncate ' +
-                      (sub.done ? 'text-zinc-500 line-through' : 'text-zinc-100')
-                    }
-                  >
-                    <span className="sr-only">
-                      {sub.done ? 'Completed: ' : 'To do: '}
+                    <span
+                      aria-hidden="true"
+                      className={sub.done ? 'text-emerald-400' : 'text-zinc-600'}
+                    >
+                      {sub.done ? '☑' : '☐'}
                     </span>
-                    {sub.title}
-                  </span>
+                    <span
+                      className={
+                        'min-w-0 flex-1 truncate ' +
+                        (sub.done
+                          ? 'text-zinc-500 line-through'
+                          : 'text-zinc-100')
+                      }
+                    >
+                      <span className="sr-only">
+                        {sub.done ? 'Completed: ' : 'To do: '}
+                      </span>
+                      {sub.title}
+                    </span>
+                  </button>
                 </li>
               ))}
             </ul>
