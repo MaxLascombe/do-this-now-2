@@ -11,6 +11,8 @@ type Item = {
   label: string
   hint?: string
   run: () => void
+  // Keep the palette open after running (for rapid repeated capture).
+  keepOpen?: boolean
 }
 
 export function CommandPalette() {
@@ -141,7 +143,12 @@ export function CommandPalette() {
           glyph: '⚡',
           label: `Quick-add "${query.trim()}" for today`,
           hint: 'New',
-          run: () => quickAdd(query.trim()),
+          keepOpen: true,
+          run: () => {
+            quickAdd(query.trim())
+            setQuery('')
+            setSelected(0)
+          },
         },
         {
           key: 'create',
@@ -195,7 +202,7 @@ export function CommandPalette() {
 
   const activate = (item: Item | undefined) => {
     if (!item) return
-    close()
+    if (!item.keepOpen) close()
     item.run()
   }
 
