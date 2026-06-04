@@ -33,6 +33,7 @@ import type { KeyAction } from '../hooks/useKeyAction'
 const OVERDUE = '#fb7185'
 
 export const Route = createFileRoute('/tasks/$id/')({
+  head: () => ({ meta: [{ title: 'Task · Do This Now' }] }),
   component: TaskDetail,
 })
 
