@@ -77,10 +77,22 @@ export async function listArchivedTasks(userId: string): Promise<Array<Task>> {
 
 export async function archiveTask(userId: string, id: string): Promise<Task> {
   const updated = await db.transaction(async (tx) => {
-    const childCount = await countChildren(userId, id, tx)
-    if (childCount > 0) {
+    // Only active (non-archived) children block archiving — an archived
+    // child no longer tracks time on any visible surface.
+    const activeChildren = await tx
+      .select({ id: tasks.id })
+      .from(tasks)
+      .where(
+        and(
+          eq(tasks.userId, userId),
+          eq(tasks.timekeeperId, id),
+          isNull(tasks.archivedAt),
+        ),
+      )
+    if (activeChildren.length > 0) {
+      const n = activeChildren.length
       throw new Error(
-        `Can't archive: ${childCount} task${childCount === 1 ? '' : 's'} track time under this one. Detach them first.`,
+        `Can't archive: ${n} task${n === 1 ? '' : 's'} track time under this one. Detach them first.`,
       )
     }
     const [row] = await tx

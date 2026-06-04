@@ -20,13 +20,16 @@ import { Route as ApiStatsRouteImport } from './routes/api/stats'
 import { Route as TasksIdIndexRouteImport } from './routes/tasks.$id.index'
 import { Route as TasksIdEditRouteImport } from './routes/tasks.$id.edit'
 import { Route as ApiTasksSuggestEmojisRouteImport } from './routes/api/tasks.suggest-emojis'
+import { Route as ApiTasksArchivedRouteImport } from './routes/api/tasks.archived'
 import { Route as ApiTasksIdRouteImport } from './routes/api/tasks.$id'
 import { Route as ApiProgressTodayRouteImport } from './routes/api/progress.today'
 import { Route as ApiHistoryDateRouteImport } from './routes/api/history.$date'
 import { Route as ApiAdminBackfillEmojisRouteImport } from './routes/api/admin/backfill-emojis'
+import { Route as ApiTasksIdUnarchiveRouteImport } from './routes/api/tasks.$id.unarchive'
 import { Route as ApiTasksIdTimerRouteImport } from './routes/api/tasks.$id.timer'
 import { Route as ApiTasksIdSnoozeRouteImport } from './routes/api/tasks.$id.snooze'
 import { Route as ApiTasksIdCompleteRouteImport } from './routes/api/tasks.$id.complete'
+import { Route as ApiTasksIdArchiveRouteImport } from './routes/api/tasks.$id.archive'
 
 const StatsRoute = StatsRouteImport.update({
   id: '/stats',
@@ -83,6 +86,11 @@ const ApiTasksSuggestEmojisRoute = ApiTasksSuggestEmojisRouteImport.update({
   path: '/suggest-emojis',
   getParentRoute: () => ApiTasksRoute,
 } as any)
+const ApiTasksArchivedRoute = ApiTasksArchivedRouteImport.update({
+  id: '/archived',
+  path: '/archived',
+  getParentRoute: () => ApiTasksRoute,
+} as any)
 const ApiTasksIdRoute = ApiTasksIdRouteImport.update({
   id: '/$id',
   path: '/$id',
@@ -103,6 +111,11 @@ const ApiAdminBackfillEmojisRoute = ApiAdminBackfillEmojisRouteImport.update({
   path: '/api/admin/backfill-emojis',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiTasksIdUnarchiveRoute = ApiTasksIdUnarchiveRouteImport.update({
+  id: '/unarchive',
+  path: '/unarchive',
+  getParentRoute: () => ApiTasksIdRoute,
+} as any)
 const ApiTasksIdTimerRoute = ApiTasksIdTimerRouteImport.update({
   id: '/timer',
   path: '/timer',
@@ -116,6 +129,11 @@ const ApiTasksIdSnoozeRoute = ApiTasksIdSnoozeRouteImport.update({
 const ApiTasksIdCompleteRoute = ApiTasksIdCompleteRouteImport.update({
   id: '/complete',
   path: '/complete',
+  getParentRoute: () => ApiTasksIdRoute,
+} as any)
+const ApiTasksIdArchiveRoute = ApiTasksIdArchiveRouteImport.update({
+  id: '/archive',
+  path: '/archive',
   getParentRoute: () => ApiTasksIdRoute,
 } as any)
 
@@ -132,12 +150,15 @@ export interface FileRoutesByFullPath {
   '/api/history/$date': typeof ApiHistoryDateRoute
   '/api/progress/today': typeof ApiProgressTodayRoute
   '/api/tasks/$id': typeof ApiTasksIdRouteWithChildren
+  '/api/tasks/archived': typeof ApiTasksArchivedRoute
   '/api/tasks/suggest-emojis': typeof ApiTasksSuggestEmojisRoute
   '/tasks/$id/edit': typeof TasksIdEditRoute
   '/tasks/$id/': typeof TasksIdIndexRoute
+  '/api/tasks/$id/archive': typeof ApiTasksIdArchiveRoute
   '/api/tasks/$id/complete': typeof ApiTasksIdCompleteRoute
   '/api/tasks/$id/snooze': typeof ApiTasksIdSnoozeRoute
   '/api/tasks/$id/timer': typeof ApiTasksIdTimerRoute
+  '/api/tasks/$id/unarchive': typeof ApiTasksIdUnarchiveRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -151,12 +172,15 @@ export interface FileRoutesByTo {
   '/api/history/$date': typeof ApiHistoryDateRoute
   '/api/progress/today': typeof ApiProgressTodayRoute
   '/api/tasks/$id': typeof ApiTasksIdRouteWithChildren
+  '/api/tasks/archived': typeof ApiTasksArchivedRoute
   '/api/tasks/suggest-emojis': typeof ApiTasksSuggestEmojisRoute
   '/tasks/$id/edit': typeof TasksIdEditRoute
   '/tasks/$id': typeof TasksIdIndexRoute
+  '/api/tasks/$id/archive': typeof ApiTasksIdArchiveRoute
   '/api/tasks/$id/complete': typeof ApiTasksIdCompleteRoute
   '/api/tasks/$id/snooze': typeof ApiTasksIdSnoozeRoute
   '/api/tasks/$id/timer': typeof ApiTasksIdTimerRoute
+  '/api/tasks/$id/unarchive': typeof ApiTasksIdUnarchiveRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -172,12 +196,15 @@ export interface FileRoutesById {
   '/api/history/$date': typeof ApiHistoryDateRoute
   '/api/progress/today': typeof ApiProgressTodayRoute
   '/api/tasks/$id': typeof ApiTasksIdRouteWithChildren
+  '/api/tasks/archived': typeof ApiTasksArchivedRoute
   '/api/tasks/suggest-emojis': typeof ApiTasksSuggestEmojisRoute
   '/tasks/$id/edit': typeof TasksIdEditRoute
   '/tasks/$id/': typeof TasksIdIndexRoute
+  '/api/tasks/$id/archive': typeof ApiTasksIdArchiveRoute
   '/api/tasks/$id/complete': typeof ApiTasksIdCompleteRoute
   '/api/tasks/$id/snooze': typeof ApiTasksIdSnoozeRoute
   '/api/tasks/$id/timer': typeof ApiTasksIdTimerRoute
+  '/api/tasks/$id/unarchive': typeof ApiTasksIdUnarchiveRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -194,12 +221,15 @@ export interface FileRouteTypes {
     | '/api/history/$date'
     | '/api/progress/today'
     | '/api/tasks/$id'
+    | '/api/tasks/archived'
     | '/api/tasks/suggest-emojis'
     | '/tasks/$id/edit'
     | '/tasks/$id/'
+    | '/api/tasks/$id/archive'
     | '/api/tasks/$id/complete'
     | '/api/tasks/$id/snooze'
     | '/api/tasks/$id/timer'
+    | '/api/tasks/$id/unarchive'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -213,12 +243,15 @@ export interface FileRouteTypes {
     | '/api/history/$date'
     | '/api/progress/today'
     | '/api/tasks/$id'
+    | '/api/tasks/archived'
     | '/api/tasks/suggest-emojis'
     | '/tasks/$id/edit'
     | '/tasks/$id'
+    | '/api/tasks/$id/archive'
     | '/api/tasks/$id/complete'
     | '/api/tasks/$id/snooze'
     | '/api/tasks/$id/timer'
+    | '/api/tasks/$id/unarchive'
   id:
     | '__root__'
     | '/'
@@ -233,12 +266,15 @@ export interface FileRouteTypes {
     | '/api/history/$date'
     | '/api/progress/today'
     | '/api/tasks/$id'
+    | '/api/tasks/archived'
     | '/api/tasks/suggest-emojis'
     | '/tasks/$id/edit'
     | '/tasks/$id/'
+    | '/api/tasks/$id/archive'
     | '/api/tasks/$id/complete'
     | '/api/tasks/$id/snooze'
     | '/api/tasks/$id/timer'
+    | '/api/tasks/$id/unarchive'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -334,6 +370,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiTasksSuggestEmojisRouteImport
       parentRoute: typeof ApiTasksRoute
     }
+    '/api/tasks/archived': {
+      id: '/api/tasks/archived'
+      path: '/archived'
+      fullPath: '/api/tasks/archived'
+      preLoaderRoute: typeof ApiTasksArchivedRouteImport
+      parentRoute: typeof ApiTasksRoute
+    }
     '/api/tasks/$id': {
       id: '/api/tasks/$id'
       path: '/$id'
@@ -362,6 +405,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiAdminBackfillEmojisRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/tasks/$id/unarchive': {
+      id: '/api/tasks/$id/unarchive'
+      path: '/unarchive'
+      fullPath: '/api/tasks/$id/unarchive'
+      preLoaderRoute: typeof ApiTasksIdUnarchiveRouteImport
+      parentRoute: typeof ApiTasksIdRoute
+    }
     '/api/tasks/$id/timer': {
       id: '/api/tasks/$id/timer'
       path: '/timer'
@@ -383,19 +433,30 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiTasksIdCompleteRouteImport
       parentRoute: typeof ApiTasksIdRoute
     }
+    '/api/tasks/$id/archive': {
+      id: '/api/tasks/$id/archive'
+      path: '/archive'
+      fullPath: '/api/tasks/$id/archive'
+      preLoaderRoute: typeof ApiTasksIdArchiveRouteImport
+      parentRoute: typeof ApiTasksIdRoute
+    }
   }
 }
 
 interface ApiTasksIdRouteChildren {
+  ApiTasksIdArchiveRoute: typeof ApiTasksIdArchiveRoute
   ApiTasksIdCompleteRoute: typeof ApiTasksIdCompleteRoute
   ApiTasksIdSnoozeRoute: typeof ApiTasksIdSnoozeRoute
   ApiTasksIdTimerRoute: typeof ApiTasksIdTimerRoute
+  ApiTasksIdUnarchiveRoute: typeof ApiTasksIdUnarchiveRoute
 }
 
 const ApiTasksIdRouteChildren: ApiTasksIdRouteChildren = {
+  ApiTasksIdArchiveRoute: ApiTasksIdArchiveRoute,
   ApiTasksIdCompleteRoute: ApiTasksIdCompleteRoute,
   ApiTasksIdSnoozeRoute: ApiTasksIdSnoozeRoute,
   ApiTasksIdTimerRoute: ApiTasksIdTimerRoute,
+  ApiTasksIdUnarchiveRoute: ApiTasksIdUnarchiveRoute,
 }
 
 const ApiTasksIdRouteWithChildren = ApiTasksIdRoute._addFileChildren(
@@ -404,11 +465,13 @@ const ApiTasksIdRouteWithChildren = ApiTasksIdRoute._addFileChildren(
 
 interface ApiTasksRouteChildren {
   ApiTasksIdRoute: typeof ApiTasksIdRouteWithChildren
+  ApiTasksArchivedRoute: typeof ApiTasksArchivedRoute
   ApiTasksSuggestEmojisRoute: typeof ApiTasksSuggestEmojisRoute
 }
 
 const ApiTasksRouteChildren: ApiTasksRouteChildren = {
   ApiTasksIdRoute: ApiTasksIdRouteWithChildren,
+  ApiTasksArchivedRoute: ApiTasksArchivedRoute,
   ApiTasksSuggestEmojisRoute: ApiTasksSuggestEmojisRoute,
 }
 
