@@ -35,6 +35,7 @@ import type { Task } from '@dtn/shared/types'
 import type { KeyAction } from '../hooks/useKeyAction'
 
 export const Route = createFileRoute('/')({
+  head: () => ({ meta: [{ title: 'Now · Do This Now' }] }),
   component: Home,
 })
 
@@ -463,6 +464,12 @@ function Hero({
         {task.timeFrame ? <Chip>{minutesToHours(task.timeFrame)}</Chip> : null}
         {repeatLabel && <Chip>↻ {repeatLabel}</Chip>}
       </div>
+
+      {task.notes && (
+        <p className="mt-5 max-w-md text-center font-mono text-xs whitespace-pre-wrap text-zinc-500 md:text-sm">
+          {task.notes}
+        </p>
+      )}
 
       <button
         type="button"
