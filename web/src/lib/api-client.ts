@@ -42,6 +42,7 @@ export const webApiClient: ApiClient = {
     snooze: (id, allSubtasks = false) =>
       actionFns.snoozeTask({ data: { id, allSubtasks } }),
     unsnooze: (id) => actionFns.unsnoozeTask({ data: { id } }),
+    snoozeMany: (ids) => actionFns.snoozeManyTasks({ data: { ids } }),
     suggestEmojis: (title) => taskFns.suggestEmojis({ data: { title } }),
     timer: (id, action) => actionFns.taskTimer({ data: { id, action } }),
   },

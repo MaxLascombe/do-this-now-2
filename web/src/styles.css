@@ -28,6 +28,15 @@ code {
   font-family: var(--font-mono);
 }
 
+/* Every <kbd> in the app is a keyboard-shortcut hint. Below the md
+   breakpoint the shortcut nav is hidden and we assume a touch device with no
+   keyboard, so hide the in-button key hints there too. */
+@media (max-width: 767px) {
+  kbd {
+    display: none;
+  }
+}
+
 .dtn-task-title {
   font-family: var(--font-serif);
   font-style: italic;

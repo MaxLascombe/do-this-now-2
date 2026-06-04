@@ -6,6 +6,7 @@ import { minutesToHours } from '@dtn/shared/time'
 import { useRef } from 'react'
 
 import { useDate } from '../hooks/useDate'
+import { cells } from '../lib/progress-cells'
 
 const CELLS = 24
 const CELL_W = 6
@@ -84,13 +85,6 @@ export const useComputedProgress = (): Computed | null => {
     }),
   }
 }
-
-const cells = (count: number, filledCount: number, tickAt: number) =>
-  Array.from({ length: count }).map((_, i) => {
-    const filled = i < filledCount
-    const isTick = i === tickAt - 1 && !filled
-    return { filled, isTick, key: i }
-  })
 
 export const ProgressBlocks = () => {
   const p = useComputedProgress()
