@@ -4,8 +4,10 @@ import {
   useDeleteTask,
   usePrefetchTask,
   usePrimeTaskCache,
+  useSnoozeManyTasks,
   useSnoozeTask,
   useTask,
+  useTaskTimer,
   useTopTasks,
 } from '@dtn/shared/queries'
 import {
@@ -26,7 +28,9 @@ import { useConfirm } from '../components/ConfirmProvider'
 import { CountConfirmModal } from '../components/CountConfirmModal'
 import { ErrorState } from '../components/ErrorState'
 import { Loading } from '../components/Loading'
+import { LinkifiedNotes } from '../components/LinkifiedNotes'
 import { MobileChrome } from '../components/MobileChrome'
+import { Skeleton } from '../components/Skeleton'
 import { TaskRow } from '../components/TaskRow'
 import { TimerWidget } from '../components/TimerWidget'
 import { TopBar } from '../components/TopBar'
@@ -35,6 +39,7 @@ import type { Task } from '@dtn/shared/types'
 import type { KeyAction } from '../hooks/useKeyAction'
 
 export const Route = createFileRoute('/')({
+  head: () => ({ meta: [{ title: 'Now · Do This Now' }] }),
   component: Home,
 })
 
@@ -82,6 +87,43 @@ const SecondaryAction = ({
   </button>
 )
 
+const EmptyNow = ({
+  onNewTask,
+  onViewAll,
+}: {
+  onNewTask: () => void
+  onViewAll: () => void
+}) => (
+  <div className="flex flex-col items-center gap-6 px-6 text-center">
+    <span aria-hidden="true" className="text-5xl leading-none select-none">
+      ✺
+    </span>
+    <div className="space-y-1.5">
+      <p className="font-mono text-lg text-zinc-200">Nothing to do right now</p>
+      <p className="font-mono text-sm text-zinc-500">
+        You're all caught up. Add a task to line up what's next.
+      </p>
+    </div>
+    <div className="flex items-center gap-2">
+      <button
+        type="button"
+        onClick={onNewTask}
+        className="flex items-center gap-2 rounded-full bg-zinc-50 px-4 py-2 font-mono text-sm font-semibold text-zinc-900 hover:bg-zinc-100"
+      >
+        <span>New task</span>
+        <Kbd variant="on-light">⇧+</Kbd>
+      </button>
+      <button
+        type="button"
+        onClick={onViewAll}
+        className="rounded-full border border-zinc-800 px-4 py-2 font-mono text-sm text-zinc-400 hover:border-zinc-600 hover:text-zinc-100"
+      >
+        View all tasks
+      </button>
+    </div>
+  </div>
+)
+
 function Home() {
   const navigate = useNavigate()
   const topTasksQuery = useTopTasks()
@@ -98,6 +140,7 @@ function Home() {
   const doneMutation = useCompleteTask()
   const deleteMutation = useDeleteTask()
   const snoozeMutation = useSnoozeTask()
+  const snoozeManyMutation = useSnoozeManyTasks()
   const prefetchTask = usePrefetchTask()
   const primeTaskCache = usePrimeTaskCache()
   const confirm = useConfirm()
@@ -140,6 +183,14 @@ function Home() {
     snoozeMutation.mutate({ id: selectedTask.id, allSubtasks: true })
   }
 
+  // Every task ranked below the current one — "clear my plate, leave just
+  // this". Snoozes them an hour out so the Now view drops to the current task.
+  const restIds = tasks.slice(selectedTaskIndex + 1).map((t) => t.id)
+  const snoozeRestAction = () => {
+    if (restIds.length === 0) return
+    snoozeManyMutation.mutate(restIds)
+  }
+
   const deleteTaskAction = async () => {
     if (!selectedTask) return
     const ok = await confirm({
@@ -154,6 +205,20 @@ function Home() {
     if (!selectedTask) return
     primeTaskCache(selectedTask)
     navigate({ to: '/tasks/$id/edit', params: { id: selectedTask.id } })
+  }
+
+  // A 0-time-frame child runs its timer on the keeper row, like HeroTimer —
+  // resolve it so the toggle reads the right `running` state. The mutation
+  // still targets the selected id; the server maps it to the keeper.
+  const timer = useTaskTimer()
+  const keeperQuery = useTask(selectedTask?.timekeeperId ?? '')
+  const timerTask = selectedTask?.timekeeperId ? keeperQuery.data : selectedTask
+  const toggleTimerAction = () => {
+    if (!selectedTask) return
+    timer.mutate({
+      id: selectedTask.id,
+      action: { kind: timerTask?.timerStartedAt ? 'pause' : 'start' },
+    })
   }
 
   const keyActions: Array<KeyAction> = [
@@ -187,11 +252,21 @@ function Home() {
       shift: true,
     },
     {
+      key: 'r',
+      description: 'Snooze the rest',
+      action: snoozeRestAction,
+    },
+    {
       key: 't',
       description: 'Tasks',
       action: () => navigate({ to: '/tasks' }),
     },
     { key: 'e', description: 'Edit task', action: goEdit },
+    {
+      key: 'p',
+      description: timerTask?.timerStartedAt ? 'Pause timer' : 'Start timer',
+      action: toggleTimerAction,
+    },
     {
       key: '1',
       description: 'Select first task',
@@ -227,7 +302,11 @@ function Home() {
 
   const [sheetOpen, setSheetOpen] = useState(false)
 
-  if (topTasksQuery.isPending || deleteMutation.isPending) {
+  if (topTasksQuery.isPending) {
+    return <NowSkeleton />
+  }
+
+  if (deleteMutation.isPending) {
     return (
       <div className="flex h-screen items-center justify-center">
         <Loading />
@@ -257,7 +336,10 @@ function Home() {
               onRetry={() => topTasksQuery.refetch()}
             />
           ) : (
-            'No tasks'
+            <EmptyNow
+              onNewTask={() => navigate({ to: '/new-task' })}
+              onViewAll={() => navigate({ to: '/tasks' })}
+            />
           )}
         </div>
       ) : (
@@ -268,6 +350,8 @@ function Home() {
             onComplete={completeTaskAction}
             onSnooze={snoozeTaskAction}
             onSnoozeSubtasks={snoozeAllSubtasksAction}
+            onSnoozeRest={restIds.length > 0 ? snoozeRestAction : undefined}
+            restCount={restIds.length}
             onEdit={goEdit}
             onDelete={deleteTaskAction}
           />
@@ -275,12 +359,15 @@ function Home() {
       )}
 
       {/* Up-next stack — same TaskRow component used on /tasks, just with
-          a slot kbd on desktop. Fixed to the bottom of the viewport on
-          desktop; in-flow above the mobile tab bar on small screens. */}
+          a slot kbd on desktop. In-flow below the hero on every breakpoint
+          so it scrolls with the page rather than pinning to the viewport. */}
       {tasks.length > 1 && (
         <>
-          <div className="fixed right-0 bottom-0 left-0 hidden justify-center px-10 pb-6 md:flex">
+          <div className="hidden justify-center px-10 pb-10 md:flex">
             <div className="flex w-full max-w-xl flex-col gap-1.5">
+              <div className="mb-2 px-1 font-mono text-[10px] tracking-[0.25em] text-zinc-600 uppercase">
+                up next
+              </div>
               {upNextTasks.map(({ task: t, slot }) => (
                 <TaskRow
                   key={t.id}
@@ -339,6 +426,8 @@ function Hero({
   onComplete,
   onSnooze,
   onSnoozeSubtasks,
+  onSnoozeRest,
+  restCount,
   onEdit,
   onDelete,
 }: {
@@ -347,6 +436,8 @@ function Hero({
   onComplete: () => void
   onSnooze: () => void
   onSnoozeSubtasks: () => void
+  onSnoozeRest?: () => void
+  restCount: number
   onEdit: () => void
   onDelete: () => void
 }) {
@@ -381,7 +472,7 @@ function Hero({
   const advance = willAdvanceSubtask(task, now)
 
   return (
-    <div className="flex flex-1 flex-col items-center justify-center px-5 pb-8 md:px-16 md:pb-48">
+    <div className="flex flex-1 flex-col items-center justify-center px-5 pb-8 md:px-16 md:pb-16">
       <div className="mb-4 text-center font-mono text-[10px] tracking-[0.2em] text-zinc-500 uppercase md:mb-6 md:text-xs">
         Task {index + 1} of 3 · Right now
       </div>
@@ -425,9 +516,10 @@ function Hero({
       </div>
 
       {task.notes && (
-        <p className="mt-5 max-w-md text-center font-mono text-xs whitespace-pre-wrap text-zinc-500 md:text-sm">
-          {task.notes}
-        </p>
+        <LinkifiedNotes
+          text={task.notes}
+          className="mt-5 max-w-md text-center font-mono text-xs whitespace-pre-wrap text-zinc-500 md:text-sm"
+        />
       )}
 
       <button
@@ -463,11 +555,40 @@ function Hero({
             onClick={onSnoozeSubtasks}
           />
         )}
+        {onSnoozeRest && (
+          <SecondaryAction
+            k="R"
+            label={`Snooze ${restCount} after`}
+            onClick={onSnoozeRest}
+          />
+        )}
         <SecondaryAction k="E" label="Edit" onClick={onEdit} />
         <SecondaryAction k="⌫" label="Delete" onClick={onDelete} />
       </div>
 
       <HeroTimer task={task} />
+    </div>
+  )
+}
+
+function NowSkeleton() {
+  return (
+    <div className="relative flex min-h-screen flex-col">
+      <TopBar />
+      <div
+        className="flex flex-1 flex-col items-center justify-center px-5 pb-8 md:px-16"
+        role="status"
+        aria-label="Loading your tasks"
+      >
+        <Skeleton className="mb-4 h-20 w-20 rounded-2xl md:mb-8 md:h-28 md:w-28" />
+        <Skeleton className="h-9 w-64 md:h-14 md:w-[28rem]" />
+        <Skeleton className="mt-4 h-4 w-44" />
+        <Skeleton className="mt-8 h-12 w-full max-w-[320px] rounded-full md:mt-12" />
+        <div className="mt-3 flex gap-2">
+          <Skeleton className="h-8 w-24 rounded-full" />
+          <Skeleton className="h-8 w-20 rounded-full" />
+        </div>
+      </div>
     </div>
   )
 }
