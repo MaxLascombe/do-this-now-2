@@ -4,7 +4,6 @@ import {
   nextDueDate,
   repeatFrequencyDays,
 } from '@dtn/shared/helpers'
-import { DAY_MS } from '@dtn/shared/time'
 import type { Task } from '@dtn/shared/schema'
 
 // Pure scheduling/target math behind the progress bar. Kept free of any DB or
@@ -101,55 +100,28 @@ function findMinimumDaysNeeded(
   return hi
 }
 
-function findMinutesOnTargetDay(
+export function findMinutesOnTargetDay(
   today: Date,
   allTasks: Array<Task>,
   daysUntilAllDone: number,
 ): number {
   const target = new Date(today)
   target.setDate(target.getDate() + daysUntilAllDone + 1)
+  const targetMs = target.getTime()
   let minutes = 0
 
   for (const task of allTasks) {
-    const time = task.timeFrame
-    const due = newSafeDate(task.due)
-
-    if (due.getTime() === target.getTime()) minutes += time
-
-    if (task.repeat === 'No Repeat') continue
-
-    let isDueOnTarget = false
-    if (task.repeat === 'Daily') isDueOnTarget = true
-    else if (task.repeat === 'Weekdays') {
-      const dow = target.getDay()
-      isDueOnTarget = dow >= 1 && dow <= 5
-    } else if (task.repeat === 'Weekly')
-      isDueOnTarget = due.getDay() === target.getDay()
-    else if (task.repeat === 'Monthly')
-      isDueOnTarget = due.getDate() === target.getDate()
-    else if (task.repeat === 'Yearly')
-      isDueOnTarget =
-        due.getDate() === target.getDate() &&
-        due.getMonth() === target.getMonth()
-    else {
-      if (task.repeatUnit === 'day') {
-        const daysDiff = Math.floor((target.getTime() - due.getTime()) / DAY_MS)
-        isDueOnTarget = daysDiff >= 0 && daysDiff % task.repeatInterval === 0
-      } else if (task.repeatUnit === 'week') {
-        if (task.repeatWeekdays.some((x) => x)) {
-          isDueOnTarget = task.repeatWeekdays[target.getDay()] === true
-        } else {
-          isDueOnTarget = due.getDay() === target.getDay()
-        }
-      } else if (task.repeatUnit === 'month')
-        isDueOnTarget = due.getDate() === target.getDate()
-      else
-        isDueOnTarget =
-          due.getDate() === target.getDate() &&
-          due.getMonth() === target.getMonth()
+    // Walk real occurrences via nextDueDate — calendar-pattern matching
+    // ignored repeatInterval (every-2-weeks counted weekly) and month-length.
+    let due: Date | undefined = newSafeDate(task.due)
+    while (due !== undefined && due.getTime() < targetMs) {
+      if (task.repeat === 'No Repeat') {
+        due = undefined
+        break
+      }
+      due = nextDueDate({ ...task, due: dateString(due) })
     }
-
-    if (isDueOnTarget) minutes += time
+    if (due !== undefined && due.getTime() === targetMs) minutes += task.timeFrame
   }
 
   return minutes
