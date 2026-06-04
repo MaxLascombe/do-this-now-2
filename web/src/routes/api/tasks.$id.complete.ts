@@ -7,6 +7,7 @@ import {
   getTzFromRequest,
   invalid,
   notFound,
+  readJsonBody,
   withAuth,
 } from '../../server/lib/http'
 
@@ -24,8 +25,7 @@ export const Route = createFileRoute('/api/tasks/$id/complete')({
     handlers: {
       POST: withAuth<Params>(async ({ userId, params, request }) => {
         if (!idSchema.safeParse(params.id).success) return notFound()
-        const raw = await request.text()
-        const candidate = raw.length === 0 ? {} : safeJsonParse(raw)
+        const candidate = await readJsonBody(request)
         if (candidate === undefined)
           return invalid({ formErrors: ['Body must be JSON.'] })
 
@@ -48,11 +48,3 @@ export const Route = createFileRoute('/api/tasks/$id/complete')({
     },
   },
 })
-
-function safeJsonParse(s: string): unknown {
-  try {
-    return JSON.parse(s)
-  } catch {
-    return undefined
-  }
-}

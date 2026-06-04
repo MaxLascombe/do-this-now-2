@@ -55,7 +55,7 @@ const TaskRowBase = ({
       }
     >
       <span className="relative text-2xl leading-none">
-        {task.emoji}
+        <span aria-hidden="true">{task.emoji}</span>
         {task.timerStartedAt && (
           <span
             className="absolute -top-1 -right-1 h-2 w-2 rounded-full"
