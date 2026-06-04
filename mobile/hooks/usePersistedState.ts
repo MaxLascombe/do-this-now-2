@@ -1,27 +1,38 @@
 import AsyncStorage from '@react-native-async-storage/async-storage'
-import { useEffect, useRef, useState } from 'react'
+import {
+  useCallback,
+  useEffect,
+  useRef,
+  useState,
+  type Dispatch,
+  type SetStateAction,
+} from 'react'
 
-// State backed by AsyncStorage. Reads once on mount; writes on change.
-// The `loaded` guard prevents the initial value from overwriting a stored
-// one before the async read resolves.
+// State backed by AsyncStorage. The stored value is read asynchronously on
+// mount; writes happen only after the user changes the value. The `dirty`
+// ref tracks user changes so (a) an in-flight read can't clobber a value the
+// user already changed, and (b) the read itself doesn't trigger a write-back.
 export function usePersistedState<T>(
   key: string,
   initial: T,
-): [T, (value: T) => void] {
+): [T, Dispatch<SetStateAction<T>>] {
   const [state, setState] = useState<T>(initial)
-  const loaded = useRef(false)
+  const dirty = useRef(false)
+
+  const set = useCallback<Dispatch<SetStateAction<T>>>((value) => {
+    dirty.current = true
+    setState(value)
+  }, [])
 
   useEffect(() => {
     let cancelled = false
     void AsyncStorage.getItem(key).then((raw) => {
-      if (!cancelled && raw !== null) {
-        try {
-          setState(JSON.parse(raw) as T)
-        } catch {
-          // corrupt value — fall back to the initial
-        }
+      if (cancelled || dirty.current || raw === null) return
+      try {
+        setState(JSON.parse(raw) as T)
+      } catch {
+        // corrupt value — keep the initial
       }
-      loaded.current = true
     })
     return () => {
       cancelled = true
@@ -29,8 +40,8 @@ export function usePersistedState<T>(
   }, [key])
 
   useEffect(() => {
-    if (loaded.current) void AsyncStorage.setItem(key, JSON.stringify(state))
+    if (dirty.current) void AsyncStorage.setItem(key, JSON.stringify(state))
   }, [key, state])
 
-  return [state, setState]
+  return [state, set]
 }
