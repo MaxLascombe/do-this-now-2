@@ -1,5 +1,5 @@
 import { formatDueLabel, formatRepeat } from '@dtn/shared/format'
-import { useArchiveTask, useTask } from '@dtn/shared/queries'
+import { useArchiveTask, useTask, useUnarchiveTask } from '@dtn/shared/queries'
 import { minutesToHours } from '@dtn/shared/time'
 import { Link, createFileRoute, useRouter } from '@tanstack/react-router'
 import { useEffect, useState } from 'react'
@@ -30,8 +30,11 @@ function TaskDetail() {
   const timerTask = task?.timekeeperId ? keeperQuery.data : task
 
   const archive = useArchiveTask()
+  const unarchive = useUnarchiveTask()
   const archiveAction = () =>
     archive.mutate(id, { onSuccess: () => router.navigate({ to: '/archive' }) })
+  const unarchiveAction = () =>
+    unarchive.mutate(id, { onSuccess: () => router.navigate({ to: '/tasks' }) })
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
@@ -99,10 +102,10 @@ function TaskDetail() {
         <div className="hidden items-center gap-2 md:flex">
           <button
             type="button"
-            onClick={archiveAction}
+            onClick={task.archivedAt ? unarchiveAction : archiveAction}
             className="flex items-center gap-2 rounded-full border border-zinc-800 px-3 py-1.5 font-mono text-sm text-zinc-400 hover:bg-zinc-900 hover:text-zinc-50"
           >
-            <span>Archive</span>
+            <span>{task.archivedAt ? 'Unarchive' : 'Archive'}</span>
           </button>
           <Link
             to="/tasks/$id/edit"
@@ -217,10 +220,10 @@ function TaskDetail() {
           </Link>
           <button
             type="button"
-            onClick={archiveAction}
+            onClick={task.archivedAt ? unarchiveAction : archiveAction}
             className="flex flex-1 items-center justify-center gap-2 rounded-full border border-zinc-800 px-4 py-2.5 font-mono text-sm text-zinc-300 hover:bg-zinc-900 hover:text-zinc-50"
           >
-            Archive
+            {task.archivedAt ? 'Unarchive' : 'Archive'}
           </button>
         </div>
       </div>

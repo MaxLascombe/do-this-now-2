@@ -64,12 +64,20 @@ function Archive() {
                 key={t.id}
                 className="flex items-center gap-3 rounded-2xl border border-zinc-800 bg-zinc-900/60 px-5 py-3 font-mono"
               >
-                <span aria-hidden="true" className="text-2xl leading-none">
-                  {t.emoji}
-                </span>
-                <span className="min-w-0 flex-1 truncate text-zinc-300">
-                  {t.title}
-                </span>
+                <button
+                  type="button"
+                  onClick={() =>
+                    navigate({ to: '/tasks/$id', params: { id: t.id } })
+                  }
+                  className="flex min-w-0 flex-1 items-center gap-3 text-left"
+                >
+                  <span aria-hidden="true" className="text-2xl leading-none">
+                    {t.emoji}
+                  </span>
+                  <span className="min-w-0 flex-1 truncate text-zinc-300">
+                    {t.title}
+                  </span>
+                </button>
                 <button
                   type="button"
                   onClick={() => unarchive.mutate(t.id)}
