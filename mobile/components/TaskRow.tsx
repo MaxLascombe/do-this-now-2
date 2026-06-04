@@ -157,6 +157,7 @@ export function TaskRow({
             textDecorationColor: 'rgba(255,255,255,0.25)',
           }}
         >
+          {task.pinned ? '📌 ' : ''}
           {task.title}
         </Text>
         <View

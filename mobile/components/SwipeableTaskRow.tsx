@@ -1,3 +1,4 @@
+import { useSetPinned } from '@dtn/shared/queries'
 import * as Haptics from 'expo-haptics'
 import { memo, useRef, useState } from 'react'
 import {
@@ -37,6 +38,11 @@ function SwipeableTaskRowBase({
   const [expanded, setExpanded] = useState(false)
   const hasSubtasks = task.subtasks.length > 0
   const subtasksDone = task.subtasks.filter((s) => s.done).length
+
+  const setPinned = useSetPinned()
+  const pinLabel = task.pinned ? 'Unpin' : 'Pin'
+  const onTogglePin = () =>
+    setPinned.mutate({ id: task.id, pinned: !task.pinned })
 
   const renderLeftActions = () => (
     <View
@@ -92,19 +98,21 @@ function SwipeableTaskRowBase({
     if (Platform.OS === 'ios') {
       ActionSheetIOS.showActionSheetWithOptions(
         {
-          options: ['Cancel', 'Edit', 'Snooze', 'Delete'],
+          options: ['Cancel', pinLabel, 'Edit', 'Snooze', 'Delete'],
           cancelButtonIndex: 0,
-          destructiveButtonIndex: 3,
+          destructiveButtonIndex: 4,
           title: task.title,
         },
         (i) => {
-          if (i === 1) onEdit()
-          else if (i === 2) onSnooze()
-          else if (i === 3) onDelete()
+          if (i === 1) onTogglePin()
+          else if (i === 2) onEdit()
+          else if (i === 3) onSnooze()
+          else if (i === 4) onDelete()
         },
       )
     } else {
       Alert.alert(task.title, undefined, [
+        { text: pinLabel, onPress: onTogglePin },
         { text: 'Edit', onPress: onEdit },
         { text: 'Snooze', onPress: onSnooze },
         { text: 'Delete', style: 'destructive', onPress: onDelete },
