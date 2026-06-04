@@ -297,7 +297,7 @@ const TaskForm = ({
       <div className="flex-1 px-5 pb-[200px] md:px-10 md:pb-32">
         <div className="mx-auto flex max-w-2xl flex-col gap-6">
           {errorMessage && (
-            <div className="font-mono text-sm text-rose-400">
+            <div role="alert" className="font-mono text-sm text-rose-400">
               {errorMessage}
             </div>
           )}
@@ -666,6 +666,7 @@ const TaskForm = ({
                           ])
                         }
                         placeholder={`Subtask ${i + 1}`}
+                        aria-label={`Subtask ${i + 1}`}
                         className="flex-1 bg-transparent font-mono text-base text-zinc-100 outline-none placeholder:text-zinc-700"
                       />
                       <label className="flex items-center gap-1.5 text-[10px] tracking-wider text-zinc-500 uppercase">

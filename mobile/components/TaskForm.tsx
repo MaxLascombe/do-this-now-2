@@ -235,7 +235,10 @@ export function TaskForm({
         }}
       >
         {errorMessage && (
-          <Text style={{ color: OVERDUE, fontSize: 13, marginTop: 4 }}>
+          <Text
+            accessibilityLiveRegion="assertive"
+            style={{ color: OVERDUE, fontSize: 13, marginTop: 4 }}
+          >
             {errorMessage}
           </Text>
         )}
@@ -590,6 +593,7 @@ export function TaskForm({
                     }
                     placeholder={`Subtask ${i + 1}`}
                     placeholderTextColor="#3f3f46"
+                    accessibilityLabel={`Subtask ${i + 1}`}
                     style={{
                       flex: 1,
                       fontFamily: 'JetBrainsMono_400Regular',
