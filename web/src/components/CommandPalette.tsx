@@ -23,8 +23,11 @@ export function CommandPalette() {
     const onKey = (e: KeyboardEvent) => {
       if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'k') {
         e.preventDefault()
-        restoreRef.current = document.activeElement as HTMLElement | null
-        setOpen((v) => !v)
+        setOpen((v) => {
+          if (!v)
+            restoreRef.current = document.activeElement as HTMLElement | null
+          return !v
+        })
       }
     }
     document.addEventListener('keydown', onKey)
