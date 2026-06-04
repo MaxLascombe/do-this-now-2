@@ -386,7 +386,10 @@ function Hero({
         Task {index + 1} of 3 · Right now
       </div>
 
-      <div className="mb-4 text-[5rem] leading-none select-none md:mb-8 md:text-[7rem]">
+      <div
+        aria-hidden="true"
+        className="mb-4 text-[5rem] leading-none select-none md:mb-8 md:text-[7rem]"
+      >
         {task.emoji}
       </div>
 
