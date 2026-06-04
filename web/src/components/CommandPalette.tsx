@@ -1,3 +1,5 @@
+import { formatDueLabel } from '@dtn/shared/format'
+import { newSafeDate } from '@dtn/shared/helpers'
 import { useAllTasks } from '@dtn/shared/queries'
 import { useNavigate } from '@tanstack/react-router'
 import { useEffect, useRef, useState } from 'react'
@@ -72,6 +74,12 @@ export function CommandPalette() {
       run: () => navigate({ to: '/history' }),
     },
     {
+      key: 'p:calendar',
+      glyph: '▦',
+      label: 'Calendar',
+      run: () => navigate({ to: '/calendar' }),
+    },
+    {
       key: 'p:stats',
       glyph: '▤',
       label: 'Stats',
@@ -82,18 +90,33 @@ export function CommandPalette() {
   const q = query.trim().toLowerCase()
   const taskItems: Item[] = (tasksQuery.data ?? [])
     .filter((t) => !q || t.title.toLowerCase().includes(q))
+    .sort((a, b) => newSafeDate(a.due).getTime() - newSafeDate(b.due).getTime())
     .slice(0, 8)
     .map((t) => ({
       key: 't:' + t.id,
       glyph: t.emoji,
       label: t.title,
-      hint: 'Task',
+      hint: formatDueLabel(t.due, t.dueTime) || 'Task',
       run: () => navigate({ to: '/tasks/$id', params: { id: t.id } }),
     }))
+
+  const createItems: Item[] = query.trim()
+    ? [
+        {
+          key: 'create',
+          glyph: '＋',
+          label: `Create "${query.trim()}"`,
+          hint: 'New',
+          run: () =>
+            navigate({ to: '/new-task', search: { title: query.trim() } }),
+        },
+      ]
+    : []
 
   const results = [
     ...pages.filter((p) => !q || p.label.toLowerCase().includes(q)),
     ...taskItems,
+    ...createItems,
   ]
   const active = Math.min(selected, Math.max(0, results.length - 1))
 
