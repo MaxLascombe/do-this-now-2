@@ -66,6 +66,7 @@ type Props = {
     timeframeType: TimeframeType
     subtasks: SubTask[]
     notes: string | null
+    tags: string[]
   }>
   // Required in edit mode so we can exclude this task from its own
   // keeper-candidate list.
@@ -126,6 +127,14 @@ export function TaskForm({
   )
   const [hasSubtasks, setHasSubtasks] = useState(subtasks.length > 0)
   const [notes, setNotes] = useState(initial.notes ?? '')
+  const [tags, setTags] = useState<Array<string>>(initial.tags ?? [])
+  const [tagDraft, setTagDraft] = useState('')
+  const addTag = () => {
+    const t = tagDraft.trim()
+    if (t && !tags.some((x) => x.toLowerCase() === t.toLowerCase()))
+      setTags([...tags, t])
+    setTagDraft('')
+  }
   const [errors, setErrors] = useState<Record<string, string>>({})
 
   const [openSheet, setOpenSheet] = useState<
@@ -211,6 +220,7 @@ export function TaskForm({
       timeframeType,
       subtasks,
       notes,
+      tags,
     })
     if (!parsed.success) {
       const flat: Record<string, string> = {}
@@ -288,6 +298,73 @@ export function TaskForm({
             }}
           />
           {errors.notes && <FieldError msg={errors.notes} />}
+        </Field>
+
+        <Field label="Tags">
+          {tags.length > 0 && (
+            <View
+              style={{
+                flexDirection: 'row',
+                flexWrap: 'wrap',
+                gap: 6,
+                marginBottom: 8,
+              }}
+            >
+              {tags.map((t) => (
+                <Pressable
+                  key={t}
+                  onPress={() => setTags(tags.filter((x) => x !== t))}
+                  accessibilityRole="button"
+                  accessibilityLabel={`Remove tag ${t}`}
+                  style={{
+                    flexDirection: 'row',
+                    alignItems: 'center',
+                    gap: 6,
+                    borderWidth: 1,
+                    borderColor: '#3f3f46',
+                    backgroundColor: '#18181b',
+                    borderRadius: 999,
+                    paddingHorizontal: 10,
+                    paddingVertical: 5,
+                  }}
+                >
+                  <Text
+                    style={{
+                      color: '#e4e4e7',
+                      fontSize: 12,
+                      fontFamily: 'JetBrainsMono_400Regular',
+                    }}
+                  >
+                    {t}
+                  </Text>
+                  <Text style={{ color: '#71717a', fontSize: 12 }}>✕</Text>
+                </Pressable>
+              ))}
+            </View>
+          )}
+          <TextInput
+            value={tagDraft}
+            onChangeText={setTagDraft}
+            onSubmitEditing={addTag}
+            onBlur={addTag}
+            blurOnSubmit={false}
+            placeholder="Add a tag…"
+            placeholderTextColor="#3f3f46"
+            autoCapitalize="none"
+            returnKeyType="done"
+            style={{
+              fontFamily: 'JetBrainsMono_400Regular',
+              fontSize: 14,
+              color: '#e4e4e7',
+              borderWidth: 1,
+              borderColor: '#27272a',
+              borderRadius: 10,
+              backgroundColor: 'rgba(24,24,27,0.4)',
+              paddingHorizontal: 12,
+              paddingVertical: 10,
+            }}
+          />
+          {errors.tags && <FieldError msg={errors.tags} />}
         </Field>
 
         <Field

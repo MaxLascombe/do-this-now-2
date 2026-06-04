@@ -96,6 +96,7 @@ export default function EditTask() {
           timeframeType: task.timeframeType,
           subtasks: task.subtasks,
           notes: task.notes,
+          tags: task.tags,
         }}
         taskId={id}
         isSaving={mutation.isPending}

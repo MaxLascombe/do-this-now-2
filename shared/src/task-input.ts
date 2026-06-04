@@ -94,6 +94,24 @@ export const taskInputSchema = z
       .nullable()
       .default(null)
       .transform((s) => (s && s.trim() ? s : null)),
+    // User labels; trim, drop blanks, dedupe (case-insensitive), cap.
+    tags: z
+      .array(z.string().max(30))
+      .max(20)
+      .default([])
+      .transform((arr) => {
+        const out: string[] = []
+        const seen = new Set<string>()
+        for (const raw of arr) {
+          const t = raw.trim()
+          const key = t.toLowerCase()
+          if (t && !seen.has(key)) {
+            seen.add(key)
+            out.push(t)
+          }
+        }
+        return out
+      }),
   })
   .superRefine((data, ctx) => {
     // XOR: either you provide a positive timeFrame OR you nominate a
@@ -143,5 +161,6 @@ export function taskToInput(task: Task): TaskInput {
     timeframeType: task.timeframeType,
     subtasks: task.subtasks,
     notes: task.notes,
+    tags: task.tags,
   }
 }
