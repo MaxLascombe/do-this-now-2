@@ -83,6 +83,11 @@ const TaskRowBase = ({
             lineHeight: 1.15,
           }}
         >
+          {task.pinned && (
+            <span aria-label="Pinned" title="Pinned" className="mr-1 text-sm">
+              📌
+            </span>
+          )}
           {task.title}
         </div>
         <div

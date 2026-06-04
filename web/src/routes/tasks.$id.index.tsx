@@ -1,5 +1,5 @@
 import { formatDueLabel, formatRepeat } from '@dtn/shared/format'
-import { useTask } from '@dtn/shared/queries'
+import { useSetPinned, useTask } from '@dtn/shared/queries'
 import { minutesToHours } from '@dtn/shared/time'
 import { Link, createFileRoute, useRouter } from '@tanstack/react-router'
 import { useState } from 'react'
@@ -30,6 +30,12 @@ function TaskDetail() {
   // edit page does — load it so the widget shows + mutates the right task.
   const keeperQuery = useTask(task?.timekeeperId ?? '')
   const timerTask = task?.timekeeperId ? keeperQuery.data : task
+
+  const setPinned = useSetPinned()
+  const togglePin = () => {
+    if (!task) return
+    setPinned.mutate({ id, pinned: !task.pinned })
+  }
 
   const keyActions: Array<KeyAction> = [
     { key: 'escape', description: 'Back', action: () => router.history.back() },
@@ -117,6 +123,20 @@ function TaskDetail() {
           <PageHeading eyebrow="task">{task.title}</PageHeading>
         </div>
         <div className="hidden items-center gap-2 md:flex">
+          <button
+            type="button"
+            onClick={togglePin}
+            aria-pressed={task.pinned}
+            className={
+              'flex items-center gap-2 rounded-full border px-3 py-1.5 font-mono text-sm ' +
+              (task.pinned
+                ? 'border-amber-400/40 bg-amber-400/10 text-amber-300 hover:bg-amber-400/20'
+                : 'border-zinc-800 text-zinc-400 hover:bg-zinc-900 hover:text-zinc-50')
+            }
+          >
+            <span aria-hidden="true">📌</span>
+            <span>{task.pinned ? 'Pinned' : 'Pin'}</span>
+          </button>
           <Link
             to="/tasks/$id/edit"
             params={{ id }}
