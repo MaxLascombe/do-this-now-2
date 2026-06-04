@@ -2,7 +2,7 @@ import { createFileRoute } from '@tanstack/react-router'
 import { json } from '@tanstack/react-start'
 import { z } from 'zod'
 
-import { completeTask } from '../../server/lib/actions'
+import { completeTask, TaskNotFoundError } from '../../server/lib/actions'
 import {
   getTzFromRequest,
   invalid,
@@ -31,14 +31,19 @@ export const Route = createFileRoute('/api/tasks/$id/complete')({
 
         const parsed = completeBodySchema.safeParse(candidate)
         if (!parsed.success) return invalid(parsed.error.flatten())
-        return json(
-          await completeTask(
-            userId,
-            params.id,
-            getTzFromRequest(request),
-            parsed.data.countMeasurement ?? true,
-          ),
-        )
+        try {
+          return json(
+            await completeTask(
+              userId,
+              params.id,
+              getTzFromRequest(request),
+              parsed.data.countMeasurement ?? true,
+            ),
+          )
+        } catch (e) {
+          if (e instanceof TaskNotFoundError) return notFound()
+          throw e
+        }
       }),
     },
   },

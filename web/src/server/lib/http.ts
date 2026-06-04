@@ -54,3 +54,15 @@ export function getTzFromRequest(request: Request): number {
     return 0
   return n
 }
+
+// {} for an empty body, undefined for malformed JSON (caller returns invalid())
+// — so a bad body is a 400, not an unhandled 500 from request.json() throwing.
+export async function readJsonBody(request: Request): Promise<unknown> {
+  const raw = await request.text()
+  if (raw.length === 0) return {}
+  try {
+    return JSON.parse(raw)
+  } catch {
+    return undefined
+  }
+}

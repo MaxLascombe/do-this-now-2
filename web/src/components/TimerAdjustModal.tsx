@@ -6,6 +6,8 @@ import {
 } from '@headlessui/react'
 import { formatTimerSeconds } from '@dtn/shared/timer-utils'
 
+import { useConfirm } from './ConfirmProvider'
+
 const ADJUST_AMOUNTS = [-15, -5, -1, 1, 5, 15] as const
 
 export function TimerAdjustModal({
@@ -23,6 +25,7 @@ export function TimerAdjustModal({
   onClear: () => void
   onClose: () => void
 }) {
+  const confirm = useConfirm()
   return (
     <Dialog open={open} onClose={onClose} className="relative z-50">
       <DialogBackdrop className="fixed inset-0 bg-black/70 backdrop-blur-sm" />
@@ -60,9 +63,13 @@ export function TimerAdjustModal({
           </div>
           <button
             type="button"
-            onClick={() => {
+            onClick={async () => {
               if (seconds === 0) return
-              if (!window.confirm('Clear timer to 0?')) return
+              const ok = await confirm({
+                message: 'Clear timer to 0?',
+                confirmLabel: 'Clear',
+              })
+              if (!ok) return
               onClear()
             }}
             disabled={disabled || seconds === 0}

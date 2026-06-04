@@ -1,4 +1,7 @@
-import { isSnoozed } from '@dtn/shared/task-sorting'
+import {
+  findNextActionableSubtask,
+  isSnoozed,
+} from '@dtn/shared/task-sorting'
 import { willAdvanceSubtask } from '@dtn/shared/task-transitions'
 import {
   useCompleteTask,
@@ -28,6 +31,7 @@ import {
 } from 'react-native'
 import { SafeAreaView } from 'react-native-safe-area-context'
 
+import { ErrorState } from '../../components/ErrorState'
 import { Loading } from '../../components/Loading'
 import { SwipeableTaskRow } from '../../components/SwipeableTaskRow'
 import { TimerWidget } from '../../components/TimerWidget'
@@ -113,9 +117,16 @@ export default function Home() {
             padding: 24,
           }}
         >
-          <Text style={{ color: '#a1a1aa', fontSize: 14 }}>
-            No tasks for now — tap + to add one.
-          </Text>
+          {topTasks.isError ? (
+            <ErrorState
+              message="Couldn't load your tasks."
+              onRetry={() => topTasks.refetch()}
+            />
+          ) : (
+            <Text style={{ color: '#a1a1aa', fontSize: 14 }}>
+              No tasks for now — tap + to add one.
+            </Text>
+          )}
         </View>
       ) : (
         <ScrollView
@@ -195,9 +206,7 @@ function Hero({
 }) {
   const nextSub =
     task.subtasks.length > 0
-      ? (task.subtasks.find(
-          (s) => !s.done && (!s.snooze || new Date(s.snooze) < new Date()),
-        ) ?? task.subtasks.find((s) => !s.done))
+      ? findNextActionableSubtask(task.subtasks, new Date())
       : undefined
   const doneCount = task.subtasks.filter((s) => s.done).length
   const titleText = nextSub?.title ?? task.title
