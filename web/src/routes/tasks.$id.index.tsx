@@ -1,4 +1,5 @@
 import { formatDueLabel, formatRepeat } from '@dtn/shared/format'
+import { dateString, nextDueDate } from '@dtn/shared/helpers'
 import {
   useCompleteTask,
   useDeleteTask,
@@ -175,6 +176,17 @@ function TaskDetail() {
   )
   const doneCount = task.subtasks.filter((s) => s.done).length
 
+  const upcoming: Date[] = []
+  {
+    let cursor = task
+    for (let i = 0; i < 3; i++) {
+      const next = nextDueDate(cursor)
+      if (!next) break
+      upcoming.push(next)
+      cursor = { ...cursor, due: dateString(next) }
+    }
+  }
+
   const gated = isCompletionGated(task, now)
   const remainingMin = gated
     ? Math.ceil(task.timeFrame - currentTimerSeconds(task, now) / 60)
@@ -246,6 +258,22 @@ function TaskDetail() {
             <span style={{ color: OVERDUE }}>strict deadline</span>
           )}
         </div>
+
+        {upcoming.length > 0 && (
+          <div className="font-mono text-xs text-zinc-500">
+            <span className="tracking-[0.2em] text-zinc-600 uppercase">
+              Next
+            </span>{' '}
+            {upcoming
+              .map((d) =>
+                d.toLocaleDateString('en-US', {
+                  month: 'short',
+                  day: 'numeric',
+                }),
+              )
+              .join('  ·  ')}
+          </div>
+        )}
 
         <div className="flex flex-wrap items-center gap-2 font-mono text-sm">
           <button
