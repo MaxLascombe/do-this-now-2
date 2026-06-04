@@ -57,6 +57,13 @@
       "when": 1778815499458,
       "tag": "0007_lame_nighthawk",
       "breakpoints": true
+    },
+    {
+      "idx": 8,
+      "version": "7",
+      "when": 1780542502985,
+      "tag": "0008_fixed_mercury",
+      "breakpoints": true
     }
   ]
 }

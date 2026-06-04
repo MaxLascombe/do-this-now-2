@@ -112,6 +112,7 @@ function EditTask() {
         timekeeperId={task.timekeeperId}
         timeframeType={task.timeframeType}
         subtasks={task.subtasks}
+        notes={task.notes}
         isEdit
         taskId={id}
         isSaving={mutation.isPending}
