@@ -181,45 +181,71 @@ export default function Calendar() {
                 >
                   Tap a day to see its tasks
                 </Text>
-              ) : selectedTasks.length === 0 ? (
-                <Text
-                  style={{
-                    fontFamily: mono,
-                    fontSize: 13,
-                    color: '#52525b',
-                    textAlign: 'center',
-                    marginTop: 8,
-                  }}
-                >
-                  Nothing due this day
-                </Text>
               ) : (
-                selectedTasks.map((t) => (
+                <>
+                  {selectedTasks.length === 0 ? (
+                    <Text
+                      style={{
+                        fontFamily: mono,
+                        fontSize: 13,
+                        color: '#52525b',
+                        textAlign: 'center',
+                        marginTop: 8,
+                      }}
+                    >
+                      Nothing due this day
+                    </Text>
+                  ) : (
+                    selectedTasks.map((t) => (
+                      <Pressable
+                        key={t.id}
+                        onPress={() => router.push(`/tasks/${t.id}/edit`)}
+                        accessibilityRole="button"
+                        style={{
+                          flexDirection: 'row',
+                          alignItems: 'center',
+                          gap: 12,
+                          borderWidth: 1,
+                          borderColor: '#27272a',
+                          backgroundColor: 'rgba(24,24,27,0.6)',
+                          borderRadius: 14,
+                          paddingHorizontal: 16,
+                          paddingVertical: 12,
+                        }}
+                      >
+                        <Text style={{ fontSize: 20 }}>{t.emoji}</Text>
+                        <Text
+                          numberOfLines={1}
+                          style={{ flex: 1, fontFamily: mono, fontSize: 14, color: '#fafafa' }}
+                        >
+                          {t.title}
+                        </Text>
+                      </Pressable>
+                    ))
+                  )}
                   <Pressable
-                    key={t.id}
-                    onPress={() => router.push(`/tasks/${t.id}/edit`)}
+                    onPress={() =>
+                      router.push({
+                        pathname: '/new-task',
+                        params: { due: selectedKey },
+                      })
+                    }
                     accessibilityRole="button"
                     style={{
-                      flexDirection: 'row',
                       alignItems: 'center',
-                      gap: 12,
+                      paddingVertical: 12,
+                      borderRadius: 14,
                       borderWidth: 1,
                       borderColor: '#27272a',
-                      backgroundColor: 'rgba(24,24,27,0.6)',
-                      borderRadius: 14,
-                      paddingHorizontal: 16,
-                      paddingVertical: 12,
+                      borderStyle: 'dashed',
+                      marginTop: 4,
                     }}
                   >
-                    <Text style={{ fontSize: 20 }}>{t.emoji}</Text>
-                    <Text
-                      numberOfLines={1}
-                      style={{ flex: 1, fontFamily: mono, fontSize: 14, color: '#fafafa' }}
-                    >
-                      {t.title}
+                    <Text style={{ fontFamily: mono, fontSize: 13, color: '#a1a1aa' }}>
+                      + Add a task for this day
                     </Text>
                   </Pressable>
-                ))
+                </>
               )}
             </View>
           </>
