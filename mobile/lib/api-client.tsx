@@ -53,7 +53,7 @@ function createMobileApi(
     tasks: {
       list: () => call<Task[]>('/api/tasks'),
       listTop: () => call<Task[]>('/api/tasks?sort=top'),
-      listArchived: () => call<Task[]>('/api/tasks?archived=1'),
+      listArchived: () => call<Task[]>('/api/tasks/archived'),
       get: (id) => call<Task>(`/api/tasks/${id}`),
       create: (input) =>
         call<Task>('/api/tasks', { method: 'POST', body: input }),
