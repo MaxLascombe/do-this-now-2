@@ -30,11 +30,13 @@ import {
 } from 'react-native'
 import { SafeAreaView } from 'react-native-safe-area-context'
 
+import { EmptyTasks } from '../../components/EmptyTasks'
 import { ErrorState } from '../../components/ErrorState'
 import { Loading } from '../../components/Loading'
 import { PageHeading } from '../../components/PageHeading'
 import { SwipeableTaskRow } from '../../components/SwipeableTaskRow'
 import { TopProgress } from '../../components/TopProgress'
+import { usePersistedState } from '../../hooks/usePersistedState'
 
 type Sort = 'CHRON' | 'TOP'
 
@@ -50,7 +52,7 @@ const OVERDUE = '#fb7185'
 
 export default function TasksList() {
   const router = useRouter()
-  const [sort, setSort] = useState<Sort>('CHRON')
+  const [sort, setSort] = usePersistedState<Sort>('dtn.tasks.sort', 'CHRON')
   const [query, setQuery] = useState('')
   const [quickTitle, setQuickTitle] = useState('')
 
@@ -74,7 +76,7 @@ export default function TasksList() {
       repeatWeekdays: [false, false, false, false, false, false, false],
       timeFrame: 30,
       timekeeperId: null,
-      timeframeType: 'fixed',
+      timeframeType: 'fluid',
       subtasks: [],
       notes: '',
       tags: [],
@@ -310,16 +312,26 @@ export default function TasksList() {
               />
             </View>
           ) : (
-            <Text
-              style={{
-                textAlign: 'center',
-                marginTop: 40,
-                color: '#71717a',
-                fontFamily: 'JetBrainsMono_400Regular',
-              }}
-            >
-              {query ? `No tasks match "${query.trim()}"` : 'No tasks'}
-            </Text>
+            query ? (
+              <Text
+                style={{
+                  textAlign: 'center',
+                  marginTop: 40,
+                  color: '#71717a',
+                  fontFamily: 'JetBrainsMono_400Regular',
+                }}
+              >
+                {`No tasks match "${query.trim()}"`}
+              </Text>
+            ) : (
+              <View style={{ marginTop: 48 }}>
+                <EmptyTasks
+                  title="No tasks yet"
+                  subtitle="Create your first task to get started."
+                  onNewTask={() => router.push('/new-task')}
+                />
+              </View>
+            )
           )
         }
       />

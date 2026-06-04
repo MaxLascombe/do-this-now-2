@@ -103,7 +103,7 @@ export const TopBar = () => {
         />
       </div>
 
-      <div className="relative flex items-center justify-between px-10 py-5 font-mono text-sm">
+      <div className="relative flex items-center justify-between gap-6 px-10 py-5 font-mono text-sm">
         <div ref={wrapperRef} className="relative">
           <button
             type="button"
@@ -161,6 +161,19 @@ export const TopBar = () => {
               </Link>
             )
           })}
+          <Link
+            to="/settings"
+            aria-label="Settings"
+            aria-current={pathname.startsWith('/settings') ? 'page' : undefined}
+            className={
+              'flex items-center rounded-full px-3 py-1.5 text-base transition-colors ' +
+              (pathname.startsWith('/settings')
+                ? 'bg-zinc-50 text-zinc-900'
+                : 'text-zinc-400 hover:bg-zinc-900 hover:text-zinc-100')
+            }
+          >
+            ⚙
+          </Link>
         </nav>
       </div>
     </div>

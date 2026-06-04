@@ -31,6 +31,7 @@ import {
 } from 'react-native'
 import { SafeAreaView } from 'react-native-safe-area-context'
 
+import { EmptyTasks } from '../../components/EmptyTasks'
 import { ErrorState } from '../../components/ErrorState'
 import { Loading } from '../../components/Loading'
 import { SwipeableTaskRow } from '../../components/SwipeableTaskRow'
@@ -123,9 +124,11 @@ export default function Home() {
               onRetry={() => topTasks.refetch()}
             />
           ) : (
-            <Text style={{ color: '#a1a1aa', fontSize: 14 }}>
-              No tasks for now — tap + to add one.
-            </Text>
+            <EmptyTasks
+              title="Nothing to do right now"
+              subtitle="You're all caught up. Add a task to line up what's next."
+              onNewTask={() => router.push('/new-task')}
+            />
           )}
         </View>
       ) : (

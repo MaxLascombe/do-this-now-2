@@ -1,8 +1,18 @@
+import { useClerk } from '@clerk/tanstack-react-start'
+import { startOfToday } from '@dtn/shared/day-index'
 import { formatDueLabel } from '@dtn/shared/format'
-import { newSafeDate } from '@dtn/shared/helpers'
-import { useAllTasks } from '@dtn/shared/queries'
+import { dateString, newSafeDate } from '@dtn/shared/helpers'
+import {
+  useAllTasks,
+  useCreateTask,
+  useSnoozeTask,
+} from '@dtn/shared/queries'
+import { taskInputSchema } from '@dtn/shared/task-input'
+import { isSnoozed } from '@dtn/shared/task-sorting'
 import { useNavigate } from '@tanstack/react-router'
 import { useEffect, useRef, useState } from 'react'
+
+import { useConfirm } from './ConfirmProvider'
 
 type Item = {
   key: string
@@ -10,10 +20,16 @@ type Item = {
   label: string
   hint?: string
   run: () => void
+  // Keep the palette open after running (for rapid repeated capture).
+  keepOpen?: boolean
 }
 
 export function CommandPalette() {
   const navigate = useNavigate()
+  const { signOut } = useClerk()
+  const createTask = useCreateTask()
+  const snoozeTask = useSnoozeTask()
+  const confirm = useConfirm()
   const tasksQuery = useAllTasks({ enabled: false })
   const [open, setOpen] = useState(false)
   const [query, setQuery] = useState('')
@@ -80,6 +96,12 @@ export function CommandPalette() {
       run: () => navigate({ to: '/calendar' }),
     },
     {
+      key: 'p:tags',
+      glyph: '#',
+      label: 'Tags',
+      run: () => navigate({ to: '/tags' }),
+    },
+    {
       key: 'p:stats',
       glyph: '▤',
       label: 'Stats',
@@ -88,41 +110,183 @@ export function CommandPalette() {
   ]
 
   const q = query.trim().toLowerCase()
+  const matchTag = (t: { tags: string[] }) =>
+    t.tags.find((tag) => tag.toLowerCase().includes(q))
   const taskItems: Item[] = (tasksQuery.data ?? [])
-    .filter((t) => !q || t.title.toLowerCase().includes(q))
+    .filter((t) => !q || t.title.toLowerCase().includes(q) || !!matchTag(t))
     .sort((a, b) => newSafeDate(a.due).getTime() - newSafeDate(b.due).getTime())
     .slice(0, 8)
-    .map((t) => ({
-      key: 't:' + t.id,
-      glyph: t.emoji,
-      label: t.title,
-      hint: formatDueLabel(t.due, t.dueTime) || 'Task',
-      run: () => navigate({ to: '/tasks/$id', params: { id: t.id } }),
-    }))
+    .map((t) => {
+      const tag = q && !t.title.toLowerCase().includes(q) ? matchTag(t) : null
+      return {
+        key: 't:' + t.id,
+        glyph: t.emoji,
+        label: t.title,
+        hint: tag ? `#${tag}` : formatDueLabel(t.due, t.dueTime) || 'Task',
+        run: () => navigate({ to: '/tasks/$id', params: { id: t.id } }),
+      }
+    })
+
+  const quickAdd = (title: string) => {
+    createTask.mutate(
+      {
+        title,
+        emoji: '📝',
+        due: dateString(new Date()),
+        dueTime: null,
+        strictDeadline: false,
+        repeat: 'No Repeat',
+        repeatInterval: 1,
+        repeatUnit: 'day',
+        repeatWeekdays: [false, false, false, false, false, false, false],
+        timeFrame: 30,
+        timekeeperId: null,
+        timeframeType: 'fixed',
+        subtasks: [],
+        notes: null,
+        tags: [],
+      },
+      // Clear only on success so a failed create keeps the typed title.
+      {
+        onSuccess: () => {
+          setQuery('')
+          setSelected(0)
+        },
+      },
+    )
+  }
 
   const createItems: Item[] = query.trim()
     ? [
         {
+          key: 'quick-add',
+          glyph: '⚡',
+          label: `Quick-add "${query.trim()}" for today`,
+          hint: 'New',
+          keepOpen: true,
+          run: () => quickAdd(query.trim()),
+        },
+        {
           key: 'create',
           glyph: '＋',
-          label: `Create "${query.trim()}"`,
-          hint: 'New',
+          label: `Create "${query.trim()}"…`,
+          hint: 'Form',
           run: () =>
             navigate({ to: '/new-task', search: { title: query.trim() } }),
         },
       ]
     : []
 
+  const exportTasks = () => {
+    const tasks = tasksQuery.data ?? []
+    if (tasks.length === 0) return
+    const blob = new Blob([JSON.stringify(tasks, null, 2)], {
+      type: 'application/json',
+    })
+    const url = URL.createObjectURL(blob)
+    const a = document.createElement('a')
+    a.href = url
+    a.download = 'do-this-now-tasks.json'
+    a.click()
+    URL.revokeObjectURL(url)
+  }
+
+  const importTasks = () => {
+    const input = document.createElement('input')
+    input.type = 'file'
+    input.accept = 'application/json,.json'
+    input.onchange = async () => {
+      const file = input.files?.[0]
+      if (!file) return
+      try {
+        const parsed: unknown = JSON.parse(await file.text())
+        if (!Array.isArray(parsed)) return
+        // Each item is validated as a task input — extra fields from an
+        // export (id, userId, timestamps) are stripped; invalid rows skip.
+        let imported = 0
+        for (const item of parsed) {
+          const result = taskInputSchema.safeParse(item)
+          if (result.success) {
+            createTask.mutate(result.data)
+            imported++
+          }
+        }
+        if (imported > 0) navigate({ to: '/tasks' })
+      } catch {
+        // not valid JSON — nothing actionable
+      }
+    }
+    input.click()
+  }
+
+  const todayMs = startOfToday().getTime()
+  const overdue = (tasksQuery.data ?? []).filter(
+    (t) => !isSnoozed(t) && newSafeDate(t.due).getTime() < todayMs,
+  )
+
+  const confirmSignOut = async () => {
+    const ok = await confirm({
+      message: 'Sign out of Do This Now?',
+      confirmLabel: 'Sign out',
+    })
+    if (ok) void signOut()
+  }
+
+  const snoozeOverdue = async () => {
+    const ok = await confirm({
+      message: `Snooze all ${overdue.length} overdue task${overdue.length === 1 ? '' : 's'}?`,
+      confirmLabel: 'Snooze all',
+    })
+    if (!ok) return
+    for (const t of overdue) snoozeTask.mutate({ id: t.id })
+  }
+
+  const actions: Item[] = [
+    ...(overdue.length > 0
+      ? [
+          {
+            key: 'a:snooze-overdue',
+            glyph: '☾',
+            label: `Snooze all ${overdue.length} overdue`,
+            hint: 'Action',
+            run: () => void snoozeOverdue(),
+          },
+        ]
+      : []),
+    {
+      key: 'a:export',
+      glyph: '⤓',
+      label: 'Export tasks (JSON)',
+      hint: 'Action',
+      run: exportTasks,
+    },
+    {
+      key: 'a:import',
+      glyph: '⤒',
+      label: 'Import tasks (JSON)',
+      hint: 'Action',
+      run: importTasks,
+    },
+    {
+      key: 'a:signout',
+      glyph: '⏻',
+      label: 'Sign out',
+      hint: 'Action',
+      run: () => void confirmSignOut(),
+    },
+  ]
+
   const results = [
     ...pages.filter((p) => !q || p.label.toLowerCase().includes(q)),
     ...taskItems,
     ...createItems,
+    ...actions.filter((a) => !q || a.label.toLowerCase().includes(q)),
   ]
   const active = Math.min(selected, Math.max(0, results.length - 1))
 
   const activate = (item: Item | undefined) => {
     if (!item) return
-    close()
+    if (!item.keepOpen) close()
     item.run()
   }
 
@@ -141,6 +305,10 @@ export function CommandPalette() {
     } else if (e.key === 'Enter') {
       e.preventDefault()
       activate(results[active])
+    } else if (e.key === 'Tab') {
+      // Trap focus: navigation is via arrows, so keep it on the input
+      // rather than letting Tab escape the modal to the page behind it.
+      e.preventDefault()
     }
   }
 
@@ -170,7 +338,13 @@ export function CommandPalette() {
           aria-label="Search pages and tasks"
           className="w-full border-b border-zinc-800 bg-transparent px-5 py-4 text-sm text-zinc-100 placeholder:text-zinc-600 focus:outline-none"
         />
-        <ul className="max-h-[50vh] overflow-y-auto py-2">
+        <div className="sr-only" aria-live="polite">
+          {query ? `${results.length} result${results.length === 1 ? '' : 's'}` : ''}
+        </div>
+        <ul
+          aria-label="Results"
+          className="max-h-[50vh] overflow-y-auto py-2"
+        >
           {results.length === 0 && (
             <li className="px-5 py-6 text-center text-sm text-zinc-600">
               No matches

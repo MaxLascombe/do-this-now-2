@@ -3,6 +3,7 @@ import {
   currentTimerSeconds,
   formatTimerSeconds,
 } from '@dtn/shared/timer-utils'
+import { Pause, Play, SlidersHorizontal } from 'lucide-react'
 import { useEffect, useState } from 'react'
 
 import { useConfirm } from './ConfirmProvider'
@@ -95,7 +96,7 @@ export function TimerWidget({
               aria-label="Adjust timer"
               className="flex h-9 w-9 items-center justify-center rounded-full border border-zinc-800 text-sm text-zinc-300 transition-colors hover:border-zinc-600 hover:text-zinc-100 disabled:opacity-30"
             >
-              ±
+              <SlidersHorizontal size={16} aria-hidden />
             </button>
             <button
               type="button"
@@ -109,7 +110,11 @@ export function TimerWidget({
                   : 'bg-zinc-50 text-zinc-900 hover:bg-zinc-100')
               }
             >
-              {running ? '⏸' : '▶'}
+              {running ? (
+                <Pause size={18} fill="currentColor" aria-hidden />
+              ) : (
+                <Play size={18} fill="currentColor" aria-hidden />
+              )}
             </button>
           </div>
         </div>
@@ -191,7 +196,11 @@ export function TimerWidget({
               : 'bg-zinc-50 text-zinc-900 hover:bg-zinc-100')
           }
         >
-          <span>{running ? '⏸' : '▶'}</span>
+          {running ? (
+            <Pause size={16} fill="currentColor" aria-hidden />
+          ) : (
+            <Play size={16} fill="currentColor" aria-hidden />
+          )}
           <span>{running ? 'Pause' : 'Start'}</span>
         </button>
 
