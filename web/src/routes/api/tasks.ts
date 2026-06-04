@@ -1,7 +1,12 @@
 import { createFileRoute } from '@tanstack/react-router'
 import { json } from '@tanstack/react-start'
 
-import { getTzFromRequest, invalid, withAuth } from '../../server/lib/http'
+import {
+  getTzFromRequest,
+  invalid,
+  readJsonBody,
+  withAuth,
+} from '../../server/lib/http'
 import {
   createTask,
   listTasks,
@@ -22,7 +27,10 @@ export const Route = createFileRoute('/api/tasks')({
         return json(await listTasks(userId))
       }),
       POST: withAuth(async ({ userId, request }) => {
-        const parsed = taskInputSchema.safeParse(await request.json())
+        const body = await readJsonBody(request)
+        if (body === undefined)
+          return invalid({ formErrors: ['Body must be JSON.'] })
+        const parsed = taskInputSchema.safeParse(body)
         if (!parsed.success) return invalid(parsed.error.flatten())
         return json(await createTask(userId, parsed.data))
       }),

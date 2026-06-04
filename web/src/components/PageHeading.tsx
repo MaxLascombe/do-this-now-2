@@ -16,6 +16,8 @@ export const PageHeading = ({
       </div>
     )}
     <h1
+      id="main-content"
+      tabIndex={-1}
       className="dtn-heading mt-1 text-zinc-50"
       style={{ fontSize: size, lineHeight: 1 }}
     >

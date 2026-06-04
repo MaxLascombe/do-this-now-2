@@ -144,6 +144,10 @@ function SwipeableTaskRowBase({
           return (
             <View
               key={i}
+              accessible
+              accessibilityLabel={`${s.title}, ${
+                s.done ? 'completed' : isSnoozed ? 'snoozed' : 'not done'
+              }`}
               style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}
             >
               <View
