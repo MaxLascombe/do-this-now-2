@@ -5,7 +5,7 @@ import type { Task } from '@dtn/shared/types'
 import { createFileRoute, useNavigate } from '@tanstack/react-router'
 import { useMemo, useState } from 'react'
 
-import { Loading } from '../components/Loading'
+import { Skeleton } from '../components/Skeleton'
 import { MobileChrome } from '../components/MobileChrome'
 import { PageHeading } from '../components/PageHeading'
 import { TaskRow } from '../components/TaskRow'
@@ -142,8 +142,14 @@ function Calendar() {
           </div>
 
           {isLoading ? (
-            <div className="flex justify-center py-12">
-              <Loading />
+            <div
+              className="grid grid-cols-7 gap-1"
+              role="status"
+              aria-label="Loading calendar"
+            >
+              {Array.from({ length: 35 }).map((_, i) => (
+                <Skeleton key={i} className="aspect-square rounded-xl" />
+              ))}
             </div>
           ) : (
             <div className="grid grid-cols-7 gap-1">
