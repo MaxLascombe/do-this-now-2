@@ -51,6 +51,18 @@ export default function Calendar() {
 
   const leading = startOfMonth(cursor).getDay()
   const daysInMonth = new Date(year, month + 1, 0).getDate()
+
+  const minutesFor = (key: string) =>
+    (byDay[key] ?? []).reduce((sum, t) => sum + t.timeFrame, 0)
+  const monthMaxMinutes = useMemo(() => {
+    let max = 0
+    for (let d = 1; d <= daysInMonth; d++) {
+      const mins = minutesFor(dateString(new Date(year, month, d)))
+      if (mins > max) max = mins
+    }
+    return max
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [byDay, year, month, daysInMonth])
   const cells: Array<number | null> = [
     ...Array.from({ length: leading }, () => null),
     ...Array.from({ length: daysInMonth }, (_, i) => i + 1),
@@ -161,6 +173,34 @@ export default function Calendar() {
                         >
                           {count}
                         </Text>
+                      )}
+                      {monthMaxMinutes > 0 && minutesFor(key) > 0 && (
+                        <View
+                          style={{
+                            position: 'absolute',
+                            bottom: 4,
+                            left: 8,
+                            right: 8,
+                            height: 3,
+                            borderRadius: 2,
+                            backgroundColor: isSelected
+                              ? 'rgba(10,10,10,0.15)'
+                              : 'rgba(255,255,255,0.08)',
+                            overflow: 'hidden',
+                          }}
+                        >
+                          <View
+                            style={{
+                              width: `${Math.max(
+                                12,
+                                (minutesFor(key) / monthMaxMinutes) * 100,
+                              )}%`,
+                              height: '100%',
+                              borderRadius: 2,
+                              backgroundColor: isSelected ? '#0a0a0a' : '#34d399',
+                            }}
+                          />
+                        </View>
                       )}
                     </Pressable>
                   </View>
