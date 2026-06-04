@@ -1,10 +1,22 @@
 import { formatDueLabel, formatRepeat } from '@dtn/shared/format'
-import { useDeleteTask, useSnoozeTask, useTask } from '@dtn/shared/queries'
+import {
+  useCompleteTask,
+  useDeleteTask,
+  useSnoozeTask,
+  useTask,
+} from '@dtn/shared/queries'
+import { willAdvanceSubtask } from '@dtn/shared/task-transitions'
 import { minutesToHours } from '@dtn/shared/time'
+import {
+  completionConfirmKind,
+  currentTimerSeconds,
+  isCompletionGated,
+} from '@dtn/shared/timer-utils'
 import { Link, createFileRoute, useRouter } from '@tanstack/react-router'
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 
 import { useConfirm } from '../components/ConfirmProvider'
+import { CountConfirmModal } from '../components/CountConfirmModal'
 import { ErrorState } from '../components/ErrorState'
 import { Loading } from '../components/Loading'
 import { MobileChrome } from '../components/MobileChrome'
@@ -12,6 +24,7 @@ import { PageHeading } from '../components/PageHeading'
 import { TimerWidget } from '../components/TimerWidget'
 import { TopBar } from '../components/TopBar'
 import useKeyAction from '../hooks/useKeyAction'
+import type { Task } from '@dtn/shared/types'
 import type { KeyAction } from '../hooks/useKeyAction'
 
 const OVERDUE = '#fb7185'
@@ -34,7 +47,43 @@ function TaskDetail() {
 
   const snoozeMutation = useSnoozeTask()
   const deleteMutation = useDeleteTask()
+  const doneMutation = useCompleteTask()
   const confirm = useConfirm()
+
+  const [pendingComplete, setPendingComplete] = useState<{
+    task: Task
+    kind: 'over' | 'under'
+  } | null>(null)
+
+  // Tick "now" each second while the timer runs so the Done gate
+  // re-evaluates on its own, matching the home view.
+  const [now, setNow] = useState(() => new Date())
+  useEffect(() => {
+    if (!task?.timerStartedAt) return
+    const t = setInterval(() => setNow(new Date()), 1000)
+    return () => clearInterval(t)
+  }, [task?.timerStartedAt])
+
+  const runComplete = (countMeasurement: boolean) =>
+    doneMutation.mutate(
+      { id, countMeasurement },
+      { onSuccess: () => router.history.back() },
+    )
+
+  const completeAction = () => {
+    if (!task) return
+    if (isCompletionGated(task, now)) return
+    if (willAdvanceSubtask(task, now)) {
+      runComplete(true)
+      return
+    }
+    const kind = completionConfirmKind(task, now)
+    if (!kind) {
+      runComplete(true)
+      return
+    }
+    setPendingComplete({ task, kind })
+  }
 
   const snoozeAction = () => snoozeMutation.mutate({ id })
   const deleteAction = async () => {
@@ -53,6 +102,7 @@ function TaskDetail() {
       description: 'Edit',
       action: () => router.navigate({ to: '/tasks/$id/edit', params: { id } }),
     },
+    { key: 'd', description: 'Done', action: completeAction },
     { key: 's', description: 'Snooze', action: snoozeAction },
     { key: 'backspace', description: 'Delete', action: deleteAction },
     { key: 'n', description: 'Home', action: () => router.navigate({ to: '/' }) },
@@ -113,6 +163,16 @@ function TaskDetail() {
     task.repeatWeekdays,
   )
   const doneCount = task.subtasks.filter((s) => s.done).length
+
+  const gated = isCompletionGated(task, now)
+  const remainingMin = gated
+    ? Math.ceil(task.timeFrame - currentTimerSeconds(task, now) / 60)
+    : 0
+  const doneLabel = gated
+    ? `${remainingMin} min to go`
+    : willAdvanceSubtask(task, now)
+      ? 'Subtask done'
+      : 'Done'
 
   return (
     <div className="flex min-h-screen flex-col">
@@ -203,6 +263,18 @@ function TaskDetail() {
         <div className="flex flex-wrap items-center gap-2 font-mono text-sm">
           <button
             type="button"
+            onClick={completeAction}
+            disabled={gated}
+            title={gated ? `Run the timer — ${remainingMin} min to go` : undefined}
+            className="flex items-center gap-2 rounded-full bg-white px-4 py-1.5 font-semibold text-black hover:bg-zinc-100 disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:bg-white"
+          >
+            <span>{doneLabel}</span>
+            <kbd className="rounded border border-zinc-300 bg-black/10 px-1 py-0.5 text-[10px] font-bold text-zinc-900">
+              D
+            </kbd>
+          </button>
+          <button
+            type="button"
             onClick={snoozeAction}
             className="flex items-center gap-2 rounded-full border border-zinc-800 px-4 py-1.5 text-zinc-300 hover:bg-zinc-900 hover:text-zinc-50"
           >
@@ -269,6 +341,21 @@ function TaskDetail() {
           Edit task
         </Link>
       </div>
+
+      <CountConfirmModal
+        open={!!pendingComplete}
+        task={pendingComplete?.task ?? null}
+        kind={pendingComplete?.kind ?? null}
+        onCancel={() => setPendingComplete(null)}
+        onSkip={() => {
+          if (pendingComplete) runComplete(false)
+          setPendingComplete(null)
+        }}
+        onCount={() => {
+          if (pendingComplete) runComplete(true)
+          setPendingComplete(null)
+        }}
+      />
     </div>
   )
 }
