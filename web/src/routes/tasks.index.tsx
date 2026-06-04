@@ -41,6 +41,7 @@ import { TaskRow } from '../components/TaskRow'
 import { TimerWidget } from '../components/TimerWidget'
 import { TopBar } from '../components/TopBar'
 import useKeyAction from '../hooks/useKeyAction'
+import { usePersistedState } from '../hooks/usePersistedState'
 import type { Task } from '@dtn/shared/types'
 import type { KeyAction } from '../hooks/useKeyAction'
 
@@ -54,7 +55,10 @@ const OVERDUE = '#fb7185'
 function TasksList() {
   const navigate = useNavigate()
   const [selectedTask, setSelectedTask] = useState(0)
-  const [sort, setSort] = useState<'CHRON' | 'TOP'>('CHRON')
+  const [sort, setSort] = usePersistedState<'CHRON' | 'TOP'>(
+    'dtn.tasks.sort',
+    'CHRON',
+  )
   const [query, setQuery] = useState('')
   const taskElems = useRef<Array<HTMLElement>>([])
   const searchRef = useRef<HTMLInputElement>(null)
