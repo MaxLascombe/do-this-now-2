@@ -25,6 +25,15 @@ describe('ymdSchema', () => {
     expect(ymdSchema.safeParse('No Due Date').success).toBe(false)
     expect(ymdSchema.safeParse('').success).toBe(false)
   })
+
+  it('rejects digit parts carrying trailing, whitespace, or sign garbage', () => {
+    expect(ymdSchema.safeParse('2026-5-1x').success).toBe(false)
+    expect(ymdSchema.safeParse('2026-5x-1').success).toBe(false)
+    expect(ymdSchema.safeParse('2026- 5-1').success).toBe(false)
+    expect(ymdSchema.safeParse('2026-5-1 ').success).toBe(false)
+    expect(ymdSchema.safeParse('2026-5-1.9').success).toBe(false)
+    expect(ymdSchema.safeParse('2026-+5-1').success).toBe(false)
+  })
 })
 
 describe('dueTimeSchema', () => {

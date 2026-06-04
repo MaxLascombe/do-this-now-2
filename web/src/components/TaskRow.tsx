@@ -93,7 +93,10 @@ const TaskRowBase = ({
           {dueLabel && (
             <span>
               {isOverdue && (
-                <span style={{ color: selected ? '#9f1239' : OVERDUE }}>
+                <span
+                  aria-label="Overdue"
+                  style={{ color: selected ? '#9f1239' : OVERDUE }}
+                >
                   ‼{' '}
                 </span>
               )}
@@ -103,9 +106,17 @@ const TaskRowBase = ({
           {task.timeFrame ? (
             <span>{minutesToHours(task.timeFrame)}</span>
           ) : null}
-          {repeatLabel && <span>↻ {repeatLabel}</span>}
+          {repeatLabel && (
+            <span>
+              <span aria-hidden="true">↻ </span>
+              {repeatLabel}
+            </span>
+          )}
           {subtaskCount > 0 && (
-            <span className="tabular-nums">
+            <span
+              className="tabular-nums"
+              aria-label={`${doneCount} of ${subtaskCount} subtasks done`}
+            >
               ☐ {doneCount}/{subtaskCount}
             </span>
           )}
