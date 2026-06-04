@@ -53,6 +53,7 @@ function createMobileApi(
     tasks: {
       list: () => call<Task[]>('/api/tasks'),
       listTop: () => call<Task[]>('/api/tasks?sort=top'),
+      listArchived: () => call<Task[]>('/api/tasks?archived=1'),
       get: (id) => call<Task>(`/api/tasks/${id}`),
       create: (input) =>
         call<Task>('/api/tasks', { method: 'POST', body: input }),
@@ -60,6 +61,10 @@ function createMobileApi(
         call<Task>(`/api/tasks/${id}`, { method: 'PUT', body: input }),
       delete: (id) =>
         call<Record<string, never>>(`/api/tasks/${id}`, { method: 'DELETE' }),
+      archive: (id) =>
+        call<Task>(`/api/tasks/${id}/archive`, { method: 'POST' }),
+      unarchive: (id) =>
+        call<Task>(`/api/tasks/${id}/unarchive`, { method: 'POST' }),
       complete: (id, opts) =>
         call<{ advanced: boolean }>(`/api/tasks/${id}/complete`, {
           method: 'POST',

@@ -19,6 +19,7 @@ export const webApiClient: ApiClient = {
     list: () => taskFns.listTasks(),
     listTop: () =>
       taskFns.listTopTasks({ data: { tzOffsetMin: getTzOffsetMin() } }),
+    listArchived: () => taskFns.listArchivedTasks(),
     get: async (id) => {
       const t = await taskFns.getTask({ data: { id } })
       if (!t) throw notFound(id)
@@ -31,6 +32,8 @@ export const webApiClient: ApiClient = {
       return t
     },
     delete: (id) => taskFns.deleteTask({ data: { id } }),
+    archive: (id) => taskFns.archiveTask({ data: { id } }),
+    unarchive: (id) => taskFns.unarchiveTask({ data: { id } }),
     complete: (id, opts) =>
       actionFns.completeTask({
         data: {

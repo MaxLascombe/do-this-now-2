@@ -80,10 +80,13 @@ export interface ApiClient {
   tasks: {
     list(): Promise<Task[]>
     listTop(): Promise<Task[]>
+    listArchived(): Promise<Task[]>
     get(id: string): Promise<Task>
     create(input: TaskInput): Promise<Task>
     update(id: string, input: TaskInput): Promise<Task>
     delete(id: string): Promise<DeleteTaskResult>
+    archive(id: string): Promise<Task>
+    unarchive(id: string): Promise<Task>
     complete(id: string, opts?: CompleteTaskOptions): Promise<CompleteTaskResult>
     snooze(id: string, allSubtasks?: boolean): Promise<SnoozeTaskResult>
     suggestEmojis(title: string): Promise<string[]>

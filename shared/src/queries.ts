@@ -24,6 +24,7 @@ export const taskKeys = {
   all: ['tasks'] as const,
   top: ['tasks', 'top'] as const,
   list: ['tasks', 'all'] as const,
+  archived: ['tasks', 'archived'] as const,
   one: (id: string) => ['tasks', 'get', id] as const,
 }
 export const historyKey = (date: string) => ['history', date] as const
@@ -277,6 +278,15 @@ export function useAllTasks(opts: EnabledOpts = {}) {
   })
 }
 
+export function useArchivedTasks(opts: EnabledOpts = {}) {
+  const api = useApi()
+  return useQuery({
+    queryKey: taskKeys.archived,
+    queryFn: () => api.tasks.listArchived(),
+    enabled: opts.enabled ?? true,
+  })
+}
+
 export function useTask(id: string) {
   const api = useApi()
   return useQuery({
@@ -347,6 +357,29 @@ export function useDeleteTask() {
     mutationFn: (id: string) => api.tasks.delete(id),
     onMutate: (id) => optimisticRemove(qc, id),
     onError: (_e, _id, ctx) => rollback(qc, ctx),
+    onSettled: () => invalidateTaskCaches(qc),
+  })
+}
+
+// Archiving removes the task from the active lists right now, like delete;
+// the archived-list query refetches on invalidate (it sits under the
+// 'tasks' prefix that invalidateTaskCaches clears).
+export function useArchiveTask() {
+  const api = useApi()
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: (id: string) => api.tasks.archive(id),
+    onMutate: (id) => optimisticRemove(qc, id),
+    onError: (_e, _id, ctx) => rollback(qc, ctx),
+    onSettled: () => invalidateTaskCaches(qc),
+  })
+}
+
+export function useUnarchiveTask() {
+  const api = useApi()
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: (id: string) => api.tasks.unarchive(id),
     onSettled: () => invalidateTaskCaches(qc),
   })
 }
