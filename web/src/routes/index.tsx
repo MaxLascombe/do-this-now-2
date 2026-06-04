@@ -30,6 +30,7 @@ import { ErrorState } from '../components/ErrorState'
 import { Loading } from '../components/Loading'
 import { LinkifiedNotes } from '../components/LinkifiedNotes'
 import { MobileChrome } from '../components/MobileChrome'
+import { Skeleton } from '../components/Skeleton'
 import { TaskRow } from '../components/TaskRow'
 import { TimerWidget } from '../components/TimerWidget'
 import { TopBar } from '../components/TopBar'
@@ -301,7 +302,11 @@ function Home() {
 
   const [sheetOpen, setSheetOpen] = useState(false)
 
-  if (topTasksQuery.isPending || deleteMutation.isPending) {
+  if (topTasksQuery.isPending) {
+    return <NowSkeleton />
+  }
+
+  if (deleteMutation.isPending) {
     return (
       <div className="flex h-screen items-center justify-center">
         <Loading />
@@ -562,6 +567,28 @@ function Hero({
       </div>
 
       <HeroTimer task={task} />
+    </div>
+  )
+}
+
+function NowSkeleton() {
+  return (
+    <div className="relative flex min-h-screen flex-col">
+      <TopBar />
+      <div
+        className="flex flex-1 flex-col items-center justify-center px-5 pb-8 md:px-16"
+        role="status"
+        aria-label="Loading your tasks"
+      >
+        <Skeleton className="mb-4 h-20 w-20 rounded-2xl md:mb-8 md:h-28 md:w-28" />
+        <Skeleton className="h-9 w-64 md:h-14 md:w-[28rem]" />
+        <Skeleton className="mt-4 h-4 w-44" />
+        <Skeleton className="mt-8 h-12 w-full max-w-[320px] rounded-full md:mt-12" />
+        <div className="mt-3 flex gap-2">
+          <Skeleton className="h-8 w-24 rounded-full" />
+          <Skeleton className="h-8 w-20 rounded-full" />
+        </div>
+      </div>
     </div>
   )
 }
