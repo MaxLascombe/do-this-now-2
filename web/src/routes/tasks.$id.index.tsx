@@ -2,9 +2,11 @@ import { formatDueLabel, formatRepeat } from '@dtn/shared/format'
 import { dateString, nextDueDate } from '@dtn/shared/helpers'
 import {
   useCompleteTask,
+  useCreateTask,
   useDeleteTask,
   useSnoozeTask,
   useTask,
+  useTaskTimer,
   useUpdateTask,
 } from '@dtn/shared/queries'
 import { taskToInput } from '@dtn/shared/task-input'
@@ -55,11 +57,38 @@ function TaskDetail() {
   const deleteMutation = useDeleteTask()
   const doneMutation = useCompleteTask()
   const updateTask = useUpdateTask()
+  const createTask = useCreateTask()
+  const timer = useTaskTimer()
   const confirm = useConfirm()
+
+  // The mutation targets the route id; the server maps a 0-frame child to
+  // its keeper, while timerTask gives the correct running state to read.
+  const toggleTimerAction = () =>
+    timer.mutate({
+      id,
+      action: { kind: timerTask?.timerStartedAt ? 'pause' : 'start' },
+    })
 
   const reschedule = (due: string) => {
     if (!task) return
     updateTask.mutate({ id, input: { ...taskToInput(task), due } })
+  }
+
+  // Clone the task's config as a fresh task and jump to it. Timer state,
+  // completion history, and subtask `done` flags don't carry over —
+  // taskToInput keeps only the user-authored fields.
+  const duplicateAction = async () => {
+    if (!task) return
+    const copy = await createTask.mutateAsync({
+      ...taskToInput(task),
+      title: `${task.title} (copy)`,
+      subtasks: task.subtasks.map((s) => ({
+        ...s,
+        done: false,
+        snooze: undefined,
+      })),
+    })
+    router.navigate({ to: '/tasks/$id', params: { id: copy.id } })
   }
 
   const toggleSubtask = (index: number) => {
@@ -147,6 +176,11 @@ function TaskDetail() {
     },
     { key: 'd', description: 'Done', action: completeAction },
     { key: 's', description: 'Snooze', action: snoozeAction },
+    {
+      key: 'p',
+      description: timerTask?.timerStartedAt ? 'Pause timer' : 'Start timer',
+      action: toggleTimerAction,
+    },
     { key: 'backspace', description: 'Delete', action: deleteAction },
     { key: 'n', description: 'Home', action: () => router.navigate({ to: '/' }) },
     {
@@ -349,12 +383,14 @@ function TaskDetail() {
         {task.tags.length > 0 && (
           <div className="flex flex-wrap gap-1.5">
             {task.tags.map((t) => (
-              <span
+              <Link
                 key={t}
-                className="rounded-full border border-zinc-800 bg-zinc-900 px-2.5 py-1 font-mono text-xs text-zinc-300"
+                to="/tags"
+                search={{ tag: t }}
+                className="rounded-full border border-zinc-800 bg-zinc-900 px-2.5 py-1 font-mono text-xs text-zinc-300 hover:border-zinc-600 hover:text-zinc-50"
               >
                 #{t}
-              </span>
+              </Link>
             ))}
           </div>
         )}
@@ -411,6 +447,14 @@ function TaskDetail() {
             className="flex items-center gap-2 rounded-full border border-zinc-800 px-4 py-1.5 text-zinc-400 hover:bg-zinc-900 hover:text-zinc-50"
           >
             {copied ? 'Copied' : 'Copy link'}
+          </button>
+          <button
+            type="button"
+            onClick={duplicateAction}
+            disabled={createTask.isPending}
+            className="flex items-center gap-2 rounded-full border border-zinc-800 px-4 py-1.5 text-zinc-400 hover:bg-zinc-900 hover:text-zinc-50 disabled:opacity-40"
+          >
+            {createTask.isPending ? 'Duplicating…' : 'Duplicate'}
           </button>
         </div>
 
