@@ -35,6 +35,7 @@ import { CountConfirmModal } from '../components/CountConfirmModal'
 import { ErrorState } from '../components/ErrorState'
 import { KeyHints } from '../components/KeyHints'
 import { Loading } from '../components/Loading'
+import { TaskListSkeleton } from '../components/Skeleton'
 import { MobileChrome } from '../components/MobileChrome'
 import { PageHeading } from '../components/PageHeading'
 import { TaskRow } from '../components/TaskRow'
@@ -117,7 +118,7 @@ function TasksList() {
       repeatWeekdays: [false, false, false, false, false, false, false],
       timeFrame: 30,
       timekeeperId: null,
-      timeframeType: 'fixed',
+      timeframeType: 'fluid',
       subtasks: [],
       notes: '',
       tags: [],
@@ -396,6 +397,10 @@ function TasksList() {
           </div>
         )}
 
+        {isFetching && tasks.length === 0 && !activeQuery.isError && (
+          <TaskListSkeleton rows={6} />
+        )}
+
         {sort === 'CHRON' ? (
           <div className="flex flex-col gap-6">
             {groupedChron.map(({ key, tasks: gTasks }) => {
@@ -507,7 +512,7 @@ function TasksList() {
           </div>
         )}
 
-        {isFetching && (
+        {isFetching && tasks.length > 0 && (
           <div className="mt-4 flex justify-center">
             <Loading />
           </div>

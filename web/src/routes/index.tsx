@@ -4,9 +4,12 @@ import {
   useDeleteTask,
   usePrefetchTask,
   usePrimeTaskCache,
+  useSnoozeManyTasks,
   useSnoozeTask,
   useTask,
+  useTaskTimer,
   useTopTasks,
+  useUnsnoozeTask,
 } from '@dtn/shared/queries'
 import {
   findNextActionableSubtask,
@@ -26,9 +29,12 @@ import { useConfirm } from '../components/ConfirmProvider'
 import { CountConfirmModal } from '../components/CountConfirmModal'
 import { ErrorState } from '../components/ErrorState'
 import { Loading } from '../components/Loading'
+import { LinkifiedNotes } from '../components/LinkifiedNotes'
 import { MobileChrome } from '../components/MobileChrome'
+import { Skeleton } from '../components/Skeleton'
 import { TaskRow } from '../components/TaskRow'
 import { TimerWidget } from '../components/TimerWidget'
+import { useToast } from '../components/ToastProvider'
 import { TopBar } from '../components/TopBar'
 import useKeyAction from '../hooks/useKeyAction'
 import type { Task } from '@dtn/shared/types'
@@ -136,9 +142,12 @@ function Home() {
   const doneMutation = useCompleteTask()
   const deleteMutation = useDeleteTask()
   const snoozeMutation = useSnoozeTask()
+  const snoozeManyMutation = useSnoozeManyTasks()
+  const unsnoozeMutation = useUnsnoozeTask()
   const prefetchTask = usePrefetchTask()
   const primeTaskCache = usePrimeTaskCache()
   const confirm = useConfirm()
+  const toast = useToast()
 
   const [pendingComplete, setPendingComplete] = useState<{
     task: Task
@@ -170,12 +179,42 @@ function Home() {
 
   const snoozeTaskAction = () => {
     if (!selectedTask) return
-    snoozeMutation.mutate({ id: selectedTask.id })
+    const { id } = selectedTask
+    snoozeMutation.mutate(
+      { id },
+      {
+        onSuccess: () =>
+          toast({
+            message: 'Task snoozed',
+            actionLabel: 'Undo',
+            onAction: () => unsnoozeMutation.mutate(id),
+          }),
+      },
+    )
   }
 
   const snoozeAllSubtasksAction = () => {
     if (!selectedTask) return
-    snoozeMutation.mutate({ id: selectedTask.id, allSubtasks: true })
+    const { id } = selectedTask
+    snoozeMutation.mutate(
+      { id, allSubtasks: true },
+      {
+        onSuccess: () =>
+          toast({
+            message: 'Subtasks snoozed',
+            actionLabel: 'Undo',
+            onAction: () => unsnoozeMutation.mutate(id),
+          }),
+      },
+    )
+  }
+
+  // Every task ranked below the current one — "clear my plate, leave just
+  // this". Snoozes them an hour out so the Now view drops to the current task.
+  const restIds = tasks.slice(selectedTaskIndex + 1).map((t) => t.id)
+  const snoozeRestAction = () => {
+    if (restIds.length === 0) return
+    snoozeManyMutation.mutate(restIds)
   }
 
   const deleteTaskAction = async () => {
@@ -192,6 +231,20 @@ function Home() {
     if (!selectedTask) return
     primeTaskCache(selectedTask)
     navigate({ to: '/tasks/$id/edit', params: { id: selectedTask.id } })
+  }
+
+  // A 0-time-frame child runs its timer on the keeper row, like HeroTimer —
+  // resolve it so the toggle reads the right `running` state. The mutation
+  // still targets the selected id; the server maps it to the keeper.
+  const timer = useTaskTimer()
+  const keeperQuery = useTask(selectedTask?.timekeeperId ?? '')
+  const timerTask = selectedTask?.timekeeperId ? keeperQuery.data : selectedTask
+  const toggleTimerAction = () => {
+    if (!selectedTask) return
+    timer.mutate({
+      id: selectedTask.id,
+      action: { kind: timerTask?.timerStartedAt ? 'pause' : 'start' },
+    })
   }
 
   const keyActions: Array<KeyAction> = [
@@ -225,11 +278,21 @@ function Home() {
       shift: true,
     },
     {
+      key: 'r',
+      description: 'Snooze the rest',
+      action: snoozeRestAction,
+    },
+    {
       key: 't',
       description: 'Tasks',
       action: () => navigate({ to: '/tasks' }),
     },
     { key: 'e', description: 'Edit task', action: goEdit },
+    {
+      key: 'p',
+      description: timerTask?.timerStartedAt ? 'Pause timer' : 'Start timer',
+      action: toggleTimerAction,
+    },
     {
       key: '1',
       description: 'Select first task',
@@ -265,7 +328,11 @@ function Home() {
 
   const [sheetOpen, setSheetOpen] = useState(false)
 
-  if (topTasksQuery.isPending || deleteMutation.isPending) {
+  if (topTasksQuery.isPending) {
+    return <NowSkeleton />
+  }
+
+  if (deleteMutation.isPending) {
     return (
       <div className="flex h-screen items-center justify-center">
         <Loading />
@@ -309,6 +376,8 @@ function Home() {
             onComplete={completeTaskAction}
             onSnooze={snoozeTaskAction}
             onSnoozeSubtasks={snoozeAllSubtasksAction}
+            onSnoozeRest={restIds.length > 0 ? snoozeRestAction : undefined}
+            restCount={restIds.length}
             onEdit={goEdit}
             onDelete={deleteTaskAction}
           />
@@ -383,6 +452,8 @@ function Hero({
   onComplete,
   onSnooze,
   onSnoozeSubtasks,
+  onSnoozeRest,
+  restCount,
   onEdit,
   onDelete,
 }: {
@@ -391,6 +462,8 @@ function Hero({
   onComplete: () => void
   onSnooze: () => void
   onSnoozeSubtasks: () => void
+  onSnoozeRest?: () => void
+  restCount: number
   onEdit: () => void
   onDelete: () => void
 }) {
@@ -469,9 +542,10 @@ function Hero({
       </div>
 
       {task.notes && (
-        <p className="mt-5 max-w-md text-center font-mono text-xs whitespace-pre-wrap text-zinc-500 md:text-sm">
-          {task.notes}
-        </p>
+        <LinkifiedNotes
+          text={task.notes}
+          className="mt-5 max-w-md text-center font-mono text-xs whitespace-pre-wrap text-zinc-500 md:text-sm"
+        />
       )}
 
       <button
@@ -507,11 +581,40 @@ function Hero({
             onClick={onSnoozeSubtasks}
           />
         )}
+        {onSnoozeRest && (
+          <SecondaryAction
+            k="R"
+            label={`Snooze ${restCount} after`}
+            onClick={onSnoozeRest}
+          />
+        )}
         <SecondaryAction k="E" label="Edit" onClick={onEdit} />
         <SecondaryAction k="⌫" label="Delete" onClick={onDelete} />
       </div>
 
       <HeroTimer task={task} />
+    </div>
+  )
+}
+
+function NowSkeleton() {
+  return (
+    <div className="relative flex min-h-screen flex-col">
+      <TopBar />
+      <div
+        className="flex flex-1 flex-col items-center justify-center px-5 pb-8 md:px-16"
+        role="status"
+        aria-label="Loading your tasks"
+      >
+        <Skeleton className="mb-4 h-20 w-20 rounded-2xl md:mb-8 md:h-28 md:w-28" />
+        <Skeleton className="h-9 w-64 md:h-14 md:w-[28rem]" />
+        <Skeleton className="mt-4 h-4 w-44" />
+        <Skeleton className="mt-8 h-12 w-full max-w-[320px] rounded-full md:mt-12" />
+        <div className="mt-3 flex gap-2">
+          <Skeleton className="h-8 w-24 rounded-full" />
+          <Skeleton className="h-8 w-20 rounded-full" />
+        </div>
+      </div>
     </div>
   )
 }
