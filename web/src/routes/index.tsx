@@ -4,6 +4,7 @@ import {
   useDeleteTask,
   usePrefetchTask,
   usePrimeTaskCache,
+  useSnoozeManyTasks,
   useSnoozeTask,
   useTask,
   useTopTasks,
@@ -136,6 +137,7 @@ function Home() {
   const doneMutation = useCompleteTask()
   const deleteMutation = useDeleteTask()
   const snoozeMutation = useSnoozeTask()
+  const snoozeManyMutation = useSnoozeManyTasks()
   const prefetchTask = usePrefetchTask()
   const primeTaskCache = usePrimeTaskCache()
   const confirm = useConfirm()
@@ -176,6 +178,14 @@ function Home() {
   const snoozeAllSubtasksAction = () => {
     if (!selectedTask) return
     snoozeMutation.mutate({ id: selectedTask.id, allSubtasks: true })
+  }
+
+  // Every task ranked below the current one — "clear my plate, leave just
+  // this". Snoozes them an hour out so the Now view drops to the current task.
+  const restIds = tasks.slice(selectedTaskIndex + 1).map((t) => t.id)
+  const snoozeRestAction = () => {
+    if (restIds.length === 0) return
+    snoozeManyMutation.mutate(restIds)
   }
 
   const deleteTaskAction = async () => {
@@ -223,6 +233,11 @@ function Home() {
       description: 'Snooze all subtasks',
       action: snoozeAllSubtasksAction,
       shift: true,
+    },
+    {
+      key: 'r',
+      description: 'Snooze the rest',
+      action: snoozeRestAction,
     },
     {
       key: 't',
@@ -309,6 +324,8 @@ function Home() {
             onComplete={completeTaskAction}
             onSnooze={snoozeTaskAction}
             onSnoozeSubtasks={snoozeAllSubtasksAction}
+            onSnoozeRest={restIds.length > 0 ? snoozeRestAction : undefined}
+            restCount={restIds.length}
             onEdit={goEdit}
             onDelete={deleteTaskAction}
           />
@@ -383,6 +400,8 @@ function Hero({
   onComplete,
   onSnooze,
   onSnoozeSubtasks,
+  onSnoozeRest,
+  restCount,
   onEdit,
   onDelete,
 }: {
@@ -391,6 +410,8 @@ function Hero({
   onComplete: () => void
   onSnooze: () => void
   onSnoozeSubtasks: () => void
+  onSnoozeRest?: () => void
+  restCount: number
   onEdit: () => void
   onDelete: () => void
 }) {
@@ -505,6 +526,13 @@ function Hero({
             k="⇧S"
             label="Snooze subtasks"
             onClick={onSnoozeSubtasks}
+          />
+        )}
+        {onSnoozeRest && (
+          <SecondaryAction
+            k="R"
+            label={`Snooze ${restCount} after`}
+            onClick={onSnoozeRest}
           />
         )}
         <SecondaryAction k="E" label="Edit" onClick={onEdit} />
