@@ -3,6 +3,7 @@ import { computePoints } from '@dtn/shared/scoring'
 import { minutesToHours } from '@dtn/shared/time'
 import { Link, useLocation } from '@tanstack/react-router'
 import { useEffect } from 'react'
+import { activeNavFromPath, type NavId } from '../lib/nav'
 import { useComputedProgress } from './ProgressBar'
 import { RunningTimerChip } from './RunningTimerChip'
 import type { ReactNode } from 'react'
@@ -10,25 +11,22 @@ import type { ReactNode } from 'react'
 const ACCENT = '#34d399'
 const STREAK = '#f59e0b'
 
-type ActiveTab = 'home' | 'tasks' | 'new' | 'history' | 'stats'
-
-const activeFromPath = (pathname: string): ActiveTab => {
-  if (pathname === '/') return 'home'
-  if (pathname.startsWith('/tasks')) return 'tasks'
-  if (pathname.startsWith('/new-task')) return 'new'
-  if (pathname.startsWith('/history')) return 'history'
-  if (pathname.startsWith('/stats')) return 'stats'
-  return 'home'
-}
+type ActiveTab = NavId
 
 const MINI_CELLS = 14
 
 export const MobileTopBar = ({ onOpenSheet }: { onOpenSheet: () => void }) => {
   const p = useComputedProgress()
   const progress = useProgressToday()
-  const pct = progress.data
-    ? Math.min(100, Math.round((progress.data.done / progress.data.todo) * 100))
-    : 0
+  // todo is 0 on a no-tasks day; guard so the bar reads empty (0%) rather
+  // than a NaN width.
+  const pct =
+    progress.data && progress.data.todo > 0
+      ? Math.min(
+          100,
+          Math.round((progress.data.done / progress.data.todo) * 100),
+        )
+      : 0
 
   let points = 0
   if (progress.data) {
@@ -36,8 +34,10 @@ export const MobileTopBar = ({ onOpenSheet }: { onOpenSheet: () => void }) => {
     points = computePoints(done, todo, lives)
   }
 
-  const filledCount = p ? Math.round((p.done / p.todo) * MINI_CELLS) : 0
-  const tickAt = p ? Math.round((p.shouldBeDone / p.todo) * MINI_CELLS) : 0
+  const filledCount =
+    p && p.todo > 0 ? Math.round((p.done / p.todo) * MINI_CELLS) : 0
+  const tickAt =
+    p && p.todo > 0 ? Math.round((p.shouldBeDone / p.todo) * MINI_CELLS) : 0
 
   return (
     <div className="md:hidden">
@@ -102,7 +102,7 @@ export const MobileTopBar = ({ onOpenSheet }: { onOpenSheet: () => void }) => {
 
 export const MobileTabBar = () => {
   const { pathname } = useLocation()
-  const active = activeFromPath(pathname)
+  const active = activeNavFromPath(pathname)
   const tabs: Array<{
     id: ActiveTab
     label: string

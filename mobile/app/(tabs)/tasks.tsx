@@ -1,4 +1,5 @@
-import { dayIndex, startOfToday } from '@dtn/shared/day-index'
+import { startOfToday } from '@dtn/shared/day-index'
+import { dueGroupLabel, tasksListEyebrow } from '@dtn/shared/format'
 import { newSafeDate } from '@dtn/shared/helpers'
 import {
   useAllTasks,
@@ -16,7 +17,6 @@ import {
 } from '@dtn/shared/timer-utils'
 import type { Task } from '@dtn/shared/types'
 import { Stack, useRouter } from 'expo-router'
-import { format } from 'date-fns'
 import { useCallback, useMemo, useState } from 'react'
 import {
   Alert,
@@ -45,38 +45,6 @@ type Group = {
 }
 
 const OVERDUE = '#fb7185'
-
-const groupOf = (
-  firstTaskDue: string,
-): Omit<Group, 'key' | 'data'> => {
-  const d = newSafeDate(firstTaskDue)
-  const idx = dayIndex(d)
-  if (idx < 0) {
-    const days = Math.abs(idx)
-    return {
-      label: format(d, 'EEEE'),
-      eyebrow: format(d, 'LLL d'),
-      overdueSuffix: `${days} day${days === 1 ? '' : 's'} overdue`,
-    }
-  }
-  if (idx === 0)
-    return {
-      label: 'Today',
-      eyebrow: format(d, 'EEEE, LLL d'),
-      overdueSuffix: null,
-    }
-  if (idx === 1)
-    return {
-      label: 'Tomorrow',
-      eyebrow: format(d, 'EEEE, LLL d'),
-      overdueSuffix: null,
-    }
-  return {
-    label: format(d, 'EEEE'),
-    eyebrow: format(d, 'LLL d'),
-    overdueSuffix: null,
-  }
-}
 
 export default function TasksList() {
   const router = useRouter()
@@ -167,7 +135,7 @@ export default function TasksList() {
       }
       return order.map((key) => ({
         key,
-        ...groupOf(key),
+        ...dueGroupLabel(key),
         data: groups[key],
       }))
     }
@@ -203,20 +171,13 @@ export default function TasksList() {
     return result
   }, [sort, allTasks.data, topTasks.data])
 
-  const eyebrow = useMemo(() => {
-    const tasks =
-      sort === 'CHRON' ? (allTasks.data ?? []) : (topTasks.data ?? [])
-    const total = tasks.length
-    const weekStart = startOfToday()
-    weekStart.setDate(weekStart.getDate() - weekStart.getDay())
-    const weekEnd = new Date(weekStart)
-    weekEnd.setDate(weekEnd.getDate() + 7)
-    const thisWeek = tasks.filter((t) => {
-      const d = newSafeDate(t.due)
-      return d >= weekStart && d < weekEnd
-    }).length
-    return `${total} active · ${thisWeek} this week`
-  }, [sort, allTasks.data, topTasks.data])
+  const eyebrow = useMemo(
+    () =>
+      tasksListEyebrow(
+        sort === 'CHRON' ? (allTasks.data ?? []) : (topTasks.data ?? []),
+      ),
+    [sort, allTasks.data, topTasks.data],
+  )
 
   const renderItem = useCallback(
     ({ item }: { item: Task }) => (

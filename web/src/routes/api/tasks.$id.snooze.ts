@@ -3,7 +3,12 @@ import { json } from '@tanstack/react-start'
 import { z } from 'zod'
 
 import { snoozeTask, TaskNotFoundError } from '../../server/lib/actions'
-import { invalid, notFound, withAuth } from '../../server/lib/http'
+import {
+  invalid,
+  notFound,
+  readJsonBody,
+  withAuth,
+} from '../../server/lib/http'
 
 type Params = { id: string }
 
@@ -19,8 +24,7 @@ export const Route = createFileRoute('/api/tasks/$id/snooze')({
     handlers: {
       POST: withAuth<Params>(async ({ userId, params, request }) => {
         if (!idSchema.safeParse(params.id).success) return notFound()
-        const raw = await request.text()
-        const candidate = raw.length === 0 ? {} : safeJsonParse(raw)
+        const candidate = await readJsonBody(request)
         if (candidate === undefined)
           return invalid({ formErrors: ['Body must be JSON.'] })
 
@@ -42,11 +46,3 @@ export const Route = createFileRoute('/api/tasks/$id/snooze')({
     },
   },
 })
-
-function safeJsonParse(s: string): unknown {
-  try {
-    return JSON.parse(s)
-  } catch {
-    return undefined
-  }
-}
