@@ -94,7 +94,12 @@ function EditTask() {
 
       {timerTask && (
         <div className="mx-auto w-full max-w-2xl px-5 pb-6 md:px-10">
-          <TimerWidget task={timerTask} actionId={id} plannedMinutes={timerTask.timeFrame} />
+          <TimerWidget
+            task={timerTask}
+            actionId={id}
+            plannedMinutes={timerTask.timeFrame}
+            compact
+          />
         </div>
       )}
 
