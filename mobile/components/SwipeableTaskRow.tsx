@@ -43,6 +43,7 @@ function SwipeableTaskRowBase({
 
   const updateTask = useUpdateTask()
   const toggleSubtask = (index: number) => {
+    void Haptics.selectionAsync()
     const subtasks = task.subtasks.map((s, i) =>
       i === index ? { ...s, done: !s.done } : s,
     )
