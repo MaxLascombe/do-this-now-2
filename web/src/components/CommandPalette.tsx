@@ -117,23 +117,32 @@ export function CommandPalette() {
     })
 
   const quickAdd = (title: string) => {
-    createTask.mutate({
-      title,
-      emoji: '📝',
-      due: dateString(new Date()),
-      dueTime: null,
-      strictDeadline: false,
-      repeat: 'No Repeat',
-      repeatInterval: 1,
-      repeatUnit: 'day',
-      repeatWeekdays: [false, false, false, false, false, false, false],
-      timeFrame: 30,
-      timekeeperId: null,
-      timeframeType: 'fixed',
-      subtasks: [],
-      notes: null,
-      tags: [],
-    })
+    createTask.mutate(
+      {
+        title,
+        emoji: '📝',
+        due: dateString(new Date()),
+        dueTime: null,
+        strictDeadline: false,
+        repeat: 'No Repeat',
+        repeatInterval: 1,
+        repeatUnit: 'day',
+        repeatWeekdays: [false, false, false, false, false, false, false],
+        timeFrame: 30,
+        timekeeperId: null,
+        timeframeType: 'fixed',
+        subtasks: [],
+        notes: null,
+        tags: [],
+      },
+      // Clear only on success so a failed create keeps the typed title.
+      {
+        onSuccess: () => {
+          setQuery('')
+          setSelected(0)
+        },
+      },
+    )
   }
 
   const createItems: Item[] = query.trim()
@@ -144,11 +153,7 @@ export function CommandPalette() {
           label: `Quick-add "${query.trim()}" for today`,
           hint: 'New',
           keepOpen: true,
-          run: () => {
-            quickAdd(query.trim())
-            setQuery('')
-            setSelected(0)
-          },
+          run: () => quickAdd(query.trim()),
         },
         {
           key: 'create',
