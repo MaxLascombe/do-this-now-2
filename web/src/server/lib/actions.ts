@@ -178,6 +178,26 @@ export async function snoozeTask(
   })
 }
 
+// Bring a snoozed task fully back to the active list: clear the top-level
+// snooze and any snoozed subtasks. The inverse of snoozeTask, used both for
+// the explicit "Wake" action and to undo an accidental snooze.
+export async function unsnoozeTask(userId: string, id: string): Promise<Task> {
+  return db.transaction(async (tx) => {
+    const task = await loadTask(tx, userId, id)
+    if (!task) throw new TaskNotFoundError('Task not found')
+
+    const subtasks = task.subtasks.map((s) =>
+      s.snooze ? { ...s, snooze: undefined } : s,
+    )
+    const [row] = await tx
+      .update(tasks)
+      .set({ snooze: null, subtasks, updatedAt: new Date() })
+      .where(and(eq(tasks.userId, userId), eq(tasks.id, task.id)))
+      .returning()
+    return row
+  })
+}
+
 export async function getHistory(
   userId: string,
   date: string,
