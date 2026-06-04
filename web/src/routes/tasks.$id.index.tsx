@@ -56,6 +56,11 @@ function TaskDetail() {
   const updateTask = useUpdateTask()
   const confirm = useConfirm()
 
+  const reschedule = (due: string) => {
+    if (!task) return
+    updateTask.mutate({ id, input: { ...taskToInput(task), due } })
+  }
+
   const toggleSubtask = (index: number) => {
     if (!task) return
     const subtasks = task.subtasks.map((s, i) =>
@@ -201,6 +206,22 @@ function TaskDetail() {
   )
   const doneCount = task.subtasks.filter((s) => s.done).length
 
+  const rescheduleOptions = [
+    { label: 'Today', due: dateString(now) },
+    {
+      label: 'Tomorrow',
+      due: dateString(
+        new Date(now.getFullYear(), now.getMonth(), now.getDate() + 1),
+      ),
+    },
+    {
+      label: '+1 week',
+      due: dateString(
+        new Date(now.getFullYear(), now.getMonth(), now.getDate() + 7),
+      ),
+    },
+  ]
+
   const upcoming: Date[] = []
   {
     let cursor = task
@@ -283,6 +304,30 @@ function TaskDetail() {
             <span style={{ color: OVERDUE }}>strict deadline</span>
           )}
         </div>
+
+        {task.repeat === 'No Repeat' && (
+          <div className="flex flex-wrap items-center gap-2">
+            <span className="font-mono text-[10px] tracking-[0.3em] text-zinc-500 uppercase">
+              Reschedule
+            </span>
+            {rescheduleOptions.map((o) => (
+              <button
+                key={o.label}
+                type="button"
+                disabled={task.due === o.due || updateTask.isPending}
+                onClick={() => reschedule(o.due)}
+                className={
+                  'rounded-full border px-3 py-1 font-mono text-xs ' +
+                  (task.due === o.due
+                    ? 'border-zinc-100 bg-zinc-50 text-zinc-950'
+                    : 'border-zinc-800 text-zinc-400 hover:border-zinc-600 hover:text-zinc-100 disabled:opacity-50')
+                }
+              >
+                {o.label}
+              </button>
+            ))}
+          </div>
+        )}
 
         {upcoming.length > 0 && (
           <div className="font-mono text-xs text-zinc-500">
