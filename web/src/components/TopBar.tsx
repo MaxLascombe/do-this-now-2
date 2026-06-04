@@ -103,7 +103,7 @@ export const TopBar = () => {
         />
       </div>
 
-      <div className="relative flex items-center justify-between px-10 py-5 font-mono text-sm">
+      <div className="relative flex items-center justify-between gap-6 px-10 py-5 font-mono text-sm">
         <div ref={wrapperRef} className="relative">
           <button
             type="button"
