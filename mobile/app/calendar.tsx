@@ -1,5 +1,6 @@
 import { dateString, newSafeDate } from '@dtn/shared/helpers'
 import { useAllTasks } from '@dtn/shared/queries'
+import { minutesToHours } from '@dtn/shared/time'
 import type { Task } from '@dtn/shared/types'
 import { Stack, useRouter } from 'expo-router'
 import { useMemo, useState } from 'react'
@@ -69,6 +70,13 @@ export default function Calendar() {
   ]
 
   const selectedTasks = selectedKey ? (byDay[selectedKey] ?? []) : []
+  const selectedMinutes = selectedTasks.reduce((s, t) => s + t.timeFrame, 0)
+  const selectedLabel = selectedKey
+    ? (() => {
+        const [, m, d] = selectedKey.split('-').map(Number)
+        return `${MONTHS[m - 1]} ${d}`
+      })()
+    : ''
 
   const shiftMonth = (delta: number) => {
     setCursor(new Date(year, month + delta, 1))
@@ -223,6 +231,27 @@ export default function Calendar() {
                 </Text>
               ) : (
                 <>
+                  <View
+                    style={{
+                      flexDirection: 'row',
+                      alignItems: 'baseline',
+                      justifyContent: 'space-between',
+                      marginBottom: 2,
+                    }}
+                  >
+                    <Text style={{ fontFamily: mono, fontSize: 13, color: '#e4e4e7' }}>
+                      {selectedLabel}
+                    </Text>
+                    {selectedTasks.length > 0 && (
+                      <Text style={{ fontFamily: mono, fontSize: 11, color: '#71717a' }}>
+                        {selectedTasks.length}{' '}
+                        {selectedTasks.length === 1 ? 'task' : 'tasks'}
+                        {selectedMinutes > 0
+                          ? ` · ${minutesToHours(selectedMinutes)}`
+                          : ''}
+                      </Text>
+                    )}
+                  </View>
                   {selectedTasks.length === 0 ? (
                     <Text
                       style={{
