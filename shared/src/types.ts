@@ -57,6 +57,7 @@ export type Task = {
   snooze: string | null
   notes: string | null
   tags: string[]
+  pinned: boolean
   subtasks: SubTask[]
   createdAt: Date
   updatedAt: Date

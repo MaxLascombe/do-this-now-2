@@ -114,6 +114,8 @@ export const tasks = pgTable(
     notes: text('notes'),
     // User-defined labels for grouping/filtering.
     tags: jsonb('tags').$type<string[]>().notNull().default([]),
+    // Pinned tasks sort above everything else in the active lists.
+    pinned: boolean('pinned').notNull().default(false),
     subtasks: jsonb('subtasks').$type<SubTask[]>().notNull().default([]),
     createdAt: timestamp('created_at', { withTimezone: true })
       .notNull()
