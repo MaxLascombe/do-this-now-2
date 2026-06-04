@@ -177,14 +177,16 @@ function TaskDetail() {
           )}
         </div>
 
-        {task.subtasks.length > 0 && (
-          <div>
-            <div className="mb-3 flex items-baseline justify-between font-mono text-[10px] tracking-[0.3em] text-zinc-500 uppercase">
-              <span>Subtasks</span>
+        <div>
+          <div className="mb-3 flex items-baseline justify-between font-mono text-[10px] tracking-[0.3em] text-zinc-500 uppercase">
+            <span>Subtasks</span>
+            {task.subtasks.length > 0 && (
               <span className="tabular-nums">
                 {doneCount}/{task.subtasks.length}
               </span>
-            </div>
+            )}
+          </div>
+          {task.subtasks.length > 0 && (
             <ul className="space-y-1">
               {task.subtasks.map((sub, i) => (
                 <li key={i}>
@@ -217,6 +219,7 @@ function TaskDetail() {
                 </li>
               ))}
             </ul>
+          )}
             <form
               onSubmit={(e) => {
                 e.preventDefault()
@@ -240,7 +243,6 @@ function TaskDetail() {
               </button>
             </form>
           </div>
-        )}
 
         <Link
           to="/tasks/$id/edit"
