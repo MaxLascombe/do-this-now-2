@@ -82,6 +82,7 @@ export default function Stats() {
             </View>
           </View>
           <TopTasks data={data} />
+          <EmojiMix data={data} />
           <Discipline data={data} />
         </ScrollView>
       )}
@@ -490,6 +491,54 @@ function TopTasks({ data }: { data: StatsResult }) {
               }}
             >
               {t.count}
+            </Text>
+          </View>
+        ))}
+      </View>
+    </Section>
+  )
+}
+
+function EmojiMix({ data }: { data: StatsResult }) {
+  if (data.emojiFreq.length === 0) return null
+  const max = Math.max(1, ...data.emojiFreq.map((e) => e.count))
+  return (
+    <Section title="Your task mix">
+      <View style={{ gap: 10 }}>
+        {data.emojiFreq.map((e) => (
+          <View
+            key={e.emoji}
+            style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}
+          >
+            <Text style={{ fontSize: 16, width: 22 }}>{e.emoji}</Text>
+            <View
+              style={{
+                flex: 1,
+                height: 6,
+                borderRadius: 3,
+                backgroundColor: '#18181b',
+                overflow: 'hidden',
+              }}
+            >
+              <View
+                style={{
+                  height: '100%',
+                  width: `${(e.count / max) * 100}%` as ViewStyle['width'],
+                  backgroundColor: STREAK,
+                  opacity: 0.85,
+                }}
+              />
+            </View>
+            <Text
+              style={{
+                width: 24,
+                textAlign: 'right',
+                color: '#a1a1aa',
+                fontSize: 11,
+                fontFamily: 'JetBrainsMono_400Regular',
+              }}
+            >
+              {e.count}
             </Text>
           </View>
         ))}
