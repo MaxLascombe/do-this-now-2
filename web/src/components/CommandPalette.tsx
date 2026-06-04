@@ -217,17 +217,12 @@ export function CommandPalette() {
           onKeyDown={onInputKey}
           placeholder="Jump to a page or task…"
           aria-label="Search pages and tasks"
-          role="combobox"
-          aria-expanded={results.length > 0}
-          aria-controls="cmdk-results"
           className="w-full border-b border-zinc-800 bg-transparent px-5 py-4 text-sm text-zinc-100 placeholder:text-zinc-600 focus:outline-none"
         />
         <div className="sr-only" aria-live="polite">
           {query ? `${results.length} result${results.length === 1 ? '' : 's'}` : ''}
         </div>
         <ul
-          id="cmdk-results"
-          role="listbox"
           aria-label="Results"
           className="max-h-[50vh] overflow-y-auto py-2"
         >
