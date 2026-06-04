@@ -31,6 +31,13 @@ function Calendar() {
   const todayKey = dateString(new Date())
   const [selectedKey, setSelectedKey] = useState(todayKey)
 
+  const prevMonth = () => setCursor((c) => addMonths(c, -1))
+  const nextMonth = () => setCursor((c) => addMonths(c, 1))
+  const goToday = () => {
+    setCursor(startOfMonth(new Date()))
+    setSelectedKey(todayKey)
+  }
+
   const keyActions: KeyAction[] = [
     { key: 'escape', description: 'Home', action: () => navigate({ to: '/' }) },
     { key: 'n', description: 'Home', action: () => navigate({ to: '/' }) },
@@ -41,6 +48,8 @@ function Calendar() {
       action: () => navigate({ to: '/history' }),
     },
     { key: 'a', description: 'Stats', action: () => navigate({ to: '/stats' }) },
+    { key: 'left', description: 'Previous month', action: prevMonth },
+    { key: 'right', description: 'Next month', action: nextMonth },
   ]
   useKeyAction(keyActions)
 
@@ -88,18 +97,27 @@ function Calendar() {
           <div className="flex items-center justify-between font-mono">
             <button
               type="button"
-              onClick={() => setCursor((c) => addMonths(c, -1))}
+              onClick={prevMonth}
               aria-label="Previous month"
               className="rounded-full border border-zinc-800 px-3 py-1.5 text-sm text-zinc-400 hover:bg-zinc-900 hover:text-zinc-50"
             >
               ←
             </button>
-            <div className="text-sm font-semibold text-zinc-100">
-              {monthLabel}
+            <div className="flex flex-col items-center gap-1">
+              <div className="text-sm font-semibold text-zinc-100">
+                {monthLabel}
+              </div>
+              <button
+                type="button"
+                onClick={goToday}
+                className="text-[11px] tracking-wide text-zinc-500 transition-colors hover:text-zinc-200"
+              >
+                Today
+              </button>
             </div>
             <button
               type="button"
-              onClick={() => setCursor((c) => addMonths(c, 1))}
+              onClick={nextMonth}
               aria-label="Next month"
               className="rounded-full border border-zinc-800 px-3 py-1.5 text-sm text-zinc-400 hover:bg-zinc-900 hover:text-zinc-50"
             >
