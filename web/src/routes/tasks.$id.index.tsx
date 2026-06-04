@@ -23,6 +23,7 @@ import { useEffect, useState } from 'react'
 import { useConfirm } from '../components/ConfirmProvider'
 import { CountConfirmModal } from '../components/CountConfirmModal'
 import { ErrorState } from '../components/ErrorState'
+import { LinkifiedNotes } from '../components/LinkifiedNotes'
 import { Loading } from '../components/Loading'
 import { MobileChrome } from '../components/MobileChrome'
 import { PageHeading } from '../components/PageHeading'
@@ -399,9 +400,10 @@ function TaskDetail() {
             <div className="mb-2 font-mono text-[10px] tracking-[0.3em] text-zinc-500 uppercase">
               Notes
             </div>
-            <p className="font-mono text-sm whitespace-pre-wrap text-zinc-300">
-              {task.notes}
-            </p>
+            <LinkifiedNotes
+              text={task.notes}
+              className="font-mono text-sm whitespace-pre-wrap text-zinc-300"
+            />
           </div>
         )}
 
