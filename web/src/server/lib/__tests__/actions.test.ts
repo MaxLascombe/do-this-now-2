@@ -4,7 +4,7 @@ import { afterAll, beforeEach, describe, expect, it } from 'vitest'
 import { dailyProgress, history, taskEvents, tasks } from '@dtn/shared/schema'
 
 import { db } from '../../../db'
-import { completeTask, snoozeTask } from '../actions'
+import { completeTask, skipTask, snoozeTask } from '../actions'
 import { applyTimerAction } from '../timer'
 
 // Integration tests that hit a real Neon Postgres via the neon-serverless
@@ -373,6 +373,55 @@ describe.skipIf(!process.env.DATABASE_URL)('actions (integration)', () => {
       expect(paused.timerStartedAt).toBeNull()
       expect(paused.timerAccumulatedSeconds).toBeGreaterThan(55)
       expect(paused.timerAccumulatedSeconds).toBeLessThan(65)
+    })
+  })
+
+  describe('skipTask', () => {
+    it('advances a repeating task, clears snooze + timer, writes no history', async () => {
+      const task = await makeTask({
+        repeat: 'Weekly',
+        due: '2026-5-1',
+        subtasks: [{ title: 'a', done: true }],
+      })
+      // Simulate a snoozed, actively-timed occurrence.
+      await db
+        .update(tasks)
+        .set({
+          snooze: '2026-05-01T10:00:00.000Z',
+          timerStartedAt: new Date(),
+          timerAccumulatedSeconds: 120,
+        })
+        .where(eq(tasks.id, task.id))
+
+      const result = await skipTask(TEST_USER, task.id)
+      expect(result).toEqual({ skipped: true })
+
+      const [row] = await db.select().from(tasks).where(eq(tasks.id, task.id))
+      expect(row.due).toBe('2026-5-8')
+      expect(row.snooze).toBeNull()
+      expect(row.timerStartedAt).toBeNull()
+      expect(row.timerAccumulatedSeconds).toBe(0)
+      expect(row.subtasks[0].done).toBe(false)
+
+      const hist = await db
+        .select()
+        .from(history)
+        .where(eq(history.taskId, task.id))
+      expect(hist).toHaveLength(0)
+    })
+
+    it('is a no-op for a non-repeating task', async () => {
+      const task = await makeTask({ repeat: 'No Repeat', due: '2026-5-1' })
+      const result = await skipTask(TEST_USER, task.id)
+      expect(result).toEqual({ skipped: false })
+      const [row] = await db.select().from(tasks).where(eq(tasks.id, task.id))
+      expect(row.due).toBe('2026-5-1')
+    })
+
+    it('throws Task not found on a bogus id', async () => {
+      await expect(skipTask(TEST_USER, BOGUS_UUID)).rejects.toThrow(
+        'Task not found',
+      )
     })
   })
 })

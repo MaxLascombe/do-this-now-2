@@ -68,6 +68,7 @@ export type CompleteTaskResult = { advanced: boolean }
 export type CompleteTaskOptions = { countMeasurement?: boolean }
 export type SnoozeTaskResult = { scope: 'subtask' | 'task' }
 export type SnoozeManyResult = { count: number }
+export type SkipTaskResult = { skipped: boolean }
 export type DeleteTaskResult = Record<string, never>
 
 export type TimerAction = (
@@ -87,6 +88,7 @@ export interface ApiClient {
     delete(id: string): Promise<DeleteTaskResult>
     complete(id: string, opts?: CompleteTaskOptions): Promise<CompleteTaskResult>
     snooze(id: string, allSubtasks?: boolean): Promise<SnoozeTaskResult>
+    skip(id: string): Promise<SkipTaskResult>
     unsnooze(id: string): Promise<Task>
     snoozeMany(ids: string[]): Promise<SnoozeManyResult>
     suggestEmojis(title: string): Promise<string[]>

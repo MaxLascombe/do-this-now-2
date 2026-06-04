@@ -5,6 +5,7 @@ import { isSnoozed } from '@dtn/shared/task-sorting'
 import {
   applyFullCompletion,
   completeTaskTransition,
+  skipTaskTransition,
   snoozeTaskTransition,
 } from '@dtn/shared/task-transitions'
 import { HOUR_MS } from '@dtn/shared/time'
@@ -176,6 +177,38 @@ export async function snoozeTask(
     }
 
     return { scope: transition.scope }
+  })
+}
+
+// Skip a repeating task's current occurrence: advance to the next due date
+// with a fresh checklist, without writing a history row (so it doesn't count
+// toward stats). Clears any snooze and resets the timer — a skipped occurrence
+// carries nothing forward. No-op (skipped: false) for a non-repeating task.
+export async function skipTask(
+  userId: string,
+  id: string,
+): Promise<{ skipped: boolean }> {
+  return db.transaction(async (tx) => {
+    const task = await loadTask(tx, userId, id)
+    if (!task) throw new TaskNotFoundError('Task not found')
+
+    const now = new Date()
+    const next = skipTaskTransition(task, now)
+    if (!next) return { skipped: false }
+
+    await tx
+      .update(tasks)
+      .set({
+        due: next.due,
+        subtasks: next.subtasks,
+        snooze: null,
+        timerStartedAt: null,
+        timerAccumulatedSeconds: 0,
+        updatedAt: now,
+      })
+      .where(and(eq(tasks.userId, userId), eq(tasks.id, task.id)))
+
+    return { skipped: true }
   })
 }
 

@@ -37,6 +37,12 @@ export const snoozeTask = createServerFn({ method: 'POST' })
     ),
   )
 
+export const skipTask = createServerFn({ method: 'POST' })
+  .inputValidator(validate(z.object({ id: v.id })))
+  .handler(async ({ data }) =>
+    actionsLib.skipTask(await requireUserId(), data.id),
+  )
+
 export const unsnoozeTask = createServerFn({ method: 'POST' })
   .inputValidator(validate(z.object({ id: v.id })))
   .handler(async ({ data }) =>

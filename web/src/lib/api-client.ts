@@ -41,6 +41,7 @@ export const webApiClient: ApiClient = {
       }),
     snooze: (id, allSubtasks = false) =>
       actionFns.snoozeTask({ data: { id, allSubtasks } }),
+    skip: (id) => actionFns.skipTask({ data: { id } }),
     unsnooze: (id) => actionFns.unsnoozeTask({ data: { id } }),
     snoozeMany: (ids) => actionFns.snoozeManyTasks({ data: { ids } }),
     suggestEmojis: (title) => taskFns.suggestEmojis({ data: { title } }),

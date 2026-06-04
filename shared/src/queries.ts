@@ -447,6 +447,19 @@ export function useSnoozeTask() {
   })
 }
 
+// Skipping advances a repeating task to its next occurrence, so it leaves
+// today's active list — optimistically remove it like a snooze does.
+export function useSkipTask() {
+  const api = useApi()
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: (vars: { id: string }) => api.tasks.skip(vars.id),
+    onMutate: (vars) => optimisticRemove(qc, vars.id),
+    onError: (_e, _vars, ctx) => rollback(qc, ctx),
+    onSettled: () => invalidateTaskCaches(qc),
+  })
+}
+
 async function optimisticUnsnooze(
   qc: QueryClient,
   id: string,

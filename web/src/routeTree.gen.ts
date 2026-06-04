@@ -31,6 +31,7 @@ import { Route as ApiAdminBackfillEmojisRouteImport } from './routes/api/admin/b
 import { Route as ApiTasksIdUnsnoozeRouteImport } from './routes/api/tasks.$id.unsnooze'
 import { Route as ApiTasksIdTimerRouteImport } from './routes/api/tasks.$id.timer'
 import { Route as ApiTasksIdSnoozeRouteImport } from './routes/api/tasks.$id.snooze'
+import { Route as ApiTasksIdSkipRouteImport } from './routes/api/tasks.$id.skip'
 import { Route as ApiTasksIdCompleteRouteImport } from './routes/api/tasks.$id.complete'
 
 const TagsRoute = TagsRouteImport.update({
@@ -143,6 +144,11 @@ const ApiTasksIdSnoozeRoute = ApiTasksIdSnoozeRouteImport.update({
   path: '/snooze',
   getParentRoute: () => ApiTasksIdRoute,
 } as any)
+const ApiTasksIdSkipRoute = ApiTasksIdSkipRouteImport.update({
+  id: '/skip',
+  path: '/skip',
+  getParentRoute: () => ApiTasksIdRoute,
+} as any)
 const ApiTasksIdCompleteRoute = ApiTasksIdCompleteRouteImport.update({
   id: '/complete',
   path: '/complete',
@@ -170,6 +176,7 @@ export interface FileRoutesByFullPath {
   '/tasks/$id/edit': typeof TasksIdEditRoute
   '/tasks/$id/': typeof TasksIdIndexRoute
   '/api/tasks/$id/complete': typeof ApiTasksIdCompleteRoute
+  '/api/tasks/$id/skip': typeof ApiTasksIdSkipRoute
   '/api/tasks/$id/snooze': typeof ApiTasksIdSnoozeRoute
   '/api/tasks/$id/timer': typeof ApiTasksIdTimerRoute
   '/api/tasks/$id/unsnooze': typeof ApiTasksIdUnsnoozeRoute
@@ -194,6 +201,7 @@ export interface FileRoutesByTo {
   '/tasks/$id/edit': typeof TasksIdEditRoute
   '/tasks/$id': typeof TasksIdIndexRoute
   '/api/tasks/$id/complete': typeof ApiTasksIdCompleteRoute
+  '/api/tasks/$id/skip': typeof ApiTasksIdSkipRoute
   '/api/tasks/$id/snooze': typeof ApiTasksIdSnoozeRoute
   '/api/tasks/$id/timer': typeof ApiTasksIdTimerRoute
   '/api/tasks/$id/unsnooze': typeof ApiTasksIdUnsnoozeRoute
@@ -220,6 +228,7 @@ export interface FileRoutesById {
   '/tasks/$id/edit': typeof TasksIdEditRoute
   '/tasks/$id/': typeof TasksIdIndexRoute
   '/api/tasks/$id/complete': typeof ApiTasksIdCompleteRoute
+  '/api/tasks/$id/skip': typeof ApiTasksIdSkipRoute
   '/api/tasks/$id/snooze': typeof ApiTasksIdSnoozeRoute
   '/api/tasks/$id/timer': typeof ApiTasksIdTimerRoute
   '/api/tasks/$id/unsnooze': typeof ApiTasksIdUnsnoozeRoute
@@ -247,6 +256,7 @@ export interface FileRouteTypes {
     | '/tasks/$id/edit'
     | '/tasks/$id/'
     | '/api/tasks/$id/complete'
+    | '/api/tasks/$id/skip'
     | '/api/tasks/$id/snooze'
     | '/api/tasks/$id/timer'
     | '/api/tasks/$id/unsnooze'
@@ -271,6 +281,7 @@ export interface FileRouteTypes {
     | '/tasks/$id/edit'
     | '/tasks/$id'
     | '/api/tasks/$id/complete'
+    | '/api/tasks/$id/skip'
     | '/api/tasks/$id/snooze'
     | '/api/tasks/$id/timer'
     | '/api/tasks/$id/unsnooze'
@@ -296,6 +307,7 @@ export interface FileRouteTypes {
     | '/tasks/$id/edit'
     | '/tasks/$id/'
     | '/api/tasks/$id/complete'
+    | '/api/tasks/$id/skip'
     | '/api/tasks/$id/snooze'
     | '/api/tasks/$id/timer'
     | '/api/tasks/$id/unsnooze'
@@ -474,6 +486,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiTasksIdSnoozeRouteImport
       parentRoute: typeof ApiTasksIdRoute
     }
+    '/api/tasks/$id/skip': {
+      id: '/api/tasks/$id/skip'
+      path: '/skip'
+      fullPath: '/api/tasks/$id/skip'
+      preLoaderRoute: typeof ApiTasksIdSkipRouteImport
+      parentRoute: typeof ApiTasksIdRoute
+    }
     '/api/tasks/$id/complete': {
       id: '/api/tasks/$id/complete'
       path: '/complete'
@@ -486,6 +505,7 @@ declare module '@tanstack/react-router' {
 
 interface ApiTasksIdRouteChildren {
   ApiTasksIdCompleteRoute: typeof ApiTasksIdCompleteRoute
+  ApiTasksIdSkipRoute: typeof ApiTasksIdSkipRoute
   ApiTasksIdSnoozeRoute: typeof ApiTasksIdSnoozeRoute
   ApiTasksIdTimerRoute: typeof ApiTasksIdTimerRoute
   ApiTasksIdUnsnoozeRoute: typeof ApiTasksIdUnsnoozeRoute
@@ -493,6 +513,7 @@ interface ApiTasksIdRouteChildren {
 
 const ApiTasksIdRouteChildren: ApiTasksIdRouteChildren = {
   ApiTasksIdCompleteRoute: ApiTasksIdCompleteRoute,
+  ApiTasksIdSkipRoute: ApiTasksIdSkipRoute,
   ApiTasksIdSnoozeRoute: ApiTasksIdSnoozeRoute,
   ApiTasksIdTimerRoute: ApiTasksIdTimerRoute,
   ApiTasksIdUnsnoozeRoute: ApiTasksIdUnsnoozeRoute,

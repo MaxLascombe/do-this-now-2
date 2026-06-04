@@ -4,6 +4,7 @@ import {
   useCompleteTask,
   useCreateTask,
   useDeleteTask,
+  useSkipTask,
   useSnoozeTask,
   useTask,
   useTaskTimer,
@@ -57,6 +58,7 @@ function TaskDetail() {
   const timerTask = task?.timekeeperId ? keeperQuery.data : task
 
   const snoozeMutation = useSnoozeTask()
+  const skipMutation = useSkipTask()
   const deleteMutation = useDeleteTask()
   const doneMutation = useCompleteTask()
   const updateTask = useUpdateTask()
@@ -174,10 +176,7 @@ function TaskDetail() {
       confirmLabel: 'Skip',
     })
     if (!ok) return
-    updateTask.mutate(
-      { id, input: taskToInput(next) },
-      { onSuccess: () => router.history.back() },
-    )
+    skipMutation.mutate({ id }, { onSuccess: () => router.history.back() })
   }
   const deleteAction = async () => {
     const ok = await confirm({

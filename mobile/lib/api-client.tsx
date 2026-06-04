@@ -70,6 +70,8 @@ function createMobileApi(
           method: 'POST',
           body: { allSubtasks },
         }),
+      skip: (id) =>
+        call<{ skipped: boolean }>(`/api/tasks/${id}/skip`, { method: 'POST' }),
       unsnooze: (id) =>
         call<Task>(`/api/tasks/${id}/unsnooze`, { method: 'POST' }),
       snoozeMany: (ids) =>
