@@ -85,6 +85,17 @@ function TaskDetail() {
     setPendingComplete({ task, kind })
   }
 
+  const [copied, setCopied] = useState(false)
+  const copyLink = async () => {
+    try {
+      await navigator.clipboard.writeText(window.location.href)
+      setCopied(true)
+      setTimeout(() => setCopied(false), 1500)
+    } catch {
+      // clipboard blocked (e.g. insecure context) — nothing actionable
+    }
+  }
+
   const snoozeAction = () => snoozeMutation.mutate({ id })
   const deleteAction = async () => {
     const ok = await confirm({
@@ -269,6 +280,13 @@ function TaskDetail() {
             <kbd className="rounded border border-zinc-800 bg-zinc-900 px-1 py-0.5 text-[10px] font-bold text-zinc-400">
               ⌫
             </kbd>
+          </button>
+          <button
+            type="button"
+            onClick={copyLink}
+            className="flex items-center gap-2 rounded-full border border-zinc-800 px-4 py-1.5 text-zinc-400 hover:bg-zinc-900 hover:text-zinc-50"
+          >
+            {copied ? 'Copied' : 'Copy link'}
           </button>
         </div>
 
