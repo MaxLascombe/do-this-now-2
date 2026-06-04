@@ -4,6 +4,7 @@ import {
   useDeleteTask,
   usePrefetchTask,
   usePrimeTaskCache,
+  useSnoozeManyTasks,
   useSnoozeTask,
   useTask,
   useTopTasks,
@@ -35,6 +36,7 @@ import type { Task } from '@dtn/shared/types'
 import type { KeyAction } from '../hooks/useKeyAction'
 
 export const Route = createFileRoute('/')({
+  head: () => ({ meta: [{ title: 'Now · Do This Now' }] }),
   component: Home,
 })
 
@@ -82,6 +84,43 @@ const SecondaryAction = ({
   </button>
 )
 
+const EmptyNow = ({
+  onNewTask,
+  onViewAll,
+}: {
+  onNewTask: () => void
+  onViewAll: () => void
+}) => (
+  <div className="flex flex-col items-center gap-6 px-6 text-center">
+    <span aria-hidden="true" className="text-5xl leading-none select-none">
+      ✺
+    </span>
+    <div className="space-y-1.5">
+      <p className="font-mono text-lg text-zinc-200">Nothing to do right now</p>
+      <p className="font-mono text-sm text-zinc-500">
+        You're all caught up. Add a task to line up what's next.
+      </p>
+    </div>
+    <div className="flex items-center gap-2">
+      <button
+        type="button"
+        onClick={onNewTask}
+        className="flex items-center gap-2 rounded-full bg-zinc-50 px-4 py-2 font-mono text-sm font-semibold text-zinc-900 hover:bg-zinc-100"
+      >
+        <span>New task</span>
+        <Kbd variant="on-light">⇧+</Kbd>
+      </button>
+      <button
+        type="button"
+        onClick={onViewAll}
+        className="rounded-full border border-zinc-800 px-4 py-2 font-mono text-sm text-zinc-400 hover:border-zinc-600 hover:text-zinc-100"
+      >
+        View all tasks
+      </button>
+    </div>
+  </div>
+)
+
 function Home() {
   const navigate = useNavigate()
   const topTasksQuery = useTopTasks()
@@ -98,6 +137,7 @@ function Home() {
   const doneMutation = useCompleteTask()
   const deleteMutation = useDeleteTask()
   const snoozeMutation = useSnoozeTask()
+  const snoozeManyMutation = useSnoozeManyTasks()
   const prefetchTask = usePrefetchTask()
   const primeTaskCache = usePrimeTaskCache()
   const confirm = useConfirm()
@@ -138,6 +178,14 @@ function Home() {
   const snoozeAllSubtasksAction = () => {
     if (!selectedTask) return
     snoozeMutation.mutate({ id: selectedTask.id, allSubtasks: true })
+  }
+
+  // Every task ranked below the current one — "clear my plate, leave just
+  // this". Snoozes them an hour out so the Now view drops to the current task.
+  const restIds = tasks.slice(selectedTaskIndex + 1).map((t) => t.id)
+  const snoozeRestAction = () => {
+    if (restIds.length === 0) return
+    snoozeManyMutation.mutate(restIds)
   }
 
   const deleteTaskAction = async () => {
@@ -185,6 +233,11 @@ function Home() {
       description: 'Snooze all subtasks',
       action: snoozeAllSubtasksAction,
       shift: true,
+    },
+    {
+      key: 'r',
+      description: 'Snooze the rest',
+      action: snoozeRestAction,
     },
     {
       key: 't',
@@ -257,7 +310,10 @@ function Home() {
               onRetry={() => topTasksQuery.refetch()}
             />
           ) : (
-            'No tasks'
+            <EmptyNow
+              onNewTask={() => navigate({ to: '/new-task' })}
+              onViewAll={() => navigate({ to: '/tasks' })}
+            />
           )}
         </div>
       ) : (
@@ -268,6 +324,8 @@ function Home() {
             onComplete={completeTaskAction}
             onSnooze={snoozeTaskAction}
             onSnoozeSubtasks={snoozeAllSubtasksAction}
+            onSnoozeRest={restIds.length > 0 ? snoozeRestAction : undefined}
+            restCount={restIds.length}
             onEdit={goEdit}
             onDelete={deleteTaskAction}
           />
@@ -275,12 +333,15 @@ function Home() {
       )}
 
       {/* Up-next stack — same TaskRow component used on /tasks, just with
-          a slot kbd on desktop. Fixed to the bottom of the viewport on
-          desktop; in-flow above the mobile tab bar on small screens. */}
+          a slot kbd on desktop. In-flow below the hero on every breakpoint
+          so it scrolls with the page rather than pinning to the viewport. */}
       {tasks.length > 1 && (
         <>
-          <div className="fixed right-0 bottom-0 left-0 hidden justify-center px-10 pb-6 md:flex">
+          <div className="hidden justify-center px-10 pb-10 md:flex">
             <div className="flex w-full max-w-xl flex-col gap-1.5">
+              <div className="mb-2 px-1 font-mono text-[10px] tracking-[0.25em] text-zinc-600 uppercase">
+                up next
+              </div>
               {upNextTasks.map(({ task: t, slot }) => (
                 <TaskRow
                   key={t.id}
@@ -339,6 +400,8 @@ function Hero({
   onComplete,
   onSnooze,
   onSnoozeSubtasks,
+  onSnoozeRest,
+  restCount,
   onEdit,
   onDelete,
 }: {
@@ -347,6 +410,8 @@ function Hero({
   onComplete: () => void
   onSnooze: () => void
   onSnoozeSubtasks: () => void
+  onSnoozeRest?: () => void
+  restCount: number
   onEdit: () => void
   onDelete: () => void
 }) {
@@ -381,7 +446,7 @@ function Hero({
   const advance = willAdvanceSubtask(task, now)
 
   return (
-    <div className="flex flex-1 flex-col items-center justify-center px-5 pb-8 md:px-16 md:pb-48">
+    <div className="flex flex-1 flex-col items-center justify-center px-5 pb-8 md:px-16 md:pb-16">
       <div className="mb-4 text-center font-mono text-[10px] tracking-[0.2em] text-zinc-500 uppercase md:mb-6 md:text-xs">
         Task {index + 1} of 3 · Right now
       </div>
@@ -461,6 +526,13 @@ function Hero({
             k="⇧S"
             label="Snooze subtasks"
             onClick={onSnoozeSubtasks}
+          />
+        )}
+        {onSnoozeRest && (
+          <SecondaryAction
+            k="R"
+            label={`Snooze ${restCount} after`}
+            onClick={onSnoozeRest}
           />
         )}
         <SecondaryAction k="E" label="Edit" onClick={onEdit} />

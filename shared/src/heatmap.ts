@@ -8,6 +8,21 @@ export function percentile(sorted: number[], p: number): number {
   return sorted[idx]
 }
 
+// A bar-chart axis maximum that ignores extreme high outliers, so one giant
+// spike doesn't crush every other bar to a sliver. Scales by the largest value
+// within the Tukey upper fence (Q3 + 1.5·IQR) of the non-zero counts; spikes
+// above it are meant to clamp to full height at the call site. Returns 1 for an
+// all-zero series so callers can divide safely.
+export function robustChartMax(values: number[]): number {
+  const nonZero = values.filter((v) => v > 0).sort((a, b) => a - b)
+  if (nonZero.length === 0) return 1
+  const q1 = percentile(nonZero, 25)
+  const q3 = percentile(nonZero, 75)
+  const fence = q3 + 1.5 * (q3 - q1)
+  const withinFence = nonZero.filter((v) => v <= fence)
+  return withinFence.length > 0 ? withinFence[withinFence.length - 1] : nonZero[nonZero.length - 1]
+}
+
 // Grid position for the `index`-th day in an oldest-first heatmap series:
 // the latest day sits in the last column on its weekday row, and earlier days
 // step back through the weeks. `col` may be negative when a day predates the
