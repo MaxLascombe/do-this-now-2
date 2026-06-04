@@ -215,7 +215,6 @@ export function TaskForm({
         const k = issue.path.join('.') || '_'
         if (!flat[k]) flat[k] = issue.message
       }
-      console.warn('TaskForm validation failed', flat, parsed.error.issues)
       setErrors(flat)
       return
     }
