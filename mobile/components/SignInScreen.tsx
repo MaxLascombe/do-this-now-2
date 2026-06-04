@@ -304,7 +304,10 @@ export function SignInScreen() {
               />
 
               {error && (
-                <View className="mb-5 rounded-lg border border-red-900/50 bg-red-950/30 px-4 py-3">
+                <View
+                  accessibilityLiveRegion="assertive"
+                  className="mb-5 rounded-lg border border-red-900/50 bg-red-950/30 px-4 py-3"
+                >
                   <Text className="text-sm text-red-400">{error}</Text>
                 </View>
               )}
@@ -372,7 +375,10 @@ export function SignInScreen() {
               className="mb-4 w-full rounded-lg border border-gray-800 bg-black px-4 py-3.5 text-center text-xl tracking-widest text-white"
             />
             {error && (
-              <View className="mb-4 rounded-lg border border-red-900/50 bg-red-950/30 px-4 py-3">
+              <View
+                accessibilityLiveRegion="assertive"
+                className="mb-4 rounded-lg border border-red-900/50 bg-red-950/30 px-4 py-3"
+              >
                 <Text className="text-sm text-red-400">{error}</Text>
               </View>
             )}
