@@ -44,9 +44,11 @@ export function TopProgress() {
 
   const points = computePoints(done, todo, lives)
 
-  const pct = Math.min(100, Math.round((done / todo) * 100))
-  const filledCount = Math.round((done / todo) * MINI_CELLS)
-  const tickAt = Math.round((shouldBeDone / todo) * MINI_CELLS)
+  // todo is 0 on a no-tasks day; guard the divisions so the bar reads empty
+  // instead of rendering a NaN width.
+  const pct = todo > 0 ? Math.min(100, Math.round((done / todo) * 100)) : 0
+  const filledCount = todo > 0 ? Math.round((done / todo) * MINI_CELLS) : 0
+  const tickAt = todo > 0 ? Math.round((shouldBeDone / todo) * MINI_CELLS) : 0
 
   return (
     <View>
