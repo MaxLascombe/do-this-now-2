@@ -10,7 +10,10 @@ import {
   useUpdateTask,
 } from '@dtn/shared/queries'
 import { taskToInput } from '@dtn/shared/task-input'
-import { willAdvanceSubtask } from '@dtn/shared/task-transitions'
+import {
+  skipTaskTransition,
+  willAdvanceSubtask,
+} from '@dtn/shared/task-transitions'
 import { minutesToHours } from '@dtn/shared/time'
 import {
   completionConfirmKind,
@@ -158,6 +161,24 @@ function TaskDetail() {
   }
 
   const snoozeAction = () => snoozeMutation.mutate({ id })
+  // Skip a repeating task's current occurrence: advance to the next due date
+  // with a fresh checklist, without recording a completion.
+  const skipAction = async () => {
+    if (!task) return
+    const next = skipTaskTransition(task)
+    if (!next) return
+    const ok = await confirm({
+      message: `Skip this occurrence? '${task.title}' will move to ${
+        formatDueLabel(next.due) ?? next.due
+      } without recording a completion.`,
+      confirmLabel: 'Skip',
+    })
+    if (!ok) return
+    updateTask.mutate(
+      { id, input: taskToInput(next) },
+      { onSuccess: () => router.history.back() },
+    )
+  }
   const deleteAction = async () => {
     const ok = await confirm({
       message: `Are you sure you want to delete '${task?.title ?? 'this task'}'?`,
@@ -176,6 +197,9 @@ function TaskDetail() {
     },
     { key: 'd', description: 'Done', action: completeAction },
     { key: 's', description: 'Snooze', action: snoozeAction },
+    ...(task && task.repeat !== 'No Repeat'
+      ? [{ key: 'k', description: 'Skip', action: skipAction }]
+      : []),
     {
       key: 'p',
       description: timerTask?.timerStartedAt ? 'Pause timer' : 'Start timer',
@@ -430,6 +454,19 @@ function TaskDetail() {
               S
             </kbd>
           </button>
+          {task.repeat !== 'No Repeat' && (
+            <button
+              type="button"
+              onClick={skipAction}
+              title="Advance to the next occurrence without recording a completion"
+              className="flex items-center gap-2 rounded-full border border-zinc-800 px-4 py-1.5 text-zinc-300 hover:bg-zinc-900 hover:text-zinc-50"
+            >
+              <span>Skip</span>
+              <kbd className="rounded border border-zinc-700 bg-zinc-900 px-1 py-0.5 text-[10px] font-bold text-zinc-300">
+                K
+              </kbd>
+            </button>
+          )}
           <button
             type="button"
             onClick={deleteAction}

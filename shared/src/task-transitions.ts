@@ -274,3 +274,22 @@ export function snoozeTaskTransition(
     nextTask: { ...task, snooze: newSnooze, updatedAt: now },
   }
 }
+
+// "Skip this occurrence" — jump a repeating task to its next due date with a
+// fresh checklist, without recording a completion (so it doesn't count toward
+// stats, unlike Done). Returns null for a non-repeating task, which has no
+// next occurrence to skip to.
+export function skipTaskTransition(
+  task: Task,
+  now: Date = new Date(),
+): Task | null {
+  const newDue = nextDueDate(task)
+  if (task.repeat === 'No Repeat' || newDue === undefined) return null
+  return {
+    ...task,
+    due: dateString(newDue),
+    snooze: null,
+    subtasks: resetSubtasksForNext(task),
+    updatedAt: now,
+  }
+}
