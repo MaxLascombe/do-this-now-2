@@ -6,6 +6,7 @@ import {
   useDeleteTask,
   useSnoozeTask,
   useTask,
+  useTaskTimer,
   useUpdateTask,
 } from '@dtn/shared/queries'
 import { taskToInput } from '@dtn/shared/task-input'
@@ -56,7 +57,16 @@ function TaskDetail() {
   const doneMutation = useCompleteTask()
   const updateTask = useUpdateTask()
   const createTask = useCreateTask()
+  const timer = useTaskTimer()
   const confirm = useConfirm()
+
+  // The mutation targets the route id; the server maps a 0-frame child to
+  // its keeper, while timerTask gives the correct running state to read.
+  const toggleTimerAction = () =>
+    timer.mutate({
+      id,
+      action: { kind: timerTask?.timerStartedAt ? 'pause' : 'start' },
+    })
 
   const reschedule = (due: string) => {
     if (!task) return
@@ -165,6 +175,11 @@ function TaskDetail() {
     },
     { key: 'd', description: 'Done', action: completeAction },
     { key: 's', description: 'Snooze', action: snoozeAction },
+    {
+      key: 'p',
+      description: timerTask?.timerStartedAt ? 'Pause timer' : 'Start timer',
+      action: toggleTimerAction,
+    },
     { key: 'backspace', description: 'Delete', action: deleteAction },
     { key: 'n', description: 'Home', action: () => router.navigate({ to: '/' }) },
     {
