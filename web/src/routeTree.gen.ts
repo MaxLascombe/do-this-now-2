@@ -26,6 +26,7 @@ import { Route as ApiTasksIdRouteImport } from './routes/api/tasks.$id'
 import { Route as ApiProgressTodayRouteImport } from './routes/api/progress.today'
 import { Route as ApiHistoryDateRouteImport } from './routes/api/history.$date'
 import { Route as ApiAdminBackfillEmojisRouteImport } from './routes/api/admin/backfill-emojis'
+import { Route as ApiTasksIdUnsnoozeRouteImport } from './routes/api/tasks.$id.unsnooze'
 import { Route as ApiTasksIdTimerRouteImport } from './routes/api/tasks.$id.timer'
 import { Route as ApiTasksIdSnoozeRouteImport } from './routes/api/tasks.$id.snooze'
 import { Route as ApiTasksIdCompleteRouteImport } from './routes/api/tasks.$id.complete'
@@ -115,6 +116,11 @@ const ApiAdminBackfillEmojisRoute = ApiAdminBackfillEmojisRouteImport.update({
   path: '/api/admin/backfill-emojis',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiTasksIdUnsnoozeRoute = ApiTasksIdUnsnoozeRouteImport.update({
+  id: '/unsnooze',
+  path: '/unsnooze',
+  getParentRoute: () => ApiTasksIdRoute,
+} as any)
 const ApiTasksIdTimerRoute = ApiTasksIdTimerRouteImport.update({
   id: '/timer',
   path: '/timer',
@@ -152,6 +158,7 @@ export interface FileRoutesByFullPath {
   '/api/tasks/$id/complete': typeof ApiTasksIdCompleteRoute
   '/api/tasks/$id/snooze': typeof ApiTasksIdSnoozeRoute
   '/api/tasks/$id/timer': typeof ApiTasksIdTimerRoute
+  '/api/tasks/$id/unsnooze': typeof ApiTasksIdUnsnoozeRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -173,6 +180,7 @@ export interface FileRoutesByTo {
   '/api/tasks/$id/complete': typeof ApiTasksIdCompleteRoute
   '/api/tasks/$id/snooze': typeof ApiTasksIdSnoozeRoute
   '/api/tasks/$id/timer': typeof ApiTasksIdTimerRoute
+  '/api/tasks/$id/unsnooze': typeof ApiTasksIdUnsnoozeRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -196,6 +204,7 @@ export interface FileRoutesById {
   '/api/tasks/$id/complete': typeof ApiTasksIdCompleteRoute
   '/api/tasks/$id/snooze': typeof ApiTasksIdSnoozeRoute
   '/api/tasks/$id/timer': typeof ApiTasksIdTimerRoute
+  '/api/tasks/$id/unsnooze': typeof ApiTasksIdUnsnoozeRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -220,6 +229,7 @@ export interface FileRouteTypes {
     | '/api/tasks/$id/complete'
     | '/api/tasks/$id/snooze'
     | '/api/tasks/$id/timer'
+    | '/api/tasks/$id/unsnooze'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -241,6 +251,7 @@ export interface FileRouteTypes {
     | '/api/tasks/$id/complete'
     | '/api/tasks/$id/snooze'
     | '/api/tasks/$id/timer'
+    | '/api/tasks/$id/unsnooze'
   id:
     | '__root__'
     | '/'
@@ -263,6 +274,7 @@ export interface FileRouteTypes {
     | '/api/tasks/$id/complete'
     | '/api/tasks/$id/snooze'
     | '/api/tasks/$id/timer'
+    | '/api/tasks/$id/unsnooze'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -402,6 +414,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiAdminBackfillEmojisRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/tasks/$id/unsnooze': {
+      id: '/api/tasks/$id/unsnooze'
+      path: '/unsnooze'
+      fullPath: '/api/tasks/$id/unsnooze'
+      preLoaderRoute: typeof ApiTasksIdUnsnoozeRouteImport
+      parentRoute: typeof ApiTasksIdRoute
+    }
     '/api/tasks/$id/timer': {
       id: '/api/tasks/$id/timer'
       path: '/timer'
@@ -430,12 +449,14 @@ interface ApiTasksIdRouteChildren {
   ApiTasksIdCompleteRoute: typeof ApiTasksIdCompleteRoute
   ApiTasksIdSnoozeRoute: typeof ApiTasksIdSnoozeRoute
   ApiTasksIdTimerRoute: typeof ApiTasksIdTimerRoute
+  ApiTasksIdUnsnoozeRoute: typeof ApiTasksIdUnsnoozeRoute
 }
 
 const ApiTasksIdRouteChildren: ApiTasksIdRouteChildren = {
   ApiTasksIdCompleteRoute: ApiTasksIdCompleteRoute,
   ApiTasksIdSnoozeRoute: ApiTasksIdSnoozeRoute,
   ApiTasksIdTimerRoute: ApiTasksIdTimerRoute,
+  ApiTasksIdUnsnoozeRoute: ApiTasksIdUnsnoozeRoute,
 }
 
 const ApiTasksIdRouteWithChildren = ApiTasksIdRoute._addFileChildren(
