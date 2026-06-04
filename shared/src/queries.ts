@@ -38,10 +38,10 @@ export const invalidateTaskCaches = (qc: QueryClient) => {
 }
 
 // Optimistic helpers ----------------------------------------------------
-// Each of complete/snooze/delete reads as "remove this task from the
-// active lists right now". Repeating tasks will reappear with a future
-// due date once the refetch lands (onSettled invalidates); snoozed/
-// completed/deleted tasks won't.
+// complete/snooze/delete update the active lists right now. Completing a
+// repeating task keeps it in place at its next due date (re-sorted); a
+// one-shot completion, a task-scope snooze, and delete remove it. The
+// onSettled refetch reconciles the exact server state either way.
 //
 // useCompleteTask additionally bumps progressToday.done by the task's
 // timeFrame so the progress bar moves at the same instant the row
@@ -79,15 +79,39 @@ async function replaceTaskInCaches(
   qc: QueryClient,
   id: string,
   nextTask: Task,
+  reSort = false,
 ): Promise<OptimisticSnapshot> {
   await qc.cancelQueries({ queryKey: taskKeys.all })
   const prevTop = qc.getQueryData<Task[]>(taskKeys.top)
   const prevList = qc.getQueryData<Task[]>(taskKeys.list)
-  const replace = (xs: Task[] | undefined) =>
-    xs?.map((t) => (t.id === id ? nextTask : t))
+  const today = new Date()
+  today.setHours(0, 0, 0, 0)
+  const replace = (xs: Task[] | undefined) => {
+    if (!xs) return xs
+    const out = xs.map((t) => (t.id === id ? nextTask : t))
+    if (reSort) sortTasks(out, today)
+    return out
+  }
   qc.setQueryData<Task[]>(taskKeys.top, replace)
   qc.setQueryData<Task[]>(taskKeys.list, replace)
   return { prevTop, prevList }
+}
+
+// Bump today's progress by `minutes`, mirroring the server crediting the
+// finished session, so the bar moves the instant the row settles.
+async function bumpProgressDone(
+  qc: QueryClient,
+  minutes: number,
+): Promise<ProgressTodayResult | undefined> {
+  await qc.cancelQueries({ queryKey: progressTodayKey })
+  const prevProgress = qc.getQueryData<ProgressTodayResult>(progressTodayKey)
+  if (prevProgress) {
+    qc.setQueryData<ProgressTodayResult>(progressTodayKey, {
+      ...prevProgress,
+      done: prevProgress.done + minutes,
+    })
+  }
+  return prevProgress
 }
 
 async function optimisticComplete(
@@ -103,19 +127,24 @@ async function optimisticComplete(
     return replaceTaskInCaches(qc, id, transition.nextTask)
   }
 
-  // Both finish-and-delete and finish-and-reschedule drop the task off
-  // the active lists immediately (the rescheduled task reappears on the
-  // refetch with a future due date) and bump progressToday.done so the
-  // bar advances at the same instant the row vanishes.
-  const snap = await optimisticRemove(qc, id)
-  await qc.cancelQueries({ queryKey: progressTodayKey })
-  const prevProgress = qc.getQueryData<ProgressTodayResult>(progressTodayKey)
-  if (prevProgress) {
-    qc.setQueryData<ProgressTodayResult>(progressTodayKey, {
-      ...prevProgress,
-      done: prevProgress.done + (task.timeFrame ?? 0),
-    })
+  // A repeating task never leaves the active lists — it comes back on its
+  // next due date. Replace it with the rescheduled row (timer reset) and
+  // re-sort with the shared comparator so it slides into its new slot in
+  // place, instead of vanishing until the refetch lands.
+  if (transition.kind === 'finish-and-reschedule') {
+    const next: Task = {
+      ...transition.nextTask,
+      timerStartedAt: null,
+      timerAccumulatedSeconds: 0,
+    }
+    const snap = await replaceTaskInCaches(qc, id, next, true)
+    const prevProgress = await bumpProgressDone(qc, task.timeFrame ?? 0)
+    return { ...snap, prevProgress }
   }
+
+  // finish-and-delete: a one-shot task is done for good — drop it.
+  const snap = await optimisticRemove(qc, id)
+  const prevProgress = await bumpProgressDone(qc, task.timeFrame ?? 0)
   return { ...snap, prevProgress }
 }
 
