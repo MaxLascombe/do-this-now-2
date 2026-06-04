@@ -2,11 +2,12 @@ import { createFileRoute } from '@tanstack/react-router'
 import { json } from '@tanstack/react-start'
 import { z } from 'zod'
 
-import { completeTask } from '../../server/lib/actions'
+import { completeTask, TaskNotFoundError } from '../../server/lib/actions'
 import {
   getTzFromRequest,
   invalid,
   notFound,
+  readJsonBody,
   withAuth,
 } from '../../server/lib/http'
 
@@ -24,30 +25,26 @@ export const Route = createFileRoute('/api/tasks/$id/complete')({
     handlers: {
       POST: withAuth<Params>(async ({ userId, params, request }) => {
         if (!idSchema.safeParse(params.id).success) return notFound()
-        const raw = await request.text()
-        const candidate = raw.length === 0 ? {} : safeJsonParse(raw)
+        const candidate = await readJsonBody(request)
         if (candidate === undefined)
           return invalid({ formErrors: ['Body must be JSON.'] })
 
         const parsed = completeBodySchema.safeParse(candidate)
         if (!parsed.success) return invalid(parsed.error.flatten())
-        return json(
-          await completeTask(
-            userId,
-            params.id,
-            getTzFromRequest(request),
-            parsed.data.countMeasurement ?? true,
-          ),
-        )
+        try {
+          return json(
+            await completeTask(
+              userId,
+              params.id,
+              getTzFromRequest(request),
+              parsed.data.countMeasurement ?? true,
+            ),
+          )
+        } catch (e) {
+          if (e instanceof TaskNotFoundError) return notFound()
+          throw e
+        }
       }),
     },
   },
 })
-
-function safeJsonParse(s: string): unknown {
-  try {
-    return JSON.parse(s)
-  } catch {
-    return undefined
-  }
-}
