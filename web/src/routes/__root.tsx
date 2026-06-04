@@ -2,6 +2,7 @@ import { ClerkProvider, Show, SignInButton } from '@clerk/tanstack-react-start'
 import { ApiProvider } from '@dtn/shared/api-client'
 import { HeadContent, Scripts, createRootRoute } from '@tanstack/react-router'
 
+import { CommandPalette } from '../components/CommandPalette'
 import { ConfirmProvider } from '../components/ConfirmProvider'
 import { webApiClient } from '../lib/api-client'
 import { QueryProvider } from '../lib/query-client'
@@ -51,7 +52,10 @@ function RootDocument({ children }: { children: ReactNode }) {
                 >
                   Skip to content
                 </a>
-                <ConfirmProvider>{children}</ConfirmProvider>
+                <ConfirmProvider>
+                  <CommandPalette />
+                  {children}
+                </ConfirmProvider>
               </Show>
               <Show when="signed-out">
                 <SignedOutScreen />
