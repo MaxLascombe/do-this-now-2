@@ -118,7 +118,7 @@ export function TaskForm({
     initial.timekeeperId ?? null,
   )
   const [timeframeType, setTimeframeType] = useState<TimeframeType>(
-    initial.timeframeType ?? 'fixed',
+    initial.timeframeType ?? 'fluid',
   )
   const nextSubtaskKey = useRef(0)
   const newKey = () => `s${++nextSubtaskKey.current}`

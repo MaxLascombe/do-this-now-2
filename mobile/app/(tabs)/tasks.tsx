@@ -74,7 +74,7 @@ export default function TasksList() {
       repeatWeekdays: [false, false, false, false, false, false, false],
       timeFrame: 30,
       timekeeperId: null,
-      timeframeType: 'fixed',
+      timeframeType: 'fluid',
       subtasks: [],
       notes: '',
       tags: [],

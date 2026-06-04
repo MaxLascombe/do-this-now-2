@@ -135,7 +135,7 @@ const TaskForm = ({
     initialTimekeeperId ?? null,
   )
   const [timeframeType, setTimeframeType] = useState<TimeframeType>(
-    initialTimeframeType ?? 'fixed',
+    initialTimeframeType ?? 'fluid',
   )
 
   const nextSubtaskKey = useRef(0)
