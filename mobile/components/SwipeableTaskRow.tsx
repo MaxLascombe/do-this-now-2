@@ -1,9 +1,12 @@
+import { useUpdateTask } from '@dtn/shared/queries'
+import { taskToInput } from '@dtn/shared/task-input'
 import * as Haptics from 'expo-haptics'
 import { memo, useRef, useState } from 'react'
 import {
   ActionSheetIOS,
   Alert,
   Platform,
+  Pressable,
   Text,
   View,
   type AccessibilityActionEvent,
@@ -37,6 +40,14 @@ function SwipeableTaskRowBase({
   const [expanded, setExpanded] = useState(false)
   const hasSubtasks = task.subtasks.length > 0
   const subtasksDone = task.subtasks.filter((s) => s.done).length
+
+  const updateTask = useUpdateTask()
+  const toggleSubtask = (index: number) => {
+    const subtasks = task.subtasks.map((s, i) =>
+      i === index ? { ...s, done: !s.done } : s,
+    )
+    updateTask.mutate({ id: task.id, input: { ...taskToInput(task), subtasks } })
+  }
 
   const renderLeftActions = () => (
     <View
@@ -142,12 +153,13 @@ function SwipeableTaskRowBase({
         {task.subtasks.map((s, i) => {
           const isSnoozed = !!s.snooze && new Date(s.snooze) > new Date()
           return (
-            <View
+            <Pressable
               key={i}
-              accessible
+              onPress={() => toggleSubtask(i)}
+              accessibilityRole="button"
               accessibilityLabel={`${s.title}, ${
                 s.done ? 'completed' : isSnoozed ? 'snoozed' : 'not done'
-              }`}
+              }. Tap to toggle.`}
               style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}
             >
               <View
@@ -184,7 +196,7 @@ function SwipeableTaskRowBase({
               {isSnoozed && (
                 <Text style={{ fontSize: 10, color: '#52525b' }}>snoozed</Text>
               )}
-            </View>
+            </Pressable>
           )
         })}
       </View>
