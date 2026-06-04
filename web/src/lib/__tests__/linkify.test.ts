@@ -33,6 +33,32 @@ describe('splitOnLinks', () => {
     ])
   })
 
+  it('peels a wrapping quote or angle bracket off the url', () => {
+    expect(splitOnLinks('doc "https://a.io".')).toEqual([
+      { text: 'doc "', href: null },
+      { text: 'https://a.io', href: 'https://a.io' },
+      { text: '".', href: null },
+    ])
+    const angle = splitOnLinks('<https://a.io>')
+    expect(angle.find((s) => s.href)?.href).toBe('https://a.io')
+  })
+
+  it('keeps parens in a url path (wikipedia-style)', () => {
+    const out = splitOnLinks('https://en.wikipedia.org/wiki/Foo_(bar)')
+    expect(out).toEqual([
+      {
+        text: 'https://en.wikipedia.org/wiki/Foo_(bar)',
+        href: 'https://en.wikipedia.org/wiki/Foo_(bar)',
+      },
+    ])
+  })
+
+  it('handles a url as the entire note', () => {
+    expect(splitOnLinks('https://x.com/path')).toEqual([
+      { text: 'https://x.com/path', href: 'https://x.com/path' },
+    ])
+  })
+
   it('does NOT linkify non-http schemes', () => {
     const out = splitOnLinks('run javascript:alert(1) or mailto:x@y.com')
     expect(out.every((s) => s.href === null)).toBe(true)

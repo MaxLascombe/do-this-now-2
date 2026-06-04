@@ -4,8 +4,9 @@ const URL_RE = /(https?:\/\/[^\s]+)/g
 
 // Split free text into plain + link segments so notes can render clickable
 // URLs. Only http(s) is linkified — never javascript:/data: etc. Trailing
-// sentence punctuation is peeled off the URL so "see https://x.com." links
-// just the address, not the period.
+// sentence punctuation and wrapping quotes/angle brackets are peeled off the
+// URL so `see "https://x.com".` or `<https://x.com>` link just the address.
+// (Parens/brackets are left alone — they're valid in URL paths, e.g. wiki.)
 export function splitOnLinks(text: string): NoteSegment[] {
   const out: NoteSegment[] = []
   let last = 0
@@ -15,7 +16,7 @@ export function splitOnLinks(text: string): NoteSegment[] {
 
     let url = m[0]
     let trailing = ''
-    while (/[.,;:!?]$/.test(url)) {
+    while (/[.,;:!?"'>]$/.test(url)) {
       trailing = url.slice(-1) + trailing
       url = url.slice(0, -1)
     }
