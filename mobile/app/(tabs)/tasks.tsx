@@ -17,11 +17,12 @@ import {
 } from '@dtn/shared/timer-utils'
 import type { Task } from '@dtn/shared/types'
 import { Stack, useRouter } from 'expo-router'
-import { useCallback, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
 import {
   Alert,
   Pressable,
   RefreshControl,
+  ScrollView,
   SectionList,
   Text,
   View,
@@ -49,9 +50,19 @@ const OVERDUE = '#fb7185'
 export default function TasksList() {
   const router = useRouter()
   const [sort, setSort] = useState<Sort>('CHRON')
+  const [tagFilter, setTagFilter] = useState<string | null>(null)
 
   const allTasks = useAllTasks({ enabled: sort === 'CHRON' })
   const topTasks = useTopTasks({ enabled: sort === 'TOP' })
+
+  const allTags = useMemo(() => {
+    const source = sort === 'CHRON' ? allTasks.data : topTasks.data
+    return [...new Set((source ?? []).flatMap((t) => t.tags))].sort()
+  }, [sort, allTasks.data, topTasks.data])
+
+  useEffect(() => {
+    if (tagFilter && !allTags.includes(tagFilter)) setTagFilter(null)
+  }, [tagFilter, allTags])
 
   const doneMutation = useCompleteTask()
   const deleteMutation = useDeleteTask()
@@ -114,8 +125,9 @@ export default function TasksList() {
 
   const sections: Group[] = useMemo(() => {
     const today0 = startOfToday()
-    const tasks =
+    let tasks =
       sort === 'CHRON' ? [...(allTasks.data ?? [])] : [...(topTasks.data ?? [])]
+    if (tagFilter) tasks = tasks.filter((t) => t.tags.includes(tagFilter))
     if (tasks.length === 0) return []
 
     if (sort === 'CHRON') {
@@ -169,7 +181,7 @@ export default function TasksList() {
         data: snoozed,
       })
     return result
-  }, [sort, allTasks.data, topTasks.data])
+  }, [sort, allTasks.data, topTasks.data, tagFilter])
 
   const eyebrow = useMemo(
     () =>
@@ -211,6 +223,9 @@ export default function TasksList() {
       <View style={{ paddingHorizontal: 20, paddingBottom: 12 }}>
         <SortToggle value={sort} onChange={setSort} />
       </View>
+      {allTags.length > 0 && (
+        <TagFilterBar tags={allTags} active={tagFilter} onSelect={setTagFilter} />
+      )}
       <SectionList
         style={{ flex: 1 }}
         contentContainerStyle={{ paddingBottom: 24 }}
@@ -252,6 +267,62 @@ export default function TasksList() {
         }
       />
     </SafeAreaView>
+  )
+}
+
+function TagFilterBar({
+  tags,
+  active,
+  onSelect,
+}: {
+  tags: string[]
+  active: string | null
+  onSelect: (tag: string | null) => void
+}) {
+  const chips: { key: string; label: string; value: string | null }[] = [
+    { key: '__all', label: 'All', value: null },
+    ...tags.map((t) => ({ key: t, label: `#${t}`, value: t })),
+  ]
+  return (
+    <ScrollView
+      horizontal
+      showsHorizontalScrollIndicator={false}
+      contentContainerStyle={{
+        paddingHorizontal: 20,
+        paddingBottom: 12,
+        gap: 6,
+      }}
+    >
+      {chips.map((c) => {
+        const isActive = active === c.value
+        return (
+          <Pressable
+            key={c.key}
+            onPress={() => onSelect(isActive && c.value ? null : c.value)}
+            accessibilityRole="button"
+            accessibilityState={{ selected: isActive }}
+            style={{
+              borderWidth: 1,
+              borderColor: isActive ? '#f4f4f5' : '#27272a',
+              backgroundColor: isActive ? '#fafafa' : 'rgba(24,24,27,0.6)',
+              paddingHorizontal: 12,
+              paddingVertical: 6,
+              borderRadius: 999,
+            }}
+          >
+            <Text
+              style={{
+                fontFamily: 'JetBrainsMono_400Regular',
+                fontSize: 12,
+                color: isActive ? '#0a0a0a' : '#a1a1aa',
+              }}
+            >
+              {c.label}
+            </Text>
+          </Pressable>
+        )
+      })}
+    </ScrollView>
   )
 }
 
