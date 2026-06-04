@@ -1,9 +1,10 @@
 import { startOfToday } from '@dtn/shared/day-index'
 import { dueGroupLabel, tasksListEyebrow } from '@dtn/shared/format'
-import { newSafeDate } from '@dtn/shared/helpers'
+import { dateString, newSafeDate } from '@dtn/shared/helpers'
 import {
   useAllTasks,
   useCompleteTask,
+  useCreateTask,
   useDeleteTask,
   useSnoozeTask,
   useTopTasks,
@@ -51,11 +52,33 @@ export default function TasksList() {
   const router = useRouter()
   const [sort, setSort] = useState<Sort>('CHRON')
   const [query, setQuery] = useState('')
+  const [quickTitle, setQuickTitle] = useState('')
 
   const allTasks = useAllTasks({ enabled: sort === 'CHRON' })
   const topTasks = useTopTasks({ enabled: sort === 'TOP' })
 
   const doneMutation = useCompleteTask()
+  const createMutation = useCreateTask()
+  const quickAdd = () => {
+    const title = quickTitle.trim()
+    if (!title || createMutation.isPending) return
+    createMutation.mutate({
+      title,
+      emoji: '📝',
+      due: dateString(new Date()),
+      dueTime: null,
+      strictDeadline: false,
+      repeat: 'No Repeat',
+      repeatInterval: 1,
+      repeatUnit: 'day',
+      repeatWeekdays: [false, false, false, false, false, false, false],
+      timeFrame: 30,
+      timekeeperId: null,
+      timeframeType: 'fixed',
+      subtasks: [],
+    })
+    setQuickTitle('')
+  }
   const deleteMutation = useDeleteTask()
   const snoozeMutation = useSnoozeTask()
 
@@ -214,6 +237,27 @@ export default function TasksList() {
       <PageHeading eyebrow={eyebrow}>All tasks</PageHeading>
       <View style={{ paddingHorizontal: 20, paddingBottom: 12, gap: 10 }}>
         <SortToggle value={sort} onChange={setSort} />
+        <TextInput
+          value={quickTitle}
+          onChangeText={setQuickTitle}
+          onSubmitEditing={quickAdd}
+          blurOnSubmit={false}
+          placeholder="＋ Add a task…"
+          placeholderTextColor="#52525b"
+          returnKeyType="done"
+          accessibilityLabel="Quick-add a task"
+          style={{
+            borderWidth: 1,
+            borderColor: '#27272a',
+            backgroundColor: 'rgba(24,24,27,0.5)',
+            borderRadius: 999,
+            paddingHorizontal: 16,
+            paddingVertical: 9,
+            fontFamily: 'JetBrainsMono_400Regular',
+            fontSize: 14,
+            color: '#fafafa',
+          }}
+        />
         <TextInput
           value={query}
           onChangeText={setQuery}
