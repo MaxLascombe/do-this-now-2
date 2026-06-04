@@ -9,6 +9,7 @@ import { Loading } from '../components/Loading'
 import { MobileChrome } from '../components/MobileChrome'
 import { PageHeading } from '../components/PageHeading'
 import { TimerWidget } from '../components/TimerWidget'
+import { useToast } from '../components/ToastProvider'
 import { TopBar } from '../components/TopBar'
 
 const OVERDUE = '#fb7185'
@@ -31,8 +32,18 @@ function TaskDetail() {
 
   const archive = useArchiveTask()
   const unarchive = useUnarchiveTask()
+  const toast = useToast()
   const archiveAction = () =>
-    archive.mutate(id, { onSuccess: () => router.navigate({ to: '/archive' }) })
+    archive.mutate(id, {
+      onSuccess: () => {
+        router.navigate({ to: '/tasks' })
+        toast({
+          message: 'Task archived',
+          actionLabel: 'Undo',
+          onAction: () => unarchive.mutate(id),
+        })
+      },
+    })
   const unarchiveAction = () =>
     unarchive.mutate(id, { onSuccess: () => router.navigate({ to: '/tasks' }) })
 

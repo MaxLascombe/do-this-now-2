@@ -3,6 +3,7 @@ import { ApiProvider } from '@dtn/shared/api-client'
 import { HeadContent, Scripts, createRootRoute } from '@tanstack/react-router'
 
 import { ConfirmProvider } from '../components/ConfirmProvider'
+import { ToastProvider } from '../components/ToastProvider'
 import { webApiClient } from '../lib/api-client'
 import { QueryProvider } from '../lib/query-client'
 
@@ -51,7 +52,9 @@ function RootDocument({ children }: { children: ReactNode }) {
                 >
                   Skip to content
                 </a>
-                <ConfirmProvider>{children}</ConfirmProvider>
+                <ConfirmProvider>
+                  <ToastProvider>{children}</ToastProvider>
+                </ConfirmProvider>
               </Show>
               <Show when="signed-out">
                 <SignedOutScreen />
