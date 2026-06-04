@@ -41,6 +41,12 @@ export const deleteTask = createServerFn({ method: 'POST' })
     return {}
   })
 
+export const setTaskPinned = createServerFn({ method: 'POST' })
+  .inputValidator(validate(z.object({ id: v.id, pinned: z.boolean() })))
+  .handler(async ({ data }) =>
+    tasksLib.setPinned(await requireUserId(), data.id, data.pinned),
+  )
+
 export const suggestEmojis = createServerFn({ method: 'POST' })
   .inputValidator(validate(z.object({ title: z.string().min(1).max(500) })))
   .handler(async ({ data }) => {

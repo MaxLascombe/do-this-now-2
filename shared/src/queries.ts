@@ -351,6 +351,28 @@ export function useDeleteTask() {
   })
 }
 
+async function optimisticSetPinned(
+  qc: QueryClient,
+  id: string,
+  pinned: boolean,
+): Promise<OptimisticSnapshot> {
+  const task = findTaskInCaches(qc, id)
+  if (!task) return optimisticRemove(qc, id)
+  return replaceTaskInCaches(qc, id, { ...task, pinned })
+}
+
+export function useSetPinned() {
+  const api = useApi()
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: (vars: { id: string; pinned: boolean }) =>
+      api.tasks.setPinned(vars.id, vars.pinned),
+    onMutate: (vars) => optimisticSetPinned(qc, vars.id, vars.pinned),
+    onError: (_e, _vars, ctx) => rollback(qc, ctx),
+    onSettled: () => invalidateTaskCaches(qc),
+  })
+}
+
 export type CompleteVars = string | { id: string; countMeasurement?: boolean }
 
 function normalizeComplete(v: CompleteVars): { id: string; countMeasurement?: boolean } {

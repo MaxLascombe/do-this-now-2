@@ -143,6 +143,21 @@ export async function updateTask(
   })
 }
 
+export async function setPinned(
+  userId: string,
+  id: string,
+  pinned: boolean,
+): Promise<Task | null> {
+  const row = (
+    await db
+      .update(tasks)
+      .set({ pinned, updatedAt: new Date() })
+      .where(and(eq(tasks.userId, userId), eq(tasks.id, id)))
+      .returning()
+  ).at(0)
+  return row ? ceilTaskTime(row) : null
+}
+
 export async function deleteTask(userId: string, id: string): Promise<void> {
   // Record the 'deleted' event BEFORE the actual DELETE — the FK on
   // task_events.task_id sets to NULL on cascade, so the event row

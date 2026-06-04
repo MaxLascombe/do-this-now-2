@@ -31,6 +31,11 @@ export const webApiClient: ApiClient = {
       return t
     },
     delete: (id) => taskFns.deleteTask({ data: { id } }),
+    setPinned: async (id, pinned) => {
+      const t = await taskFns.setTaskPinned({ data: { id, pinned } })
+      if (!t) throw notFound(id)
+      return t
+    },
     complete: (id, opts) =>
       actionFns.completeTask({
         data: {

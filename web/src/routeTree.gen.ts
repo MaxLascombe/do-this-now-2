@@ -26,6 +26,7 @@ import { Route as ApiHistoryDateRouteImport } from './routes/api/history.$date'
 import { Route as ApiAdminBackfillEmojisRouteImport } from './routes/api/admin/backfill-emojis'
 import { Route as ApiTasksIdTimerRouteImport } from './routes/api/tasks.$id.timer'
 import { Route as ApiTasksIdSnoozeRouteImport } from './routes/api/tasks.$id.snooze'
+import { Route as ApiTasksIdPinRouteImport } from './routes/api/tasks.$id.pin'
 import { Route as ApiTasksIdCompleteRouteImport } from './routes/api/tasks.$id.complete'
 
 const StatsRoute = StatsRouteImport.update({
@@ -113,6 +114,11 @@ const ApiTasksIdSnoozeRoute = ApiTasksIdSnoozeRouteImport.update({
   path: '/snooze',
   getParentRoute: () => ApiTasksIdRoute,
 } as any)
+const ApiTasksIdPinRoute = ApiTasksIdPinRouteImport.update({
+  id: '/pin',
+  path: '/pin',
+  getParentRoute: () => ApiTasksIdRoute,
+} as any)
 const ApiTasksIdCompleteRoute = ApiTasksIdCompleteRouteImport.update({
   id: '/complete',
   path: '/complete',
@@ -136,6 +142,7 @@ export interface FileRoutesByFullPath {
   '/tasks/$id/edit': typeof TasksIdEditRoute
   '/tasks/$id/': typeof TasksIdIndexRoute
   '/api/tasks/$id/complete': typeof ApiTasksIdCompleteRoute
+  '/api/tasks/$id/pin': typeof ApiTasksIdPinRoute
   '/api/tasks/$id/snooze': typeof ApiTasksIdSnoozeRoute
   '/api/tasks/$id/timer': typeof ApiTasksIdTimerRoute
 }
@@ -155,6 +162,7 @@ export interface FileRoutesByTo {
   '/tasks/$id/edit': typeof TasksIdEditRoute
   '/tasks/$id': typeof TasksIdIndexRoute
   '/api/tasks/$id/complete': typeof ApiTasksIdCompleteRoute
+  '/api/tasks/$id/pin': typeof ApiTasksIdPinRoute
   '/api/tasks/$id/snooze': typeof ApiTasksIdSnoozeRoute
   '/api/tasks/$id/timer': typeof ApiTasksIdTimerRoute
 }
@@ -176,6 +184,7 @@ export interface FileRoutesById {
   '/tasks/$id/edit': typeof TasksIdEditRoute
   '/tasks/$id/': typeof TasksIdIndexRoute
   '/api/tasks/$id/complete': typeof ApiTasksIdCompleteRoute
+  '/api/tasks/$id/pin': typeof ApiTasksIdPinRoute
   '/api/tasks/$id/snooze': typeof ApiTasksIdSnoozeRoute
   '/api/tasks/$id/timer': typeof ApiTasksIdTimerRoute
 }
@@ -198,6 +207,7 @@ export interface FileRouteTypes {
     | '/tasks/$id/edit'
     | '/tasks/$id/'
     | '/api/tasks/$id/complete'
+    | '/api/tasks/$id/pin'
     | '/api/tasks/$id/snooze'
     | '/api/tasks/$id/timer'
   fileRoutesByTo: FileRoutesByTo
@@ -217,6 +227,7 @@ export interface FileRouteTypes {
     | '/tasks/$id/edit'
     | '/tasks/$id'
     | '/api/tasks/$id/complete'
+    | '/api/tasks/$id/pin'
     | '/api/tasks/$id/snooze'
     | '/api/tasks/$id/timer'
   id:
@@ -237,6 +248,7 @@ export interface FileRouteTypes {
     | '/tasks/$id/edit'
     | '/tasks/$id/'
     | '/api/tasks/$id/complete'
+    | '/api/tasks/$id/pin'
     | '/api/tasks/$id/snooze'
     | '/api/tasks/$id/timer'
   fileRoutesById: FileRoutesById
@@ -376,6 +388,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiTasksIdSnoozeRouteImport
       parentRoute: typeof ApiTasksIdRoute
     }
+    '/api/tasks/$id/pin': {
+      id: '/api/tasks/$id/pin'
+      path: '/pin'
+      fullPath: '/api/tasks/$id/pin'
+      preLoaderRoute: typeof ApiTasksIdPinRouteImport
+      parentRoute: typeof ApiTasksIdRoute
+    }
     '/api/tasks/$id/complete': {
       id: '/api/tasks/$id/complete'
       path: '/complete'
@@ -388,12 +407,14 @@ declare module '@tanstack/react-router' {
 
 interface ApiTasksIdRouteChildren {
   ApiTasksIdCompleteRoute: typeof ApiTasksIdCompleteRoute
+  ApiTasksIdPinRoute: typeof ApiTasksIdPinRoute
   ApiTasksIdSnoozeRoute: typeof ApiTasksIdSnoozeRoute
   ApiTasksIdTimerRoute: typeof ApiTasksIdTimerRoute
 }
 
 const ApiTasksIdRouteChildren: ApiTasksIdRouteChildren = {
   ApiTasksIdCompleteRoute: ApiTasksIdCompleteRoute,
+  ApiTasksIdPinRoute: ApiTasksIdPinRoute,
   ApiTasksIdSnoozeRoute: ApiTasksIdSnoozeRoute,
   ApiTasksIdTimerRoute: ApiTasksIdTimerRoute,
 }
