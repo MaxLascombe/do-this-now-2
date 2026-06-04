@@ -31,6 +31,28 @@ export class ApiError extends Error {
   }
 }
 
+// Parse a non-2xx response body back into a typed ApiError. The server uses a
+// uniform { code, message?, details? } envelope; fall back to a generic
+// 'http_error' carrying the HTTP statusText when the body isn't that JSON.
+export function apiErrorFromResponse(
+  status: number,
+  statusText: string,
+  rawBody: string,
+): ApiError {
+  let body: { code?: string; message?: string; details?: unknown } | null = null
+  try {
+    body = rawBody.length > 0 ? JSON.parse(rawBody) : null
+  } catch {
+    // not JSON; keep body null
+  }
+  return new ApiError({
+    code: body?.code ?? 'http_error',
+    status,
+    message: body?.message ?? statusText,
+    details: body?.details,
+  })
+}
+
 export type ProgressTodayResult = {
   done: number
   lives: number
