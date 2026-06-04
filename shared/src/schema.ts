@@ -181,3 +181,15 @@ export const dailyProgress = pgTable(
   (t) => [primaryKey({ columns: [t.userId, t.date] })],
 )
 
+// Global cache of Claude-generated emoji suggestions, keyed by normalized
+// task title, so a repeated title is served from Postgres instead of a fresh
+// model call. User-agnostic on purpose — the title→emoji mapping is the same
+// for everyone, which maximizes hits.
+export const emojiSuggestions = pgTable('emoji_suggestions', {
+  title: text('title').primaryKey(),
+  emojis: jsonb('emojis').$type<string[]>().notNull(),
+  createdAt: timestamp('created_at', { withTimezone: true })
+    .notNull()
+    .defaultNow(),
+})
+
