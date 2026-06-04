@@ -75,6 +75,7 @@ type Props = {
   errorMessage?: string | null
   onSubmit: (input: TaskInput) => void
   onDelete?: () => void
+  onArchive?: () => void
 }
 
 export function TaskForm({
@@ -84,6 +85,7 @@ export function TaskForm({
   errorMessage,
   onSubmit,
   onDelete,
+  onArchive,
 }: Props) {
   const api = useApi()
   const [title, setTitle] = useState(initial.title ?? '')
@@ -795,6 +797,32 @@ export function TaskForm({
           gap: 10,
         }}
       >
+        {onArchive && (
+          <Pressable
+            onPress={onArchive}
+            accessibilityRole="button"
+            accessibilityLabel="Archive task"
+            style={{
+              height: 48,
+              paddingHorizontal: 16,
+              borderRadius: 999,
+              borderWidth: 1,
+              borderColor: '#27272a',
+              alignItems: 'center',
+              justifyContent: 'center',
+            }}
+          >
+            <Text
+              style={{
+                fontFamily: 'JetBrainsMono_400Regular',
+                fontSize: 13,
+                color: '#a1a1aa',
+              }}
+            >
+              Archive
+            </Text>
+          </Pressable>
+        )}
         {onDelete && (
           <Pressable
             onPress={onDelete}

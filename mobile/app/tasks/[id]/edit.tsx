@@ -1,5 +1,10 @@
 import { newSafeDate } from '@dtn/shared/helpers'
-import { useDeleteTask, useTask, useUpdateTask } from '@dtn/shared/queries'
+import {
+  useArchiveTask,
+  useDeleteTask,
+  useTask,
+  useUpdateTask,
+} from '@dtn/shared/queries'
 import { Stack, useLocalSearchParams, useRouter } from 'expo-router'
 import { Alert, ScrollView, View } from 'react-native'
 
@@ -14,6 +19,7 @@ export default function EditTask() {
   const taskQuery = useTask(id ?? '')
   const mutation = useUpdateTask()
   const deleteMutation = useDeleteTask()
+  const archiveMutation = useArchiveTask()
   // 0-time-frame children show their keeper's timer.
   const keeperQuery = useTask(taskQuery.data?.timekeeperId ?? '')
   const timerTask = taskQuery.data?.timekeeperId
@@ -62,6 +68,10 @@ export default function EditTask() {
     ])
   }
 
+  const onArchive = () => {
+    archiveMutation.mutate(task.id, { onSuccess: () => router.back() })
+  }
+
   return (
     <View style={{ flex: 1, backgroundColor: '#0a0a0a' }}>
       <Stack.Screen options={{ title: `Edit: ${task.title}` }} />
@@ -102,6 +112,7 @@ export default function EditTask() {
         isSaving={mutation.isPending}
         errorMessage={mutation.error?.message ?? null}
         onDelete={onDelete}
+        onArchive={onArchive}
         onSubmit={(input) =>
           mutation.mutate(
             { id: id ?? '', input },
