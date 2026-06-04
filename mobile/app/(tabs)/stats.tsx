@@ -1,4 +1,5 @@
 import { newSafeDate } from '@dtn/shared/helpers'
+import { heatmapColor, percentile } from '@dtn/shared/heatmap'
 import { useStats } from '@dtn/shared/queries'
 import type { StatsResult } from '@dtn/shared/types'
 import { Stack } from 'expo-router'
@@ -198,27 +199,6 @@ function StreakSummary({ data }: { data: StatsResult }) {
 
 const HEATMAP_COLS = 22
 
-function percentile(sorted: number[], p: number): number {
-  if (sorted.length === 0) return 0
-  const idx = Math.min(
-    sorted.length - 1,
-    Math.floor(((sorted.length - 1) * p) / 100),
-  )
-  return sorted[idx]
-}
-
-function heatmapColor(
-  minutes: number,
-  hit: boolean,
-  p33: number,
-  p66: number,
-): string {
-  if (minutes === 0) return 'rgba(255,255,255,0.04)'
-  if (hit || minutes >= p66) return '#34d399'
-  if (minutes >= p33) return '#059669'
-  return '#065f46'
-}
-
 function Heatmap({ data }: { data: StatsResult }) {
   const last = data.heatmap[data.heatmap.length - 1]
   if (!last) return null
@@ -283,9 +263,15 @@ function Heatmap({ data }: { data: StatsResult }) {
 function DailyBars({ data }: { data: StatsResult }) {
   const days = data.last30Days
   const max = Math.max(1, ...days.map((d) => d.minutes))
+  const totalMinutes = days.reduce((a, d) => a + d.minutes, 0)
+  const peakMinutes = days.length ? Math.max(...days.map((d) => d.minutes)) : 0
   return (
     <Section title="Last 30 days · minutes done">
       <View
+        accessibilityRole="image"
+        accessibilityLabel={`Minutes completed per day over the last 30 days. ${totalMinutes} minutes total${
+          peakMinutes > 0 ? `, peak ${peakMinutes} minutes in a day` : ''
+        }.`}
         style={{ flexDirection: 'row', height: 60, alignItems: 'flex-end' }}
       >
         {days.map((d, i) => {
@@ -321,6 +307,7 @@ function HourOfDay({ data }: { data: StatsResult }) {
     )
   }
   const max = Math.max(...data.hourOfDay)
+  const peakHour = data.hourOfDay.indexOf(max)
   return (
     <Section title="Hour of day">
       <Text
@@ -334,6 +321,10 @@ function HourOfDay({ data }: { data: StatsResult }) {
         peak {max}/hr
       </Text>
       <View
+        accessibilityRole="image"
+        accessibilityLabel={`Completions by hour of day. Busiest hour ${peakHour
+          .toString()
+          .padStart(2, '0')}:00 with ${max} completions.`}
         style={{ flexDirection: 'row', height: 50, alignItems: 'flex-end' }}
       >
         {data.hourOfDay.map((c, i) => (
@@ -370,9 +361,20 @@ function DayOfWeek({ data }: { data: StatsResult }) {
     )
   }
   const max = Math.max(...data.dayOfWeek)
+  const peakDay = [
+    'Sunday',
+    'Monday',
+    'Tuesday',
+    'Wednesday',
+    'Thursday',
+    'Friday',
+    'Saturday',
+  ][data.dayOfWeek.indexOf(max)]
   return (
     <Section title="Day of week">
       <View
+        accessibilityRole="image"
+        accessibilityLabel={`Completions by day of week. Busiest day ${peakDay} with ${max} completions.`}
         style={{
           flexDirection: 'row',
           height: 60,

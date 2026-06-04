@@ -1,4 +1,5 @@
 import { newSafeDate } from '@dtn/shared/helpers'
+import { heatmapColor, percentile } from '@dtn/shared/heatmap'
 import { useStats } from '@dtn/shared/queries'
 import { createFileRoute, useNavigate } from '@tanstack/react-router'
 import { useState } from 'react'
@@ -179,27 +180,6 @@ function StreakSummary({ data }: { data: StatsResult }) {
 
 const HEATMAP_COLS = 26
 
-function percentile(sorted: Array<number>, p: number): number {
-  if (sorted.length === 0) return 0
-  const idx = Math.min(
-    sorted.length - 1,
-    Math.floor(((sorted.length - 1) * p) / 100),
-  )
-  return sorted[idx]
-}
-
-function heatmapColor(
-  minutes: number,
-  hit: boolean,
-  p33: number,
-  p66: number,
-): string {
-  if (minutes === 0) return 'rgba(255,255,255,0.04)'
-  if (hit || minutes >= p66) return '#34d399'
-  if (minutes >= p33) return '#059669'
-  return '#065f46'
-}
-
 function Heatmap({ data }: { data: StatsResult }) {
   const last = data.heatmap.at(-1)
   if (!last) return null
@@ -305,9 +285,17 @@ function Heatmap({ data }: { data: StatsResult }) {
 function DailyBars({ data }: { data: StatsResult }) {
   const days = data.last30Days
   const max = Math.max(1, ...days.map((d) => d.minutes))
+  const totalMinutes = days.reduce((a, d) => a + d.minutes, 0)
+  const peakMinutes = days.length ? Math.max(...days.map((d) => d.minutes)) : 0
   return (
     <Section title="Last 30 days · minutes done">
-      <div className="flex h-24 items-end gap-[2px]">
+      <div
+        role="img"
+        aria-label={`Minutes completed per day over the last 30 days. ${totalMinutes} minutes total${
+          peakMinutes > 0 ? `, peak ${peakMinutes} minutes in a day` : ''
+        }.`}
+        className="flex h-24 items-end gap-[2px]"
+      >
         {days.map((d, i) => {
           const opacity = 0.35 + 0.65 * (i / Math.max(1, days.length - 1))
           return (
@@ -335,6 +323,7 @@ function DailyBars({ data }: { data: StatsResult }) {
 function HourOfDay({ data }: { data: StatsResult }) {
   const max = Math.max(...data.hourOfDay)
   const total = data.hourOfDay.reduce((a, b) => a + b, 0)
+  const peakHour = data.hourOfDay.indexOf(max)
   if (total === 0) {
     return (
       <Section title="Hour of day">
@@ -350,7 +339,13 @@ function HourOfDay({ data }: { data: StatsResult }) {
         <span>{total} completions</span>
         <span>peak {max}/hr</span>
       </div>
-      <div className="flex h-20 items-end gap-[2px]">
+      <div
+        role="img"
+        aria-label={`Completions by hour of day. Busiest hour ${peakHour
+          .toString()
+          .padStart(2, '0')}:00 with ${max} completions.`}
+        className="flex h-20 items-end gap-[2px]"
+      >
         {data.hourOfDay.map((c, i) => {
           const pct = (c / max) * 100
           return (
@@ -382,6 +377,7 @@ function DayOfWeek({ data }: { data: StatsResult }) {
   const labels = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat']
   const max = Math.max(...data.dayOfWeek)
   const total = data.dayOfWeek.reduce((a, b) => a + b, 0)
+  const peakDay = labels[data.dayOfWeek.indexOf(max)]
   if (total === 0) {
     return (
       <Section title="Day of week">
@@ -397,7 +393,11 @@ function DayOfWeek({ data }: { data: StatsResult }) {
         <span>{total} completions</span>
         <span>peak {max}</span>
       </div>
-      <div className="flex h-20 items-end gap-1.5">
+      <div
+        role="img"
+        aria-label={`Completions by day of week. Busiest day ${peakDay} with ${max} completions.`}
+        className="flex h-20 items-end gap-1.5"
+      >
         {data.dayOfWeek.map((c, i) => {
           const pct = (c / max) * 100
           return (
