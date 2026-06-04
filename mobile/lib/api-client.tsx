@@ -60,6 +60,8 @@ function createMobileApi(
         call<Task>(`/api/tasks/${id}`, { method: 'PUT', body: input }),
       delete: (id) =>
         call<Record<string, never>>(`/api/tasks/${id}`, { method: 'DELETE' }),
+      setPinned: (id, pinned) =>
+        call<Task>(`/api/tasks/${id}/pin`, { method: 'POST', body: { pinned } }),
       complete: (id, opts) =>
         call<{ advanced: boolean }>(`/api/tasks/${id}/complete`, {
           method: 'POST',

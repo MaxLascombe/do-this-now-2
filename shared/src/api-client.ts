@@ -84,6 +84,7 @@ export interface ApiClient {
     create(input: TaskInput): Promise<Task>
     update(id: string, input: TaskInput): Promise<Task>
     delete(id: string): Promise<DeleteTaskResult>
+    setPinned(id: string, pinned: boolean): Promise<Task>
     complete(id: string, opts?: CompleteTaskOptions): Promise<CompleteTaskResult>
     snooze(id: string, allSubtasks?: boolean): Promise<SnoozeTaskResult>
     suggestEmojis(title: string): Promise<string[]>
