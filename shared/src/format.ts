@@ -1,8 +1,10 @@
 import { format } from 'date-fns'
 
+import { dayIndex, startOfToday } from './day-index'
 import { newSafeDate, newSafeDateTime } from './helpers'
 import type { RepeatOption, RepeatUnit, RepeatWeekdays } from './task-input'
 import { minutesToHours } from './time'
+import type { Task } from './types'
 
 const WEEKDAY_SHORT = ['su', 'mo', 'tu', 'we', 'th', 'fr', 'sa'] as const
 
@@ -125,3 +127,50 @@ export function formatDueLabel(
 // History page's day picker: 0 → 'today', 1 → '1 day ago', n → 'n days ago'.
 export const formatDaysAgo = (daysAgo: number): string =>
   daysAgo === 0 ? 'today' : daysAgo === 1 ? '1 day ago' : `${daysAgo} days ago`
+
+export type DueGroupLabel = {
+  label: string
+  eyebrow: string
+  overdueSuffix: string | null
+}
+
+// Day-grouping header for the tasks list: overdue days show the weekday with
+// an "n days overdue" tag, otherwise Today / Tomorrow / the weekday.
+export const dueGroupLabel = (due: string, today?: Date): DueGroupLabel => {
+  const d = newSafeDate(due)
+  const idx = dayIndex(d, today)
+  if (idx < 0) {
+    const days = Math.abs(idx)
+    return {
+      label: format(d, 'EEEE'),
+      eyebrow: format(d, 'LLL d'),
+      overdueSuffix: `${days} day${days === 1 ? '' : 's'} overdue`,
+    }
+  }
+  if (idx === 0)
+    return { label: 'Today', eyebrow: format(d, 'EEEE, LLL d'), overdueSuffix: null }
+  if (idx === 1)
+    return {
+      label: 'Tomorrow',
+      eyebrow: format(d, 'EEEE, LLL d'),
+      overdueSuffix: null,
+    }
+  return { label: format(d, 'EEEE'), eyebrow: format(d, 'LLL d'), overdueSuffix: null }
+}
+
+// Tasks-list page eyebrow: "{total} active · {n} this week", where this week
+// is the current Sunday-to-Saturday calendar window.
+export const tasksListEyebrow = (
+  tasks: Array<Pick<Task, 'due'>>,
+  today: Date = startOfToday(),
+): string => {
+  const weekStart = new Date(today)
+  weekStart.setDate(weekStart.getDate() - weekStart.getDay())
+  const weekEnd = new Date(weekStart)
+  weekEnd.setDate(weekEnd.getDate() + 7)
+  const thisWeek = tasks.filter((t) => {
+    const d = newSafeDate(t.due)
+    return d >= weekStart && d < weekEnd
+  }).length
+  return `${tasks.length} active · ${thisWeek} this week`
+}
