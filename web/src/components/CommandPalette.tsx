@@ -96,17 +96,22 @@ export function CommandPalette() {
   ]
 
   const q = query.trim().toLowerCase()
+  const matchTag = (t: { tags: string[] }) =>
+    t.tags.find((tag) => tag.toLowerCase().includes(q))
   const taskItems: Item[] = (tasksQuery.data ?? [])
-    .filter((t) => !q || t.title.toLowerCase().includes(q))
+    .filter((t) => !q || t.title.toLowerCase().includes(q) || !!matchTag(t))
     .sort((a, b) => newSafeDate(a.due).getTime() - newSafeDate(b.due).getTime())
     .slice(0, 8)
-    .map((t) => ({
-      key: 't:' + t.id,
-      glyph: t.emoji,
-      label: t.title,
-      hint: formatDueLabel(t.due, t.dueTime) || 'Task',
-      run: () => navigate({ to: '/tasks/$id', params: { id: t.id } }),
-    }))
+    .map((t) => {
+      const tag = q && !t.title.toLowerCase().includes(q) ? matchTag(t) : null
+      return {
+        key: 't:' + t.id,
+        glyph: t.emoji,
+        label: t.title,
+        hint: tag ? `#${tag}` : formatDueLabel(t.due, t.dueTime) || 'Task',
+        run: () => navigate({ to: '/tasks/$id', params: { id: t.id } }),
+      }
+    })
 
   const createItems: Item[] = query.trim()
     ? [
