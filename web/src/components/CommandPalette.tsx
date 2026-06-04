@@ -186,6 +186,10 @@ export function CommandPalette() {
     } else if (e.key === 'Enter') {
       e.preventDefault()
       activate(results[active])
+    } else if (e.key === 'Tab') {
+      // Trap focus: navigation is via arrows, so keep it on the input
+      // rather than letting Tab escape the modal to the page behind it.
+      e.preventDefault()
     }
   }
 
@@ -213,9 +217,20 @@ export function CommandPalette() {
           onKeyDown={onInputKey}
           placeholder="Jump to a page or task…"
           aria-label="Search pages and tasks"
+          role="combobox"
+          aria-expanded={results.length > 0}
+          aria-controls="cmdk-results"
           className="w-full border-b border-zinc-800 bg-transparent px-5 py-4 text-sm text-zinc-100 placeholder:text-zinc-600 focus:outline-none"
         />
-        <ul className="max-h-[50vh] overflow-y-auto py-2">
+        <div className="sr-only" aria-live="polite">
+          {query ? `${results.length} result${results.length === 1 ? '' : 's'}` : ''}
+        </div>
+        <ul
+          id="cmdk-results"
+          role="listbox"
+          aria-label="Results"
+          className="max-h-[50vh] overflow-y-auto py-2"
+        >
           {results.length === 0 && (
             <li className="px-5 py-6 text-center text-sm text-zinc-600">
               No matches
