@@ -122,6 +122,7 @@ export default function EditTask() {
             task={timerTask}
             actionId={id ?? ''}
             plannedMinutes={timerTask.timeFrame}
+            compact
           />
         </ScrollView>
       )}
