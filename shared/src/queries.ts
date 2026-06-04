@@ -165,6 +165,8 @@ function makeOptimisticTask(input: TaskInput, userId: string): Task {
     timerAccumulatedSeconds: 0,
     measurementCount: 0,
     snooze: null,
+    notes: input.notes ?? null,
+    tags: input.tags ?? [],
     subtasks: input.subtasks,
     createdAt: now,
     updatedAt: now,
@@ -376,6 +378,29 @@ export function useSnoozeTask() {
       api.tasks.snooze(vars.id, vars.allSubtasks ?? false),
     onMutate: (vars) => optimisticSnooze(qc, vars.id, vars.allSubtasks ?? false),
     onError: (_e, _vars, ctx) => rollback(qc, ctx),
+    onSettled: () => invalidateTaskCaches(qc),
+  })
+}
+
+async function optimisticUnsnooze(
+  qc: QueryClient,
+  id: string,
+): Promise<OptimisticSnapshot> {
+  const task = findTaskInCaches(qc, id)
+  if (!task) return optimisticRemove(qc, id)
+  const subtasks = task.subtasks.map((s) =>
+    s.snooze ? { ...s, snooze: undefined } : s,
+  )
+  return replaceTaskInCaches(qc, id, { ...task, snooze: null, subtasks })
+}
+
+export function useUnsnoozeTask() {
+  const api = useApi()
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: (id: string) => api.tasks.unsnooze(id),
+    onMutate: (id) => optimisticUnsnooze(qc, id),
+    onError: (_e, _id, ctx) => rollback(qc, ctx),
     onSettled: () => invalidateTaskCaches(qc),
   })
 }
