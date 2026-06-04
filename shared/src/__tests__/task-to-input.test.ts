@@ -18,6 +18,7 @@ const INPUT_KEYS = [
   'timeframeType',
   'subtasks',
   'notes',
+  'tags',
 ]
 
 describe('taskToInput', () => {

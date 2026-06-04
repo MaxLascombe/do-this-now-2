@@ -56,6 +56,7 @@ export type Task = {
   measurementCount: number
   snooze: string | null
   notes: string | null
+  tags: string[]
   subtasks: SubTask[]
   createdAt: Date
   updatedAt: Date

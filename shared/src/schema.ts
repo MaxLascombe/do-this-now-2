@@ -112,6 +112,8 @@ export const tasks = pgTable(
     snooze: text('snooze'),
     // Freeform notes/details for a task — context, links, a checklist in prose.
     notes: text('notes'),
+    // User-defined labels for grouping/filtering.
+    tags: jsonb('tags').$type<string[]>().notNull().default([]),
     subtasks: jsonb('subtasks').$type<SubTask[]>().notNull().default([]),
     createdAt: timestamp('created_at', { withTimezone: true })
       .notNull()
