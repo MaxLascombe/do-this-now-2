@@ -407,6 +407,9 @@ function CompletedRow({ entry }: { entry: HistoryEntry }) {
           {task.timeFrame ? (
             <MetaItem>{minutesToHours(task.timeFrame)}</MetaItem>
           ) : null}
+          {task.tags.map((t) => (
+            <MetaItem key={t}>#{t}</MetaItem>
+          ))}
         </View>
       </View>
     </View>

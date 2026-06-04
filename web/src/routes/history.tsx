@@ -293,6 +293,9 @@ const CompletedRow = ({ entry }: { entry: HistoryEntry }) => {
           {task.timeFrame ? (
             <span>{minutesToHours(task.timeFrame)}</span>
           ) : null}
+          {task.tags.map((t) => (
+            <span key={t}>#{t}</span>
+          ))}
         </div>
       </div>
     </div>
