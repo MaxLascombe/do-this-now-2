@@ -207,13 +207,22 @@ function TaskDetail() {
           </div>
         )}
 
-        <Link
-          to="/tasks/$id/edit"
-          params={{ id }}
-          className="flex w-full items-center justify-center gap-2 rounded-full border border-zinc-800 px-4 py-2.5 font-mono text-sm text-zinc-300 hover:bg-zinc-900 hover:text-zinc-50 md:hidden"
-        >
-          Edit task
-        </Link>
+        <div className="flex gap-2 md:hidden">
+          <Link
+            to="/tasks/$id/edit"
+            params={{ id }}
+            className="flex flex-1 items-center justify-center gap-2 rounded-full border border-zinc-800 px-4 py-2.5 font-mono text-sm text-zinc-300 hover:bg-zinc-900 hover:text-zinc-50"
+          >
+            Edit task
+          </Link>
+          <button
+            type="button"
+            onClick={archiveAction}
+            className="flex flex-1 items-center justify-center gap-2 rounded-full border border-zinc-800 px-4 py-2.5 font-mono text-sm text-zinc-300 hover:bg-zinc-900 hover:text-zinc-50"
+          >
+            Archive
+          </button>
+        </div>
       </div>
     </div>
   )
