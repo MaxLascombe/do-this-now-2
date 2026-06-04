@@ -136,7 +136,7 @@ export default function Home() {
                   textAlign: 'center',
                 }}
               >
-                You&rsquo;re all caught up
+                You’re all caught up
               </Text>
               <Text
                 style={{
