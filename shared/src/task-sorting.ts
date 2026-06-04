@@ -90,6 +90,9 @@ export const sortTasks = (
   in2Days.setDate(in2Days.getDate() + 2)
 
   const sortFlags: Array<(t: Task) => boolean> = [
+    // pinned tasks float above everything else
+    (t) => t.pinned,
+
     // not snoozed (true = higher priority)
     (t) => !isSnoozed(t),
 
