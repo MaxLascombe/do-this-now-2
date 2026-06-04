@@ -28,6 +28,7 @@ import {
 } from 'react-native'
 import { SafeAreaView } from 'react-native-safe-area-context'
 
+import { EmptyTasks } from '../../components/EmptyTasks'
 import { ErrorState } from '../../components/ErrorState'
 import { Loading } from '../../components/Loading'
 import { PageHeading } from '../../components/PageHeading'
@@ -238,16 +239,13 @@ export default function TasksList() {
               />
             </View>
           ) : (
-            <Text
-              style={{
-                textAlign: 'center',
-                marginTop: 40,
-                color: '#71717a',
-                fontFamily: 'JetBrainsMono_400Regular',
-              }}
-            >
-              No tasks
-            </Text>
+            <View style={{ marginTop: 48 }}>
+              <EmptyTasks
+                title="No tasks yet"
+                subtitle="Create your first task to get started."
+                onNewTask={() => router.push('/new-task')}
+              />
+            </View>
           )
         }
       />
