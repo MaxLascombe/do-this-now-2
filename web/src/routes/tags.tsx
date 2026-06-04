@@ -48,7 +48,12 @@ function TagBrowse() {
     )
   }, [data])
 
-  const activeTag = selected ?? tagCounts[0]?.[0] ?? null
+  // Fall back to the most-used tag if the selected one no longer exists
+  // (a stale ?tag= deep-link, or its tasks were all deleted/retagged).
+  const activeTag =
+    selected !== null && tagCounts.some(([t]) => t === selected)
+      ? selected
+      : (tagCounts[0]?.[0] ?? null)
   const tagged = useMemo(
     () =>
       (data ?? [])
