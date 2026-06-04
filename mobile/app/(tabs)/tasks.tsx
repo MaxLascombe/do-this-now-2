@@ -18,7 +18,7 @@ import {
 } from '@dtn/shared/timer-utils'
 import type { Task } from '@dtn/shared/types'
 import { Stack, useRouter } from 'expo-router'
-import { useCallback, useMemo, useState } from 'react'
+import { useCallback, useMemo } from 'react'
 import {
   Alert,
   Pressable,
@@ -36,6 +36,7 @@ import { Loading } from '../../components/Loading'
 import { PageHeading } from '../../components/PageHeading'
 import { SwipeableTaskRow } from '../../components/SwipeableTaskRow'
 import { TopProgress } from '../../components/TopProgress'
+import { usePersistedState } from '../../hooks/usePersistedState'
 
 type Sort = 'CHRON' | 'TOP'
 
@@ -51,7 +52,7 @@ const OVERDUE = '#fb7185'
 
 export default function TasksList() {
   const router = useRouter()
-  const [sort, setSort] = useState<Sort>('CHRON')
+  const [sort, setSort] = usePersistedState<Sort>('dtn.tasks.sort', 'CHRON')
   const [query, setQuery] = useState('')
   const [quickTitle, setQuickTitle] = useState('')
 
