@@ -25,6 +25,7 @@ import {
   ScrollView,
   SectionList,
   Text,
+  TextInput,
   View,
 } from 'react-native'
 import { SafeAreaView } from 'react-native-safe-area-context'
@@ -51,6 +52,7 @@ export default function TasksList() {
   const router = useRouter()
   const [sort, setSort] = useState<Sort>('CHRON')
   const [tagFilter, setTagFilter] = useState<string | null>(null)
+  const [query, setQuery] = useState('')
 
   const allTasks = useAllTasks({ enabled: sort === 'CHRON' })
   const topTasks = useTopTasks({ enabled: sort === 'TOP' })
@@ -128,6 +130,13 @@ export default function TasksList() {
     let tasks =
       sort === 'CHRON' ? [...(allTasks.data ?? [])] : [...(topTasks.data ?? [])]
     if (tagFilter) tasks = tasks.filter((t) => t.tags.includes(tagFilter))
+    const q = query.trim().toLowerCase()
+    if (q)
+      tasks = tasks.filter(
+        (t) =>
+          t.title.toLowerCase().includes(q) ||
+          t.tags.some((tag) => tag.toLowerCase().includes(q)),
+      )
     if (tasks.length === 0) return []
 
     if (sort === 'CHRON') {
@@ -181,7 +190,7 @@ export default function TasksList() {
         data: snoozed,
       })
     return result
-  }, [sort, allTasks.data, topTasks.data, tagFilter])
+  }, [sort, allTasks.data, topTasks.data, tagFilter, query])
 
   const eyebrow = useMemo(
     () =>
@@ -223,6 +232,28 @@ export default function TasksList() {
       <View style={{ paddingHorizontal: 20, paddingBottom: 12 }}>
         <SortToggle value={sort} onChange={setSort} />
       </View>
+      <View style={{ paddingHorizontal: 20, paddingBottom: 12 }}>
+        <TextInput
+          value={query}
+          onChangeText={setQuery}
+          placeholder="Search tasks…"
+          placeholderTextColor="#52525b"
+          autoCapitalize="none"
+          autoCorrect={false}
+          clearButtonMode="while-editing"
+          style={{
+            borderWidth: 1,
+            borderColor: '#27272a',
+            backgroundColor: 'rgba(24,24,27,0.6)',
+            borderRadius: 999,
+            paddingHorizontal: 16,
+            paddingVertical: 9,
+            color: '#fafafa',
+            fontFamily: 'JetBrainsMono_400Regular',
+            fontSize: 14,
+          }}
+        />
+      </View>
       {allTags.length > 0 && (
         <TagFilterBar tags={allTags} active={tagFilter} onSelect={setTagFilter} />
       )}
@@ -261,7 +292,7 @@ export default function TasksList() {
                 fontFamily: 'JetBrainsMono_400Regular',
               }}
             >
-              No tasks
+              {query.trim() || tagFilter ? 'No matching tasks' : 'No tasks'}
             </Text>
           )
         }
