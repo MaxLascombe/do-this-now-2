@@ -1,6 +1,6 @@
 import { useClerk, useUser } from '@clerk/clerk-expo'
 import * as Haptics from 'expo-haptics'
-import { Stack } from 'expo-router'
+import { Stack, useRouter } from 'expo-router'
 import { Alert, Pressable, Text, View } from 'react-native'
 import { SafeAreaView } from 'react-native-safe-area-context'
 
@@ -12,6 +12,7 @@ const OVERDUE = '#fb7185'
 export default function Profile() {
   const { signOut } = useClerk()
   const { user } = useUser()
+  const router = useRouter()
   const email = user?.primaryEmailAddress?.emailAddress
   const initial =
     user?.firstName?.[0]?.toUpperCase() ?? email?.[0]?.toUpperCase() ?? '?'
@@ -94,6 +95,34 @@ export default function Profile() {
             </Text>
           )}
         </View>
+
+        <Pressable
+          onPress={() => router.push('/calendar')}
+          accessibilityRole="button"
+          accessibilityLabel="Calendar"
+          style={({ pressed }) => ({
+            flexDirection: 'row',
+            alignItems: 'center',
+            gap: 10,
+            paddingVertical: 14,
+            paddingHorizontal: 18,
+            borderRadius: 999,
+            borderWidth: 1,
+            borderColor: '#27272a',
+            backgroundColor: pressed ? 'rgba(24,24,27,0.8)' : 'transparent',
+          })}
+        >
+          <Text style={{ fontSize: 16 }}>🗓</Text>
+          <Text
+            style={{
+              fontFamily: 'JetBrainsMono_400Regular',
+              fontSize: 14,
+              color: '#fafafa',
+            }}
+          >
+            Calendar
+          </Text>
+        </Pressable>
 
         <Pressable
           onPress={onSignOut}
