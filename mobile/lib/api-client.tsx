@@ -1,6 +1,6 @@
 import { useAuth } from '@clerk/clerk-expo'
 import {
-  ApiError,
+  apiErrorFromResponse,
   ApiProvider,
   type ApiClient,
 } from '@dtn/shared/api-client'
@@ -36,22 +36,7 @@ async function jsonFetch<T>(
     body: init.body !== undefined ? JSON.stringify(init.body) : undefined,
   })
   if (!res.ok) {
-    // Server uses the uniform { code, message?, details? } envelope. Parse
-    // it back into a typed ApiError so consumers can branch on err.code.
-    // Fall back to a generic 'http_error' if the body wasn't JSON.
-    const text = await res.text()
-    let body: { code?: string; message?: string; details?: unknown } | null = null
-    try {
-      body = text.length > 0 ? JSON.parse(text) : null
-    } catch {
-      // not JSON; keep body null
-    }
-    throw new ApiError({
-      code: body?.code ?? 'http_error',
-      status: res.status,
-      message: body?.message ?? res.statusText,
-      details: body?.details,
-    })
+    throw apiErrorFromResponse(res.status, res.statusText, await res.text())
   }
   return res.json() as Promise<T>
 }
