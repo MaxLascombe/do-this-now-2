@@ -6,6 +6,7 @@ import {
   usePrimeTaskCache,
   useSnoozeTask,
   useTask,
+  useTaskTimer,
   useTopTasks,
 } from '@dtn/shared/queries'
 import {
@@ -194,6 +195,20 @@ function Home() {
     navigate({ to: '/tasks/$id/edit', params: { id: selectedTask.id } })
   }
 
+  // A 0-time-frame child runs its timer on the keeper row, like HeroTimer —
+  // resolve it so the toggle reads the right `running` state. The mutation
+  // still targets the selected id; the server maps it to the keeper.
+  const timer = useTaskTimer()
+  const keeperQuery = useTask(selectedTask?.timekeeperId ?? '')
+  const timerTask = selectedTask?.timekeeperId ? keeperQuery.data : selectedTask
+  const toggleTimerAction = () => {
+    if (!selectedTask) return
+    timer.mutate({
+      id: selectedTask.id,
+      action: { kind: timerTask?.timerStartedAt ? 'pause' : 'start' },
+    })
+  }
+
   const keyActions: Array<KeyAction> = [
     { key: 'd', description: 'Task done', action: completeTaskAction },
     {
@@ -230,6 +245,11 @@ function Home() {
       action: () => navigate({ to: '/tasks' }),
     },
     { key: 'e', description: 'Edit task', action: goEdit },
+    {
+      key: 'p',
+      description: timerTask?.timerStartedAt ? 'Pause timer' : 'Start timer',
+      action: toggleTimerAction,
+    },
     {
       key: '1',
       description: 'Select first task',
