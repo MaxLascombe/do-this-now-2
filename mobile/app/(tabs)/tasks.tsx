@@ -76,6 +76,8 @@ export default function TasksList() {
       timekeeperId: null,
       timeframeType: 'fixed',
       subtasks: [],
+      notes: '',
+      tags: [],
     })
     setQuickTitle('')
   }
