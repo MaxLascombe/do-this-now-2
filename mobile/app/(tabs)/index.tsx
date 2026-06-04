@@ -123,9 +123,56 @@ export default function Home() {
               onRetry={() => topTasks.refetch()}
             />
           ) : (
-            <Text style={{ color: '#a1a1aa', fontSize: 14 }}>
-              No tasks for now — tap + to add one.
-            </Text>
+            <>
+              <Text style={{ color: '#34d399', fontSize: 64, lineHeight: 72 }}>
+                ✦
+              </Text>
+              <Text
+                style={{
+                  color: '#fafafa',
+                  fontFamily: 'InstrumentSerif_400Regular_Italic',
+                  fontSize: 32,
+                  marginTop: 8,
+                  textAlign: 'center',
+                }}
+              >
+                You&rsquo;re all caught up
+              </Text>
+              <Text
+                style={{
+                  color: '#71717a',
+                  fontFamily: 'JetBrainsMono_400Regular',
+                  fontSize: 13,
+                  marginTop: 8,
+                  textAlign: 'center',
+                  maxWidth: 280,
+                }}
+              >
+                Nothing on your plate right now.
+              </Text>
+              <Pressable
+                onPress={() => router.push('/new-task')}
+                accessibilityRole="button"
+                accessibilityLabel="Add a task"
+                style={{
+                  marginTop: 24,
+                  backgroundColor: '#fafafa',
+                  borderRadius: 999,
+                  paddingHorizontal: 24,
+                  paddingVertical: 12,
+                }}
+              >
+                <Text
+                  style={{
+                    color: '#0a0a0a',
+                    fontFamily: 'JetBrainsMono_700Bold',
+                    fontSize: 14,
+                  }}
+                >
+                  ＋ Add a task
+                </Text>
+              </Pressable>
+            </>
           )}
         </View>
       ) : (

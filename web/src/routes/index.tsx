@@ -19,7 +19,7 @@ import {
   currentTimerSeconds,
   isCompletionGated,
 } from '@dtn/shared/timer-utils'
-import { createFileRoute, useNavigate } from '@tanstack/react-router'
+import { Link, createFileRoute, useNavigate } from '@tanstack/react-router'
 import { useEffect, useState } from 'react'
 
 import { useConfirm } from '../components/ConfirmProvider'
@@ -250,14 +250,43 @@ function Home() {
       />
 
       {tasks.length === 0 ? (
-        <div className="flex flex-1 items-center justify-center text-zinc-500">
+        <div className="flex flex-1 flex-col items-center justify-center px-6 text-center">
           {topTasksQuery.isError ? (
             <ErrorState
               message="Couldn't load your tasks."
               onRetry={() => topTasksQuery.refetch()}
             />
           ) : (
-            'No tasks'
+            <>
+              <div
+                aria-hidden="true"
+                className="mb-6 text-7xl leading-none select-none md:text-8xl"
+                style={{ color: '#34d399' }}
+              >
+                ✦
+              </div>
+              <h1 className="dtn-task-title text-3xl text-zinc-50 md:text-5xl">
+                You&rsquo;re all caught up
+              </h1>
+              <p className="mt-3 max-w-sm font-mono text-sm text-zinc-500">
+                Nothing on your plate right now. Enjoy it — or line up what
+                comes next.
+              </p>
+              <div className="mt-8 flex flex-wrap items-center justify-center gap-3 font-mono text-sm">
+                <Link
+                  to="/new-task"
+                  className="rounded-full bg-white px-6 py-3 font-semibold text-black transition-colors hover:bg-zinc-100"
+                >
+                  ＋ Add a task
+                </Link>
+                <Link
+                  to="/stats"
+                  className="rounded-full border border-zinc-800 px-6 py-3 text-zinc-300 transition-colors hover:border-zinc-600 hover:text-zinc-50"
+                >
+                  See your stats
+                </Link>
+              </div>
+            </>
           )}
         </div>
       ) : (
