@@ -1,10 +1,8 @@
 import { formatScheduleStatus } from '@dtn/shared/format'
+import { computeSchedule } from '@dtn/shared/pacing'
 import { useProgressToday } from '@dtn/shared/queries'
-import {
-  MINUTES_IN_DAY,
-  START_OF_DAY_MINUTES,
-  minutesToHours,
-} from '@dtn/shared/time'
+import { computePoints } from '@dtn/shared/scoring'
+import { minutesToHours } from '@dtn/shared/time'
 import { useRef } from 'react'
 
 import { useDate } from '../hooks/useDate'
@@ -46,28 +44,16 @@ export const useComputedProgress = (): Computed | null => {
     daysUntilAllDone,
     minutesToReduceTomorrowDays,
   } = q.data
-  const maxTodo = Math.max(todo, minutesToReduceTomorrowDays)
-  const timeOfDay = now.getHours() * 60 + now.getMinutes()
-  const pctOfDay = Math.max(
-    0,
-    Math.min(
-      1,
-      (timeOfDay - START_OF_DAY_MINUTES) /
-        (MINUTES_IN_DAY - START_OF_DAY_MINUTES),
-    ),
+  const { shouldBeDone, isBeforeWorkday } = computeSchedule(
+    now,
+    todo,
+    minutesToReduceTomorrowDays,
   )
-  const shouldBeDone = maxTodo * pctOfDay
-  const isBeforeWorkday = timeOfDay < START_OF_DAY_MINUTES
 
   const livesUsed = Math.min(lives, Math.max(0, todo - done))
   const livesLeft = lives - livesUsed
 
-  const doneUsingAllLives = Math.min(done, todo - lives)
-  const doneUsingLives = Math.min(done, todo)
-  const points =
-    doneUsingAllLives +
-    (doneUsingLives - doneUsingAllLives) * 2 +
-    (done - doneUsingLives) * 3
+  const points = computePoints(done, todo, lives)
 
   const clearByDate = new Date(
     new Date().setDate(now.getDate() + daysUntilAllDone),
@@ -254,7 +240,7 @@ export const ProgressPopover = () => {
           iconColor={STREAK}
           label="Streak"
           value={p.streak}
-          unit="days"
+          unit={p.streak === 1 ? 'day' : 'days'}
           active={p.streakIsActive}
         />
         <DetailRow
