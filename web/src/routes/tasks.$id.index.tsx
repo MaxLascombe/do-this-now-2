@@ -4,6 +4,7 @@ import { minutesToHours } from '@dtn/shared/time'
 import { Link, createFileRoute, useRouter } from '@tanstack/react-router'
 import { useEffect, useState } from 'react'
 
+import { ErrorState } from '../components/ErrorState'
 import { Loading } from '../components/Loading'
 import { MobileChrome } from '../components/MobileChrome'
 import { PageHeading } from '../components/PageHeading'
@@ -48,7 +49,16 @@ function TaskDetail() {
           onCloseSheet={() => setSheetOpen(false)}
         />
         <div className="flex flex-1 items-center justify-center">
-          <Loading />
+          {taskQuery.isPending ? (
+            <Loading />
+          ) : taskQuery.isError ? (
+            <ErrorState
+              message="Couldn't load this task."
+              onRetry={() => taskQuery.refetch()}
+            />
+          ) : (
+            <ErrorState message="Task not found." />
+          )}
         </div>
       </div>
     )
@@ -136,7 +146,10 @@ function TaskDetail() {
                   key={i}
                   className="flex items-center gap-3 rounded-xl border border-zinc-800 bg-zinc-900/60 px-4 py-2.5 font-mono text-sm"
                 >
-                  <span className={sub.done ? 'text-emerald-400' : 'text-zinc-600'}>
+                  <span
+                    aria-hidden="true"
+                    className={sub.done ? 'text-emerald-400' : 'text-zinc-600'}
+                  >
                     {sub.done ? '☑' : '☐'}
                   </span>
                   <span
@@ -145,6 +158,9 @@ function TaskDetail() {
                       (sub.done ? 'text-zinc-500 line-through' : 'text-zinc-100')
                     }
                   >
+                    <span className="sr-only">
+                      {sub.done ? 'Completed: ' : 'To do: '}
+                    </span>
                     {sub.title}
                   </span>
                 </li>
