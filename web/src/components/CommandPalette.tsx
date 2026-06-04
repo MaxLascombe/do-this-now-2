@@ -1,9 +1,17 @@
 import { useClerk } from '@clerk/tanstack-react-start'
+import { startOfToday } from '@dtn/shared/day-index'
 import { formatDueLabel } from '@dtn/shared/format'
 import { dateString, newSafeDate } from '@dtn/shared/helpers'
-import { useAllTasks, useCreateTask } from '@dtn/shared/queries'
+import {
+  useAllTasks,
+  useCreateTask,
+  useSnoozeTask,
+} from '@dtn/shared/queries'
+import { isSnoozed } from '@dtn/shared/task-sorting'
 import { useNavigate } from '@tanstack/react-router'
 import { useEffect, useRef, useState } from 'react'
+
+import { useConfirm } from './ConfirmProvider'
 
 type Item = {
   key: string
@@ -19,6 +27,8 @@ export function CommandPalette() {
   const navigate = useNavigate()
   const { signOut } = useClerk()
   const createTask = useCreateTask()
+  const snoozeTask = useSnoozeTask()
+  const confirm = useConfirm()
   const tasksQuery = useAllTasks({ enabled: false })
   const [open, setOpen] = useState(false)
   const [query, setQuery] = useState('')
@@ -180,7 +190,32 @@ export function CommandPalette() {
     URL.revokeObjectURL(url)
   }
 
+  const todayMs = startOfToday().getTime()
+  const overdue = (tasksQuery.data ?? []).filter(
+    (t) => !isSnoozed(t) && newSafeDate(t.due).getTime() < todayMs,
+  )
+
+  const snoozeOverdue = async () => {
+    const ok = await confirm({
+      message: `Snooze all ${overdue.length} overdue task${overdue.length === 1 ? '' : 's'}?`,
+      confirmLabel: 'Snooze all',
+    })
+    if (!ok) return
+    for (const t of overdue) snoozeTask.mutate({ id: t.id })
+  }
+
   const actions: Item[] = [
+    ...(overdue.length > 0
+      ? [
+          {
+            key: 'a:snooze-overdue',
+            glyph: '☾',
+            label: `Snooze all ${overdue.length} overdue`,
+            hint: 'Action',
+            run: () => void snoozeOverdue(),
+          },
+        ]
+      : []),
     {
       key: 'a:export',
       glyph: '⤓',
