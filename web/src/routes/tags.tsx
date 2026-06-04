@@ -109,6 +109,21 @@ function TagBrowse() {
                 })}
               </div>
 
+              {activeTag !== null && (
+                <div className="flex items-center justify-between font-mono text-[10px] tracking-[0.3em] text-zinc-500 uppercase">
+                  <span>#{activeTag}</span>
+                  <button
+                    type="button"
+                    onClick={() =>
+                      navigate({ to: '/new-task', search: { tag: activeTag } })
+                    }
+                    className="rounded-full border border-zinc-800 px-3 py-1 tracking-normal text-zinc-400 normal-case hover:bg-zinc-900 hover:text-zinc-50"
+                  >
+                    + New task
+                  </button>
+                </div>
+              )}
+
               <div className="flex flex-col gap-2">
                 {tagged.map((t) => (
                   <TaskRow
