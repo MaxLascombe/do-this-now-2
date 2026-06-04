@@ -65,7 +65,10 @@ function TaskDetail() {
   }, [task?.timerStartedAt])
 
   const runComplete = (countMeasurement: boolean) =>
-    doneMutation.mutate({ id, countMeasurement })
+    doneMutation.mutate(
+      { id, countMeasurement },
+      { onSuccess: () => router.history.back() },
+    )
 
   const completeAction = () => {
     if (!task) return
