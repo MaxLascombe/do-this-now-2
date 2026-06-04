@@ -15,6 +15,17 @@ const GROUPS: Array<{
     ],
   },
   {
+    title: 'On the Now screen',
+    items: [
+      { keys: ['D'], label: 'Mark done' },
+      { keys: ['S'], label: 'Snooze' },
+      { keys: ['E'], label: 'Edit' },
+      { keys: ['1', '–', '3'], label: 'Pick a task' },
+      { keys: ['↑', '↓'], label: 'Move selection' },
+      { keys: ['⌫'], label: 'Delete' },
+    ],
+  },
+  {
     title: 'Anywhere',
     items: [
       { keys: ['⌘', 'K'], label: 'Command palette' },
