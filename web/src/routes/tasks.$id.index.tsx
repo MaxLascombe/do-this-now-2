@@ -1,10 +1,25 @@
 import { formatDueLabel, formatRepeat } from '@dtn/shared/format'
-import { useTask, useUpdateTask } from '@dtn/shared/queries'
+import { dateString, nextDueDate } from '@dtn/shared/helpers'
+import {
+  useCompleteTask,
+  useDeleteTask,
+  useSnoozeTask,
+  useTask,
+  useUpdateTask,
+} from '@dtn/shared/queries'
 import { taskToInput } from '@dtn/shared/task-input'
+import { willAdvanceSubtask } from '@dtn/shared/task-transitions'
 import { minutesToHours } from '@dtn/shared/time'
+import {
+  completionConfirmKind,
+  currentTimerSeconds,
+  isCompletionGated,
+} from '@dtn/shared/timer-utils'
 import { Link, createFileRoute, useRouter } from '@tanstack/react-router'
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 
+import { useConfirm } from '../components/ConfirmProvider'
+import { CountConfirmModal } from '../components/CountConfirmModal'
 import { ErrorState } from '../components/ErrorState'
 import { Loading } from '../components/Loading'
 import { MobileChrome } from '../components/MobileChrome'
@@ -12,6 +27,7 @@ import { PageHeading } from '../components/PageHeading'
 import { TimerWidget } from '../components/TimerWidget'
 import { TopBar } from '../components/TopBar'
 import useKeyAction from '../hooks/useKeyAction'
+import type { Task } from '@dtn/shared/types'
 import type { KeyAction } from '../hooks/useKeyAction'
 
 const OVERDUE = '#fb7185'
@@ -32,13 +48,74 @@ function TaskDetail() {
   const keeperQuery = useTask(task?.timekeeperId ?? '')
   const timerTask = task?.timekeeperId ? keeperQuery.data : task
 
+  const snoozeMutation = useSnoozeTask()
+  const deleteMutation = useDeleteTask()
+  const doneMutation = useCompleteTask()
   const updateTask = useUpdateTask()
+  const confirm = useConfirm()
+
   const toggleSubtask = (index: number) => {
     if (!task) return
     const subtasks = task.subtasks.map((s, i) =>
       i === index ? { ...s, done: !s.done } : s,
     )
     updateTask.mutate({ id, input: { ...taskToInput(task), subtasks } })
+  }
+
+  const [pendingComplete, setPendingComplete] = useState<{
+    task: Task
+    kind: 'over' | 'under'
+  } | null>(null)
+
+  // Tick "now" each second while the timer runs so the Done gate
+  // re-evaluates on its own, matching the home view.
+  const [now, setNow] = useState(() => new Date())
+  useEffect(() => {
+    if (!task?.timerStartedAt) return
+    const t = setInterval(() => setNow(new Date()), 1000)
+    return () => clearInterval(t)
+  }, [task?.timerStartedAt])
+
+  const runComplete = (countMeasurement: boolean) =>
+    doneMutation.mutate(
+      { id, countMeasurement },
+      { onSuccess: () => router.history.back() },
+    )
+
+  const completeAction = () => {
+    if (!task) return
+    if (isCompletionGated(task, now)) return
+    if (willAdvanceSubtask(task, now)) {
+      runComplete(true)
+      return
+    }
+    const kind = completionConfirmKind(task, now)
+    if (!kind) {
+      runComplete(true)
+      return
+    }
+    setPendingComplete({ task, kind })
+  }
+
+  const [copied, setCopied] = useState(false)
+  const copyLink = async () => {
+    try {
+      await navigator.clipboard.writeText(window.location.href)
+      setCopied(true)
+      setTimeout(() => setCopied(false), 1500)
+    } catch {
+      // clipboard blocked (e.g. insecure context) — nothing actionable
+    }
+  }
+
+  const snoozeAction = () => snoozeMutation.mutate({ id })
+  const deleteAction = async () => {
+    const ok = await confirm({
+      message: `Are you sure you want to delete '${task?.title ?? 'this task'}'?`,
+      confirmLabel: 'Delete',
+    })
+    if (!ok) return
+    deleteMutation.mutate(id, { onSuccess: () => router.history.back() })
   }
 
   const keyActions: Array<KeyAction> = [
@@ -48,6 +125,9 @@ function TaskDetail() {
       description: 'Edit',
       action: () => router.navigate({ to: '/tasks/$id/edit', params: { id } }),
     },
+    { key: 'd', description: 'Done', action: completeAction },
+    { key: 's', description: 'Snooze', action: snoozeAction },
+    { key: 'backspace', description: 'Delete', action: deleteAction },
     { key: 'n', description: 'Home', action: () => router.navigate({ to: '/' }) },
     {
       key: 't',
@@ -106,6 +186,27 @@ function TaskDetail() {
     task.repeatWeekdays,
   )
   const doneCount = task.subtasks.filter((s) => s.done).length
+
+  const upcoming: Date[] = []
+  {
+    let cursor = task
+    for (let i = 0; i < 3; i++) {
+      const next = nextDueDate(cursor)
+      if (!next) break
+      upcoming.push(next)
+      cursor = { ...cursor, due: dateString(next) }
+    }
+  }
+
+  const gated = isCompletionGated(task, now)
+  const remainingMin = gated
+    ? Math.ceil(task.timeFrame - currentTimerSeconds(task, now) / 60)
+    : 0
+  const doneLabel = gated
+    ? `${remainingMin} min to go`
+    : willAdvanceSubtask(task, now)
+      ? 'Subtask done'
+      : 'Done'
 
   return (
     <div className="flex min-h-screen flex-col">
@@ -169,6 +270,89 @@ function TaskDetail() {
           )}
         </div>
 
+        {upcoming.length > 0 && (
+          <div className="font-mono text-xs text-zinc-500">
+            <span className="tracking-[0.2em] text-zinc-600 uppercase">
+              Next
+            </span>{' '}
+            {upcoming
+              .map((d) =>
+                d.toLocaleDateString('en-US', {
+                  month: 'short',
+                  day: 'numeric',
+                }),
+              )
+              .join('  ·  ')}
+          </div>
+        )}
+
+        {task.tags.length > 0 && (
+          <div className="flex flex-wrap gap-1.5">
+            {task.tags.map((t) => (
+              <span
+                key={t}
+                className="rounded-full border border-zinc-800 bg-zinc-900 px-2.5 py-1 font-mono text-xs text-zinc-300"
+              >
+                #{t}
+              </span>
+            ))}
+          </div>
+        )}
+
+        {task.notes && (
+          <div>
+            <div className="mb-2 font-mono text-[10px] tracking-[0.3em] text-zinc-500 uppercase">
+              Notes
+            </div>
+            <p className="font-mono text-sm whitespace-pre-wrap text-zinc-300">
+              {task.notes}
+            </p>
+          </div>
+        )}
+
+        <div className="flex flex-wrap items-center gap-2 font-mono text-sm">
+          <button
+            type="button"
+            onClick={completeAction}
+            disabled={gated}
+            title={gated ? `Run the timer — ${remainingMin} min to go` : undefined}
+            className="flex items-center gap-2 rounded-full bg-white px-4 py-1.5 font-semibold text-black hover:bg-zinc-100 disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:bg-white"
+          >
+            <span>{doneLabel}</span>
+            <kbd className="rounded border border-zinc-300 bg-black/10 px-1 py-0.5 text-[10px] font-bold text-zinc-900">
+              D
+            </kbd>
+          </button>
+          <button
+            type="button"
+            onClick={snoozeAction}
+            className="flex items-center gap-2 rounded-full border border-zinc-800 px-4 py-1.5 text-zinc-300 hover:bg-zinc-900 hover:text-zinc-50"
+          >
+            <span>Snooze</span>
+            <kbd className="rounded border border-zinc-700 bg-zinc-900 px-1 py-0.5 text-[10px] font-bold text-zinc-300">
+              S
+            </kbd>
+          </button>
+          <button
+            type="button"
+            onClick={deleteAction}
+            className="flex items-center gap-2 rounded-full border px-4 py-1.5 hover:bg-zinc-900"
+            style={{ borderColor: 'rgba(251,113,133,0.3)', color: OVERDUE }}
+          >
+            <span>Delete</span>
+            <kbd className="rounded border border-zinc-800 bg-zinc-900 px-1 py-0.5 text-[10px] font-bold text-zinc-400">
+              ⌫
+            </kbd>
+          </button>
+          <button
+            type="button"
+            onClick={copyLink}
+            className="flex items-center gap-2 rounded-full border border-zinc-800 px-4 py-1.5 text-zinc-400 hover:bg-zinc-900 hover:text-zinc-50"
+          >
+            {copied ? 'Copied' : 'Copy link'}
+          </button>
+        </div>
+
         {task.subtasks.length > 0 && (
           <div>
             <div className="mb-3 flex items-baseline justify-between font-mono text-[10px] tracking-[0.3em] text-zinc-500 uppercase">
@@ -220,6 +404,21 @@ function TaskDetail() {
           Edit task
         </Link>
       </div>
+
+      <CountConfirmModal
+        open={!!pendingComplete}
+        task={pendingComplete?.task ?? null}
+        kind={pendingComplete?.kind ?? null}
+        onCancel={() => setPendingComplete(null)}
+        onSkip={() => {
+          if (pendingComplete) runComplete(false)
+          setPendingComplete(null)
+        }}
+        onCount={() => {
+          if (pendingComplete) runComplete(true)
+          setPendingComplete(null)
+        }}
+      />
     </div>
   )
 }
