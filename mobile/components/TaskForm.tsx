@@ -178,7 +178,9 @@ export function TaskForm({
   const quickDue = (deltaDays: number) => {
     const d = new Date()
     d.setDate(d.getDate() + deltaDays)
-    setDueDate(d)
+    // Normalize to local midnight so dayDiff (and its phrase) match the
+    // picker's behavior — a wall-clock time skews the day-distance label.
+    setDueDate(newSafeDate(dateString(d)))
   }
   const dueQuickOptions = [
     { label: 'Today', delta: 0 },
