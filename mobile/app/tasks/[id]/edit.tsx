@@ -56,8 +56,19 @@ export default function EditTask() {
   const dueDate = newSafeDate(task.due)
 
   const onDuplicate = () => {
+    if (createMutation.isPending) return
+    const input = taskToInput(task)
     createMutation.mutate(
-      { ...taskToInput(task), title: `${task.title} (copy)` },
+      {
+        ...input,
+        title: `${task.title} (copy)`,
+        // A fresh copy starts un-done and un-snoozed, not mid-progress.
+        subtasks: input.subtasks.map((s) => ({
+          ...s,
+          done: false,
+          snooze: undefined,
+        })),
+      },
       { onSuccess: () => router.back() },
     )
   }
