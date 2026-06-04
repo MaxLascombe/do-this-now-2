@@ -53,6 +53,7 @@ function TasksList() {
   const navigate = useNavigate()
   const [selectedTask, setSelectedTask] = useState(0)
   const [sort, setSort] = useState<'CHRON' | 'TOP'>('CHRON')
+  const [tagFilter, setTagFilter] = useState<string | null>(null)
   const taskElems = useRef<Array<HTMLElement>>([])
 
   const allTasks = useAllTasks({ enabled: sort === 'CHRON' })
@@ -61,8 +62,18 @@ function TasksList() {
   const data = allTasks.data ?? []
   const dataTop = topTasks.data ?? []
 
+  const allTags = useMemo(() => {
+    const source = sort === 'CHRON' ? data : dataTop
+    return [...new Set(source.flatMap((t) => t.tags))].sort()
+  }, [sort, data, dataTop])
+
+  useEffect(() => {
+    if (tagFilter && !allTags.includes(tagFilter)) setTagFilter(null)
+  }, [tagFilter, allTags])
+
   const tasks = useMemo(() => {
-    const arr = sort === 'CHRON' ? [...data] : [...dataTop]
+    let arr = sort === 'CHRON' ? [...data] : [...dataTop]
+    if (tagFilter) arr = arr.filter((t) => t.tags.includes(tagFilter))
     if (sort === 'CHRON') {
       arr.sort(
         (a, b) => newSafeDate(a.due).getTime() - newSafeDate(b.due).getTime(),
@@ -71,7 +82,7 @@ function TasksList() {
       sortTasks(arr, startOfToday())
     }
     return arr
-  }, [sort, data, dataTop])
+  }, [sort, data, dataTop, tagFilter])
 
   const indexOf = useMemo(() => {
     const m = new Map<string, number>()
@@ -274,6 +285,17 @@ function TasksList() {
         />
       </div>
 
+      {allTags.length > 0 && (
+        <TagFilterBar
+          tags={allTags}
+          active={tagFilter}
+          onSelect={(t) => {
+            setTagFilter(t)
+            setSelectedTask(0)
+          }}
+        />
+      )}
+
       <div className="flex-1 overflow-y-auto px-5 pb-28 md:px-10 md:pb-24">
         {tasks.length === 0 && !isFetching && (
           <div className="mt-8 flex justify-center text-center font-mono text-sm text-zinc-500">
@@ -433,6 +455,52 @@ function TasksList() {
     </div>
   )
 }
+
+const TagFilterBar = ({
+  tags,
+  active,
+  onSelect,
+}: {
+  tags: Array<string>
+  active: string | null
+  onSelect: (tag: string | null) => void
+}) => (
+  <div className="flex flex-wrap items-center gap-1.5 px-5 pb-3 md:px-10">
+    <TagChip label="All" active={active === null} onClick={() => onSelect(null)} />
+    {tags.map((t) => (
+      <TagChip
+        key={t}
+        label={`#${t}`}
+        active={active === t}
+        onClick={() => onSelect(active === t ? null : t)}
+      />
+    ))}
+  </div>
+)
+
+const TagChip = ({
+  label,
+  active,
+  onClick,
+}: {
+  label: string
+  active: boolean
+  onClick: () => void
+}) => (
+  <button
+    type="button"
+    onClick={onClick}
+    aria-pressed={active}
+    className={
+      'rounded-full border px-3 py-1 font-mono text-xs transition-colors ' +
+      (active
+        ? 'border-zinc-100 bg-zinc-50 text-zinc-950'
+        : 'border-zinc-800 bg-zinc-900/60 text-zinc-400 hover:border-zinc-700 hover:text-zinc-100')
+    }
+  >
+    {label}
+  </button>
+)
 
 const SortToggle = ({
   sort,
