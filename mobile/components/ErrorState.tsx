@@ -10,6 +10,7 @@ export function ErrorState({
   return (
     <View
       accessibilityRole="alert"
+      accessibilityLiveRegion="assertive"
       style={{ alignItems: 'center', gap: 12, padding: 24 }}
     >
       <Text

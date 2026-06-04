@@ -2,7 +2,11 @@ import { newSafeDate } from '@dtn/shared/helpers'
 import { type Task } from '@dtn/shared/schema'
 import { describe, expect, it } from 'vitest'
 
-import { computeProgress, type ProgressInputs } from '../progress-math'
+import {
+  computeProgress,
+  findMinutesOnTargetDay,
+  type ProgressInputs,
+} from '../progress-math'
 
 const makeTask = (over: Partial<Task> = {}): Task => ({
   id: 'task-test',
@@ -89,5 +93,39 @@ describe('computeProgress', () => {
     expect(result.todo).toBe(0)
     expect(result.daysUntilAllDone).toBe(14)
     expect(result.streakIsActive).toBe(true) // 0 done >= 0 todo
+  })
+})
+
+describe('findMinutesOnTargetDay', () => {
+  // today is a Friday; target = today + daysUntilAllDone + 1.
+  const friday = newSafeDate('2026-5-1')
+
+  it('counts a daily task on the target day', () => {
+    const t = makeTask({ repeat: 'Daily', timeFrame: 30 })
+    expect(findMinutesOnTargetDay(friday, [t], 0)).toBe(30) // target 5-2
+  })
+
+  it('counts a weekly task when the target lands on its weekday', () => {
+    const t = makeTask({ repeat: 'Weekly', due: '2026-5-1', timeFrame: 60 })
+    expect(findMinutesOnTargetDay(friday, [t], 6)).toBe(60) // target 5-8 (Fri)
+  })
+
+  it('respects repeatInterval for custom-week repeats', () => {
+    // Every 2 weeks from Fri 5-1: due 5-15, not 5-8.
+    const t = makeTask({
+      repeat: 'Custom',
+      repeatUnit: 'week',
+      repeatInterval: 2,
+      due: '2026-5-1',
+      timeFrame: 100,
+    })
+    expect(findMinutesOnTargetDay(friday, [t], 6)).toBe(0) // target 5-8: off-cycle
+    expect(findMinutesOnTargetDay(friday, [t], 13)).toBe(100) // target 5-15: on-cycle
+  })
+
+  it('counts a one-shot task only on its exact due day', () => {
+    const t = makeTask({ repeat: 'No Repeat', due: '2026-5-5', timeFrame: 50 })
+    expect(findMinutesOnTargetDay(friday, [t], 3)).toBe(50) // target 5-5
+    expect(findMinutesOnTargetDay(friday, [t], 0)).toBe(0) // target 5-2
   })
 })
