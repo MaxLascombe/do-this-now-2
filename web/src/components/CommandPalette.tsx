@@ -1,3 +1,5 @@
+import { formatDueLabel } from '@dtn/shared/format'
+import { newSafeDate } from '@dtn/shared/helpers'
 import { useAllTasks } from '@dtn/shared/queries'
 import { useNavigate } from '@tanstack/react-router'
 import { useEffect, useRef, useState } from 'react'
@@ -88,12 +90,13 @@ export function CommandPalette() {
   const q = query.trim().toLowerCase()
   const taskItems: Item[] = (tasksQuery.data ?? [])
     .filter((t) => !q || t.title.toLowerCase().includes(q))
+    .sort((a, b) => newSafeDate(a.due).getTime() - newSafeDate(b.due).getTime())
     .slice(0, 8)
     .map((t) => ({
       key: 't:' + t.id,
       glyph: t.emoji,
       label: t.title,
-      hint: 'Task',
+      hint: formatDueLabel(t.due, t.dueTime) || 'Task',
       run: () => navigate({ to: '/tasks/$id', params: { id: t.id } }),
     }))
 
