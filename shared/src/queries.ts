@@ -382,6 +382,29 @@ export function useSnoozeTask() {
   })
 }
 
+async function optimisticUnsnooze(
+  qc: QueryClient,
+  id: string,
+): Promise<OptimisticSnapshot> {
+  const task = findTaskInCaches(qc, id)
+  if (!task) return optimisticRemove(qc, id)
+  const subtasks = task.subtasks.map((s) =>
+    s.snooze ? { ...s, snooze: undefined } : s,
+  )
+  return replaceTaskInCaches(qc, id, { ...task, snooze: null, subtasks })
+}
+
+export function useUnsnoozeTask() {
+  const api = useApi()
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: (id: string) => api.tasks.unsnooze(id),
+    onMutate: (id) => optimisticUnsnooze(qc, id),
+    onError: (_e, _id, ctx) => rollback(qc, ctx),
+    onSettled: () => invalidateTaskCaches(qc),
+  })
+}
+
 // Mutate a task's timer state. The id passed in may be a 0-time-frame
 // child; the server resolves it to the effective task (keeper for
 // children, self otherwise) and returns the actual updated row. We use
