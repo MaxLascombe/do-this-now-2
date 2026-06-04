@@ -65,6 +65,8 @@ type Props = {
     timekeeperId: string | null
     timeframeType: TimeframeType
     subtasks: SubTask[]
+    notes: string | null
+    tags: string[]
   }>
   // Required in edit mode so we can exclude this task from its own
   // keeper-candidate list.
@@ -124,6 +126,15 @@ export function TaskForm({
     () => (initial.subtasks ?? []).map((s) => ({ ...s, _key: newKey() })),
   )
   const [hasSubtasks, setHasSubtasks] = useState(subtasks.length > 0)
+  const [notes, setNotes] = useState(initial.notes ?? '')
+  const [tags, setTags] = useState<Array<string>>(initial.tags ?? [])
+  const [tagDraft, setTagDraft] = useState('')
+  const addTag = () => {
+    const t = tagDraft.trim()
+    if (t && !tags.some((x) => x.toLowerCase() === t.toLowerCase()))
+      setTags([...tags, t])
+    setTagDraft('')
+  }
   const [errors, setErrors] = useState<Record<string, string>>({})
 
   const [openSheet, setOpenSheet] = useState<
@@ -175,6 +186,23 @@ export function TaskForm({
   )
   const dayDiffPhrase = formatDueDistance(dayDiff)
 
+  const quickDue = (deltaDays: number) => {
+    const d = new Date()
+    d.setDate(d.getDate() + deltaDays)
+    // Normalize to local midnight so dayDiff (and its phrase) match the
+    // picker's behavior — a wall-clock time skews the day-distance label.
+    setDueDate(newSafeDate(dateString(d)))
+  }
+  const dueQuickOptions = [
+    { label: 'Today', delta: 0 },
+    { label: 'Tomorrow', delta: 1 },
+    { label: '+1 wk', delta: 7 },
+  ].map((o) => {
+    const d = new Date()
+    d.setDate(d.getDate() + o.delta)
+    return { ...o, due: dateString(d) }
+  })
+
   const repeatSummary =
     repeat === 'No Repeat'
       ? 'Never'
@@ -208,6 +236,8 @@ export function TaskForm({
       timekeeperId,
       timeframeType,
       subtasks,
+      notes,
+      tags,
     })
     if (!parsed.success) {
       const flat: Record<string, string> = {}
@@ -260,6 +290,98 @@ export function TaskForm({
             }}
           />
           {errors.title && <FieldError msg={errors.title} />}
+        </Field>
+
+        <Field label="Notes">
+          <TextInput
+            value={notes}
+            onChangeText={setNotes}
+            placeholder="Context, links, anything to remember…"
+            placeholderTextColor="#3f3f46"
+            multiline
+            style={{
+              fontFamily: 'JetBrainsMono_400Regular',
+              fontSize: 14,
+              lineHeight: 20,
+              color: '#e4e4e7',
+              minHeight: 64,
+              borderWidth: 1,
+              borderColor: '#27272a',
+              borderRadius: 10,
+              backgroundColor: 'rgba(24,24,27,0.4)',
+              paddingHorizontal: 12,
+              paddingVertical: 10,
+              textAlignVertical: 'top',
+            }}
+          />
+          {errors.notes && <FieldError msg={errors.notes} />}
+        </Field>
+
+        <Field label="Tags">
+          {tags.length > 0 && (
+            <View
+              style={{
+                flexDirection: 'row',
+                flexWrap: 'wrap',
+                gap: 6,
+                marginBottom: 8,
+              }}
+            >
+              {tags.map((t) => (
+                <Pressable
+                  key={t}
+                  onPress={() => setTags(tags.filter((x) => x !== t))}
+                  accessibilityRole="button"
+                  accessibilityLabel={`Remove tag ${t}`}
+                  style={{
+                    flexDirection: 'row',
+                    alignItems: 'center',
+                    gap: 6,
+                    borderWidth: 1,
+                    borderColor: '#3f3f46',
+                    backgroundColor: '#18181b',
+                    borderRadius: 999,
+                    paddingHorizontal: 10,
+                    paddingVertical: 5,
+                  }}
+                >
+                  <Text
+                    style={{
+                      color: '#e4e4e7',
+                      fontSize: 12,
+                      fontFamily: 'JetBrainsMono_400Regular',
+                    }}
+                  >
+                    {t}
+                  </Text>
+                  <Text style={{ color: '#71717a', fontSize: 12 }}>✕</Text>
+                </Pressable>
+              ))}
+            </View>
+          )}
+          <TextInput
+            value={tagDraft}
+            onChangeText={setTagDraft}
+            onSubmitEditing={addTag}
+            onBlur={addTag}
+            blurOnSubmit={false}
+            placeholder="Add a tag…"
+            placeholderTextColor="#3f3f46"
+            autoCapitalize="none"
+            returnKeyType="done"
+            style={{
+              fontFamily: 'JetBrainsMono_400Regular',
+              fontSize: 14,
+              color: '#e4e4e7',
+              borderWidth: 1,
+              borderColor: '#27272a',
+              borderRadius: 10,
+              backgroundColor: 'rgba(24,24,27,0.4)',
+              paddingHorizontal: 12,
+              paddingVertical: 10,
+            }}
+          />
+          {errors.tags && <FieldError msg={errors.tags} />}
         </Field>
 
         <Field
@@ -317,6 +439,42 @@ export function TaskForm({
             sub={dayDiffPhrase}
             onPress={() => setOpenSheet('date')}
           />
+          <View
+            style={{
+              flexDirection: 'row',
+              flexWrap: 'wrap',
+              gap: 6,
+              marginTop: 8,
+            }}
+          >
+            {dueQuickOptions.map((o) => {
+              const active = dateString(dueDate) === o.due
+              return (
+                <Pressable
+                  key={o.label}
+                  onPress={() => quickDue(o.delta)}
+                  style={{
+                    borderWidth: 1,
+                    borderColor: active ? '#f4f4f5' : '#27272a',
+                    backgroundColor: active ? '#fafafa' : 'rgba(24,24,27,0.6)',
+                    paddingHorizontal: 12,
+                    paddingVertical: 7,
+                    borderRadius: 999,
+                  }}
+                >
+                  <Text
+                    style={{
+                      fontFamily: 'JetBrainsMono_400Regular',
+                      fontSize: 12,
+                      color: active ? '#0a0a0a' : '#a1a1aa',
+                    }}
+                  >
+                    {o.label}
+                  </Text>
+                </Pressable>
+              )
+            })}
+          </View>
         </Field>
 
         <Field label="Due time">
