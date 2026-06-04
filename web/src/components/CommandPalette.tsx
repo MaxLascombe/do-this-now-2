@@ -72,6 +72,12 @@ export function CommandPalette() {
       run: () => navigate({ to: '/history' }),
     },
     {
+      key: 'p:calendar',
+      glyph: '▦',
+      label: 'Calendar',
+      run: () => navigate({ to: '/calendar' }),
+    },
+    {
       key: 'p:stats',
       glyph: '▤',
       label: 'Stats',
