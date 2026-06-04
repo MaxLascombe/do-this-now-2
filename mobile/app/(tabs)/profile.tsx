@@ -1,6 +1,6 @@
 import { useClerk, useUser } from '@clerk/clerk-expo'
 import * as Haptics from 'expo-haptics'
-import { Stack } from 'expo-router'
+import { Stack, useRouter } from 'expo-router'
 import { Alert, Pressable, Text, View } from 'react-native'
 import { SafeAreaView } from 'react-native-safe-area-context'
 
@@ -12,6 +12,7 @@ const OVERDUE = '#fb7185'
 export default function Profile() {
   const { signOut } = useClerk()
   const { user } = useUser()
+  const router = useRouter()
   const email = user?.primaryEmailAddress?.emailAddress
   const initial =
     user?.firstName?.[0]?.toUpperCase() ?? email?.[0]?.toUpperCase() ?? '?'
@@ -94,6 +95,33 @@ export default function Profile() {
             </Text>
           )}
         </View>
+
+        <Pressable
+          onPress={() => router.push('/archive')}
+          accessibilityRole="button"
+          accessibilityLabel="View archived tasks"
+          style={({ pressed }) => ({
+            flexDirection: 'row',
+            alignItems: 'center',
+            justifyContent: 'center',
+            gap: 8,
+            paddingVertical: 14,
+            borderRadius: 999,
+            borderWidth: 1,
+            borderColor: '#27272a',
+            backgroundColor: pressed ? 'rgba(255,255,255,0.05)' : 'transparent',
+          })}
+        >
+          <Text
+            style={{
+              fontFamily: 'JetBrainsMono_400Regular',
+              fontSize: 14,
+              color: '#d4d4d8',
+            }}
+          >
+            View archived
+          </Text>
+        </Pressable>
 
         <Pressable
           onPress={onSignOut}
