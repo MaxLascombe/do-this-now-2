@@ -6,6 +6,7 @@ import { Link, useLocation } from '@tanstack/react-router'
 import { useEffect, useRef, useState } from 'react'
 
 import { useDate } from '../hooks/useDate'
+import { activeNavFromPath, type NavId } from '../lib/nav'
 import { ProgressBlocks, ProgressPopover } from './ProgressBar'
 import { RunningTimerChip } from './RunningTimerChip'
 
@@ -13,7 +14,7 @@ const ACCENT = '#34d399'
 const STREAK = '#f59e0b'
 
 type NavItem = {
-  id: 'home' | 'tasks' | 'new' | 'history' | 'stats'
+  id: NavId
   label: string
   to: string
   kbd: string
@@ -27,15 +28,6 @@ const ALL_NAV: ReadonlyArray<NavItem> = [
   { id: 'stats', label: 'Stats', to: '/stats', kbd: 'A' },
 ] as const
 
-const activeIdFromPath = (pathname: string): NavItem['id'] => {
-  if (pathname === '/') return 'home'
-  if (pathname.startsWith('/tasks')) return 'tasks'
-  if (pathname.startsWith('/new-task')) return 'new'
-  if (pathname.startsWith('/history')) return 'history'
-  if (pathname.startsWith('/stats')) return 'stats'
-  return 'home'
-}
-
 const Kbd = ({ children }: { children: string }) => (
   <kbd className="rounded border border-zinc-800 bg-zinc-900 px-1 py-0.5 text-[10px] font-bold text-zinc-300">
     {children}
@@ -44,7 +36,7 @@ const Kbd = ({ children }: { children: string }) => (
 
 export const TopBar = () => {
   const { pathname } = useLocation()
-  const active = activeIdFromPath(pathname)
+  const active = activeNavFromPath(pathname)
   const [open, setOpen] = useState(false)
   const progress = useProgressToday()
   const now = useDate()

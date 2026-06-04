@@ -459,6 +459,7 @@ const SortPill = ({
   <button
     type="button"
     onClick={onClick}
+    aria-pressed={active}
     className={
       'flex flex-1 items-center justify-center gap-2 rounded-full px-3 py-1.5 transition-colors md:flex-none ' +
       (active

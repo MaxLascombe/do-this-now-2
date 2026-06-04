@@ -71,6 +71,17 @@ export function formatScheduleStatus(opts: {
   return 'On schedule'
 }
 
+// Relative phrase for a count of whole days from today, as used by the
+// TaskForm due-date preview: -1 → 'yesterday', negatives → 'n days ago',
+// 0 → 'today', 1 → 'tomorrow', positives → 'in n days'.
+export const formatDueDistance = (dayDiff: number): string => {
+  if (dayDiff === -1) return 'yesterday'
+  if (dayDiff < 0) return `${Math.abs(dayDiff)} days ago`
+  if (dayDiff === 0) return 'today'
+  if (dayDiff === 1) return 'tomorrow'
+  return `in ${dayDiff} days`
+}
+
 /**
  * Human-readable label for a task's due date. Returns null if `due` can't
  * be parsed (shouldn't happen — schema enforces YYYY-M-D, but the History
