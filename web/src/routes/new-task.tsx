@@ -10,12 +10,25 @@ import { TopBar } from '../components/TopBar'
 
 export const Route = createFileRoute('/new-task')({
   head: () => ({ meta: [{ title: 'New Task · Do This Now' }] }),
+  validateSearch: (
+    search: Record<string, unknown>,
+  ): { title?: string; due?: string; tag?: string } => {
+    const out: { title?: string; due?: string; tag?: string } = {}
+    if (typeof search.title === 'string' && search.title.trim())
+      out.title = search.title.trim()
+    if (typeof search.due === 'string' && search.due.trim())
+      out.due = search.due.trim()
+    if (typeof search.tag === 'string' && search.tag.trim())
+      out.tag = search.tag.trim()
+    return out
+  },
   component: NewTask,
 })
 
 function NewTask() {
   const router = useRouter()
   const mutation = useCreateTask()
+  const { title, due, tag } = Route.useSearch()
   const [sheetOpen, setSheetOpen] = useState(false)
 
   return (
@@ -49,6 +62,9 @@ function NewTask() {
       )}
 
       <TaskForm
+        title={title}
+        due={due}
+        tags={tag ? [tag] : undefined}
         errorMessage={mutation.error?.message ?? null}
         isSaving={mutation.isPending}
         onCancel={() => router.history.back()}
