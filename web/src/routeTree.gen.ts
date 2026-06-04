@@ -10,6 +10,7 @@
 
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as StatsRouteImport } from './routes/stats'
+import { Route as SettingsRouteImport } from './routes/settings'
 import { Route as NewTaskRouteImport } from './routes/new-task'
 import { Route as HistoryRouteImport } from './routes/history'
 import { Route as IndexRouteImport } from './routes/index'
@@ -31,6 +32,11 @@ import { Route as ApiTasksIdCompleteRouteImport } from './routes/api/tasks.$id.c
 const StatsRoute = StatsRouteImport.update({
   id: '/stats',
   path: '/stats',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const SettingsRoute = SettingsRouteImport.update({
+  id: '/settings',
+  path: '/settings',
   getParentRoute: () => rootRouteImport,
 } as any)
 const NewTaskRoute = NewTaskRouteImport.update({
@@ -123,6 +129,7 @@ export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/history': typeof HistoryRoute
   '/new-task': typeof NewTaskRoute
+  '/settings': typeof SettingsRoute
   '/stats': typeof StatsRoute
   '/api/stats': typeof ApiStatsRoute
   '/api/tasks': typeof ApiTasksRouteWithChildren
@@ -143,6 +150,7 @@ export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/history': typeof HistoryRoute
   '/new-task': typeof NewTaskRoute
+  '/settings': typeof SettingsRoute
   '/stats': typeof StatsRoute
   '/api/stats': typeof ApiStatsRoute
   '/api/tasks': typeof ApiTasksRouteWithChildren
@@ -163,6 +171,7 @@ export interface FileRoutesById {
   '/': typeof IndexRoute
   '/history': typeof HistoryRoute
   '/new-task': typeof NewTaskRoute
+  '/settings': typeof SettingsRoute
   '/stats': typeof StatsRoute
   '/api/stats': typeof ApiStatsRoute
   '/api/tasks': typeof ApiTasksRouteWithChildren
@@ -185,6 +194,7 @@ export interface FileRouteTypes {
     | '/'
     | '/history'
     | '/new-task'
+    | '/settings'
     | '/stats'
     | '/api/stats'
     | '/api/tasks'
@@ -205,6 +215,7 @@ export interface FileRouteTypes {
     | '/'
     | '/history'
     | '/new-task'
+    | '/settings'
     | '/stats'
     | '/api/stats'
     | '/api/tasks'
@@ -224,6 +235,7 @@ export interface FileRouteTypes {
     | '/'
     | '/history'
     | '/new-task'
+    | '/settings'
     | '/stats'
     | '/api/stats'
     | '/api/tasks'
@@ -245,6 +257,7 @@ export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   HistoryRoute: typeof HistoryRoute
   NewTaskRoute: typeof NewTaskRoute
+  SettingsRoute: typeof SettingsRoute
   StatsRoute: typeof StatsRoute
   ApiStatsRoute: typeof ApiStatsRoute
   ApiTasksRoute: typeof ApiTasksRouteWithChildren
@@ -262,6 +275,13 @@ declare module '@tanstack/react-router' {
       path: '/stats'
       fullPath: '/stats'
       preLoaderRoute: typeof StatsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/settings': {
+      id: '/settings'
+      path: '/settings'
+      fullPath: '/settings'
+      preLoaderRoute: typeof SettingsRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/new-task': {
@@ -433,6 +453,7 @@ const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   HistoryRoute: HistoryRoute,
   NewTaskRoute: NewTaskRoute,
+  SettingsRoute: SettingsRoute,
   StatsRoute: StatsRoute,
   ApiStatsRoute: ApiStatsRoute,
   ApiTasksRoute: ApiTasksRouteWithChildren,
