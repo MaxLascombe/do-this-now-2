@@ -115,7 +115,7 @@ const TaskRowBase = ({
           {subtaskCount > 0 && (
             <span
               className="tabular-nums"
-              aria-label={`${doneCount} of ${subtaskCount} subtasks done`}
+              aria-label={`${doneCount} of ${subtaskCount} ${subtaskCount === 1 ? 'subtask' : 'subtasks'} done`}
             >
               ☐ {doneCount}/{subtaskCount}
             </span>
