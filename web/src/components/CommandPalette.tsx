@@ -80,6 +80,12 @@ export function CommandPalette() {
       run: () => navigate({ to: '/calendar' }),
     },
     {
+      key: 'p:tags',
+      glyph: '#',
+      label: 'Tags',
+      run: () => navigate({ to: '/tags' }),
+    },
+    {
       key: 'p:stats',
       glyph: '▤',
       label: 'Stats',
