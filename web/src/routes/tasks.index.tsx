@@ -1,9 +1,10 @@
 import { startOfToday } from '@dtn/shared/day-index'
 import { dueGroupLabel, tasksListEyebrow } from '@dtn/shared/format'
-import { newSafeDate } from '@dtn/shared/helpers'
+import { dateString, newSafeDate } from '@dtn/shared/helpers'
 import {
   useAllTasks,
   useCompleteTask,
+  useCreateTask,
   useDeleteTask,
   usePrefetchTask,
   usePrimeTaskCache,
@@ -88,9 +89,35 @@ function TasksList() {
   const doneMutation = useCompleteTask()
   const deleteMutation = useDeleteTask()
   const snoozeMutation = useSnoozeTask()
+  const createMutation = useCreateTask()
   const prefetchTask = usePrefetchTask()
   const primeTaskCache = usePrimeTaskCache()
   const confirm = useConfirm()
+
+  const [quickTitle, setQuickTitle] = useState('')
+  // Capture a task fast: a title plus sensible defaults (due today, 30 min).
+  const quickAdd = () => {
+    const title = quickTitle.trim()
+    if (!title || createMutation.isPending) return
+    createMutation.mutate({
+      title,
+      emoji: '📝',
+      due: dateString(new Date()),
+      dueTime: null,
+      strictDeadline: false,
+      repeat: 'No Repeat',
+      repeatInterval: 1,
+      repeatUnit: 'day',
+      repeatWeekdays: [false, false, false, false, false, false, false],
+      timeFrame: 30,
+      timekeeperId: null,
+      timeframeType: 'fixed',
+      subtasks: [],
+      notes: '',
+      tags: [],
+    })
+    setQuickTitle('')
+  }
 
   const [pendingComplete, setPendingComplete] = useState<{
     task: Task
@@ -284,6 +311,26 @@ function TasksList() {
           onToggle={() => setSort((s) => (s === 'CHRON' ? 'TOP' : 'CHRON'))}
         />
       </div>
+
+      <form
+        onSubmit={(e) => {
+          e.preventDefault()
+          quickAdd()
+        }}
+        className="relative px-5 pb-3 md:px-10"
+      >
+        <span className="pointer-events-none absolute top-1/2 left-9 -translate-y-1/2 font-mono text-sm text-zinc-500 md:left-14">
+          ＋
+        </span>
+        <input
+          type="text"
+          value={quickTitle}
+          onChange={(e) => setQuickTitle(e.target.value)}
+          placeholder="Add a task — press Enter"
+          aria-label="Quick-add a task"
+          className="w-full rounded-full border border-zinc-800 bg-zinc-900/50 py-2 pr-4 pl-9 font-mono text-sm text-zinc-100 outline-none placeholder:text-zinc-600 focus:border-zinc-600 md:pl-10"
+        />
+      </form>
 
       <div className="relative px-5 pb-3 md:px-10">
         <input
