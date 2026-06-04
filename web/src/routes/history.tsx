@@ -43,6 +43,20 @@ function History() {
   const prev = () => setDaysAgo((d) => d + 1)
   const next = () => setDaysAgo((d) => Math.max(0, d - 1))
 
+  const pad = (n: number) => String(n).padStart(2, '0')
+  const isoDate = `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}`
+  const now = new Date()
+  const todayIso = `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())}`
+  const jumpToDate = (iso: string) => {
+    const [y, m, d] = iso.split('-').map(Number)
+    if (!y || !m || !d) return
+    const today = new Date()
+    today.setHours(0, 0, 0, 0)
+    const picked = new Date(y, m - 1, d)
+    const diff = Math.round((today.getTime() - picked.getTime()) / 86_400_000)
+    setDaysAgo(Math.max(0, diff))
+  }
+
   const keyActions: Array<KeyAction> = [
     { key: 'escape', description: 'Home', action: () => navigate({ to: '/' }) },
     { key: 'n', description: 'Home', action: () => navigate({ to: '/' }) },
@@ -99,7 +113,15 @@ function History() {
           >
             ←
           </button>
-          <div className="text-center">
+          <div className="relative text-center">
+            <input
+              type="date"
+              value={isoDate}
+              max={todayIso}
+              onChange={(e) => jumpToDate(e.target.value)}
+              aria-label="Jump to a date"
+              className="absolute inset-0 z-10 cursor-pointer opacity-0"
+            />
             <div
               className="dtn-heading text-zinc-100 uppercase"
               style={{
@@ -111,7 +133,7 @@ function History() {
               {format(date, 'EEE · LLL d')}
             </div>
             <div className="mt-1 font-mono text-[10px] tracking-[0.3em] text-zinc-500 uppercase">
-              {relLabel}
+              {relLabel} · tap to jump
             </div>
           </div>
           <button

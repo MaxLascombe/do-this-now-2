@@ -1,5 +1,7 @@
 import { createRouter } from '@tanstack/react-router'
 
+import { ErrorBoundary } from './components/ErrorBoundary'
+import { NotFound } from './components/NotFound'
 // Import the generated route tree
 import { routeTree } from './routeTree.gen'
 
@@ -8,6 +10,8 @@ export const getRouter = () => {
   const router = createRouter({
     routeTree,
     context: {},
+    defaultNotFoundComponent: NotFound,
+    defaultErrorComponent: ErrorBoundary,
 
     scrollRestoration: true,
     defaultPreloadStaleTime: 0,

@@ -47,12 +47,13 @@ export const MobileTopBar = ({ onOpenSheet }: { onOpenSheet: () => void }) => {
           style={{ width: pct + '%', background: ACCENT }}
         />
       </div>
+      <div className="flex items-center">
       <button
         type="button"
         onClick={onOpenSheet}
         aria-label="Open progress detail"
         aria-haspopup="dialog"
-        className="relative flex w-full items-center justify-between px-5 py-3 text-left font-mono text-[13px] active:bg-zinc-900/40"
+        className="relative flex flex-1 items-center justify-between px-5 py-3 text-left font-mono text-[13px] active:bg-zinc-900/40"
       >
         <div className="flex items-center gap-3 text-zinc-400">
           {progress.data && (
@@ -93,6 +94,14 @@ export const MobileTopBar = ({ onOpenSheet }: { onOpenSheet: () => void }) => {
           })}
         </span>
       </button>
+        <Link
+          to="/settings"
+          aria-label="Settings"
+          className="px-4 py-3 text-base text-zinc-500 active:text-zinc-200"
+        >
+          ⚙
+        </Link>
+      </div>
       <div className="flex justify-center px-5 pb-2 empty:hidden">
         <RunningTimerChip />
       </div>

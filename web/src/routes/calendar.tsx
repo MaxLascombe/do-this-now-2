@@ -84,6 +84,17 @@ function Calendar() {
     0,
   )
 
+  const minutesByDay = useMemo(() => {
+    const map = new Map<string, number>()
+    for (const [key, list] of byDay)
+      map.set(
+        key,
+        list.reduce((sum, t) => sum + (t.timeFrame || 0), 0),
+      )
+    return map
+  }, [byDay])
+  const maxMinutes = Math.max(1, ...minutesByDay.values())
+
   return (
     <div className="flex min-h-screen flex-col">
       <TopBar />
@@ -148,6 +159,7 @@ function Calendar() {
                 if (day === null) return <div key={`b${i}`} />
                 const key = dateString(new Date(year, month, day))
                 const tasks = byDay.get(key) ?? []
+                const mins = minutesByDay.get(key) ?? 0
                 const isToday = key === todayKey
                 const isSelected = key === selectedKey
                 return (
@@ -187,6 +199,16 @@ function Calendar() {
                         </span>
                       )}
                     </span>
+                    {mins > 0 && (
+                      <span
+                        aria-hidden="true"
+                        className="mt-auto h-1 w-full rounded-full"
+                        style={{
+                          background: ACCENT,
+                          opacity: 0.25 + 0.75 * (mins / maxMinutes),
+                        }}
+                      />
+                    )}
                   </button>
                 )
               })}
