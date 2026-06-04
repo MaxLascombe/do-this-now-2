@@ -380,6 +380,19 @@ export function useUnarchiveTask() {
   const qc = useQueryClient()
   return useMutation({
     mutationFn: (id: string) => api.tasks.unarchive(id),
+    // Drop the row from the archived list immediately; it rejoins the
+    // active lists on the settle-time refetch.
+    onMutate: async (id) => {
+      await qc.cancelQueries({ queryKey: taskKeys.archived })
+      const prev = qc.getQueryData<Task[]>(taskKeys.archived)
+      qc.setQueryData<Task[]>(taskKeys.archived, (xs) =>
+        xs?.filter((t) => t.id !== id),
+      )
+      return { prev }
+    },
+    onError: (_e, _id, ctx) => {
+      if (ctx?.prev) qc.setQueryData(taskKeys.archived, ctx.prev)
+    },
     onSettled: () => invalidateTaskCaches(qc),
   })
 }
