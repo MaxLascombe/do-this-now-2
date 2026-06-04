@@ -69,6 +69,11 @@ function TaskDetail() {
     updateTask.mutate({ id, input: { ...taskToInput(task), subtasks } })
     setSubtaskDraft('')
   }
+  const removeSubtask = (index: number) => {
+    if (!task) return
+    const subtasks = task.subtasks.filter((_, i) => i !== index)
+    updateTask.mutate({ id, input: { ...taskToInput(task), subtasks } })
+  }
 
   const [pendingComplete, setPendingComplete] = useState<{
     task: Task
@@ -373,12 +378,12 @@ function TaskDetail() {
           {task.subtasks.length > 0 && (
             <ul className="space-y-1">
               {task.subtasks.map((sub, i) => (
-                <li key={i}>
+                <li key={i} className="flex items-center gap-1">
                   <button
                     type="button"
                     onClick={() => toggleSubtask(i)}
                     aria-pressed={sub.done}
-                    className="flex w-full items-center gap-3 rounded-xl border border-zinc-800 bg-zinc-900/60 px-4 py-2.5 text-left font-mono text-sm hover:border-zinc-700 hover:bg-zinc-900"
+                    className="flex min-w-0 flex-1 items-center gap-3 rounded-xl border border-zinc-800 bg-zinc-900/60 px-4 py-2.5 text-left font-mono text-sm hover:border-zinc-700 hover:bg-zinc-900"
                   >
                     <span
                       aria-hidden="true"
@@ -399,6 +404,14 @@ function TaskDetail() {
                       </span>
                       {sub.title}
                     </span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => removeSubtask(i)}
+                    aria-label={`Remove subtask: ${sub.title}`}
+                    className="rounded-lg px-2 py-2 font-mono text-sm text-zinc-600 hover:text-rose-400"
+                  >
+                    ✕
                   </button>
                 </li>
               ))}
