@@ -110,6 +110,8 @@ export const tasks = pgTable(
     // average of all measurements so far; ≥14 ⇒ 13/14 exponential decay.
     measurementCount: integer('measurement_count').notNull().default(0),
     snooze: text('snooze'),
+    // Freeform notes/details for a task — context, links, a checklist in prose.
+    notes: text('notes'),
     subtasks: jsonb('subtasks').$type<SubTask[]>().notNull().default([]),
     createdAt: timestamp('created_at', { withTimezone: true })
       .notNull()

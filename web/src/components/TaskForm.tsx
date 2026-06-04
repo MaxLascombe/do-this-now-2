@@ -81,6 +81,7 @@ const TaskForm = ({
   timekeeperId: initialTimekeeperId,
   timeframeType: initialTimeframeType,
   subtasks: initialSubtasks,
+  notes: initialNotes,
   submitForm,
   isSaving = false,
   isEdit = false,
@@ -143,6 +144,8 @@ const TaskForm = ({
   )
   const [hasSubtasks, setHasSubtasks] = useState(subtasks.length > 0)
   if (subtasks.length > 0 && !hasSubtasks) setHasSubtasks(true)
+
+  const [notes, setNotes] = useState(initialNotes ?? '')
 
   // Debounced emoji suggestions.
   useEffect(() => {
@@ -218,6 +221,7 @@ const TaskForm = ({
       timekeeperId,
       timeframeType,
       subtasks,
+      notes,
     })
     if (!input.success) return setFormError(input.error)
     submitForm(input.data)
@@ -323,6 +327,21 @@ const TaskForm = ({
             {errors.title && (
               <div className="mt-2 font-mono text-xs text-rose-400">
                 {errors.title}
+              </div>
+            )}
+          </Field>
+
+          <Field label="Notes" trailing="optional">
+            <textarea
+              value={notes}
+              onChange={(e) => setNotes(e.target.value)}
+              placeholder="Context, links, anything you want to remember…"
+              rows={3}
+              className="w-full resize-y rounded-lg border border-zinc-800 bg-zinc-900/40 px-3 py-2 font-mono text-sm text-zinc-200 outline-none placeholder:text-zinc-700 focus:border-zinc-600"
+            />
+            {errors.notes && (
+              <div className="mt-2 font-mono text-xs text-rose-400">
+                {errors.notes}
               </div>
             )}
           </Field>

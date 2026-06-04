@@ -87,6 +87,13 @@ export const taskInputSchema = z
     timekeeperId: z.string().uuid().nullable().default(null),
     timeframeType: timeframeTypeSchema.default('fixed'),
     subtasks: z.array(subTaskSchema),
+    // Optional freeform notes; blank input normalizes to null.
+    notes: z
+      .string()
+      .max(5000)
+      .nullable()
+      .default(null)
+      .transform((s) => (s && s.trim() ? s : null)),
   })
   .superRefine((data, ctx) => {
     // XOR: either you provide a positive timeFrame OR you nominate a
@@ -135,5 +142,6 @@ export function taskToInput(task: Task): TaskInput {
     timekeeperId: task.timekeeperId,
     timeframeType: task.timeframeType,
     subtasks: task.subtasks,
+    notes: task.notes,
   }
 }
