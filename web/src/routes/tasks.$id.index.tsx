@@ -338,6 +338,7 @@ function TaskDetail() {
             task={timerTask}
             actionId={id}
             plannedMinutes={timerTask.timeFrame}
+            compact
           />
         )}
 
