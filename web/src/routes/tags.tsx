@@ -3,7 +3,7 @@ import { useAllTasks } from '@dtn/shared/queries'
 import { createFileRoute, useNavigate } from '@tanstack/react-router'
 import { useMemo, useState } from 'react'
 
-import { Loading } from '../components/Loading'
+import { Skeleton, TaskListSkeleton } from '../components/Skeleton'
 import { MobileChrome } from '../components/MobileChrome'
 import { PageHeading } from '../components/PageHeading'
 import { TaskRow } from '../components/TaskRow'
@@ -80,8 +80,13 @@ function TagBrowse() {
       <div className="flex-1 px-5 pb-28 md:px-10 md:pb-24">
         <div className="mx-auto flex w-full max-w-2xl flex-col gap-6">
           {isLoading ? (
-            <div className="flex justify-center py-12">
-              <Loading />
+            <div className="flex flex-col gap-6" role="status" aria-label="Loading tags">
+              <div className="flex flex-wrap gap-2">
+                {[64, 80, 56, 72, 60, 88].map((w, i) => (
+                  <Skeleton key={i} className="h-8 rounded-full" style={{ width: w }} />
+                ))}
+              </div>
+              <TaskListSkeleton rows={5} />
             </div>
           ) : tagCounts.length === 0 ? (
             <p className="py-8 text-center font-mono text-sm text-zinc-600">
