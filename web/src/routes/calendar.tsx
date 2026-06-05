@@ -1,5 +1,5 @@
 import { dateString, newSafeDate } from '@dtn/shared/helpers'
-import { useAllTasks } from '@dtn/shared/queries'
+import { useAllTasks, useStats } from '@dtn/shared/queries'
 import { minutesToHours } from '@dtn/shared/time'
 import type { Task } from '@dtn/shared/types'
 import { createFileRoute, useNavigate } from '@tanstack/react-router'
@@ -27,6 +27,7 @@ const addMonths = (d: Date, n: number) =>
 function Calendar() {
   const navigate = useNavigate()
   const { data, isLoading } = useAllTasks()
+  const stats = useStats()
   const [cursor, setCursor] = useState(() => startOfMonth(new Date()))
   const [sheetOpen, setSheetOpen] = useState(false)
   const todayKey = dateString(new Date())
@@ -94,6 +95,14 @@ function Calendar() {
     return map
   }, [byDay])
   const maxMinutes = Math.max(1, ...minutesByDay.values())
+
+  const hitDays = useMemo(
+    () =>
+      new Set(
+        (stats.data?.heatmap ?? []).filter((h) => h.hit).map((h) => h.date),
+      ),
+    [stats.data],
+  )
 
   return (
     <div className="flex min-h-screen flex-col">
@@ -168,12 +177,15 @@ function Calendar() {
                 const mins = minutesByDay.get(key) ?? 0
                 const isToday = key === todayKey
                 const isSelected = key === selectedKey
+                const hitTarget = !isToday && hitDays.has(key)
                 return (
                   <button
                     key={key}
                     type="button"
                     onClick={() => setSelectedKey(key)}
-                    aria-label={`${monthLabel} ${day}, ${tasks.length} tasks`}
+                    aria-label={`${monthLabel} ${day}, ${tasks.length} tasks${
+                      hitTarget ? ', target hit' : ''
+                    }`}
                     aria-pressed={isSelected}
                     className={
                       'flex aspect-square flex-col items-center justify-start gap-1 rounded-xl border p-1.5 font-mono transition-colors ' +
@@ -187,9 +199,17 @@ function Calendar() {
                         'flex h-6 w-6 items-center justify-center rounded-full text-xs tabular-nums ' +
                         (isToday
                           ? 'font-bold text-zinc-950'
-                          : 'text-zinc-400')
+                          : hitTarget
+                            ? 'font-semibold'
+                            : 'text-zinc-400')
                       }
-                      style={isToday ? { background: ACCENT } : undefined}
+                      style={
+                        isToday
+                          ? { background: ACCENT }
+                          : hitTarget
+                            ? { boxShadow: `inset 0 0 0 1.5px ${ACCENT}`, color: ACCENT }
+                            : undefined
+                      }
                     >
                       {day}
                     </span>
