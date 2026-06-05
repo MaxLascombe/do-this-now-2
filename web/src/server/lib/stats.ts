@@ -36,6 +36,8 @@ export type StatsResult = {
   topTasks: Array<{ title: string; emoji: string; count: number }>
   // Emoji frequencies, sorted desc
   emojiFreq: Array<{ emoji: string; count: number }>
+  // Credited minutes per tag, top 10 desc
+  tagTime: Array<{ tag: string; minutes: number }>
 
   // 0..1, share of completions where completedAt's local day <= due date.
   // null if there are no completions.
@@ -171,6 +173,21 @@ export async function getStats(
     .map(([emoji, count]) => ({ emoji, count }))
     .sort((a, b) => b.count - a.count)
 
+  // --- time-by-tag (credited minutes attributed to each tag) ---------
+  // `tags` was added after the first history rows, so older snapshots
+  // have no key — default to [] (see reference: history snapshot is JSONB).
+  const tagMinutes = new Map<string, number>()
+  for (const row of historyRows) {
+    const tags = row.taskSnapshot.tags ?? []
+    if (tags.length === 0) continue
+    const min = rowCreditMinutes(row)
+    for (const tag of tags) tagMinutes.set(tag, (tagMinutes.get(tag) ?? 0) + min)
+  }
+  const tagTime = [...tagMinutes.entries()]
+    .map(([tag, minutes]) => ({ tag, minutes }))
+    .sort((a, b) => b.minutes - a.minutes)
+    .slice(0, 10)
+
   // --- on-time + latency ---------------------------------------------
   let onTimeHits = 0
   let onTimeTotal = 0
@@ -244,6 +261,7 @@ export async function getStats(
     dayOfWeek,
     topTasks,
     emojiFreq,
+    tagTime,
     onTimeRate,
     avgLatencyDays,
     totalAllTime,

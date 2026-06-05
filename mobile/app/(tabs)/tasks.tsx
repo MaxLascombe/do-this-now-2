@@ -166,7 +166,13 @@ export default function TasksList() {
     let tasks =
       sort === 'CHRON' ? [...(allTasks.data ?? [])] : [...(topTasks.data ?? [])]
     const q = query.trim().toLowerCase()
-    if (q) tasks = tasks.filter((t) => t.title.toLowerCase().includes(q))
+    if (q)
+      tasks = tasks.filter(
+        (t) =>
+          t.title.toLowerCase().includes(q) ||
+          t.tags.some((tag) => tag.toLowerCase().includes(q)) ||
+          (t.notes?.toLowerCase().includes(q) ?? false),
+      )
     if (tasks.length === 0) return []
 
     if (sort === 'CHRON') {
@@ -285,13 +291,13 @@ export default function TasksList() {
         <TextInput
           value={query}
           onChangeText={setQuery}
-          placeholder="Search tasks…"
+          placeholder="Search title, #tag, notes…"
           placeholderTextColor="#52525b"
           autoCapitalize="none"
           autoCorrect={false}
           clearButtonMode="while-editing"
           returnKeyType="search"
-          accessibilityLabel="Search tasks"
+          accessibilityLabel="Search tasks by title, tag, or notes"
           style={{
             borderWidth: 1,
             borderColor: '#27272a',
