@@ -4,7 +4,7 @@ import { useHistory, useStats } from '@dtn/shared/queries'
 import { minutesToHours } from '@dtn/shared/time'
 import { createFileRoute, useNavigate } from '@tanstack/react-router'
 import { format } from 'date-fns'
-import { useState } from 'react'
+import { useMemo, useState } from 'react'
 
 import { KeyHints } from '../components/KeyHints'
 import { ErrorState } from '../components/ErrorState'
@@ -89,6 +89,22 @@ function History() {
   )
   const hours = Math.floor(totalMinutes / 60)
   const mins = totalMinutes % 60
+
+  // Minutes-per-tag for the viewed day, same timeFrame basis as "Time spent".
+  const tagMinutes = useMemo(() => {
+    const map = new Map<string, number>()
+    for (const e of entries) {
+      // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition -- snapshots predate this column; may be undefined at runtime
+      const m = e.taskSnapshot.timeFrame ?? 0
+      if (m <= 0) continue
+      // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition -- snapshots predate this column; may be undefined at runtime
+      for (const tag of e.taskSnapshot.tags ?? []) {
+        map.set(tag, (map.get(tag) ?? 0) + m)
+      }
+    }
+    return [...map.entries()].sort((a, b) => b[1] - a[1])
+  }, [entries])
+  const maxTagMin = tagMinutes[0]?.[1] ?? 0
 
   const relLabel = formatDaysAgo(daysAgo)
 
@@ -181,6 +197,38 @@ function History() {
           )}
         </div>
       </div>
+
+      {!isLoading && tagMinutes.length > 0 && (
+        <div className="mb-6 px-5 md:px-10">
+          <div className="mb-2 font-mono text-[10px] tracking-[0.3em] text-zinc-500 uppercase">
+            Time by tag
+          </div>
+          <div className="flex flex-col gap-1.5">
+            {tagMinutes.map(([tag, m]) => (
+              <div
+                key={tag}
+                className="flex items-center gap-3 font-mono text-xs"
+              >
+                <span className="w-24 shrink-0 truncate text-zinc-300">
+                  #{tag}
+                </span>
+                <span className="relative h-2 flex-1 overflow-hidden rounded-full bg-zinc-900">
+                  <span
+                    className="absolute inset-y-0 left-0 rounded-full"
+                    style={{
+                      width: `${maxTagMin > 0 ? (m / maxTagMin) * 100 : 0}%`,
+                      background: ACCENT,
+                    }}
+                  />
+                </span>
+                <span className="w-14 shrink-0 text-right text-zinc-500">
+                  {minutesToHours(m)}
+                </span>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
 
       <div className="flex-1 px-5 pb-28 md:px-10 md:pb-20">
         {isLoading ? (
