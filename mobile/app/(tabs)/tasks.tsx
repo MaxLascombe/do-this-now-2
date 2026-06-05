@@ -10,6 +10,7 @@ import {
   useTopTasks,
 } from '@dtn/shared/queries'
 import { sortTasks } from '@dtn/shared/task-sorting'
+import { taskToInput } from '@dtn/shared/task-input'
 import { willAdvanceSubtask } from '@dtn/shared/task-transitions'
 import {
   completionConfirmKind,
@@ -36,6 +37,7 @@ import { Loading } from '../../components/Loading'
 import { PageHeading } from '../../components/PageHeading'
 import { SwipeableTaskRow } from '../../components/SwipeableTaskRow'
 import { TopProgress } from '../../components/TopProgress'
+import { useToast } from '../../components/ToastProvider'
 import { usePersistedState } from '../../hooks/usePersistedState'
 
 type Sort = 'CHRON' | 'TOP'
@@ -61,6 +63,7 @@ export default function TasksList() {
 
   const doneMutation = useCompleteTask()
   const createMutation = useCreateTask()
+  const toast = useToast()
   const quickAdd = () => {
     const title = quickTitle.trim()
     if (!title || createMutation.isPending) return
@@ -134,11 +137,28 @@ export default function TasksList() {
         {
           text: 'Delete',
           style: 'destructive',
-          onPress: () => deleteMutation.mutate(id),
+          onPress: () => {
+            // Snapshot for Undo — recreate restores content + subtasks (new id).
+            const task = [
+              ...(allTasks.data ?? []),
+              ...(topTasks.data ?? []),
+            ].find((x) => x.id === id)
+            const restore = task ? taskToInput(task) : null
+            deleteMutation.mutate(id, {
+              onSuccess: () => {
+                if (!restore) return
+                toast({
+                  message: `Deleted '${title}'`,
+                  actionLabel: 'Undo',
+                  onAction: () => createMutation.mutate(restore),
+                })
+              },
+            })
+          },
         },
       ])
     },
-    [deleteMutation],
+    [deleteMutation, createMutation, toast, allTasks.data, topTasks.data],
   )
 
   const sections: Group[] = useMemo(() => {

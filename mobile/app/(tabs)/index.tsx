@@ -5,11 +5,13 @@ import {
 import { willAdvanceSubtask } from '@dtn/shared/task-transitions'
 import {
   useCompleteTask,
+  useCreateTask,
   useDeleteTask,
   useSnoozeTask,
   useTask,
   useTopTasks,
 } from '@dtn/shared/queries'
+import { taskToInput } from '@dtn/shared/task-input'
 import { formatDueLabel, formatRepeat } from '@dtn/shared/format'
 import { minutesToHours } from '@dtn/shared/time'
 import {
@@ -37,6 +39,7 @@ import { Loading } from '../../components/Loading'
 import { SwipeableTaskRow } from '../../components/SwipeableTaskRow'
 import { TimerWidget } from '../../components/TimerWidget'
 import { TopProgress } from '../../components/TopProgress'
+import { useToast } from '../../components/ToastProvider'
 
 const OVERDUE_ROSE = '#fb7185'
 
@@ -52,6 +55,8 @@ export default function Home() {
   const doneMutation = useCompleteTask()
   const deleteMutation = useDeleteTask()
   const snoozeMutation = useSnoozeTask()
+  const createMutation = useCreateTask()
+  const toast = useToast()
 
   const onComplete = (id: string) => {
     const t = tasks.find((x) => x.id === id)
@@ -93,7 +98,21 @@ export default function Home() {
       {
         text: 'Delete',
         style: 'destructive',
-        onPress: () => deleteMutation.mutate(id),
+        onPress: () => {
+          // Snapshot for Undo — recreate restores content + subtasks (new id).
+          const task = tasks.find((x) => x.id === id)
+          const restore = task ? taskToInput(task) : null
+          deleteMutation.mutate(id, {
+            onSuccess: () => {
+              if (!restore) return
+              toast({
+                message: `Deleted '${title}'`,
+                actionLabel: 'Undo',
+                onAction: () => createMutation.mutate(restore),
+              })
+            },
+          })
+        },
       },
     ])
   }
