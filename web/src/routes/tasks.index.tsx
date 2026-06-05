@@ -13,6 +13,7 @@ import {
   useTopTasks,
   useUnsnoozeTask,
 } from '@dtn/shared/queries'
+import { taskToInput } from '@dtn/shared/task-input'
 import { isSnoozed, sortTasks } from '@dtn/shared/task-sorting'
 import { willAdvanceSubtask } from '@dtn/shared/task-transitions'
 import {
@@ -40,6 +41,7 @@ import { MobileChrome } from '../components/MobileChrome'
 import { PageHeading } from '../components/PageHeading'
 import { TaskRow } from '../components/TaskRow'
 import { TimerWidget } from '../components/TimerWidget'
+import { useToast } from '../components/ToastProvider'
 import { TopBar } from '../components/TopBar'
 import useKeyAction from '../hooks/useKeyAction'
 import { usePersistedState } from '../hooks/usePersistedState'
@@ -96,6 +98,7 @@ function TasksList() {
   const deleteMutation = useDeleteTask()
   const snoozeMutation = useSnoozeTask()
   const unsnoozeMutation = useUnsnoozeTask()
+  const toast = useToast()
   const createMutation = useCreateTask()
   const prefetchTask = usePrefetchTask()
   const primeTaskCache = usePrimeTaskCache()
@@ -166,7 +169,16 @@ function TasksList() {
       message: `Are you sure you want to delete '${t.title}'?`,
       confirmLabel: 'Delete',
     })
-    if (ok) deleteMutation.mutate(t.id)
+    if (!ok) return
+    const restore = taskToInput(t)
+    deleteMutation.mutate(t.id, {
+      onSuccess: () =>
+        toast({
+          message: `Deleted '${t.title}'`,
+          actionLabel: 'Undo',
+          onAction: () => createMutation.mutate(restore),
+        }),
+    })
   }
 
   const snoozeSubtasks = () => {
