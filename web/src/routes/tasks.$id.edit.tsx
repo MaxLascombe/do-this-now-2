@@ -4,9 +4,9 @@ import { useState } from 'react'
 
 import { useConfirm } from '../components/ConfirmProvider'
 import { ErrorState } from '../components/ErrorState'
-import { Loading } from '../components/Loading'
 import { MobileChrome } from '../components/MobileChrome'
 import { PageHeading } from '../components/PageHeading'
+import { Skeleton } from '../components/Skeleton'
 import TaskForm from '../components/TaskForm'
 import { TimerWidget } from '../components/TimerWidget'
 import { TopBar } from '../components/TopBar'
@@ -41,18 +41,28 @@ function EditTask() {
           onOpenSheet={() => setSheetOpen(true)}
           onCloseSheet={() => setSheetOpen(false)}
         />
-        <div className="flex flex-1 items-center justify-center">
-          {taskQuery.isPending ? (
-            <Loading />
-          ) : taskQuery.isError ? (
-            <ErrorState
-              message="Couldn't load this task."
-              onRetry={() => taskQuery.refetch()}
-            />
-          ) : (
-            <ErrorState message="Task not found." />
-          )}
-        </div>
+        {taskQuery.isPending ? (
+          <div
+            className="mx-auto w-full max-w-2xl space-y-6 px-5 pt-2 pb-12 md:px-10"
+            role="status"
+            aria-label="Loading task"
+          >
+            <Skeleton className="h-4 w-1/3" />
+            <Skeleton className="h-20 w-full rounded-2xl" />
+            <Skeleton className="h-72 w-full rounded-2xl" />
+          </div>
+        ) : (
+          <div className="flex flex-1 items-center justify-center">
+            {taskQuery.isError ? (
+              <ErrorState
+                message="Couldn't load this task."
+                onRetry={() => taskQuery.refetch()}
+              />
+            ) : (
+              <ErrorState message="Task not found." />
+            )}
+          </div>
+        )}
       </div>
     )
   }
