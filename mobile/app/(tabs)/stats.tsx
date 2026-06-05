@@ -5,6 +5,7 @@ import {
   percentile,
 } from '@dtn/shared/heatmap'
 import { useStats } from '@dtn/shared/queries'
+import { minutesToHours } from '@dtn/shared/time'
 import type { StatsResult } from '@dtn/shared/types'
 import { Stack } from 'expo-router'
 import {
@@ -82,6 +83,7 @@ export default function Stats() {
             </View>
           </View>
           <TopTasks data={data} />
+          <TagTime data={data} />
           <EmojiMix data={data} />
           <Discipline data={data} />
         </ScrollView>
@@ -491,6 +493,64 @@ function TopTasks({ data }: { data: StatsResult }) {
               }}
             >
               {t.count}
+            </Text>
+          </View>
+        ))}
+      </View>
+    </Section>
+  )
+}
+
+function TagTime({ data }: { data: StatsResult }) {
+  if (data.tagTime.length === 0) return null
+  const max = Math.max(1, data.tagTime[0].minutes)
+  return (
+    <Section title="Time by tag">
+      <View style={{ gap: 10 }}>
+        {data.tagTime.map((t) => (
+          <View
+            key={t.tag}
+            style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}
+          >
+            <Text
+              numberOfLines={1}
+              style={{
+                flex: 1,
+                fontFamily: 'JetBrainsMono_400Regular',
+                color: '#e4e4e7',
+                fontSize: 13,
+              }}
+            >
+              #{t.tag}
+            </Text>
+            <View
+              style={{
+                width: 60,
+                height: 6,
+                borderRadius: 3,
+                backgroundColor: '#18181b',
+                overflow: 'hidden',
+              }}
+            >
+              <View
+                style={{
+                  height: '100%',
+                  width: `${(t.minutes / max) * 100}%` as ViewStyle['width'],
+                  backgroundColor: ACCENT,
+                  opacity: 0.85,
+                }}
+              />
+            </View>
+            <Text
+              style={{
+                width: 36,
+                textAlign: 'right',
+                color: '#a1a1aa',
+                fontSize: 11,
+                fontFamily: 'JetBrainsMono_400Regular',
+              }}
+            >
+              {minutesToHours(t.minutes)}
             </Text>
           </View>
         ))}
