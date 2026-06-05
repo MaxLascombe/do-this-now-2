@@ -6,6 +6,7 @@ import {
   robustChartMax,
 } from '@dtn/shared/heatmap'
 import { useStats } from '@dtn/shared/queries'
+import { minutesToHours } from '@dtn/shared/time'
 import { createFileRoute, useNavigate } from '@tanstack/react-router'
 import { useState } from 'react'
 
@@ -113,6 +114,7 @@ function Stats() {
             <DayOfWeek data={data} />
           </div>
           <TopTasks data={data} />
+          <TagTime data={data} />
           <EmojiMix data={data} />
           <Discipline data={data} />
         </div>
@@ -478,6 +480,39 @@ function TopTasks({ data }: { data: StatsResult }) {
               </div>
               <span className="w-8 text-right font-mono text-xs text-zinc-400 tabular-nums">
                 {t.count}
+              </span>
+            </div>
+          </li>
+        ))}
+      </ul>
+    </Section>
+  )
+}
+
+function TagTime({ data }: { data: StatsResult }) {
+  if (data.tagTime.length === 0) return null
+  const max = Math.max(1, data.tagTime[0].minutes)
+  return (
+    <Section title="Time by tag">
+      <ul className="flex flex-col gap-2">
+        {data.tagTime.map((t) => (
+          <li key={t.tag} className="flex items-center gap-3">
+            <span className="flex-1 truncate font-mono text-sm text-zinc-200">
+              #{t.tag}
+            </span>
+            <div className="flex w-40 items-center gap-3">
+              <div className="h-2 flex-1 overflow-hidden rounded bg-zinc-900">
+                <div
+                  className="h-full"
+                  style={{
+                    width: `${(t.minutes / max) * 100}%`,
+                    background: ACCENT,
+                    opacity: 0.85,
+                  }}
+                />
+              </div>
+              <span className="w-12 text-right font-mono text-xs text-zinc-400 tabular-nums">
+                {minutesToHours(t.minutes)}
               </span>
             </div>
           </li>
