@@ -1,5 +1,6 @@
 import { newSafeDate } from '@dtn/shared/helpers'
 import { useAllTasks } from '@dtn/shared/queries'
+import { minutesToHours } from '@dtn/shared/time'
 import { createFileRoute, useNavigate } from '@tanstack/react-router'
 import { useMemo, useState } from 'react'
 
@@ -63,6 +64,7 @@ function TagBrowse() {
         ),
     [data, activeTag],
   )
+  const taggedMinutes = tagged.reduce((sum, t) => sum + t.timeFrame, 0)
 
   return (
     <div className="flex min-h-screen flex-col">
@@ -126,7 +128,11 @@ function TagBrowse() {
 
               {activeTag !== null && (
                 <div className="flex items-center justify-between font-mono text-[10px] tracking-[0.3em] text-zinc-500 uppercase">
-                  <span>#{activeTag}</span>
+                  <span>
+                    #{activeTag} · {tagged.length}{' '}
+                    {tagged.length === 1 ? 'task' : 'tasks'}
+                    {taggedMinutes > 0 && ` · ${minutesToHours(taggedMinutes)}`}
+                  </span>
                   <button
                     type="button"
                     onClick={() =>
