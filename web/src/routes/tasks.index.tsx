@@ -82,7 +82,14 @@ function TasksList() {
       sortTasks(arr, startOfToday())
     }
     const q = query.trim().toLowerCase()
-    return q ? arr.filter((t) => t.title.toLowerCase().includes(q)) : arr
+    return q
+      ? arr.filter(
+          (t) =>
+            t.title.toLowerCase().includes(q) ||
+            t.tags.some((tag) => tag.toLowerCase().includes(q)) ||
+            (t.notes?.toLowerCase().includes(q) ?? false),
+        )
+      : arr
   }, [sort, data, dataTop, query])
 
   const indexOf = useMemo(() => {
@@ -370,8 +377,8 @@ function TasksList() {
               else e.currentTarget.blur()
             }
           }}
-          placeholder="Search tasks…"
-          aria-label="Search tasks"
+          placeholder="Search title, #tag, notes…"
+          aria-label="Search tasks by title, tag, or notes"
           className="w-full rounded-full border border-zinc-800 bg-zinc-900/50 px-4 py-2 pr-9 font-mono text-sm text-zinc-100 outline-none placeholder:text-zinc-600 focus:border-zinc-600"
         />
         {query ? (
