@@ -6,13 +6,14 @@ import { type HistoryEntry } from '@dtn/shared/types'
 import DateTimePicker from '@react-native-community/datetimepicker'
 import { Stack } from 'expo-router'
 import { format } from 'date-fns'
-import { useCallback, useState } from 'react'
+import { useCallback, useMemo, useState } from 'react'
 import {
   Pressable,
   RefreshControl,
   ScrollView,
   Text,
   View,
+  type ViewStyle,
 } from 'react-native'
 import { Gesture, GestureDetector } from 'react-native-gesture-handler'
 import { SafeAreaView } from 'react-native-safe-area-context'
@@ -71,6 +72,20 @@ export default function History() {
   )
   const hours = Math.floor(totalMinutes / 60)
   const mins = totalMinutes % 60
+
+  // Minutes-per-tag for the viewed day, same timeFrame basis as "Time spent".
+  const tagMinutes = useMemo(() => {
+    const map = new Map<string, number>()
+    for (const e of entries) {
+      const m = e.taskSnapshot.timeFrame ?? 0
+      if (m <= 0) continue
+      for (const tag of e.taskSnapshot.tags ?? []) {
+        map.set(tag, (map.get(tag) ?? 0) + m)
+      }
+    }
+    return [...map.entries()].sort((a, b) => b[1] - a[1])
+  }, [entries])
+  const maxTagMin = tagMinutes[0]?.[1] ?? 0
 
   const relLabel = formatDaysAgo(daysAgo)
 
@@ -204,6 +219,75 @@ export default function History() {
               />
             }
           >
+            {!historyQuery.isLoading && tagMinutes.length > 0 && (
+              <View
+                style={{ gap: 6, paddingHorizontal: 20, marginBottom: 20 }}
+              >
+                <Text
+                  style={{
+                    fontFamily: 'JetBrainsMono_400Regular',
+                    fontSize: 10,
+                    letterSpacing: 2.5,
+                    textTransform: 'uppercase',
+                    color: '#71717a',
+                    marginBottom: 4,
+                  }}
+                >
+                  Time by tag
+                </Text>
+                {tagMinutes.map(([tag, m]) => (
+                  <View
+                    key={tag}
+                    style={{
+                      flexDirection: 'row',
+                      alignItems: 'center',
+                      gap: 10,
+                    }}
+                  >
+                    <Text
+                      numberOfLines={1}
+                      style={{
+                        width: 90,
+                        color: '#d4d4d8',
+                        fontFamily: 'JetBrainsMono_400Regular',
+                        fontSize: 12,
+                      }}
+                    >
+                      #{tag}
+                    </Text>
+                    <View
+                      style={{
+                        flex: 1,
+                        height: 8,
+                        borderRadius: 999,
+                        backgroundColor: '#18181b',
+                        overflow: 'hidden',
+                      }}
+                    >
+                      <View
+                        style={{
+                          height: 8,
+                          borderRadius: 999,
+                          backgroundColor: ACCENT,
+                          width: `${maxTagMin > 0 ? (m / maxTagMin) * 100 : 0}%` as ViewStyle['width'],
+                        }}
+                      />
+                    </View>
+                    <Text
+                      style={{
+                        width: 52,
+                        textAlign: 'right',
+                        color: '#71717a',
+                        fontFamily: 'JetBrainsMono_400Regular',
+                        fontSize: 12,
+                      }}
+                    >
+                      {minutesToHours(m)}
+                    </Text>
+                  </View>
+                ))}
+              </View>
+            )}
             {historyQuery.isLoading ? (
               <View style={{ paddingVertical: 40 }}>
                 <Loading />
