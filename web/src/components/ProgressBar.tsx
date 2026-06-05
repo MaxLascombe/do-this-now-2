@@ -89,7 +89,13 @@ export const useComputedProgress = (): Computed | null => {
 export const ProgressBlocks = () => {
   const p = useComputedProgress()
   if (!p) return null
-  const filledCount = Math.round((p.done / p.todo) * CELLS)
+  // Only show the bar completely full once the target is actually met —
+  // rounding would otherwise fill the last cell a hair early, reading as
+  // "done" (and "you went over") while you're still short of the lives target.
+  const filledCount =
+    p.done >= p.todo
+      ? CELLS
+      : Math.min(CELLS - 1, Math.round((p.done / p.todo) * CELLS))
   const tickAt = Math.round((p.shouldBeDone / p.todo) * CELLS)
 
   return (
@@ -168,7 +174,10 @@ export const ProgressPopover = () => {
   const ref = useRef<HTMLDivElement | null>(null)
   if (!p) return null
 
-  const filledCount = Math.round((p.done / p.todo) * POPOVER_CELLS)
+  const filledCount =
+    p.done >= p.todo
+      ? POPOVER_CELLS
+      : Math.min(POPOVER_CELLS - 1, Math.round((p.done / p.todo) * POPOVER_CELLS))
   const tickAt = Math.round((p.shouldBeDone / p.todo) * POPOVER_CELLS)
   const now = new Date()
   const nowLabel = now.toLocaleTimeString('en-US', {
