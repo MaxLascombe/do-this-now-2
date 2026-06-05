@@ -28,6 +28,7 @@ import { Skeleton } from '../components/Skeleton'
 import { MobileChrome } from '../components/MobileChrome'
 import { PageHeading } from '../components/PageHeading'
 import { TimerWidget } from '../components/TimerWidget'
+import { useToast } from '../components/ToastProvider'
 import { TopBar } from '../components/TopBar'
 import useKeyAction from '../hooks/useKeyAction'
 import type { Task } from '@dtn/shared/types'
@@ -60,6 +61,7 @@ function TaskDetail() {
   const createTask = useCreateTask()
   const timer = useTaskTimer()
   const confirm = useConfirm()
+  const toast = useToast()
 
   // The mutation targets the route id; the server maps a 0-frame child to
   // its keeper, while timerTask gives the correct running state to read.
@@ -159,12 +161,26 @@ function TaskDetail() {
 
   const snoozeAction = () => snoozeMutation.mutate({ id })
   const deleteAction = async () => {
+    if (!task) return
     const ok = await confirm({
-      message: `Are you sure you want to delete '${task?.title ?? 'this task'}'?`,
+      message: `Are you sure you want to delete '${task.title}'?`,
       confirmLabel: 'Delete',
     })
     if (!ok) return
-    deleteMutation.mutate(id, { onSuccess: () => router.history.back() })
+    // Snapshot the task's user-authored fields before deleting so Undo can
+    // recreate it. The recreated task gets a new id; its content + subtasks
+    // are restored faithfully.
+    const restore = taskToInput(task)
+    deleteMutation.mutate(id, {
+      onSuccess: () => {
+        router.history.back()
+        toast({
+          message: `Deleted '${task.title}'`,
+          actionLabel: 'Undo',
+          onAction: () => createTask.mutate(restore),
+        })
+      },
+    })
   }
 
   const keyActions: Array<KeyAction> = [
