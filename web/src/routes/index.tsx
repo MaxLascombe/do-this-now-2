@@ -1,6 +1,7 @@
 import { formatDueLabel, formatRepeat } from '@dtn/shared/format'
 import {
   useCompleteTask,
+  useCreateTask,
   useDeleteTask,
   usePrefetchTask,
   usePrimeTaskCache,
@@ -11,6 +12,7 @@ import {
   useTopTasks,
   useUnsnoozeTask,
 } from '@dtn/shared/queries'
+import { taskToInput } from '@dtn/shared/task-input'
 import {
   findNextActionableSubtask,
   isSnoozed,
@@ -141,6 +143,7 @@ function Home() {
 
   const doneMutation = useCompleteTask()
   const deleteMutation = useDeleteTask()
+  const createTask = useCreateTask()
   const snoozeMutation = useSnoozeTask()
   const snoozeManyMutation = useSnoozeManyTasks()
   const unsnoozeMutation = useUnsnoozeTask()
@@ -224,7 +227,16 @@ function Home() {
       confirmLabel: 'Delete',
     })
     if (!ok) return
-    deleteMutation.mutate(selectedTask.id)
+    const title = selectedTask.title
+    const restore = taskToInput(selectedTask)
+    deleteMutation.mutate(selectedTask.id, {
+      onSuccess: () =>
+        toast({
+          message: `Deleted '${title}'`,
+          actionLabel: 'Undo',
+          onAction: () => createTask.mutate(restore),
+        }),
+    })
   }
 
   const goEdit = () => {
