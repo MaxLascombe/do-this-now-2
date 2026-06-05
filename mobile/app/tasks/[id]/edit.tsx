@@ -13,6 +13,7 @@ import { ErrorState } from '../../../components/ErrorState'
 import { Loading } from '../../../components/Loading'
 import { TaskForm } from '../../../components/TaskForm'
 import { TimerWidget } from '../../../components/TimerWidget'
+import { useToast } from '../../../components/ToastProvider'
 
 export default function EditTask() {
   const { id } = useLocalSearchParams<{ id: string }>()
@@ -21,6 +22,7 @@ export default function EditTask() {
   const mutation = useUpdateTask()
   const deleteMutation = useDeleteTask()
   const createMutation = useCreateTask()
+  const toast = useToast()
   // 0-time-frame children show their keeper's timer.
   const keeperQuery = useTask(taskQuery.data?.timekeeperId ?? '')
   const timerTask = taskQuery.data?.timekeeperId
@@ -79,10 +81,20 @@ export default function EditTask() {
       {
         text: 'Delete',
         style: 'destructive',
-        onPress: () =>
+        onPress: () => {
+          // Snapshot for Undo — recreate restores content + subtasks (new id).
+          const restore = taskToInput(task)
           deleteMutation.mutate(task.id, {
-            onSuccess: () => router.back(),
-          }),
+            onSuccess: () => {
+              router.back()
+              toast({
+                message: `Deleted '${task.title}'`,
+                actionLabel: 'Undo',
+                onAction: () => createMutation.mutate(restore),
+              })
+            },
+          })
+        },
       },
     ])
   }

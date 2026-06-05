@@ -103,6 +103,7 @@ export type StatsResult = {
   dayOfWeek: number[]
   topTasks: Array<{ title: string; emoji: string; count: number }>
   emojiFreq: Array<{ emoji: string; count: number }>
+  tagTime: Array<{ tag: string; minutes: number }>
   onTimeRate: number | null
   avgLatencyDays: number | null
   totalAllTime: number
