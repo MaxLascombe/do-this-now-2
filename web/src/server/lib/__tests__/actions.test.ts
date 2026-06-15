@@ -175,6 +175,63 @@ describe.skipIf(!process.env.DATABASE_URL)('actions (integration)', () => {
         .where(eq(tasks.id, task.id))
       expect(remaining).toHaveLength(0)
     })
+
+    it('pauses a running timer when completing the last actionable subtask leaves the task snoozed', async () => {
+      const future = new Date(Date.now() + 60 * 60 * 1000).toISOString()
+      const task = await makeTask({
+        subtasks: [
+          { title: 's1', done: false, snooze: future },
+          { title: 's2', done: false },
+        ],
+      })
+      await db
+        .update(tasks)
+        .set({
+          timerStartedAt: new Date(Date.now() - 60_000),
+          timerAccumulatedSeconds: 0,
+        })
+        .where(eq(tasks.id, task.id))
+
+      // s2 is the only actionable subtask; completing it leaves the task
+      // with nothing actionable (s1 still snoozed) — so it should bank the
+      // running timer, mirroring the snooze path.
+      const result = await completeTask(TEST_USER, task.id, 300)
+      expect(result).toEqual({ advanced: false })
+
+      const [updated] = await db
+        .select()
+        .from(tasks)
+        .where(eq(tasks.id, task.id))
+      expect(updated.subtasks[1].done).toBe(true)
+      expect(updated.timerStartedAt).toBeNull()
+      expect(updated.timerAccumulatedSeconds).toBeGreaterThan(55)
+    })
+
+    it('leaves a running timer alone when completing a subtask that still leaves actionable ones', async () => {
+      const task = await makeTask({
+        subtasks: [
+          { title: 's1', done: false },
+          { title: 's2', done: false },
+        ],
+      })
+      await db
+        .update(tasks)
+        .set({
+          timerStartedAt: new Date(Date.now() - 60_000),
+          timerAccumulatedSeconds: 0,
+        })
+        .where(eq(tasks.id, task.id))
+
+      const result = await completeTask(TEST_USER, task.id, 300)
+      expect(result).toEqual({ advanced: false })
+
+      const [updated] = await db
+        .select()
+        .from(tasks)
+        .where(eq(tasks.id, task.id))
+      expect(updated.timerStartedAt).not.toBeNull()
+      expect(updated.timerAccumulatedSeconds).toBe(0)
+    })
   })
 
   describe('snoozeTask', () => {

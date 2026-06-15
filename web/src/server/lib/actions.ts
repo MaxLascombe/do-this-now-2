@@ -53,11 +53,22 @@ export async function completeTask(
     const transition = completeTaskTransition(task, now)
 
     if (transition.kind === 'advance-subtask') {
-      // Subtask advancement isn't a "completion" — leave the timer
-      // running so the user can keep working without re-starting it.
+      // Completing the last actionable subtask leaves the task snoozed —
+      // bank the running timer, mirroring the snooze path.
+      const timerFields =
+        task.timerStartedAt && isSnoozed(transition.nextTask)
+          ? {
+              timerStartedAt: null,
+              timerAccumulatedSeconds: currentTimerSeconds(task, now),
+            }
+          : {}
       await tx
         .update(tasks)
-        .set({ subtasks: transition.nextTask.subtasks, updatedAt: now })
+        .set({
+          subtasks: transition.nextTask.subtasks,
+          updatedAt: now,
+          ...timerFields,
+        })
         .where(and(eq(tasks.userId, userId), eq(tasks.id, task.id)))
       return { advanced: false }
     }
