@@ -169,8 +169,6 @@ function TasksList() {
     navigate({ to: '/tasks/$id/edit', params: { id: t.id } })
   }
 
-  // Jump to the task detail page, where every subtask (including the active
-  // one) is listed — the list row only shows a done/total count.
   const openAction = () => {
     const t = tasks.at(selectedTask)
     if (!t) return
