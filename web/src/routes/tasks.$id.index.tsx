@@ -46,7 +46,6 @@ function TaskDetail() {
   const router = useRouter()
   const taskQuery = useTask(id)
   const [sheetOpen, setSheetOpen] = useState(false)
-  const [subtaskDraft, setSubtaskDraft] = useState('')
 
   const task = taskQuery.data
   // 0-time-frame children track their timer on the keeper row, like the
@@ -98,18 +97,6 @@ function TaskDetail() {
     const subtasks = task.subtasks.map((s, i) =>
       i === index ? { ...s, done: !s.done } : s,
     )
-    updateTask.mutate({ id, input: { ...taskToInput(task), subtasks } })
-  }
-  const addSubtask = () => {
-    const title = subtaskDraft.trim()
-    if (!task || !title) return
-    const subtasks = [...task.subtasks, { title, done: false }]
-    updateTask.mutate({ id, input: { ...taskToInput(task), subtasks } })
-    setSubtaskDraft('')
-  }
-  const removeSubtask = (index: number) => {
-    if (!task) return
-    const subtasks = task.subtasks.filter((_, i) => i !== index)
     updateTask.mutate({ id, input: { ...taskToInput(task), subtasks } })
   }
 
@@ -524,41 +511,11 @@ function TaskDetail() {
                       {sub.title}
                     </span>
                   </button>
-                  <button
-                    type="button"
-                    onClick={() => removeSubtask(i)}
-                    aria-label={`Remove subtask: ${sub.title}`}
-                    className="rounded-lg px-2 py-2 font-mono text-sm text-zinc-600 hover:text-rose-400"
-                  >
-                    ✕
-                  </button>
                 </li>
               ))}
             </ul>
           )}
-            <form
-              onSubmit={(e) => {
-                e.preventDefault()
-                addSubtask()
-              }}
-              className="mt-2 flex items-center gap-2"
-            >
-              <input
-                value={subtaskDraft}
-                onChange={(e) => setSubtaskDraft(e.target.value)}
-                placeholder="Add a subtask…"
-                aria-label="Add a subtask"
-                className="flex-1 rounded-xl border border-zinc-800 bg-zinc-900/60 px-4 py-2 font-mono text-sm text-zinc-100 placeholder:text-zinc-600 focus:border-zinc-600 focus:outline-none"
-              />
-              <button
-                type="submit"
-                disabled={!subtaskDraft.trim() || updateTask.isPending}
-                className="rounded-full border border-zinc-800 px-4 py-2 font-mono text-sm text-zinc-400 hover:border-zinc-600 hover:text-zinc-100 disabled:opacity-50"
-              >
-                Add
-              </button>
-            </form>
-          </div>
+        </div>
 
         <Link
           to="/tasks/$id/edit"
