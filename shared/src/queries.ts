@@ -521,6 +521,15 @@ function applyClientTimerAction(task: Task, action: TimerAction): Task {
       if (!started) {
         next.timerStartedAt = now
       }
+      // Starting a timer wakes a snoozed task (task-level or all-subtasks-
+      // snoozed), matching the server. Optimistically clear the snooze so the
+      // row reappears in the active list immediately.
+      if (isSnoozed(next)) {
+        next.snooze = null
+        next.subtasks = next.subtasks.map((s) =>
+          s.snooze ? { ...s, snooze: undefined } : s,
+        )
+      }
       break
     case 'pause':
       if (started) {

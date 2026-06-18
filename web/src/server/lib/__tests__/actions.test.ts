@@ -483,4 +483,65 @@ describe.skipIf(!process.env.DATABASE_URL)('actions (integration)', () => {
       expect(stillA.timerStartedAt).not.toBeNull()
     })
   })
+
+  describe('applyTimerAction wakes a snoozed task on start', () => {
+    const inAnHour = () => new Date(Date.now() + 60 * 60 * 1000).toISOString()
+
+    it('clears a task-level snooze when starting its timer', async () => {
+      const task = await makeTask()
+      await snoozeTask(TEST_USER, task.id, false)
+
+      const started = await applyTimerAction(TEST_USER, task.id, {
+        kind: 'start',
+      })
+
+      expect(started.timerStartedAt).not.toBeNull()
+      expect(started.snooze).toBeNull()
+    })
+
+    it('clears subtask snoozes when every incomplete subtask is snoozed', async () => {
+      const task = await makeTask({
+        subtasks: [
+          { title: 's1', done: true },
+          { title: 's2', done: false, snooze: inAnHour() },
+          { title: 's3', done: false, snooze: inAnHour() },
+        ],
+      })
+
+      const started = await applyTimerAction(TEST_USER, task.id, {
+        kind: 'start',
+      })
+
+      expect(started.timerStartedAt).not.toBeNull()
+      expect(started.subtasks.every((s) => !s.snooze)).toBe(true)
+    })
+
+    it('leaves snoozes untouched when an actionable subtask remains', async () => {
+      const task = await makeTask({
+        subtasks: [
+          { title: 's1', done: false },
+          { title: 's2', done: false, snooze: inAnHour() },
+        ],
+      })
+
+      const started = await applyTimerAction(TEST_USER, task.id, {
+        kind: 'start',
+      })
+
+      expect(started.timerStartedAt).not.toBeNull()
+      // The task isn't snoozed (s1 is actionable), so the snoozed s2 stays.
+      expect(started.subtasks.find((s) => s.title === 's2')?.snooze).toBeTruthy()
+    })
+
+    it('does not snooze-touch a plain non-snoozed task', async () => {
+      const task = await makeTask()
+
+      const started = await applyTimerAction(TEST_USER, task.id, {
+        kind: 'start',
+      })
+
+      expect(started.timerStartedAt).not.toBeNull()
+      expect(started.snooze).toBeNull()
+    })
+  })
 })

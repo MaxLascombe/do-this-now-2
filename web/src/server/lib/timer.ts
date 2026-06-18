@@ -1,6 +1,7 @@
 import { and, eq, isNotNull, ne } from 'drizzle-orm'
 
 import { tasks } from '@dtn/shared/schema'
+import { isSnoozed } from '@dtn/shared/task-sorting'
 import { ceilTaskTime } from '@dtn/shared/timer-utils'
 import { db } from '../../db'
 import type { Task } from '@dtn/shared/schema'
@@ -116,6 +117,11 @@ export async function applyTimerAction(
 
     let nextStartedAt: Date | null = target.timerStartedAt
     let nextAccumulated = target.timerAccumulatedSeconds
+    // Starting a timer means "I'm working on this now", so it pulls a snoozed
+    // task back into the active list — whether snoozed at the task level or
+    // because every incomplete subtask is snoozed. Mirrors unsnoozeTask:
+    // clear the task snooze and any snoozed subtasks.
+    let wakeFields: { snooze: null; subtasks: Task['subtasks'] } | object = {}
 
     switch (action.kind) {
       case 'start':
@@ -127,6 +133,14 @@ export async function applyTimerAction(
           // back the start too.
           await pauseOtherRunningTimers(tx, userId, target.id, now)
           nextStartedAt = now
+        }
+        if (isSnoozed(target)) {
+          wakeFields = {
+            snooze: null,
+            subtasks: target.subtasks.map((s) =>
+              s.snooze ? { ...s, snooze: undefined } : s,
+            ),
+          }
         }
         break
       case 'pause':
@@ -170,6 +184,7 @@ export async function applyTimerAction(
         timerStartedAt: nextStartedAt,
         timerAccumulatedSeconds: nextAccumulated,
         updatedAt: now,
+        ...wakeFields,
       })
       .where(and(eq(tasks.userId, userId), eq(tasks.id, target.id)))
       .returning()
