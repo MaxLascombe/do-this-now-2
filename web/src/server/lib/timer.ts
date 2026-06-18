@@ -1,4 +1,4 @@
-import { and, eq } from 'drizzle-orm'
+import { and, eq, isNotNull, ne } from 'drizzle-orm'
 
 import { tasks } from '@dtn/shared/schema'
 import { ceilTaskTime } from '@dtn/shared/timer-utils'
@@ -62,6 +62,41 @@ async function resolveTimerTarget(
   return task
 }
 
+// Pause any other timers currently running for this user, banking their
+// elapsed time. Runs on the caller's transaction so a failure aborts the
+// enclosing start.
+async function pauseOtherRunningTimers(
+  conn: Conn,
+  userId: string,
+  exceptId: string,
+  now: Date,
+): Promise<void> {
+  const running = await conn
+    .select()
+    .from(tasks)
+    .where(
+      and(
+        eq(tasks.userId, userId),
+        ne(tasks.id, exceptId),
+        isNotNull(tasks.timerStartedAt),
+      ),
+    )
+  for (const other of running) {
+    const elapsed = (now.getTime() - other.timerStartedAt!.getTime()) / 1000
+    await conn
+      .update(tasks)
+      .set({
+        timerStartedAt: null,
+        timerAccumulatedSeconds: Math.max(
+          0,
+          other.timerAccumulatedSeconds + elapsed,
+        ),
+        updatedAt: now,
+      })
+      .where(and(eq(tasks.userId, userId), eq(tasks.id, other.id)))
+  }
+}
+
 export async function applyTimerAction(
   userId: string,
   id: string,
@@ -87,6 +122,10 @@ export async function applyTimerAction(
         // Idempotent: if already running, leave the existing start time
         // alone so we don't accidentally rebase elapsed seconds.
         if (!target.timerStartedAt) {
+          // Only one timer runs at a time: pause every other running timer
+          // first, inside this same transaction, so a failed pause rolls
+          // back the start too.
+          await pauseOtherRunningTimers(tx, userId, target.id, now)
           nextStartedAt = now
         }
         break
