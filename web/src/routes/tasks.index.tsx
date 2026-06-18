@@ -169,6 +169,15 @@ function TasksList() {
     navigate({ to: '/tasks/$id/edit', params: { id: t.id } })
   }
 
+  // Jump to the task detail page, where every subtask (including the active
+  // one) is listed — the list row only shows a done/total count.
+  const openAction = () => {
+    const t = tasks.at(selectedTask)
+    if (!t) return
+    primeTaskCache(t)
+    navigate({ to: '/tasks/$id', params: { id: t.id } })
+  }
+
   const deleteAction = async () => {
     const t = tasks.at(selectedTask)
     if (!t) return
@@ -256,6 +265,7 @@ function TasksList() {
       action: () => setSort((s) => (s === 'CHRON' ? 'TOP' : 'CHRON')),
     },
     { key: 'e', description: 'Edit task', action: editAction },
+    { key: 'enter', description: 'Open task', action: openAction },
     { key: 'w', description: 'Wake snoozed task', action: wakeAction },
     {
       key: 'S',
@@ -472,6 +482,7 @@ function TasksList() {
                                 hasSubtasks={t.subtasks.length > 0}
                                 advance={willAdvanceSubtask(t, new Date())}
                                 snoozed={isSnoozed(t)}
+                                onOpen={openAction}
                                 onComplete={completeAction}
                                 onEdit={editAction}
                                 onSnoozeSubtasks={snoozeSubtasks}
@@ -516,6 +527,7 @@ function TasksList() {
                         hasSubtasks={t.subtasks.length > 0}
                         advance={willAdvanceSubtask(t, new Date())}
                         snoozed={isSnoozed(t)}
+                        onOpen={openAction}
                         onComplete={completeAction}
                         onEdit={editAction}
                         onSnoozeSubtasks={snoozeSubtasks}
@@ -542,6 +554,7 @@ function TasksList() {
         <KeyHints
           items={[
             ['D', 'done'],
+            ['↵', 'open'],
             ['E', 'edit'],
             ['⌫', 'delete'],
             ['↑↓', 'select'],
@@ -628,6 +641,7 @@ const SelectedActions = ({
   hasSubtasks,
   advance,
   snoozed,
+  onOpen,
   onComplete,
   onEdit,
   onSnoozeSubtasks,
@@ -637,6 +651,7 @@ const SelectedActions = ({
   hasSubtasks: boolean
   advance: boolean
   snoozed: boolean
+  onOpen: () => void
   onComplete: () => void
   onEdit: () => void
   onSnoozeSubtasks: () => void
@@ -654,6 +669,7 @@ const SelectedActions = ({
         D
       </kbd>
     </button>
+    <ActionGhost k="↵" label="Open" onClick={onOpen} />
     <ActionGhost k="E" label="Edit" onClick={onEdit} />
     {snoozed && <ActionGhost k="W" label="Wake" onClick={onWake} />}
     {hasSubtasks && (
