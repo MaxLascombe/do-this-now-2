@@ -308,7 +308,9 @@ function TaskDetail() {
           >
             {task.emoji}
           </span>
-          <PageHeading eyebrow="task">{task.title}</PageHeading>
+          <PageHeading eyebrow="task" variant="task">
+            {task.title}
+          </PageHeading>
         </div>
         <div className="hidden items-center gap-2 md:flex">
           <Link
