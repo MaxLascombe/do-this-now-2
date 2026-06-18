@@ -9,8 +9,6 @@ export const PageHeading = ({
   eyebrow?: ReactNode
   children: ReactNode
   size?: string
-  // 'heading' is the mono section label (Settings, Stats…); 'task' is the
-  // serif-italic ruleset every task title uses elsewhere on the site.
   variant?: 'heading' | 'task'
 }) => (
   <div>
