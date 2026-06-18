@@ -48,9 +48,12 @@ export const Route = createRootRoute({
   shellComponent: RootDocument,
 })
 
+// Pass the key explicitly so it's inlined into the SSR bundle at build time — Vercel only scopes VITE_CLERK_PUBLISHABLE_KEY to production, so preview SSR can't read it from the runtime env.
+const clerkPublishableKey = import.meta.env.VITE_CLERK_PUBLISHABLE_KEY
+
 function RootDocument({ children }: { children: ReactNode }) {
   return (
-    <ClerkProvider>
+    <ClerkProvider publishableKey={clerkPublishableKey}>
       <html lang="en">
         <head>
           <HeadContent />
