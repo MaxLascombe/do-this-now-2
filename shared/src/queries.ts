@@ -122,10 +122,21 @@ async function optimisticComplete(
   const task = findTaskInCaches(qc, id)
   if (!task) return optimisticRemove(qc, id)
 
-  const transition = completeTaskTransition(task, new Date())
+  const now = new Date()
+  const transition = completeTaskTransition(task, now)
 
   if (transition.kind === 'advance-subtask') {
-    return replaceTaskInCaches(qc, id, transition.nextTask)
+    // Mirror the server: if completing this subtask leaves the whole task
+    // snoozed, bank the running timer so the chip stops ticking immediately.
+    const next =
+      task.timerStartedAt && isSnoozed(transition.nextTask)
+        ? {
+            ...transition.nextTask,
+            timerStartedAt: null,
+            timerAccumulatedSeconds: currentTimerSeconds(task, now),
+          }
+        : transition.nextTask
+    return replaceTaskInCaches(qc, id, next)
   }
 
   // A repeating task never leaves the active lists — it comes back on its

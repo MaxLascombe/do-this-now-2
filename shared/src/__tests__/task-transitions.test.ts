@@ -6,6 +6,7 @@ import {
   snoozeTaskTransition,
   willAdvanceSubtask,
 } from '../task-transitions'
+import { isSnoozed } from '../task-sorting'
 import { makeTask } from './_factories'
 
 const now = new Date('2026-05-15T12:00:00Z')
@@ -126,6 +127,40 @@ describe('completeTaskTransition', () => {
         expect(r.nextTask.subtasks[1].done).toBe(true)
       } else {
         throw new Error('expected advance-subtask')
+      }
+    })
+
+    it('completing the last actionable subtask leaves the task snoozed (so the timer banks)', () => {
+      // Others are snoozed/done; only `b` is actionable. Completing it
+      // should leave the task with nothing actionable — `isSnoozed` is the
+      // predicate completeTask/optimisticComplete use to pause the timer.
+      // `isSnoozed` reads the real wall-clock, so use a far-future snooze
+      // that's still in the future regardless of when the suite runs.
+      const t = makeTask({
+        subtasks: [
+          { title: 'a', done: true },
+          { title: 'b', done: false },
+          { title: 'c', done: false, snooze: '2099-01-01T00:00:00Z' },
+        ],
+      })
+      const r = completeTaskTransition(t, now)
+      expect(r.kind).toBe('advance-subtask')
+      if (r.kind === 'advance-subtask') {
+        expect(isSnoozed(r.nextTask)).toBe(true)
+      }
+    })
+
+    it('completing a subtask with other actionable ones left is NOT snoozed (timer keeps running)', () => {
+      const t = makeTask({
+        subtasks: [
+          { title: 'a', done: false },
+          { title: 'b', done: false },
+        ],
+      })
+      const r = completeTaskTransition(t, now)
+      expect(r.kind).toBe('advance-subtask')
+      if (r.kind === 'advance-subtask') {
+        expect(isSnoozed(r.nextTask)).toBe(false)
       }
     })
 
