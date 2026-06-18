@@ -432,4 +432,55 @@ describe.skipIf(!process.env.DATABASE_URL)('actions (integration)', () => {
       expect(paused.timerAccumulatedSeconds).toBeLessThan(65)
     })
   })
+
+  describe('applyTimerAction single-timer constraint', () => {
+    it('pauses any other running timer when a new one starts, banking its elapsed', async () => {
+      const a = await makeTask({ title: 'A' })
+      const b = await makeTask({ title: 'B' })
+      // A has been running for 60s.
+      const sixtySecondsAgo = new Date(Date.now() - 60 * 1000)
+      await db
+        .update(tasks)
+        .set({
+          timerStartedAt: sixtySecondsAgo,
+          timerAccumulatedSeconds: 0,
+          updatedAt: sixtySecondsAgo,
+        })
+        .where(eq(tasks.id, a.id))
+
+      const started = await applyTimerAction(TEST_USER, b.id, { kind: 'start' })
+      expect(started.timerStartedAt).not.toBeNull()
+
+      const [pausedA] = await db
+        .select()
+        .from(tasks)
+        .where(eq(tasks.id, a.id))
+      expect(pausedA.timerStartedAt).toBeNull()
+      expect(pausedA.timerAccumulatedSeconds).toBeGreaterThan(55)
+      expect(pausedA.timerAccumulatedSeconds).toBeLessThan(65)
+    })
+
+    it('leaves other timers running when starting an already-running timer (idempotent)', async () => {
+      const a = await makeTask({ title: 'A' })
+      const b = await makeTask({ title: 'B' })
+      const now = new Date()
+      await db
+        .update(tasks)
+        .set({ timerStartedAt: now, timerAccumulatedSeconds: 0, updatedAt: now })
+        .where(eq(tasks.id, a.id))
+      await db
+        .update(tasks)
+        .set({ timerStartedAt: now, timerAccumulatedSeconds: 0, updatedAt: now })
+        .where(eq(tasks.id, b.id))
+
+      // Re-starting B (already running) must not touch A.
+      await applyTimerAction(TEST_USER, b.id, { kind: 'start' })
+
+      const [stillA] = await db
+        .select()
+        .from(tasks)
+        .where(eq(tasks.id, a.id))
+      expect(stillA.timerStartedAt).not.toBeNull()
+    })
+  })
 })
