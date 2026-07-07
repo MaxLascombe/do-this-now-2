@@ -32,8 +32,3 @@ export async function setSelectionTx(
       set: { selectedTaskId, updatedAt: now },
     })
 }
-
-export async function clearSelection(userId: string): Promise<Selection> {
-  await setSelectionTx(db, userId, null, new Date())
-  return { selectedTaskId: null }
-}

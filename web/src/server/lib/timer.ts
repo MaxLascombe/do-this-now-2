@@ -99,6 +99,32 @@ async function pauseOtherRunningTimers(
   }
 }
 
+// Pause a single task's timer (resolving child→keeper), banking elapsed
+// time. Runs on the caller's connection so it can commit atomically with
+// the surrounding work (e.g. clearing the selection in one transaction).
+// No-op when the timer is already paused.
+export async function pauseTimerTx(
+  conn: Conn,
+  userId: string,
+  id: string,
+  now: Date,
+): Promise<void> {
+  const target = await resolveTimerTarget(conn, userId, id)
+  if (!target.timerStartedAt) return
+  const elapsed = (now.getTime() - target.timerStartedAt.getTime()) / 1000
+  await conn
+    .update(tasks)
+    .set({
+      timerStartedAt: null,
+      timerAccumulatedSeconds: Math.max(
+        0,
+        target.timerAccumulatedSeconds + elapsed,
+      ),
+      updatedAt: now,
+    })
+    .where(and(eq(tasks.userId, userId), eq(tasks.id, target.id)))
+}
+
 export async function applyTimerAction(
   userId: string,
   id: string,

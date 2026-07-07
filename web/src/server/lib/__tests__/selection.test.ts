@@ -87,6 +87,21 @@ describe.skipIf(!process.env.DATABASE_URL)('selection (integration)', () => {
     expect(await unselect(TEST_USER)).toEqual({ selectedTaskId: null })
   })
 
+  it('keeps pointer and timer consistent across a Return then a new select', async () => {
+    const x = await makeTask({ title: 'X' })
+    const y = await makeTask({ title: 'Y' })
+    await applyTimerAction(TEST_USER, x.id, { kind: 'start' })
+    await unselect(TEST_USER)
+    await applyTimerAction(TEST_USER, y.id, { kind: 'start' })
+    // Invariant the atomic unselect protects: the pointer names exactly the
+    // task whose timer is running, never a stale/null mismatch.
+    expect(await getSelection(TEST_USER)).toEqual({ selectedTaskId: y.id })
+    const [xr] = await db.select().from(tasks).where(eq(tasks.id, x.id))
+    const [yr] = await db.select().from(tasks).where(eq(tasks.id, y.id))
+    expect(xr.timerStartedAt).toBeNull()
+    expect(yr.timerStartedAt).not.toBeNull()
+  })
+
   it('deleting the selected task clears the pointer (ON DELETE SET NULL)', async () => {
     const task = await makeTask()
     await applyTimerAction(TEST_USER, task.id, { kind: 'start' })
