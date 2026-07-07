@@ -245,6 +245,12 @@ function Home() {
     navigate({ to: '/tasks/$id/edit', params: { id: selectedTask.id } })
   }
 
+  const goOpen = () => {
+    if (!selectedTask) return
+    primeTaskCache(selectedTask)
+    navigate({ to: '/tasks/$id', params: { id: selectedTask.id } })
+  }
+
   // A 0-time-frame child runs its timer on the keeper row, like HeroTimer —
   // resolve it so the toggle reads the right `running` state. The mutation
   // still targets the selected id; the server maps it to the keeper.
@@ -300,6 +306,7 @@ function Home() {
       action: () => navigate({ to: '/tasks' }),
     },
     { key: 'e', description: 'Edit task', action: goEdit },
+    { key: 'enter', description: 'Open task', action: goOpen },
     {
       key: 'p',
       description: timerTask?.timerStartedAt ? 'Pause timer' : 'Start timer',
@@ -386,6 +393,7 @@ function Home() {
             task={selectedTask}
             index={selectedTaskIndex}
             onComplete={completeTaskAction}
+            onOpen={goOpen}
             onSnooze={snoozeTaskAction}
             onSnoozeSubtasks={snoozeAllSubtasksAction}
             onSnoozeRest={restIds.length > 0 ? snoozeRestAction : undefined}
@@ -462,6 +470,7 @@ function Hero({
   task,
   index,
   onComplete,
+  onOpen,
   onSnooze,
   onSnoozeSubtasks,
   onSnoozeRest,
@@ -472,6 +481,7 @@ function Hero({
   task: Task
   index: 0 | 1 | 2
   onComplete: () => void
+  onOpen: () => void
   onSnooze: () => void
   onSnoozeSubtasks: () => void
   onSnoozeRest?: () => void
@@ -585,6 +595,7 @@ function Hero({
       </button>
 
       <div className="mt-3 grid w-full max-w-[320px] grid-cols-3 gap-2 md:mt-4 md:flex md:max-w-none md:w-auto md:items-center md:gap-3">
+        <SecondaryAction k="↵" label="Open" onClick={onOpen} />
         <SecondaryAction k="S" label="Snooze" onClick={onSnooze} />
         {task.subtasks.length > 0 && (
           <SecondaryAction
