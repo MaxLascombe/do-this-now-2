@@ -4,6 +4,7 @@ import { tasks } from '@dtn/shared/schema'
 import { isSnoozed } from '@dtn/shared/task-sorting'
 import { ceilTaskTime } from '@dtn/shared/timer-utils'
 import { db } from '../../db'
+import { setSelectionTx } from './selection'
 import type { Task } from '@dtn/shared/schema'
 
 export type TimerAction = (
@@ -134,6 +135,10 @@ export async function applyTimerAction(
           await pauseOtherRunningTimers(tx, userId, target.id, now)
           nextStartedAt = now
         }
+        // Starting a timer *is* selecting the task. Store the id the user
+        // acted on (a child, not the resolved keeper) so the Focus View
+        // shows what they picked. Committed with the timer in one tx.
+        await setSelectionTx(tx, userId, id, now)
         if (isSnoozed(target)) {
           wakeFields = {
             snooze: null,

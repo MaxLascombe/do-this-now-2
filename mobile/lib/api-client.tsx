@@ -3,6 +3,7 @@ import {
   apiErrorFromResponse,
   ApiProvider,
   type ApiClient,
+  type SelectionResult,
 } from '@dtn/shared/api-client'
 import { getTzOffsetMin } from '@dtn/shared/time'
 import type { HistoryEntry, StatsResult, Task } from '@dtn/shared/types'
@@ -87,6 +88,11 @@ function createMobileApi(
           method: 'POST',
           body: action,
         }),
+    },
+    selection: {
+      get: () => call<SelectionResult>('/api/selection'),
+      unselect: () =>
+        call<SelectionResult>('/api/selection', { method: 'DELETE' }),
     },
     history: {
       forDate: (date) => call<HistoryEntry[]>(`/api/history/${date}`),

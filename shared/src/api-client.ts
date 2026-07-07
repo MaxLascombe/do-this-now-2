@@ -64,6 +64,7 @@ export type ProgressTodayResult = {
   minutesToReduceTomorrowDays: number
 }
 
+export type SelectionResult = { selectedTaskId: string | null }
 export type CompleteTaskResult = { advanced: boolean }
 export type CompleteTaskOptions = { countMeasurement?: boolean }
 export type SnoozeTaskResult = { scope: 'subtask' | 'task' }
@@ -93,6 +94,12 @@ export interface ApiClient {
     // Returns the task whose row actually holds the timer state — for
     // 0-time-frame children that's the keeper, not the task you passed.
     timer(id: string, action: TimerAction): Promise<Task>
+  }
+  // The user's cross-device Selected Task. `get` is polled; `unselect`
+  // (Return) pauses the selected task's timer and clears the pointer.
+  selection: {
+    get(): Promise<SelectionResult>
+    unselect(): Promise<SelectionResult>
   }
   history: {
     forDate(date: string): Promise<HistoryEntry[]>

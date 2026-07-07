@@ -181,6 +181,20 @@ export const dailyProgress = pgTable(
   (t) => [primaryKey({ columns: [t.userId, t.date] })],
 )
 
+// One row per user holding cross-device UI state. `selectedTaskId` is the
+// task the user has committed to focusing on right now — authoritative and
+// shared across devices. ON DELETE SET NULL so deleting the task clears the
+// selection at the database level (no app code, no race).
+export const userState = pgTable('user_state', {
+  userId: text('user_id').primaryKey(),
+  selectedTaskId: uuid('selected_task_id').references(() => tasks.id, {
+    onDelete: 'set null',
+  }),
+  updatedAt: timestamp('updated_at', { withTimezone: true })
+    .notNull()
+    .defaultNow(),
+})
+
 // Global cache of Claude-generated emoji suggestions, keyed by normalized
 // task title, so a repeated title is served from Postgres instead of a fresh
 // model call. User-agnostic on purpose — the title→emoji mapping is the same

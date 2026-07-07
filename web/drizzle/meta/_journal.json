@@ -78,6 +78,13 @@
       "when": 1780579142753,
       "tag": "0010_emoji_suggestions",
       "breakpoints": true
+    },
+    {
+      "idx": 11,
+      "version": "7",
+      "when": 1783466507595,
+      "tag": "0011_bumpy_sheva_callister",
+      "breakpoints": true
     }
   ]
 }

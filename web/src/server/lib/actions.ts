@@ -10,7 +10,8 @@ import {
 import { HOUR_MS } from '@dtn/shared/time'
 import { db } from '../../db'
 import { finalizeTodayProgress } from './progress'
-import { currentTimerSeconds } from './timer'
+import { clearSelection, getSelection, type Selection } from './selection'
+import { applyTimerAction, currentTimerSeconds } from './timer'
 import type { Task } from '@dtn/shared/schema'
 
 // Thrown when an action targets a task id that doesn't exist (e.g. a stale
@@ -265,4 +266,15 @@ export async function getHistory(
         lt(history.completedAt, end),
       ),
     )
+}
+
+// Return / unselect: the user is stepping off the Selected Task. Pause its
+// timer (banking elapsed time) so the invariant "only the Selected Task may
+// run" holds, then clear the pointer. Idempotent when nothing is selected.
+export async function unselect(userId: string): Promise<Selection> {
+  const { selectedTaskId } = await getSelection(userId)
+  if (selectedTaskId) {
+    await applyTimerAction(userId, selectedTaskId, { kind: 'pause' })
+  }
+  return clearSelection(userId)
 }

@@ -8,6 +8,7 @@ import {
 import type {
   ApiClient,
   ProgressTodayResult,
+  SelectionResult,
   TimerAction,
 } from './api-client'
 import { useApi } from './api-client'
@@ -27,6 +28,7 @@ export const taskKeys = {
   list: ['tasks', 'all'] as const,
   one: (id: string) => ['tasks', 'get', id] as const,
 }
+export const selectionKey = ['selection'] as const
 export const historyKey = (date: string) => ['history', date] as const
 export const progressTodayKey = ['progresstoday'] as const
 export const statsKey = ['stats'] as const
@@ -332,6 +334,45 @@ const listSyncInterval = (data: Task[] | undefined): number =>
 const oneSyncInterval = (data: Task | undefined): number =>
   data?.timerStartedAt ? ACTIVE_SYNC_INTERVAL_MS : BASELINE_SYNC_INTERVAL_MS
 
+// The authoritative cross-device Selected Task pointer. Polls aggressively —
+// even on a backgrounded tab and always on focus, bypassing the default stale
+// window — so every device converges on the current selection within ~3s.
+export function useSelection() {
+  const api = useApi()
+  return useQuery({
+    queryKey: selectionKey,
+    queryFn: () => api.selection.get(),
+    refetchInterval: ACTIVE_SYNC_INTERVAL_MS,
+    refetchIntervalInBackground: true,
+    staleTime: 0,
+    refetchOnWindowFocus: 'always',
+  })
+}
+
+// Return: pause the Selected Task's timer and clear the pointer. Optimistically
+// empties selection so the UI drops out of the Focus View immediately.
+export function useUnselect() {
+  const qc = useQueryClient()
+  const api = useApi()
+  return useMutation({
+    mutationFn: () => api.selection.unselect(),
+    onMutate: async () => {
+      await qc.cancelQueries({ queryKey: selectionKey })
+      const prev = qc.getQueryData<SelectionResult>(selectionKey)
+      qc.setQueryData<SelectionResult>(selectionKey, { selectedTaskId: null })
+      return { prev }
+    },
+    onError: (_e, _v, ctx: { prev?: SelectionResult } | undefined) => {
+      if (ctx?.prev) qc.setQueryData(selectionKey, ctx.prev)
+    },
+    onSettled: () => {
+      qc.invalidateQueries({ queryKey: selectionKey })
+      // The Return also paused a timer — refresh the task caches.
+      qc.invalidateQueries({ queryKey: taskKeys.all })
+    },
+  })
+}
+
 export function useTopTasks(opts: EnabledOpts = {}) {
   const api = useApi()
   return useQuery({
@@ -575,6 +616,7 @@ type TimerCtx = {
   prevOne?: { id: string; value: Task | undefined }
   prevTop?: Task[]
   prevList?: Task[]
+  prevSelection?: SelectionResult
   // Whether the timer was running before this action — so a pause that
   // actually stops a running timer (not a no-op re-pause) can trigger the
   // auto-complete below.
@@ -611,7 +653,22 @@ export function registerTimerMutationDefaults(qc: QueryClient, api: ApiClient) {
         qc.setQueryData<Task[]>(taskKeys.top, patch)
         qc.setQueryData<Task[]>(taskKeys.list, patch)
       }
-      return { prevOne, prevTop, prevList, wasRunning: target?.timerStartedAt != null }
+      // Starting a timer selects that task server-side (the id acted on, not
+      // the resolved keeper). Mirror it into the selection cache now so the
+      // Focus View appears without waiting for the poll.
+      const prevSelection = qc.getQueryData<SelectionResult>(selectionKey)
+      if (vars.action.kind === 'start') {
+        qc.setQueryData<SelectionResult>(selectionKey, {
+          selectedTaskId: vars.id,
+        })
+      }
+      return {
+        prevOne,
+        prevTop,
+        prevList,
+        prevSelection,
+        wasRunning: target?.timerStartedAt != null,
+      }
     },
     onSuccess: async (
       server: Task,
@@ -649,6 +706,9 @@ export function registerTimerMutationDefaults(qc: QueryClient, api: ApiClient) {
       }
       qc.setQueryData<Task[] | undefined>(taskKeys.top, ctx.prevTop)
       qc.setQueryData<Task[] | undefined>(taskKeys.list, ctx.prevList)
+      if (ctx.prevSelection !== undefined) {
+        qc.setQueryData<SelectionResult>(selectionKey, ctx.prevSelection)
+      }
     },
   })
 }

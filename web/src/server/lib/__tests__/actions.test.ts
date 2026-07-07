@@ -1,7 +1,13 @@
 import { eq } from 'drizzle-orm'
 import { afterAll, beforeEach, describe, expect, it } from 'vitest'
 
-import { dailyProgress, history, taskEvents, tasks } from '@dtn/shared/schema'
+import {
+  dailyProgress,
+  history,
+  taskEvents,
+  tasks,
+  userState,
+} from '@dtn/shared/schema'
 
 import { db } from '../../../db'
 import { completeTask, snoozeTask } from '../actions'
@@ -20,6 +26,7 @@ const BOGUS_UUID = '00000000-0000-4000-8000-000000000000'
 async function cleanupTestUser() {
   await db.delete(taskEvents).where(eq(taskEvents.userId, TEST_USER))
   await db.delete(history).where(eq(history.userId, TEST_USER))
+  await db.delete(userState).where(eq(userState.userId, TEST_USER))
   await db.delete(tasks).where(eq(tasks.userId, TEST_USER))
   await db.delete(dailyProgress).where(eq(dailyProgress.userId, TEST_USER))
 }
