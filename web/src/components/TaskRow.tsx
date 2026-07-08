@@ -49,7 +49,7 @@ const TaskRowBase = ({
       className={
         'flex w-full items-center gap-4 rounded-2xl border px-5 py-3 text-left font-mono transition-colors ' +
         (selected
-          ? 'border-zinc-100 bg-zinc-50 text-zinc-950'
+          ? 'border-zinc-400 bg-zinc-900 ring-1 ring-zinc-400/60'
           : 'border-zinc-800 bg-zinc-900/60 hover:border-zinc-700 hover:bg-zinc-900') +
         (dim ? ' opacity-70' : '')
       }
@@ -72,32 +72,16 @@ const TaskRowBase = ({
       </span>
       <div className="min-w-0 flex-1">
         <div
-          className={
-            'truncate ' +
-            (selected
-              ? 'dtn-task-title text-zinc-950'
-              : 'font-mono text-zinc-100')
-          }
-          style={{
-            fontSize: selected ? '1.5rem' : '1.1rem',
-            lineHeight: 1.15,
-          }}
+          className="truncate font-mono text-zinc-100"
+          style={{ fontSize: '1.1rem', lineHeight: 1.15 }}
         >
           {task.title}
         </div>
-        <div
-          className={
-            'mt-1 flex flex-wrap items-center gap-x-4 gap-y-0.5 text-xs ' +
-            (selected ? 'text-zinc-600' : 'text-zinc-500')
-          }
-        >
+        <div className="mt-1 flex flex-wrap items-center gap-x-4 gap-y-0.5 text-xs text-zinc-500">
           {dueLabel && (
             <span>
               {isOverdue && (
-                <span
-                  aria-label="Overdue"
-                  style={{ color: selected ? '#9f1239' : OVERDUE }}
-                >
+                <span aria-label="Overdue" style={{ color: OVERDUE }}>
                   ‼{' '}
                 </span>
               )}
@@ -122,9 +106,7 @@ const TaskRowBase = ({
             </span>
           )}
           {task.strictDeadline && (
-            <span style={{ color: selected ? '#9f1239' : OVERDUE }}>
-              strict
-            </span>
+            <span style={{ color: OVERDUE }}>strict</span>
           )}
           {task.tags.map((t) => (
             <span key={t}>#{t}</span>
@@ -132,14 +114,7 @@ const TaskRowBase = ({
         </div>
       </div>
       {kbd && (
-        <kbd
-          className={
-            'rounded border px-1.5 py-0.5 text-[10px] font-bold tabular-nums ' +
-            (selected
-              ? 'border-zinc-300 bg-black/10 text-zinc-900'
-              : 'border-zinc-800 bg-zinc-900 text-zinc-300')
-          }
-        >
+        <kbd className="rounded border border-zinc-800 bg-zinc-900 px-1.5 py-0.5 text-[10px] font-bold text-zinc-300 tabular-nums">
           {kbd}
         </kbd>
       )}
