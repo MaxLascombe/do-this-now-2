@@ -782,21 +782,34 @@ function TopTaskRow({
 }
 
 function NowSkeleton() {
+  // Mirror the Top Tasks rows (the no-selection entry state) so the layout
+  // doesn't jump from a hero into a list once data arrives.
   return (
     <div className="relative flex min-h-screen flex-col">
       <TopBar />
       <div
-        className="flex flex-1 flex-col items-center justify-center px-5 pb-8 md:px-16"
+        className="flex flex-1 flex-col items-center justify-center px-5 pb-20 md:px-16"
         role="status"
         aria-label="Loading your tasks"
       >
-        <Skeleton className="mb-4 h-20 w-20 rounded-2xl md:mb-8 md:h-28 md:w-28" />
-        <Skeleton className="h-9 w-64 md:h-14 md:w-[28rem]" />
-        <Skeleton className="mt-4 h-4 w-44" />
-        <Skeleton className="mt-8 h-12 w-full max-w-[320px] rounded-full md:mt-12" />
-        <div className="mt-3 flex gap-2">
-          <Skeleton className="h-8 w-24 rounded-full" />
-          <Skeleton className="h-8 w-20 rounded-full" />
+        <div className="w-full max-w-xl">
+          <Skeleton className="mb-4 ml-1 h-3 w-20" />
+          <div className="flex flex-col gap-2">
+            {[0, 1, 2].map((i) => (
+              <div
+                key={i}
+                className="flex w-full items-center gap-4 rounded-2xl border border-zinc-800 bg-zinc-900/60 px-5 py-3"
+              >
+                <Skeleton className="h-8 w-8 rounded-lg" />
+                <div className="min-w-0 flex-1">
+                  <Skeleton className="h-5 w-2/5" />
+                  <Skeleton className="mt-2 h-3 w-1/4" />
+                </div>
+                <Skeleton className="h-7 w-14 rounded-full" />
+                <Skeleton className="h-7 w-16 rounded-full" />
+              </div>
+            ))}
+          </div>
         </div>
       </div>
     </div>
