@@ -1,4 +1,5 @@
 import { formatDueLabel, formatRepeat } from '@dtn/shared/format'
+import { newSafeDate } from '@dtn/shared/helpers'
 import {
   useCompleteTask,
   useCreateTask,
@@ -6,7 +7,6 @@ import {
   usePrefetchTask,
   usePrimeTaskCache,
   useSelection,
-  useSnoozeManyTasks,
   useSnoozeTask,
   useTask,
   useTaskTimer,
@@ -36,7 +36,6 @@ import { Loading } from '../components/Loading'
 import { LinkifiedNotes } from '../components/LinkifiedNotes'
 import { MobileChrome } from '../components/MobileChrome'
 import { Skeleton } from '../components/Skeleton'
-import { TaskRow } from '../components/TaskRow'
 import { TimerWidget } from '../components/TimerWidget'
 import { useToast } from '../components/ToastProvider'
 import { TopBar } from '../components/TopBar'
@@ -48,6 +47,8 @@ export const Route = createFileRoute('/')({
   head: () => ({ meta: [{ title: 'Now · Do This Now' }] }),
   component: Home,
 })
+
+const OVERDUE = '#fb7185'
 
 const Kbd = ({
   children,
@@ -149,19 +150,15 @@ function Home() {
       null)
     : null
 
-  const [selectedTaskIndex, setSelectedTaskIndex] = useState<0 | 1 | 2>(0)
-  const localSelectedTask =
-    tasks.length > selectedTaskIndex ? tasks.at(selectedTaskIndex) : tasks.at(0)
-  const selectedTask = focusTask ?? localSelectedTask
-
-  if (!focusTask && tasks.length > 0 && tasks.length <= selectedTaskIndex)
-    setSelectedTaskIndex(tasks.length === 2 ? 1 : 0)
+  // Home has exactly two states. When a task is selected it becomes the
+  // single-task Focus View; otherwise we show the top tasks as equal rows.
+  // The per-Hero actions below target the Selected Task.
+  const selectedTask = focusTask
 
   const doneMutation = useCompleteTask()
   const deleteMutation = useDeleteTask()
   const createTask = useCreateTask()
   const snoozeMutation = useSnoozeTask()
-  const snoozeManyMutation = useSnoozeManyTasks()
   const unsnoozeMutation = useUnsnoozeTask()
   const prefetchTask = usePrefetchTask()
   const primeTaskCache = usePrimeTaskCache()
@@ -177,28 +174,29 @@ function Home() {
     doneMutation.mutate({ id, countMeasurement })
   }
 
-  const completeTaskAction = () => {
-    if (!selectedTask) return
+  const completeTaskFor = (task: Task | null | undefined) => {
+    if (!task) return
     const now = new Date()
-    if (isCompletionGated(selectedTask, now)) return
+    if (isCompletionGated(task, now)) return
     // Subtask advance never triggers the count/skip confirm — that
     // dialog is about how to record the *whole task's* timer, which
     // doesn't fire on subtask completion.
-    if (willAdvanceSubtask(selectedTask, now)) {
-      runComplete(selectedTask.id, true)
+    if (willAdvanceSubtask(task, now)) {
+      runComplete(task.id, true)
       return
     }
-    const kind = completionConfirmKind(selectedTask, now)
+    const kind = completionConfirmKind(task, now)
     if (!kind) {
-      runComplete(selectedTask.id, true)
+      runComplete(task.id, true)
       return
     }
-    setPendingComplete({ task: selectedTask, kind })
+    setPendingComplete({ task, kind })
   }
+  const completeTaskAction = () => completeTaskFor(selectedTask)
 
-  const snoozeTaskAction = () => {
-    if (!selectedTask) return
-    const { id } = selectedTask
+  const snoozeTaskFor = (task: Task | null | undefined) => {
+    if (!task) return
+    const { id } = task
     snoozeMutation.mutate(
       { id },
       {
@@ -211,6 +209,7 @@ function Home() {
       },
     )
   }
+  const snoozeTaskAction = () => snoozeTaskFor(selectedTask)
 
   const snoozeAllSubtasksAction = () => {
     if (!selectedTask) return
@@ -226,14 +225,6 @@ function Home() {
           }),
       },
     )
-  }
-
-  // Every task ranked below the current one — "clear my plate, leave just
-  // this". Snoozes them an hour out so the Now view drops to the current task.
-  const restIds = tasks.slice(selectedTaskIndex + 1).map((t) => t.id)
-  const snoozeRestAction = () => {
-    if (restIds.length === 0) return
-    snoozeManyMutation.mutate(restIds)
   }
 
   const deleteTaskAction = async () => {
@@ -281,51 +272,49 @@ function Home() {
     })
   }
 
+  // Selecting a top task starts its timer. Slice-1 wiring makes the started
+  // task the authoritative Selected Task, so Home flips to the Focus View —
+  // and any timer that was running elsewhere is paused server-side.
+  const selectTaskAction = (task: Task | undefined) => {
+    if (!task) return
+    primeTaskCache(task)
+    timer.mutate({ id: task.id, action: { kind: 'start' } })
+  }
+
   // Return: step off the Selected Task (pauses its timer, clears the pointer).
   const returnAction = () => {
     if (!focusTask) return
     unselectMutation.mutate()
   }
 
-  const keyActions: Array<KeyAction> = [
-    { key: 'd', description: 'Task done', action: completeTaskAction },
+  const topThree = tasks.slice(0, 3)
+
+  // Navigation shortcuts work in both Home states.
+  const navActions: Array<KeyAction> = [
     {
       key: 'h',
       description: 'History',
       action: () => navigate({ to: '/history' }),
     },
-    {
-      key: 'a',
-      description: 'Stats',
-      action: () => navigate({ to: '/stats' }),
-    },
+    { key: 'a', description: 'Stats', action: () => navigate({ to: '/stats' }) },
     {
       key: '=',
       description: 'New task',
       shift: true,
       action: () => navigate({ to: '/new-task' }),
     },
-    {
-      key: 's',
-      description: 'Snooze task',
-      action: snoozeTaskAction,
-      shift: false,
-    },
+    { key: 't', description: 'Tasks', action: () => navigate({ to: '/tasks' }) },
+  ]
+
+  // Focus View: shortcuts act on the one Selected Task.
+  const focusActions: Array<KeyAction> = [
+    { key: 'd', description: 'Task done', action: completeTaskAction },
+    { key: 's', description: 'Snooze task', action: snoozeTaskAction, shift: false },
     {
       key: 'S',
       description: 'Snooze all subtasks',
       action: snoozeAllSubtasksAction,
       shift: true,
-    },
-    {
-      key: 'r',
-      description: 'Snooze the rest',
-      action: snoozeRestAction,
-    },
-    {
-      key: 't',
-      description: 'Tasks',
-      action: () => navigate({ to: '/tasks' }),
     },
     { key: 'e', description: 'Edit task', action: goEdit },
     { key: 'enter', description: 'Open task', action: goOpen },
@@ -333,31 +322,6 @@ function Home() {
       key: 'p',
       description: timerTask?.timerStartedAt ? 'Pause timer' : 'Start timer',
       action: toggleTimerAction,
-    },
-    {
-      key: '1',
-      description: 'Select first task',
-      action: () => setSelectedTaskIndex(0),
-    },
-    {
-      key: '2',
-      description: 'Select second task',
-      action: () => setSelectedTaskIndex(1),
-    },
-    {
-      key: '3',
-      description: 'Select third task',
-      action: () => setSelectedTaskIndex(2),
-    },
-    {
-      key: 'up',
-      description: 'Select previous task',
-      action: () => setSelectedTaskIndex((idx) => (idx === 2 ? 1 : 0)),
-    },
-    {
-      key: 'down',
-      description: 'Select next task',
-      action: () => setSelectedTaskIndex((idx) => (idx === 0 ? 1 : 2)),
     },
     {
       key: 'backspace',
@@ -369,6 +333,18 @@ function Home() {
       description: 'Return (step off the selected task)',
       action: returnAction,
     },
+  ]
+
+  // Top-tasks list: number keys start (select) the nth ranked task.
+  const listActions: Array<KeyAction> = [
+    { key: '1', description: 'Start first task', action: () => selectTaskAction(topThree[0]) },
+    { key: '2', description: 'Start second task', action: () => selectTaskAction(topThree[1]) },
+    { key: '3', description: 'Start third task', action: () => selectTaskAction(topThree[2]) },
+  ]
+
+  const keyActions: Array<KeyAction> = [
+    ...navActions,
+    ...(focusTask ? focusActions : listActions),
   ]
   useKeyAction(keyActions)
 
@@ -386,11 +362,6 @@ function Home() {
     )
   }
 
-  const upNextTasks = tasks
-    .slice(0, 3)
-    .map((t, i) => ({ task: t, slot: (i + 1) as 1 | 2 | 3 }))
-    .filter(({ slot }) => slot - 1 !== selectedTaskIndex)
-
   return (
     <div className="relative flex min-h-screen flex-col">
       <TopBar />
@@ -403,13 +374,11 @@ function Home() {
       {focusTask ? (
         <Hero
           task={focusTask}
-          focus
           onReturn={returnAction}
           onComplete={completeTaskAction}
           onOpen={goOpen}
           onSnooze={snoozeTaskAction}
           onSnoozeSubtasks={snoozeAllSubtasksAction}
-          restCount={0}
           onEdit={goEdit}
           onDelete={deleteTaskAction}
         />
@@ -428,64 +397,30 @@ function Home() {
           )}
         </div>
       ) : (
-        selectedTask && (
-          <Hero
-            task={selectedTask}
-            index={selectedTaskIndex}
-            onComplete={completeTaskAction}
-            onOpen={goOpen}
-            onSnooze={snoozeTaskAction}
-            onSnoozeSubtasks={snoozeAllSubtasksAction}
-            onSnoozeRest={restIds.length > 0 ? snoozeRestAction : undefined}
-            restCount={restIds.length}
-            onEdit={goEdit}
-            onDelete={deleteTaskAction}
-          />
-        )
-      )}
-
-      {/* Up-next stack — same TaskRow component used on /tasks, just with
-          a slot kbd on desktop. In-flow below the hero on every breakpoint
-          so it scrolls with the page rather than pinning to the viewport. */}
-      {!focusTask && tasks.length > 1 && (
-        <>
-          <div className="hidden justify-center px-10 pb-10 md:flex">
-            <div className="flex w-full max-w-xl flex-col gap-1.5">
-              <div className="mb-2 px-1 font-mono text-[10px] tracking-[0.25em] text-zinc-600 uppercase">
-                up next
-              </div>
-              {upNextTasks.map(({ task: t, slot }) => (
-                <TaskRow
+        // No selection: the top tasks as equal ranked rows. Tapping a row
+        // starts its timer, which selects it and flips Home into the Focus
+        // View. Done and Snooze are inline so a row can be cleared without
+        // committing to it.
+        <div className="flex flex-1 flex-col items-center justify-center px-5 pb-20 md:px-16">
+          <div className="w-full max-w-xl">
+            <div className="mb-4 px-1 font-mono text-[10px] tracking-[0.25em] text-zinc-600 uppercase">
+              right now
+            </div>
+            <div className="flex flex-col gap-2">
+              {topThree.map((t, i) => (
+                <TopTaskRow
                   key={t.id}
                   task={t}
-                  kbd={String(slot)}
-                  onClick={() => {
-                    primeTaskCache(t)
-                    setSelectedTaskIndex((slot - 1) as 0 | 1 | 2)
-                  }}
+                  rank={i + 1}
+                  onSelect={() => selectTaskAction(t)}
+                  onDone={() => completeTaskFor(t)}
+                  onSnooze={() => snoozeTaskFor(t)}
                   onMouseEnter={() => prefetchTask(t.id)}
                 />
               ))}
             </div>
           </div>
-          <div className="px-5 pb-24 md:hidden">
-            <div className="mb-2 px-1 font-mono text-[10px] tracking-[0.25em] text-zinc-600 uppercase">
-              up next
-            </div>
-            <div className="flex flex-col gap-1.5">
-              {upNextTasks.map(({ task: t, slot }) => (
-                <TaskRow
-                  key={t.id}
-                  task={t}
-                  onClick={() => {
-                    primeTaskCache(t)
-                    setSelectedTaskIndex((slot - 1) as 0 | 1 | 2)
-                  }}
-                />
-              ))}
-            </div>
-          </div>
-        </>
+        </div>
       )}
 
       <CountConfirmModal
@@ -506,30 +441,24 @@ function Home() {
   )
 }
 
+// The Focus View: the single Selected Task, full-bleed. Only rendered when a
+// task is selected, so Return is always available.
 function Hero({
   task,
-  index,
-  focus = false,
   onReturn,
   onComplete,
   onOpen,
   onSnooze,
   onSnoozeSubtasks,
-  onSnoozeRest,
-  restCount,
   onEdit,
   onDelete,
 }: {
   task: Task
-  index?: 0 | 1 | 2
-  focus?: boolean
-  onReturn?: () => void
+  onReturn: () => void
   onComplete: () => void
   onOpen: () => void
   onSnooze: () => void
   onSnoozeSubtasks: () => void
-  onSnoozeRest?: () => void
-  restCount: number
   onEdit: () => void
   onDelete: () => void
 }) {
@@ -566,7 +495,7 @@ function Hero({
   return (
     <div className="flex flex-1 flex-col items-center justify-center px-5 pb-8 md:px-16 md:pb-16">
       <div className="mb-4 text-center font-mono text-[10px] tracking-[0.2em] text-zinc-500 uppercase md:mb-6 md:text-xs">
-        {focus ? 'Right now' : `Task ${(index ?? 0) + 1} of 3 · Right now`}
+        Right now
       </div>
 
       <div
@@ -639,9 +568,7 @@ function Hero({
       </button>
 
       <div className="mt-3 grid w-full max-w-[320px] grid-cols-3 gap-2 md:mt-4 md:flex md:max-w-none md:w-auto md:items-center md:gap-3">
-        {onReturn && (
-          <SecondaryAction k="Esc" label="Return" onClick={onReturn} />
-        )}
+        <SecondaryAction k="Esc" label="Return" onClick={onReturn} />
         <SecondaryAction k="↵" label="Open" onClick={onOpen} />
         <SecondaryAction k="S" label="Snooze" onClick={onSnooze} />
         {task.subtasks.length > 0 && (
@@ -651,18 +578,134 @@ function Hero({
             onClick={onSnoozeSubtasks}
           />
         )}
-        {onSnoozeRest && (
-          <SecondaryAction
-            k="R"
-            label={`Snooze ${restCount} after`}
-            onClick={onSnoozeRest}
-          />
-        )}
         <SecondaryAction k="E" label="Edit" onClick={onEdit} />
         <SecondaryAction k="⌫" label="Delete" onClick={onDelete} />
       </div>
 
       <HeroTimer task={task} />
+    </div>
+  )
+}
+
+const RowAction = ({
+  label,
+  onClick,
+  disabled,
+  title,
+}: {
+  label: string
+  onClick: () => void
+  disabled?: boolean
+  title?: string
+}) => (
+  <button
+    type="button"
+    disabled={disabled}
+    title={title}
+    onClick={onClick}
+    className="shrink-0 rounded-full border border-zinc-800 px-3 py-1.5 font-mono text-xs text-zinc-400 transition-colors hover:border-zinc-600 hover:text-zinc-100 disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:border-zinc-800 disabled:hover:text-zinc-400"
+  >
+    {label}
+  </button>
+)
+
+// A single ranked task in Home's no-selection state. The row body starts the
+// task's timer (which selects it); Done and Snooze act on the row in place.
+function TopTaskRow({
+  task,
+  rank,
+  onSelect,
+  onDone,
+  onSnooze,
+  onMouseEnter,
+}: {
+  task: Task
+  rank: number
+  onSelect: () => void
+  onDone: () => void
+  onSnooze: () => void
+  onMouseEnter: () => void
+}) {
+  const dueLabel = formatDueLabel(task.due, task.dueTime)
+  const repeatLabel = formatRepeat(
+    task.repeat,
+    task.repeatInterval,
+    task.repeatUnit,
+    task.repeatWeekdays,
+  )
+  const subtaskCount = task.subtasks.length
+  const doneCount = task.subtasks.filter((s) => s.done).length
+  const isOverdue = (() => {
+    try {
+      const today = new Date()
+      today.setHours(0, 0, 0, 0)
+      return newSafeDate(task.due).getTime() < today.getTime()
+    } catch {
+      return false
+    }
+  })()
+  // No timer runs while nothing is selected, so a static "now" suffices to
+  // tell whether Done is still gated behind a time target.
+  const gated = isCompletionGated(task, new Date())
+
+  return (
+    <div className="flex w-full items-center gap-2 rounded-2xl border border-zinc-800 bg-zinc-900/60 pr-3 transition-colors hover:border-zinc-700 hover:bg-zinc-900">
+      <button
+        type="button"
+        onClick={onSelect}
+        onMouseEnter={onMouseEnter}
+        title="Start this task"
+        className="flex min-w-0 flex-1 items-center gap-4 py-3 pl-5 text-left font-mono"
+      >
+        <span className="text-2xl leading-none" aria-hidden="true">
+          {task.emoji}
+        </span>
+        <div className="min-w-0 flex-1">
+          <div
+            className="truncate text-zinc-100"
+            style={{ fontSize: '1.1rem', lineHeight: 1.15 }}
+          >
+            {task.title}
+          </div>
+          <div className="mt-1 flex flex-wrap items-center gap-x-4 gap-y-0.5 text-xs text-zinc-500">
+            {dueLabel && (
+              <span>
+                {isOverdue && (
+                  <span aria-label="Overdue" style={{ color: OVERDUE }}>
+                    ‼{' '}
+                  </span>
+                )}
+                {dueLabel}
+              </span>
+            )}
+            {task.timeFrame ? (
+              <span>{minutesToHours(task.timeFrame)}</span>
+            ) : null}
+            {repeatLabel && (
+              <span>
+                <span aria-hidden="true">↻ </span>
+                {repeatLabel}
+              </span>
+            )}
+            {subtaskCount > 0 && (
+              <span
+                className="tabular-nums"
+                aria-label={`${doneCount} of ${subtaskCount} ${subtaskCount === 1 ? 'subtask' : 'subtasks'} done`}
+              >
+                ☐ {doneCount}/{subtaskCount}
+              </span>
+            )}
+          </div>
+        </div>
+        <Kbd>{String(rank)}</Kbd>
+      </button>
+      <RowAction
+        label="Done"
+        onClick={onDone}
+        disabled={gated}
+        title={gated ? 'Run the timer to its target first' : undefined}
+      />
+      <RowAction label="Snooze" onClick={onSnooze} />
     </div>
   )
 }
