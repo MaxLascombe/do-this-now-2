@@ -9,7 +9,7 @@ import {
   usePrefetchTask,
   usePrimeTaskCache,
   useSnoozeTask,
-  useTask,
+  useTaskTimer,
   useTopTasks,
   useUnsnoozeTask,
 } from '@dtn/shared/queries'
@@ -39,8 +39,7 @@ import { Loading } from '../components/Loading'
 import { TaskListSkeleton } from '../components/Skeleton'
 import { MobileChrome } from '../components/MobileChrome'
 import { PageHeading } from '../components/PageHeading'
-import { TaskRow } from '../components/TaskRow'
-import { TimerWidget } from '../components/TimerWidget'
+import { RowAction, TaskRow } from '../components/TaskRow'
 import { useToast } from '../components/ToastProvider'
 import { TopBar } from '../components/TopBar'
 import useKeyAction from '../hooks/useKeyAction'
@@ -105,6 +104,7 @@ function TasksList() {
   const deleteMutation = useDeleteTask()
   const snoozeMutation = useSnoozeTask()
   const unsnoozeMutation = useUnsnoozeTask()
+  const timer = useTaskTimer()
   const toast = useToast()
   const createMutation = useCreateTask()
   const prefetchTask = usePrefetchTask()
@@ -145,8 +145,9 @@ function TasksList() {
     doneMutation.mutate({ id, countMeasurement })
   }
 
-  const completeAction = () => {
-    const t = tasks.at(selectedTask)
+  // Per-task actions — the inline row buttons call these directly on their
+  // own task; the keyboard shortcuts below call them on the cursored task.
+  const completeFor = (t: Task | undefined) => {
     if (!t) return
     const now = new Date()
     if (isCompletionGated(t, now)) return
@@ -161,23 +162,27 @@ function TasksList() {
     }
     setPendingComplete({ task: t, kind })
   }
+  const completeAction = () => completeFor(tasks.at(selectedTask))
 
-  const editAction = () => {
-    const t = tasks.at(selectedTask)
+  const editFor = (t: Task | undefined) => {
     if (!t) return
     primeTaskCache(t)
     navigate({ to: '/tasks/$id/edit', params: { id: t.id } })
   }
+  const editAction = () => editFor(tasks.at(selectedTask))
 
-  const openAction = () => {
-    const t = tasks.at(selectedTask)
+  // Selecting a task starts its timer (which makes it the Selected Task) and
+  // drops into the Focus View on Home — the commit that replaces the old
+  // "open the detail page".
+  const selectFor = (t: Task | undefined) => {
     if (!t) return
     primeTaskCache(t)
-    navigate({ to: '/tasks/$id', params: { id: t.id } })
+    timer.mutate({ id: t.id, action: { kind: 'start' } })
+    navigate({ to: '/' })
   }
+  const selectAction = () => selectFor(tasks.at(selectedTask))
 
-  const deleteAction = async () => {
-    const t = tasks.at(selectedTask)
+  const deleteFor = async (t: Task | undefined) => {
     if (!t) return
     const ok = await confirm({
       message: `Are you sure you want to delete '${t.title}'?`,
@@ -194,6 +199,24 @@ function TasksList() {
         }),
     })
   }
+  const deleteAction = () => deleteFor(tasks.at(selectedTask))
+
+  const snoozeFor = (t: Task | undefined) => {
+    if (!t) return
+    const { id } = t
+    snoozeMutation.mutate(
+      { id },
+      {
+        onSuccess: () =>
+          toast({
+            message: 'Task snoozed',
+            actionLabel: 'Undo',
+            onAction: () => unsnoozeMutation.mutate(id),
+          }),
+      },
+    )
+  }
+  const snoozeAction = () => snoozeFor(tasks.at(selectedTask))
 
   const snoozeSubtasks = () => {
     const t = tasks.at(selectedTask)
@@ -201,10 +224,33 @@ function TasksList() {
     snoozeMutation.mutate({ id: t.id, allSubtasks: true })
   }
 
-  const wakeAction = () => {
-    const t = tasks.at(selectedTask)
+  const wakeFor = (t: Task | undefined) => {
     if (!t) return
     unsnoozeMutation.mutate(t.id)
+  }
+  const wakeAction = () => wakeFor(tasks.at(selectedTask))
+
+  // Inline buttons for a row — the same rectangle-with-buttons shape as Home.
+  // A snoozed task offers Wake in place of Snooze.
+  const rowActionsFor = (t: Task) => {
+    const gated = isCompletionGated(t, new Date())
+    return (
+      <>
+        <RowAction
+          label="Done"
+          onClick={() => completeFor(t)}
+          disabled={gated}
+          title={gated ? 'Run the timer to its target first' : undefined}
+        />
+        {isSnoozed(t) ? (
+          <RowAction label="Wake" onClick={() => wakeFor(t)} />
+        ) : (
+          <RowAction label="Snooze" onClick={() => snoozeFor(t)} />
+        )}
+        <RowAction label="Edit" onClick={() => editFor(t)} />
+        <RowAction label="Delete" onClick={() => deleteFor(t)} />
+      </>
+    )
   }
 
   // Only scroll when the selected row leaves the viewport. The top-bar is
@@ -263,7 +309,8 @@ function TasksList() {
       action: () => setSort((s) => (s === 'CHRON' ? 'TOP' : 'CHRON')),
     },
     { key: 'e', description: 'Edit task', action: editAction },
-    { key: 'enter', description: 'Open task', action: openAction },
+    { key: 'enter', description: 'Select task', action: selectAction },
+    { key: 's', description: 'Snooze task', action: snoozeAction, shift: false },
     { key: 'w', description: 'Wake snoozed task', action: wakeAction },
     {
       key: 'S',
@@ -273,14 +320,22 @@ function TasksList() {
     },
     {
       key: 'up',
-      description: 'Select previous task',
+      description: 'Move focus up',
       action: () => setSelectedTask((t) => Math.max(t - 1, 0)),
     },
     {
       key: 'down',
-      description: 'Select next task',
+      description: 'Move focus down',
       action: () => setSelectedTask((t) => Math.min(t + 1, tasks.length - 1)),
     },
+    // Number keys jump the focus ring straight to the nth row.
+    ...Array.from({ length: 9 }, (_, n) => ({
+      key: String(n + 1),
+      description: `Focus task ${n + 1}`,
+      action: () => {
+        if (n < tasks.length) setSelectedTask(n)
+      },
+    })),
     { key: 'Escape', description: 'Home', action: () => navigate({ to: '/' }) },
     {
       key: 'Backspace',
@@ -460,37 +515,16 @@ function TasksList() {
                   <div className="flex flex-col gap-1.5">
                     {gTasks.map((t) => {
                       const i = indexOf(t.id)
-                      const isSelected = i === selectedTask
                       return (
-                        <Fragment key={t.id}>
-                          <div ref={setRef(t.id) as never}>
-                            <TaskRow
-                              task={t}
-                              selected={isSelected}
-                              onClick={() => {
-                                primeTaskCache(t)
-                                setSelectedTask(i)
-                              }}
-                              onMouseEnter={() => prefetchTask(t.id)}
-                            />
-                          </div>
-                          {isSelected && (
-                            <>
-                              <SelectedActions
-                                hasSubtasks={t.subtasks.length > 0}
-                                advance={willAdvanceSubtask(t, new Date())}
-                                snoozed={isSnoozed(t)}
-                                onOpen={openAction}
-                                onComplete={completeAction}
-                                onEdit={editAction}
-                                onSnoozeSubtasks={snoozeSubtasks}
-                                onWake={wakeAction}
-                                onDelete={deleteAction}
-                              />
-                              <SelectedTimer task={t} />
-                            </>
-                          )}
-                        </Fragment>
+                        <div key={t.id} ref={setRef(t.id) as never}>
+                          <TaskRow
+                            task={t}
+                            selected={i === selectedTask}
+                            onClick={() => selectFor(t)}
+                            onMouseEnter={() => prefetchTask(t.id)}
+                            actions={rowActionsFor(t)}
+                          />
+                        </div>
                       )
                     })}
                   </div>
@@ -500,44 +534,23 @@ function TasksList() {
           </div>
         ) : (
           <div className="flex flex-col gap-1.5">
-            {tasks.map((t, i) => {
-              const isSelected = i === selectedTask
-              return (
-                <Fragment key={t.id}>
-                  {i === firstTaskDueAfterToday && (
-                    <Separator label="Due after today" />
-                  )}
-                  {i === firstSnoozedTask && <Separator label="Snoozed" />}
-                  <div ref={setRef(t.id) as never}>
-                    <TaskRow
-                      task={t}
-                      selected={isSelected}
-                      onClick={() => {
-                        primeTaskCache(t)
-                        setSelectedTask(i)
-                      }}
-                      onMouseEnter={() => prefetchTask(t.id)}
-                    />
-                  </div>
-                  {isSelected && (
-                    <>
-                      <SelectedActions
-                        hasSubtasks={t.subtasks.length > 0}
-                        advance={willAdvanceSubtask(t, new Date())}
-                        snoozed={isSnoozed(t)}
-                        onOpen={openAction}
-                        onComplete={completeAction}
-                        onEdit={editAction}
-                        onSnoozeSubtasks={snoozeSubtasks}
-                        onWake={wakeAction}
-                        onDelete={deleteAction}
-                      />
-                      <SelectedTimer task={t} />
-                    </>
-                  )}
-                </Fragment>
-              )
-            })}
+            {tasks.map((t, i) => (
+              <Fragment key={t.id}>
+                {i === firstTaskDueAfterToday && (
+                  <Separator label="Due after today" />
+                )}
+                {i === firstSnoozedTask && <Separator label="Snoozed" />}
+                <div ref={setRef(t.id) as never}>
+                  <TaskRow
+                    task={t}
+                    selected={i === selectedTask}
+                    onClick={() => selectFor(t)}
+                    onMouseEnter={() => prefetchTask(t.id)}
+                    actions={rowActionsFor(t)}
+                  />
+                </div>
+              </Fragment>
+            ))}
           </div>
         )}
 
@@ -551,12 +564,13 @@ function TasksList() {
       <div className="fixed right-10 bottom-6 left-10 hidden md:block">
         <KeyHints
           items={[
+            ['↵', 'select'],
             ['D', 'done'],
-            ['↵', 'open'],
+            ['S', 'snooze'],
             ['E', 'edit'],
             ['⌫', 'delete'],
-            ['↑↓', 'select'],
-            ['O', 'toggle sort'],
+            ['↑↓', 'move'],
+            ['O', 'sort'],
             ['+', 'new'],
             ['Esc', 'home'],
           ]}
@@ -635,83 +649,3 @@ const Separator = ({ label }: { label: string }) => (
   </div>
 )
 
-const SelectedActions = ({
-  hasSubtasks,
-  advance,
-  snoozed,
-  onOpen,
-  onComplete,
-  onEdit,
-  onSnoozeSubtasks,
-  onWake,
-  onDelete,
-}: {
-  hasSubtasks: boolean
-  advance: boolean
-  snoozed: boolean
-  onOpen: () => void
-  onComplete: () => void
-  onEdit: () => void
-  onSnoozeSubtasks: () => void
-  onWake: () => void
-  onDelete: () => void
-}) => (
-  <div className="mb-2 ml-12 flex flex-wrap items-center gap-2">
-    <button
-      type="button"
-      onClick={onComplete}
-      className="flex items-center gap-2 rounded-full bg-zinc-50 px-4 py-2 font-mono text-sm font-semibold text-zinc-900 hover:bg-zinc-100"
-    >
-      <span>{advance ? 'Subtask Done' : 'Complete'}</span>
-      <kbd className="rounded bg-black/15 px-1.5 py-0.5 text-[10px] font-bold">
-        D
-      </kbd>
-    </button>
-    <ActionGhost k="↵" label="Open" onClick={onOpen} />
-    <ActionGhost k="E" label="Edit" onClick={onEdit} />
-    {snoozed && <ActionGhost k="W" label="Wake" onClick={onWake} />}
-    {hasSubtasks && (
-      <ActionGhost k="⇧S" label="Snooze subtasks" onClick={onSnoozeSubtasks} />
-    )}
-    <ActionGhost k="⌫" label="Delete" onClick={onDelete} />
-  </div>
-)
-
-// Compact timer slot under each selected row. Resolves child→keeper
-// internally so children share their keeper's timer.
-const SelectedTimer = ({ task }: { task: Task }) => {
-  const keeperQuery = useTask(task.timekeeperId ?? '')
-  const timerTask = task.timekeeperId ? keeperQuery.data : task
-  if (!timerTask) return null
-  return (
-    <div className="mb-3 ml-12">
-      <TimerWidget
-        task={timerTask}
-        actionId={task.id}
-        plannedMinutes={timerTask.timeFrame}
-        compact
-      />
-    </div>
-  )
-}
-
-const ActionGhost = ({
-  k,
-  label,
-  onClick,
-}: {
-  k: string
-  label: string
-  onClick: () => void
-}) => (
-  <button
-    type="button"
-    onClick={onClick}
-    className="flex items-center gap-2 rounded-full border border-zinc-800 px-3 py-2 font-mono text-sm text-zinc-300 hover:bg-zinc-900 hover:text-zinc-50"
-  >
-    <kbd className="rounded border border-zinc-700 bg-zinc-900 px-1.5 py-0.5 text-[10px] font-bold text-zinc-300">
-      {k}
-    </kbd>
-    <span>{label}</span>
-  </button>
-)

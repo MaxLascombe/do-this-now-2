@@ -1,5 +1,4 @@
 import { formatDueLabel, formatRepeat } from '@dtn/shared/format'
-import { newSafeDate } from '@dtn/shared/helpers'
 import {
   useCompleteTask,
   useCreateTask,
@@ -37,6 +36,7 @@ import { Loading } from '../components/Loading'
 import { LinkifiedNotes } from '../components/LinkifiedNotes'
 import { MobileChrome } from '../components/MobileChrome'
 import { Skeleton } from '../components/Skeleton'
+import { RowAction, TaskRow } from '../components/TaskRow'
 import { TimerWidget } from '../components/TimerWidget'
 import { useToast } from '../components/ToastProvider'
 import { TopBar } from '../components/TopBar'
@@ -48,8 +48,6 @@ export const Route = createFileRoute('/')({
   head: () => ({ meta: [{ title: 'Now · Do This Now' }] }),
   component: Home,
 })
-
-const OVERDUE = '#fb7185'
 
 const Kbd = ({
   children,
@@ -443,19 +441,38 @@ function Home() {
               what's next
             </div>
             <div className="flex flex-col gap-2">
-              {topThree.map((t, i) => (
-                <TopTaskRow
-                  key={t.id}
-                  task={t}
-                  rank={i + 1}
-                  focused={i === safeFocus}
-                  onSelect={() => selectTaskAction(t)}
-                  onDone={() => completeTaskFor(t)}
-                  onSnooze={() => snoozeTaskFor(t)}
-                  onEdit={() => goEditFor(t)}
-                  onMouseEnter={() => prefetchTask(t.id)}
-                />
-              ))}
+              {topThree.map((t, i) => {
+                // No timer runs while nothing is selected, so a static "now"
+                // suffices to tell whether Done is still gated by a target.
+                const gated = isCompletionGated(t, new Date())
+                return (
+                  <TaskRow
+                    key={t.id}
+                    task={t}
+                    rank={i + 1}
+                    selected={i === safeFocus}
+                    onClick={() => selectTaskAction(t)}
+                    onMouseEnter={() => prefetchTask(t.id)}
+                    actions={
+                      <>
+                        <RowAction
+                          label="Done"
+                          onClick={() => completeTaskFor(t)}
+                          disabled={gated}
+                          title={
+                            gated ? 'Run the timer to its target first' : undefined
+                          }
+                        />
+                        <RowAction
+                          label="Snooze"
+                          onClick={() => snoozeTaskFor(t)}
+                        />
+                        <RowAction label="Edit" onClick={() => goEditFor(t)} />
+                      </>
+                    }
+                  />
+                )
+              })}
             </div>
           </div>
         </div>
@@ -645,148 +662,6 @@ function Hero({
       </div>
 
       <HeroTimer task={task} />
-    </div>
-  )
-}
-
-const RowAction = ({
-  label,
-  onClick,
-  disabled,
-  title,
-}: {
-  label: string
-  onClick: () => void
-  disabled?: boolean
-  title?: string
-}) => (
-  <button
-    type="button"
-    disabled={disabled}
-    title={title}
-    onClick={onClick}
-    className="shrink-0 rounded-full border border-zinc-800 px-3 py-1.5 font-mono text-xs text-zinc-400 transition-colors hover:border-zinc-600 hover:text-zinc-100 disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:border-zinc-800 disabled:hover:text-zinc-400"
-  >
-    {label}
-  </button>
-)
-
-// A single ranked task in Home's no-selection state. The row body starts the
-// task's timer (which selects it); Done, Snooze and Edit act on the row in
-// place. `rank` is the 1-based position (also its focus-jump key); `focused`
-// draws the keyboard cursor's ring (equal-weight, not a fill).
-function TopTaskRow({
-  task,
-  rank,
-  focused,
-  onSelect,
-  onDone,
-  onSnooze,
-  onEdit,
-  onMouseEnter,
-}: {
-  task: Task
-  rank: number
-  focused: boolean
-  onSelect: () => void
-  onDone: () => void
-  onSnooze: () => void
-  onEdit: () => void
-  onMouseEnter: () => void
-}) {
-  const dueLabel = formatDueLabel(task.due, task.dueTime)
-  const repeatLabel = formatRepeat(
-    task.repeat,
-    task.repeatInterval,
-    task.repeatUnit,
-    task.repeatWeekdays,
-  )
-  const subtaskCount = task.subtasks.length
-  const doneCount = task.subtasks.filter((s) => s.done).length
-  const isOverdue = (() => {
-    try {
-      const today = new Date()
-      today.setHours(0, 0, 0, 0)
-      return newSafeDate(task.due).getTime() < today.getTime()
-    } catch {
-      return false
-    }
-  })()
-  // No timer runs while nothing is selected, so a static "now" suffices to
-  // tell whether Done is still gated behind a time target.
-  const gated = isCompletionGated(task, new Date())
-
-  return (
-    <div
-      className={
-        'flex w-full items-center gap-2 rounded-2xl border bg-zinc-900/60 pr-3 transition-colors ' +
-        (focused
-          ? 'border-zinc-400 ring-1 ring-zinc-400/60'
-          : 'border-zinc-800 hover:border-zinc-700 hover:bg-zinc-900')
-      }
-    >
-      <button
-        type="button"
-        onClick={onSelect}
-        onMouseEnter={onMouseEnter}
-        title="Start this task"
-        className="flex min-w-0 flex-1 items-center gap-3 py-3 pl-4 text-left font-mono"
-      >
-        <span
-          className="w-4 shrink-0 text-center text-sm tabular-nums text-zinc-600"
-          aria-hidden="true"
-        >
-          {rank}
-        </span>
-        <span className="text-2xl leading-none" aria-hidden="true">
-          {task.emoji}
-        </span>
-        <div className="min-w-0 flex-1">
-          <div
-            className="truncate text-zinc-100"
-            style={{ fontSize: '1.1rem', lineHeight: 1.15 }}
-          >
-            {task.title}
-          </div>
-          <div className="mt-1 flex flex-wrap items-center gap-x-4 gap-y-0.5 text-xs text-zinc-500">
-            {dueLabel && (
-              <span>
-                {isOverdue && (
-                  <span aria-label="Overdue" style={{ color: OVERDUE }}>
-                    ‼{' '}
-                  </span>
-                )}
-                {dueLabel}
-              </span>
-            )}
-            {task.timeFrame ? (
-              <span>{minutesToHours(task.timeFrame)}</span>
-            ) : null}
-            {repeatLabel && (
-              <span>
-                <span aria-hidden="true">↻ </span>
-                {repeatLabel}
-              </span>
-            )}
-            {subtaskCount > 0 && (
-              <span
-                className="tabular-nums"
-                aria-label={`${doneCount} of ${subtaskCount} ${subtaskCount === 1 ? 'subtask' : 'subtasks'} done`}
-              >
-                ☐ {doneCount}/{subtaskCount}
-              </span>
-            )}
-          </div>
-        </div>
-      </button>
-      <RowAction
-        label="Done"
-        onClick={onDone}
-        disabled={gated}
-        title={gated ? 'Run the timer to its target first' : undefined}
-      />
-      <RowAction label="Snooze" onClick={onSnooze} />
-      <RowAction label="Edit" onClick={onEdit} />
     </div>
   )
 }
