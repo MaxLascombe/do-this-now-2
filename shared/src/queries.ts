@@ -349,25 +349,49 @@ export function useSelection() {
   })
 }
 
+type UnselectCtx = { prev?: SelectionResult; completeId?: string }
+
 // Return: pause the Selected Task's timer and clear the pointer. Optimistically
 // empties selection so the UI drops out of the Focus View immediately.
+//
+// Return pauses the timer, so it obeys the same rule as an explicit pause: a
+// fixed task whose timer has reached its target auto-completes. We decide that
+// up front (on the still-running task, which ticks live) and, after the server
+// pause lands, complete it — mirroring the timer pause path.
 export function useUnselect() {
   const qc = useQueryClient()
   const api = useApi()
-  return useMutation({
+  return useMutation<SelectionResult, Error, void, UnselectCtx>({
     mutationFn: () => api.selection.unselect(),
     onMutate: async () => {
       await qc.cancelQueries({ queryKey: selectionKey })
       const prev = qc.getQueryData<SelectionResult>(selectionKey)
+      // Resolve child→keeper so the timer-bearing row is the one we test and
+      // later complete. The Selected Task is rank-independent, so it may only
+      // live in the one(id) cache — check that before the list/top caches.
+      const getTask = (id: string) =>
+        qc.getQueryData<Task>(taskKeys.one(id)) ?? findTaskInCaches(qc, id)
+      const selectedId = prev?.selectedTaskId ?? null
+      const selected = selectedId ? getTask(selectedId) : undefined
+      const timerTask = selected?.timekeeperId
+        ? getTask(selected.timekeeperId)
+        : selected
+      const completeId =
+        timerTask && shouldCompleteOnPause(timerTask, new Date())
+          ? timerTask.id
+          : undefined
       qc.setQueryData<SelectionResult>(selectionKey, { selectedTaskId: null })
-      return { prev }
+      return { prev, completeId }
     },
-    onError: (_e, _v, ctx: { prev?: SelectionResult } | undefined) => {
+    onError: (_e, _v, ctx) => {
       if (ctx?.prev) qc.setQueryData(selectionKey, ctx.prev)
+    },
+    onSuccess: async (_res, _v, ctx) => {
+      if (ctx?.completeId) await api.tasks.complete(ctx.completeId)
     },
     onSettled: () => {
       qc.invalidateQueries({ queryKey: selectionKey })
-      // The Return also paused a timer — refresh the task caches.
+      // The Return also paused (and maybe completed) a task — refresh caches.
       qc.invalidateQueries({ queryKey: taskKeys.all })
     },
   })
