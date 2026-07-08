@@ -171,11 +171,9 @@ function Home() {
     kind: 'over' | 'under'
   } | null>(null)
 
-  // Keyboard cursor over the Top Tasks list. The focus ring only appears once
-  // the keyboard is actually used (kbActive), so first paint and touch/mouse
-  // users see no default focus — they tap a row to select instead.
+  // Keyboard cursor over the Top Tasks list. The first row is focused by
+  // default; ↑/↓ and the number keys move the ring, Enter selects it.
   const [focusIndex, setFocusIndex] = useState(0)
-  const [kbActive, setKbActive] = useState(false)
 
   const runComplete = (id: string, countMeasurement: boolean) => {
     doneMutation.mutate({ id, countMeasurement })
@@ -295,14 +293,12 @@ function Home() {
   const focusedTask = topThree[safeFocus]
 
   const moveFocus = (delta: number) => {
-    setKbActive(true)
     setFocusIndex((i) =>
       Math.min(Math.max(i + delta, 0), Math.max(topThree.length - 1, 0)),
     )
   }
   const focusRow = (i: number) => {
     if (i < 0 || i >= topThree.length) return
-    setKbActive(true)
     setFocusIndex(i)
   }
 
@@ -444,17 +440,19 @@ function Home() {
         <div className="flex flex-1 flex-col items-center justify-center px-5 pb-20 md:px-16">
           <div className="w-full max-w-xl">
             <div className="mb-4 px-1 font-mono text-[10px] tracking-[0.25em] text-zinc-600 uppercase">
-              right now
+              what's next
             </div>
             <div className="flex flex-col gap-2">
               {topThree.map((t, i) => (
                 <TopTaskRow
                   key={t.id}
                   task={t}
-                  focused={kbActive && i === safeFocus}
+                  rank={i + 1}
+                  focused={i === safeFocus}
                   onSelect={() => selectTaskAction(t)}
                   onDone={() => completeTaskFor(t)}
                   onSnooze={() => snoozeTaskFor(t)}
+                  onEdit={() => goEditFor(t)}
                   onMouseEnter={() => prefetchTask(t.id)}
                 />
               ))}
@@ -674,21 +672,26 @@ const RowAction = ({
 )
 
 // A single ranked task in Home's no-selection state. The row body starts the
-// task's timer (which selects it); Done and Snooze act on the row in place.
-// `focused` draws the keyboard cursor's ring (equal-weight, not a fill).
+// task's timer (which selects it); Done, Snooze and Edit act on the row in
+// place. `rank` is the 1-based position (also its focus-jump key); `focused`
+// draws the keyboard cursor's ring (equal-weight, not a fill).
 function TopTaskRow({
   task,
+  rank,
   focused,
   onSelect,
   onDone,
   onSnooze,
+  onEdit,
   onMouseEnter,
 }: {
   task: Task
+  rank: number
   focused: boolean
   onSelect: () => void
   onDone: () => void
   onSnooze: () => void
+  onEdit: () => void
   onMouseEnter: () => void
 }) {
   const dueLabel = formatDueLabel(task.due, task.dueTime)
@@ -727,8 +730,14 @@ function TopTaskRow({
         onClick={onSelect}
         onMouseEnter={onMouseEnter}
         title="Start this task"
-        className="flex min-w-0 flex-1 items-center gap-4 py-3 pl-5 text-left font-mono"
+        className="flex min-w-0 flex-1 items-center gap-3 py-3 pl-4 text-left font-mono"
       >
+        <span
+          className="w-4 shrink-0 text-center text-sm tabular-nums text-zinc-600"
+          aria-hidden="true"
+        >
+          {rank}
+        </span>
         <span className="text-2xl leading-none" aria-hidden="true">
           {task.emoji}
         </span>
@@ -777,6 +786,7 @@ function TopTaskRow({
         title={gated ? 'Run the timer to its target first' : undefined}
       />
       <RowAction label="Snooze" onClick={onSnooze} />
+      <RowAction label="Edit" onClick={onEdit} />
     </div>
   )
 }
