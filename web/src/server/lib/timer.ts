@@ -4,6 +4,7 @@ import { tasks } from '@dtn/shared/schema'
 import { isSnoozed } from '@dtn/shared/task-sorting'
 import { ceilTaskTime } from '@dtn/shared/timer-utils'
 import { db } from '../../db'
+import { setSelectionTx } from './selection'
 import type { Task } from '@dtn/shared/schema'
 
 export type TimerAction = (
@@ -98,6 +99,32 @@ async function pauseOtherRunningTimers(
   }
 }
 
+// Pause a single task's timer (resolving child→keeper), banking elapsed
+// time. Runs on the caller's connection so it can commit atomically with
+// the surrounding work (e.g. clearing the selection in one transaction).
+// No-op when the timer is already paused.
+export async function pauseTimerTx(
+  conn: Conn,
+  userId: string,
+  id: string,
+  now: Date,
+): Promise<void> {
+  const target = await resolveTimerTarget(conn, userId, id)
+  if (!target.timerStartedAt) return
+  const elapsed = (now.getTime() - target.timerStartedAt.getTime()) / 1000
+  await conn
+    .update(tasks)
+    .set({
+      timerStartedAt: null,
+      timerAccumulatedSeconds: Math.max(
+        0,
+        target.timerAccumulatedSeconds + elapsed,
+      ),
+      updatedAt: now,
+    })
+    .where(and(eq(tasks.userId, userId), eq(tasks.id, target.id)))
+}
+
 export async function applyTimerAction(
   userId: string,
   id: string,
@@ -134,6 +161,10 @@ export async function applyTimerAction(
           await pauseOtherRunningTimers(tx, userId, target.id, now)
           nextStartedAt = now
         }
+        // Starting a timer *is* selecting the task. Store the id the user
+        // acted on (a child, not the resolved keeper) so the Focus View
+        // shows what they picked. Committed with the timer in one tx.
+        await setSelectionTx(tx, userId, id, now)
         if (isSnoozed(target)) {
           wakeFields = {
             snooze: null,

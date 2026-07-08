@@ -3,6 +3,7 @@ import { getTzOffsetMin } from '@dtn/shared/time'
 
 import * as actionFns from '../server/actions'
 import * as progressFns from '../server/progress'
+import * as selectionFns from '../server/selection'
 import * as statsFns from '../server/stats'
 import * as taskFns from '../server/tasks'
 import type { ApiClient } from '@dtn/shared/api-client'
@@ -45,6 +46,10 @@ export const webApiClient: ApiClient = {
     snoozeMany: (ids) => actionFns.snoozeManyTasks({ data: { ids } }),
     suggestEmojis: (title) => taskFns.suggestEmojis({ data: { title } }),
     timer: (id, action) => actionFns.taskTimer({ data: { id, action } }),
+  },
+  selection: {
+    get: () => selectionFns.getSelection(),
+    unselect: () => selectionFns.unselect(),
   },
   history: {
     forDate: (date) =>

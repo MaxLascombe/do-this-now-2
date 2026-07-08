@@ -5,11 +5,13 @@ import {
   useDeleteTask,
   usePrefetchTask,
   usePrimeTaskCache,
+  useSelection,
   useSnoozeManyTasks,
   useSnoozeTask,
   useTask,
   useTaskTimer,
   useTopTasks,
+  useUnselect,
   useUnsnoozeTask,
 } from '@dtn/shared/queries'
 import { taskToInput } from '@dtn/shared/task-input'
@@ -131,14 +133,28 @@ const EmptyNow = ({
 function Home() {
   const navigate = useNavigate()
   const topTasksQuery = useTopTasks()
+  const selection = useSelection()
+  const unselectMutation = useUnselect()
 
   const tasks = (topTasksQuery.data ?? []).filter((t) => !isSnoozed(t))
 
-  const [selectedTaskIndex, setSelectedTaskIndex] = useState<0 | 1 | 2>(0)
-  const selectedTask =
-    tasks.length > selectedTaskIndex ? tasks.at(selectedTaskIndex) : tasks.at(0)
+  // The authoritative Selected Task turns Home into the single-task Focus
+  // View. Selection is rank-independent, so the task may not be in the top
+  // list — fall back to a direct fetch when it isn't.
+  const serverSelectedId = selection.data?.selectedTaskId ?? null
+  const fetchedSelected = useTask(serverSelectedId ?? '')
+  const focusTask = serverSelectedId
+    ? ((topTasksQuery.data ?? []).find((t) => t.id === serverSelectedId) ??
+      fetchedSelected.data ??
+      null)
+    : null
 
-  if (tasks.length > 0 && tasks.length <= selectedTaskIndex)
+  const [selectedTaskIndex, setSelectedTaskIndex] = useState<0 | 1 | 2>(0)
+  const localSelectedTask =
+    tasks.length > selectedTaskIndex ? tasks.at(selectedTaskIndex) : tasks.at(0)
+  const selectedTask = focusTask ?? localSelectedTask
+
+  if (!focusTask && tasks.length > 0 && tasks.length <= selectedTaskIndex)
     setSelectedTaskIndex(tasks.length === 2 ? 1 : 0)
 
   const doneMutation = useCompleteTask()
@@ -265,6 +281,12 @@ function Home() {
     })
   }
 
+  // Return: step off the Selected Task (pauses its timer, clears the pointer).
+  const returnAction = () => {
+    if (!focusTask) return
+    unselectMutation.mutate()
+  }
+
   const keyActions: Array<KeyAction> = [
     { key: 'd', description: 'Task done', action: completeTaskAction },
     {
@@ -342,6 +364,11 @@ function Home() {
       description: 'Delete current task',
       action: deleteTaskAction,
     },
+    {
+      key: 'escape',
+      description: 'Return (step off the selected task)',
+      action: returnAction,
+    },
   ]
   useKeyAction(keyActions)
 
@@ -373,7 +400,20 @@ function Home() {
         onCloseSheet={() => setSheetOpen(false)}
       />
 
-      {tasks.length === 0 ? (
+      {focusTask ? (
+        <Hero
+          task={focusTask}
+          focus
+          onReturn={returnAction}
+          onComplete={completeTaskAction}
+          onOpen={goOpen}
+          onSnooze={snoozeTaskAction}
+          onSnoozeSubtasks={snoozeAllSubtasksAction}
+          restCount={0}
+          onEdit={goEdit}
+          onDelete={deleteTaskAction}
+        />
+      ) : tasks.length === 0 ? (
         <div className="flex flex-1 items-center justify-center text-zinc-500">
           {topTasksQuery.isError ? (
             <ErrorState
@@ -407,7 +447,7 @@ function Home() {
       {/* Up-next stack — same TaskRow component used on /tasks, just with
           a slot kbd on desktop. In-flow below the hero on every breakpoint
           so it scrolls with the page rather than pinning to the viewport. */}
-      {tasks.length > 1 && (
+      {!focusTask && tasks.length > 1 && (
         <>
           <div className="hidden justify-center px-10 pb-10 md:flex">
             <div className="flex w-full max-w-xl flex-col gap-1.5">
@@ -469,6 +509,8 @@ function Home() {
 function Hero({
   task,
   index,
+  focus = false,
+  onReturn,
   onComplete,
   onOpen,
   onSnooze,
@@ -479,7 +521,9 @@ function Hero({
   onDelete,
 }: {
   task: Task
-  index: 0 | 1 | 2
+  index?: 0 | 1 | 2
+  focus?: boolean
+  onReturn?: () => void
   onComplete: () => void
   onOpen: () => void
   onSnooze: () => void
@@ -522,7 +566,7 @@ function Hero({
   return (
     <div className="flex flex-1 flex-col items-center justify-center px-5 pb-8 md:px-16 md:pb-16">
       <div className="mb-4 text-center font-mono text-[10px] tracking-[0.2em] text-zinc-500 uppercase md:mb-6 md:text-xs">
-        Task {index + 1} of 3 · Right now
+        {focus ? 'Right now' : `Task ${(index ?? 0) + 1} of 3 · Right now`}
       </div>
 
       <div
@@ -595,6 +639,9 @@ function Hero({
       </button>
 
       <div className="mt-3 grid w-full max-w-[320px] grid-cols-3 gap-2 md:mt-4 md:flex md:max-w-none md:w-auto md:items-center md:gap-3">
+        {onReturn && (
+          <SecondaryAction k="Esc" label="Return" onClick={onReturn} />
+        )}
         <SecondaryAction k="↵" label="Open" onClick={onOpen} />
         <SecondaryAction k="S" label="Snooze" onClick={onSnooze} />
         {task.subtasks.length > 0 && (

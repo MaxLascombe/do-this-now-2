@@ -1,6 +1,6 @@
 import { and, eq, gte, lt } from 'drizzle-orm'
 
-import { history, taskEvents, tasks } from '@dtn/shared/schema'
+import { history, taskEvents, tasks, userState } from '@dtn/shared/schema'
 import { isSnoozed } from '@dtn/shared/task-sorting'
 import {
   applyFullCompletion,
@@ -10,7 +10,8 @@ import {
 import { HOUR_MS } from '@dtn/shared/time'
 import { db } from '../../db'
 import { finalizeTodayProgress } from './progress'
-import { currentTimerSeconds } from './timer'
+import { setSelectionTx, type Selection } from './selection'
+import { currentTimerSeconds, pauseTimerTx } from './timer'
 import type { Task } from '@dtn/shared/schema'
 
 // Thrown when an action targets a task id that doesn't exist (e.g. a stale
@@ -265,4 +266,28 @@ export async function getHistory(
         lt(history.completedAt, end),
       ),
     )
+}
+
+// Return / unselect: the user is stepping off the Selected Task. Pause its
+// timer (banking elapsed time) so the invariant "only the Selected Task may
+// run" holds, then clear the pointer — all in one transaction. Locking the
+// user_state row up front (FOR UPDATE) makes a concurrent `start` on another
+// device (which upserts the same row) queue behind us, so a Return can't
+// silently clobber a selection made in the gap between reading and clearing.
+// Idempotent when nothing is selected.
+export async function unselect(userId: string): Promise<Selection> {
+  return db.transaction(async (tx) => {
+    const rows = await tx
+      .select({ selectedTaskId: userState.selectedTaskId })
+      .from(userState)
+      .where(eq(userState.userId, userId))
+      .for('update')
+    const selectedTaskId = rows[0]?.selectedTaskId ?? null
+    if (!selectedTaskId) return { selectedTaskId: null }
+
+    const now = new Date()
+    await pauseTimerTx(tx, userId, selectedTaskId, now)
+    await setSelectionTx(tx, userId, null, now)
+    return { selectedTaskId: null }
+  })
 }
