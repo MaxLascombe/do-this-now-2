@@ -32,6 +32,7 @@ import { useEffect, useState } from 'react'
 import { useConfirm } from '../components/ConfirmProvider'
 import { CountConfirmModal } from '../components/CountConfirmModal'
 import { ErrorState } from '../components/ErrorState'
+import { KeyHints } from '../components/KeyHints'
 import { Loading } from '../components/Loading'
 import { LinkifiedNotes } from '../components/LinkifiedNotes'
 import { MobileChrome } from '../components/MobileChrome'
@@ -170,6 +171,12 @@ function Home() {
     kind: 'over' | 'under'
   } | null>(null)
 
+  // Keyboard cursor over the Top Tasks list. The focus ring only appears once
+  // the keyboard is actually used (kbActive), so first paint and touch/mouse
+  // users see no default focus — they tap a row to select instead.
+  const [focusIndex, setFocusIndex] = useState(0)
+  const [kbActive, setKbActive] = useState(false)
+
   const runComplete = (id: string, countMeasurement: boolean) => {
     doneMutation.mutate({ id, countMeasurement })
   }
@@ -246,17 +253,12 @@ function Home() {
     })
   }
 
-  const goEdit = () => {
-    if (!selectedTask) return
-    primeTaskCache(selectedTask)
-    navigate({ to: '/tasks/$id/edit', params: { id: selectedTask.id } })
+  const goEditFor = (task: Task | null | undefined) => {
+    if (!task) return
+    primeTaskCache(task)
+    navigate({ to: '/tasks/$id/edit', params: { id: task.id } })
   }
-
-  const goOpen = () => {
-    if (!selectedTask) return
-    primeTaskCache(selectedTask)
-    navigate({ to: '/tasks/$id', params: { id: selectedTask.id } })
-  }
+  const goEdit = () => goEditFor(selectedTask)
 
   // A 0-time-frame child runs its timer on the keeper row, like HeroTimer —
   // resolve it so the toggle reads the right `running` state. The mutation
@@ -288,6 +290,21 @@ function Home() {
   }
 
   const topThree = tasks.slice(0, 3)
+  // Clamp the cursor to the current list (it can shrink as tasks complete).
+  const safeFocus = Math.min(focusIndex, Math.max(topThree.length - 1, 0))
+  const focusedTask = topThree[safeFocus]
+
+  const moveFocus = (delta: number) => {
+    setKbActive(true)
+    setFocusIndex((i) =>
+      Math.min(Math.max(i + delta, 0), Math.max(topThree.length - 1, 0)),
+    )
+  }
+  const focusRow = (i: number) => {
+    if (i < 0 || i >= topThree.length) return
+    setKbActive(true)
+    setFocusIndex(i)
+  }
 
   // Navigation shortcuts work in both Home states.
   const navActions: Array<KeyAction> = [
@@ -317,7 +334,6 @@ function Home() {
       shift: true,
     },
     { key: 'e', description: 'Edit task', action: goEdit },
-    { key: 'enter', description: 'Open task', action: goOpen },
     {
       key: 'p',
       description: timerTask?.timerStartedAt ? 'Pause timer' : 'Start timer',
@@ -335,11 +351,36 @@ function Home() {
     },
   ]
 
-  // Top-tasks list: number keys start (select) the nth ranked task.
+  // Top-tasks list: a keyboard cursor. Arrows/numbers move the focus ring;
+  // d/s/e act on the focused row in place; Enter selects it (starts its timer
+  // → Focus View). Numbers 1–3 are undisplayed fast-jumps for the three rows.
   const listActions: Array<KeyAction> = [
-    { key: '1', description: 'Start first task', action: () => selectTaskAction(topThree[0]) },
-    { key: '2', description: 'Start second task', action: () => selectTaskAction(topThree[1]) },
-    { key: '3', description: 'Start third task', action: () => selectTaskAction(topThree[2]) },
+    { key: 'up', description: 'Move focus up', action: () => moveFocus(-1) },
+    { key: 'down', description: 'Move focus down', action: () => moveFocus(1) },
+    { key: '1', description: 'Focus first task', action: () => focusRow(0) },
+    { key: '2', description: 'Focus second task', action: () => focusRow(1) },
+    { key: '3', description: 'Focus third task', action: () => focusRow(2) },
+    {
+      key: 'enter',
+      description: 'Select focused task',
+      action: () => selectTaskAction(focusedTask),
+    },
+    {
+      key: 'd',
+      description: 'Task done',
+      action: () => completeTaskFor(focusedTask),
+    },
+    {
+      key: 's',
+      description: 'Snooze task',
+      action: () => snoozeTaskFor(focusedTask),
+      shift: false,
+    },
+    {
+      key: 'e',
+      description: 'Edit task',
+      action: () => goEditFor(focusedTask),
+    },
   ]
 
   const keyActions: Array<KeyAction> = [
@@ -376,7 +417,6 @@ function Home() {
           task={focusTask}
           onReturn={returnAction}
           onComplete={completeTaskAction}
-          onOpen={goOpen}
           onSnooze={snoozeTaskAction}
           onSnoozeSubtasks={snoozeAllSubtasksAction}
           onEdit={goEdit}
@@ -398,9 +438,9 @@ function Home() {
         </div>
       ) : (
         // No selection: the top tasks as equal ranked rows. Tapping a row
-        // starts its timer, which selects it and flips Home into the Focus
-        // View. Done and Snooze are inline so a row can be cleared without
-        // committing to it.
+        // (or Enter on the keyboard-focused row) starts its timer, which
+        // selects it and flips Home into the Focus View. Done and Snooze are
+        // inline so a row can be cleared without committing to it.
         <div className="flex flex-1 flex-col items-center justify-center px-5 pb-20 md:px-16">
           <div className="w-full max-w-xl">
             <div className="mb-4 px-1 font-mono text-[10px] tracking-[0.25em] text-zinc-600 uppercase">
@@ -411,7 +451,7 @@ function Home() {
                 <TopTaskRow
                   key={t.id}
                   task={t}
-                  rank={i + 1}
+                  focused={kbActive && i === safeFocus}
                   onSelect={() => selectTaskAction(t)}
                   onDone={() => completeTaskFor(t)}
                   onSnooze={() => snoozeTaskFor(t)}
@@ -437,6 +477,33 @@ function Home() {
           setPendingComplete(null)
         }}
       />
+
+      {/* State-aware keyboard legend (desktop only) — the honest surface for
+          the shortcuts. Numbers are omitted; they're just focus jumps. */}
+      {(focusTask || topThree.length > 0) && (
+        <div className="hidden justify-center px-6 pb-6 md:flex">
+          <KeyHints
+            items={
+              focusTask
+                ? [
+                    ['d', 'Done'],
+                    ['s', 'Snooze'],
+                    ['e', 'Edit'],
+                    ['p', 'Timer'],
+                    ['Esc', 'Return'],
+                    ['⌫', 'Delete'],
+                  ]
+                : [
+                    ['↵', 'Select'],
+                    ['d', 'Done'],
+                    ['s', 'Snooze'],
+                    ['e', 'Edit'],
+                    ['↑↓', 'Move'],
+                  ]
+            }
+          />
+        </div>
+      )}
     </div>
   )
 }
@@ -447,7 +514,6 @@ function Hero({
   task,
   onReturn,
   onComplete,
-  onOpen,
   onSnooze,
   onSnoozeSubtasks,
   onEdit,
@@ -456,7 +522,6 @@ function Hero({
   task: Task
   onReturn: () => void
   onComplete: () => void
-  onOpen: () => void
   onSnooze: () => void
   onSnoozeSubtasks: () => void
   onEdit: () => void
@@ -569,7 +634,6 @@ function Hero({
 
       <div className="mt-3 grid w-full max-w-[320px] grid-cols-3 gap-2 md:mt-4 md:flex md:max-w-none md:w-auto md:items-center md:gap-3">
         <SecondaryAction k="Esc" label="Return" onClick={onReturn} />
-        <SecondaryAction k="↵" label="Open" onClick={onOpen} />
         <SecondaryAction k="S" label="Snooze" onClick={onSnooze} />
         {task.subtasks.length > 0 && (
           <SecondaryAction
@@ -611,16 +675,17 @@ const RowAction = ({
 
 // A single ranked task in Home's no-selection state. The row body starts the
 // task's timer (which selects it); Done and Snooze act on the row in place.
+// `focused` draws the keyboard cursor's ring (equal-weight, not a fill).
 function TopTaskRow({
   task,
-  rank,
+  focused,
   onSelect,
   onDone,
   onSnooze,
   onMouseEnter,
 }: {
   task: Task
-  rank: number
+  focused: boolean
   onSelect: () => void
   onDone: () => void
   onSnooze: () => void
@@ -649,7 +714,14 @@ function TopTaskRow({
   const gated = isCompletionGated(task, new Date())
 
   return (
-    <div className="flex w-full items-center gap-2 rounded-2xl border border-zinc-800 bg-zinc-900/60 pr-3 transition-colors hover:border-zinc-700 hover:bg-zinc-900">
+    <div
+      className={
+        'flex w-full items-center gap-2 rounded-2xl border bg-zinc-900/60 pr-3 transition-colors ' +
+        (focused
+          ? 'border-zinc-400 ring-1 ring-zinc-400/60'
+          : 'border-zinc-800 hover:border-zinc-700 hover:bg-zinc-900')
+      }
+    >
       <button
         type="button"
         onClick={onSelect}
@@ -697,7 +769,6 @@ function TopTaskRow({
             )}
           </div>
         </div>
-        <Kbd>{String(rank)}</Kbd>
       </button>
       <RowAction
         label="Done"
