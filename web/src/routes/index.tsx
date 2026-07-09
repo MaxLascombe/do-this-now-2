@@ -36,7 +36,7 @@ import { Loading } from '../components/Loading'
 import { LinkifiedNotes } from '../components/LinkifiedNotes'
 import { MobileChrome } from '../components/MobileChrome'
 import { Skeleton } from '../components/Skeleton'
-import { RowAction, TaskRow } from '../components/TaskRow'
+import { RowAction, RowMenu, TaskRow } from '../components/TaskRow'
 import { TimerWidget } from '../components/TimerWidget'
 import { useToast } from '../components/ToastProvider'
 import { TopBar } from '../components/TopBar'
@@ -230,16 +230,16 @@ function Home() {
     )
   }
 
-  const deleteTaskAction = async () => {
-    if (!selectedTask) return
+  const deleteTaskFor = async (task: Task | null | undefined) => {
+    if (!task) return
     const ok = await confirm({
-      message: `Are you sure you want to delete '${selectedTask.title}'?`,
+      message: `Are you sure you want to delete '${task.title}'?`,
       confirmLabel: 'Delete',
     })
     if (!ok) return
-    const title = selectedTask.title
-    const restore = taskToInput(selectedTask)
-    deleteMutation.mutate(selectedTask.id, {
+    const title = task.title
+    const restore = taskToInput(task)
+    deleteMutation.mutate(task.id, {
       onSuccess: () =>
         toast({
           message: `Deleted '${title}'`,
@@ -248,6 +248,7 @@ function Home() {
         }),
     })
   }
+  const deleteTaskAction = () => deleteTaskFor(selectedTask)
 
   const goEditFor = (task: Task | null | undefined) => {
     if (!task) return
@@ -375,6 +376,11 @@ function Home() {
       description: 'Edit task',
       action: () => goEditFor(focusedTask),
     },
+    {
+      key: 'backspace',
+      description: 'Delete task',
+      action: () => void deleteTaskFor(focusedTask),
+    },
   ]
 
   const keyActions: Array<KeyAction> = [
@@ -467,7 +473,16 @@ function Home() {
                           label="Snooze"
                           onClick={() => snoozeTaskFor(t)}
                         />
-                        <RowAction label="Edit" onClick={() => goEditFor(t)} />
+                        <RowMenu
+                          items={[
+                            { label: 'Edit', onClick: () => goEditFor(t) },
+                            {
+                              label: 'Delete',
+                              onClick: () => void deleteTaskFor(t),
+                              danger: true,
+                            },
+                          ]}
+                        />
                       </>
                     }
                   />
@@ -513,6 +528,7 @@ function Home() {
                     ['d', 'Done'],
                     ['s', 'Snooze'],
                     ['e', 'Edit'],
+                    ['⌫', 'Delete'],
                     ['↑↓', 'Move'],
                   ]
             }

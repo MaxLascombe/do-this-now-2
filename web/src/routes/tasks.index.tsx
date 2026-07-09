@@ -39,7 +39,7 @@ import { Loading } from '../components/Loading'
 import { TaskListSkeleton } from '../components/Skeleton'
 import { MobileChrome } from '../components/MobileChrome'
 import { PageHeading } from '../components/PageHeading'
-import { RowAction, TaskRow } from '../components/TaskRow'
+import { RowAction, RowMenu, TaskRow } from '../components/TaskRow'
 import { useToast } from '../components/ToastProvider'
 import { TopBar } from '../components/TopBar'
 import useKeyAction from '../hooks/useKeyAction'
@@ -231,7 +231,8 @@ function TasksList() {
   const wakeAction = () => wakeFor(tasks.at(selectedTask))
 
   // Inline buttons for a row — the same rectangle-with-buttons shape as Home.
-  // A snoozed task offers Wake in place of Snooze.
+  // A snoozed task offers Wake in place of Snooze; the secondary actions live
+  // behind the row's ⋯ menu.
   const rowActionsFor = (t: Task) => {
     const gated = isCompletionGated(t, new Date())
     return (
@@ -247,8 +248,12 @@ function TasksList() {
         ) : (
           <RowAction label="Snooze" onClick={() => snoozeFor(t)} />
         )}
-        <RowAction label="Edit" onClick={() => editFor(t)} />
-        <RowAction label="Delete" onClick={() => deleteFor(t)} />
+        <RowMenu
+          items={[
+            { label: 'Edit', onClick: () => editFor(t) },
+            { label: 'Delete', onClick: () => deleteFor(t), danger: true },
+          ]}
+        />
       </>
     )
   }

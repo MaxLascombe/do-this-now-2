@@ -1,11 +1,90 @@
 import { formatDueLabel, formatRepeat } from '@dtn/shared/format'
 import { newSafeDate } from '@dtn/shared/helpers'
 import { minutesToHours } from '@dtn/shared/time'
-import { memo } from 'react'
+import { memo, useEffect, useRef, useState } from 'react'
 import type { ReactNode } from 'react'
 import type { Task } from '@dtn/shared/types'
 
 const OVERDUE = '#fb7185'
+
+export type RowMenuItem = {
+  label: string
+  onClick: () => void
+  danger?: boolean
+}
+
+// The row's overflow menu (⋯) — holds the secondary actions (Edit, Delete) so
+// the row keeps only its primary buttons. Escape is captured so it closes the
+// menu rather than firing the page's Escape shortcut.
+export const RowMenu = ({ items }: { items: Array<RowMenuItem> }) => {
+  const [open, setOpen] = useState(false)
+  const ref = useRef<HTMLDivElement>(null)
+
+  useEffect(() => {
+    if (!open) return
+    const onPointerDown = (e: MouseEvent) => {
+      if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false)
+    }
+    const onKeyDown = (e: KeyboardEvent) => {
+      if (e.key !== 'Escape') return
+      e.stopPropagation()
+      setOpen(false)
+    }
+    document.addEventListener('mousedown', onPointerDown)
+    document.addEventListener('keydown', onKeyDown, true)
+    return () => {
+      document.removeEventListener('mousedown', onPointerDown)
+      document.removeEventListener('keydown', onKeyDown, true)
+    }
+  }, [open])
+
+  return (
+    <div ref={ref} className="relative shrink-0">
+      <button
+        type="button"
+        onClick={() => setOpen((o) => !o)}
+        aria-haspopup="menu"
+        aria-expanded={open}
+        aria-label="More actions"
+        title="More actions"
+        className={
+          'shrink-0 rounded-full border px-3 py-1.5 font-mono text-xs leading-none transition-colors ' +
+          (open
+            ? 'border-zinc-600 text-zinc-100'
+            : 'border-zinc-800 text-zinc-400 hover:border-zinc-600 hover:text-zinc-100')
+        }
+      >
+        <span aria-hidden="true">⋯</span>
+      </button>
+      {open && (
+        <div
+          role="menu"
+          className="absolute right-0 z-20 mt-1 min-w-[7.5rem] overflow-hidden rounded-xl border border-zinc-800 bg-zinc-950 py-1 shadow-xl shadow-black/60"
+        >
+          {items.map((item) => (
+            <button
+              key={item.label}
+              type="button"
+              role="menuitem"
+              onClick={() => {
+                setOpen(false)
+                item.onClick()
+              }}
+              className={
+                'block w-full px-3 py-2 text-left font-mono text-xs transition-colors hover:bg-zinc-900 ' +
+                (item.danger
+                  ? 'text-rose-400 hover:text-rose-300'
+                  : 'text-zinc-300 hover:text-zinc-100')
+              }
+            >
+              {item.label}
+            </button>
+          ))}
+        </div>
+      )}
+    </div>
+  )
+}
 
 // A compact inline action for a task row (Done / Snooze / Edit / Delete …).
 // Shared so Home's Top Tasks and the Tasks list render identical buttons.
