@@ -344,7 +344,12 @@ export function useSelection() {
     queryFn: () => api.selection.get(),
     refetchInterval: ACTIVE_SYNC_INTERVAL_MS,
     refetchIntervalInBackground: true,
-    staleTime: 0,
+    // Cross-device convergence rides on the interval poll and the always-on
+    // focus refetch, not on refetch-on-mount. Keeping data fresh for one poll
+    // period stops a mount (e.g. navigating Home right after pressing Start)
+    // from firing a GET that races the not-yet-committed start and overwrites
+    // the optimistic pointer with a stale null.
+    staleTime: ACTIVE_SYNC_INTERVAL_MS,
     refetchOnWindowFocus: 'always',
   })
 }
@@ -687,6 +692,9 @@ export function registerTimerMutationDefaults(qc: QueryClient, api: ApiClient) {
       // Focus View appears without waiting for the poll.
       const prevSelection = qc.getQueryData<SelectionResult>(selectionKey)
       if (vars.action.kind === 'start') {
+        // Cancel an in-flight poll first: it was issued before this start and
+        // would resolve with the old pointer, undoing the optimistic write.
+        await qc.cancelQueries({ queryKey: selectionKey })
         qc.setQueryData<SelectionResult>(selectionKey, {
           selectedTaskId: vars.id,
         })
@@ -709,6 +717,17 @@ export function registerTimerMutationDefaults(qc: QueryClient, api: ApiClient) {
         xs?.map((t) => (t.id === server.id ? server : t))
       qc.setQueryData<Task[]>(taskKeys.top, patch)
       qc.setQueryData<Task[]>(taskKeys.list, patch)
+
+      // The start has now actually committed the pointer server-side. Re-assert
+      // it, cancelling any selection fetch still in flight — a GET issued
+      // before the commit would otherwise land afterwards carrying the old
+      // null pointer and knock the Focus View out from under the user.
+      if (vars.action.kind === 'start') {
+        await qc.cancelQueries({ queryKey: selectionKey })
+        qc.setQueryData<SelectionResult>(selectionKey, {
+          selectedTaskId: vars.id,
+        })
+      }
 
       // Pausing a fixed-time-frame task once its timer has reached the target
       // is the "I'm done" signal — auto-complete it. Guard on wasRunning so a
