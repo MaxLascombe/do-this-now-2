@@ -7,7 +7,6 @@ import {
   completeTaskTransition,
   snoozeTaskTransition,
 } from '@dtn/shared/task-transitions'
-import { HOUR_MS } from '@dtn/shared/time'
 import { db } from '../../db'
 import { finalizeTodayProgress } from './progress'
 import { setSelectionTx, type Selection } from './selection'
@@ -208,41 +207,6 @@ export async function unsnoozeTask(userId: string, id: string): Promise<Task> {
       .where(and(eq(tasks.userId, userId), eq(tasks.id, task.id)))
       .returning()
     return row
-  })
-}
-
-// Whole-task snooze for a batch — backs the "snooze everything after the
-// current task" action. Unlike snoozeTask this always pushes the whole task
-// out (never just a subtask) so each one definitely leaves the active list,
-// banking any running timer. Unknown ids are skipped, not an error.
-export async function snoozeManyTasks(
-  userId: string,
-  ids: string[],
-): Promise<{ count: number }> {
-  if (ids.length === 0) return { count: 0 }
-  return db.transaction(async (tx) => {
-    const now = new Date()
-    const snooze = new Date(now.getTime() + HOUR_MS).toISOString()
-    let count = 0
-    for (const id of ids) {
-      const task = await loadTask(tx, userId, id)
-      if (!task) continue
-      await tx
-        .insert(taskEvents)
-        .values({ userId, taskId: task.id, kind: 'snoozed' })
-      const timerFields = task.timerStartedAt
-        ? {
-            timerStartedAt: null,
-            timerAccumulatedSeconds: currentTimerSeconds(task, now),
-          }
-        : {}
-      await tx
-        .update(tasks)
-        .set({ snooze, updatedAt: now, ...timerFields })
-        .where(and(eq(tasks.userId, userId), eq(tasks.id, task.id)))
-      count++
-    }
-    return { count }
   })
 }
 

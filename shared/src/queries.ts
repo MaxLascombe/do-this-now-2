@@ -18,7 +18,6 @@ import {
   snoozeTaskTransition,
 } from './task-transitions'
 import { currentTimerSeconds, shouldCompleteOnPause } from './timer-utils'
-import { HOUR_MS } from './time'
 import type { TaskInput } from './task-input'
 import type { Task } from './types'
 
@@ -186,41 +185,6 @@ async function optimisticSnooze(
   return replaceTaskInCaches(qc, id, next)
 }
 
-// Whole-task snooze for a batch (the "snooze everything after this task"
-// action): stamp each targeted row an hour out, bank any running timer, and
-// re-sort so they sink below the still-active tasks right away.
-async function optimisticSnoozeMany(
-  qc: QueryClient,
-  ids: string[],
-): Promise<OptimisticSnapshot> {
-  await qc.cancelQueries({ queryKey: taskKeys.all })
-  const prevTop = qc.getQueryData<Task[]>(taskKeys.top)
-  const prevList = qc.getQueryData<Task[]>(taskKeys.list)
-  const idSet = new Set(ids)
-  const now = new Date()
-  const snooze = new Date(now.getTime() + HOUR_MS).toISOString()
-  const today = new Date()
-  today.setHours(0, 0, 0, 0)
-  const apply = (xs: Task[] | undefined) => {
-    if (!xs) return xs
-    const out = xs.map((t) => {
-      if (!idSet.has(t.id)) return t
-      const banked = t.timerStartedAt
-        ? {
-            timerStartedAt: null,
-            timerAccumulatedSeconds: currentTimerSeconds(t, now),
-          }
-        : {}
-      return { ...t, snooze, ...banked, updatedAt: now }
-    })
-    sortTasks(out, today)
-    return out
-  }
-  qc.setQueryData<Task[]>(taskKeys.top, apply)
-  qc.setQueryData<Task[]>(taskKeys.list, apply)
-  return { prevTop, prevList }
-}
-
 // userId borrowed from a cached task; '' fallback is harmless — onSettled refetch swaps in the real row.
 function makeOptimisticTask(input: TaskInput, userId: string): Task {
   const now = new Date()
@@ -376,8 +340,13 @@ export function useUnselect() {
       const timerTask = selected?.timekeeperId
         ? getTask(selected.timekeeperId)
         : selected
+      // Only a Return that actually pauses a *running* timer may auto-complete
+      // — the same `wasRunning` guard the timer pause path applies. Without it,
+      // a task snoozed past its target (time banked, timer already stopped)
+      // would be silently completed by a later Return.
       const completeId =
-        timerTask && shouldCompleteOnPause(timerTask, new Date())
+        timerTask?.timerStartedAt &&
+        shouldCompleteOnPause(timerTask, new Date())
           ? timerTask.id
           : undefined
       qc.setQueryData<SelectionResult>(selectionKey, { selectedTaskId: null })
@@ -542,17 +511,6 @@ export function useUnsnoozeTask() {
     mutationFn: (id: string) => api.tasks.unsnooze(id),
     onMutate: (id) => optimisticUnsnooze(qc, id),
     onError: (_e, _id, ctx) => rollback(qc, ctx),
-    onSettled: () => invalidateTaskCaches(qc),
-  })
-}
-
-export function useSnoozeManyTasks() {
-  const api = useApi()
-  const qc = useQueryClient()
-  return useMutation({
-    mutationFn: (ids: string[]) => api.tasks.snoozeMany(ids),
-    onMutate: (ids) => optimisticSnoozeMany(qc, ids),
-    onError: (_e, _ids, ctx) => rollback(qc, ctx),
     onSettled: () => invalidateTaskCaches(qc),
   })
 }
