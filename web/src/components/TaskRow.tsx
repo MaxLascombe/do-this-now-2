@@ -1,16 +1,127 @@
 import { formatDueLabel, formatRepeat } from '@dtn/shared/format'
 import { newSafeDate } from '@dtn/shared/helpers'
 import { minutesToHours } from '@dtn/shared/time'
-import { memo } from 'react'
+import { memo, useEffect, useRef, useState } from 'react'
+import type { ReactNode } from 'react'
 import type { Task } from '@dtn/shared/types'
 
 const OVERDUE = '#fb7185'
 
+export type RowMenuItem = {
+  label: string
+  onClick: () => void
+  danger?: boolean
+}
+
+// The row's overflow menu (⋯) — holds the secondary actions (Edit, Delete) so
+// the row keeps only its primary buttons. Escape is captured so it closes the
+// menu rather than firing the page's Escape shortcut.
+export const RowMenu = ({ items }: { items: Array<RowMenuItem> }) => {
+  const [open, setOpen] = useState(false)
+  const ref = useRef<HTMLDivElement>(null)
+
+  useEffect(() => {
+    if (!open) return
+    const onPointerDown = (e: MouseEvent) => {
+      if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false)
+    }
+    const onKeyDown = (e: KeyboardEvent) => {
+      if (e.key !== 'Escape') return
+      e.stopPropagation()
+      setOpen(false)
+    }
+    document.addEventListener('mousedown', onPointerDown)
+    document.addEventListener('keydown', onKeyDown, true)
+    return () => {
+      document.removeEventListener('mousedown', onPointerDown)
+      document.removeEventListener('keydown', onKeyDown, true)
+    }
+  }, [open])
+
+  return (
+    <div ref={ref} className="relative shrink-0">
+      <button
+        type="button"
+        onClick={() => setOpen((o) => !o)}
+        aria-haspopup="menu"
+        aria-expanded={open}
+        aria-label="More actions"
+        title="More actions"
+        className={
+          'shrink-0 rounded-full border px-3 py-1.5 font-mono text-xs leading-none transition-colors ' +
+          (open
+            ? 'border-zinc-600 text-zinc-100'
+            : 'border-zinc-800 text-zinc-400 hover:border-zinc-600 hover:text-zinc-100')
+        }
+      >
+        <span aria-hidden="true">⋯</span>
+      </button>
+      {open && (
+        <div
+          role="menu"
+          className="absolute right-0 z-20 mt-1 min-w-[7.5rem] overflow-hidden rounded-xl border border-zinc-800 bg-zinc-950 py-1 shadow-xl shadow-black/60"
+        >
+          {items.map((item) => (
+            <button
+              key={item.label}
+              type="button"
+              role="menuitem"
+              onClick={() => {
+                setOpen(false)
+                item.onClick()
+              }}
+              className={
+                'block w-full px-3 py-2 text-left font-mono text-xs transition-colors hover:bg-zinc-900 ' +
+                (item.danger
+                  ? 'text-rose-400 hover:text-rose-300'
+                  : 'text-zinc-300 hover:text-zinc-100')
+              }
+            >
+              {item.label}
+            </button>
+          ))}
+        </div>
+      )}
+    </div>
+  )
+}
+
+// A compact inline action for a task row (Done / Snooze / Edit / Delete …).
+// Shared so Home's Top Tasks and the Tasks list render identical buttons.
+export const RowAction = ({
+  label,
+  onClick,
+  disabled,
+  title,
+}: {
+  label: string
+  onClick: () => void
+  disabled?: boolean
+  title?: string
+}) => (
+  <button
+    type="button"
+    disabled={disabled}
+    title={title}
+    onClick={onClick}
+    className="shrink-0 rounded-full border border-zinc-800 px-3 py-1.5 font-mono text-xs text-zinc-400 transition-colors hover:border-zinc-600 hover:text-zinc-100 disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:border-zinc-800 disabled:hover:text-zinc-400"
+  >
+    {label}
+  </button>
+)
+
+// A single task as a rectangle: emoji + title + chips on a clickable body,
+// with an optional inline `actions` cluster (buttons) to the right. `rank`
+// prints a leading number (its focus-jump key); `selected` draws the keyboard
+// cursor's ring. Callers that pass no `actions` (calendar, tags) get a plain
+// clickable row.
 const TaskRowBase = ({
   task,
   selected = false,
   dim = false,
   kbd,
+  rank,
+  actions,
   onClick,
   onMouseEnter,
 }: {
@@ -18,6 +129,8 @@ const TaskRowBase = ({
   selected?: boolean
   dim?: boolean
   kbd?: string
+  rank?: number
+  actions?: ReactNode
   onClick?: () => void
   onMouseEnter?: () => void
 }) => {
@@ -42,108 +155,96 @@ const TaskRowBase = ({
   })()
 
   return (
-    <button
-      type="button"
-      onClick={onClick}
-      onMouseEnter={onMouseEnter}
+    <div
       className={
-        'flex w-full items-center gap-4 rounded-2xl border px-5 py-3 text-left font-mono transition-colors ' +
+        'flex w-full items-center gap-2 rounded-2xl border bg-zinc-900/60 pr-3 transition-colors ' +
         (selected
-          ? 'border-zinc-100 bg-zinc-50 text-zinc-950'
-          : 'border-zinc-800 bg-zinc-900/60 hover:border-zinc-700 hover:bg-zinc-900') +
+          ? 'border-zinc-400 ring-1 ring-zinc-400/60'
+          : 'border-zinc-800 hover:border-zinc-700 hover:bg-zinc-900') +
         (dim ? ' opacity-70' : '')
       }
     >
-      <span className="relative text-2xl leading-none">
-        <span aria-hidden="true">{task.emoji}</span>
-        {task.timerStartedAt && (
+      <button
+        type="button"
+        onClick={onClick}
+        onMouseEnter={onMouseEnter}
+        className="flex min-w-0 flex-1 items-center gap-3 py-3 pl-4 text-left font-mono"
+      >
+        {rank != null && (
           <span
-            className="absolute -top-1 -right-1 h-2 w-2 rounded-full"
-            style={{
-              background: '#34d399',
-              boxShadow: '0 0 6px rgba(52,211,153,0.7)',
-              animation: 'pulse 1.4s ease-in-out infinite',
-            }}
-            role="img"
-            aria-label="Timer running"
-            title="Timer running"
-          />
+            className="w-4 shrink-0 text-center text-sm tabular-nums text-zinc-600"
+            aria-hidden="true"
+          >
+            {rank}
+          </span>
         )}
-      </span>
-      <div className="min-w-0 flex-1">
-        <div
-          className={
-            'truncate ' +
-            (selected
-              ? 'dtn-task-title text-zinc-950'
-              : 'font-mono text-zinc-100')
-          }
-          style={{
-            fontSize: selected ? '1.5rem' : '1.1rem',
-            lineHeight: 1.15,
-          }}
-        >
-          {task.title}
-        </div>
-        <div
-          className={
-            'mt-1 flex flex-wrap items-center gap-x-4 gap-y-0.5 text-xs ' +
-            (selected ? 'text-zinc-600' : 'text-zinc-500')
-          }
-        >
-          {dueLabel && (
-            <span>
-              {isOverdue && (
-                <span
-                  aria-label="Overdue"
-                  style={{ color: selected ? '#9f1239' : OVERDUE }}
-                >
-                  ‼{' '}
-                </span>
-              )}
-              {dueLabel}
-            </span>
-          )}
-          {task.timeFrame ? (
-            <span>{minutesToHours(task.timeFrame)}</span>
-          ) : null}
-          {repeatLabel && (
-            <span>
-              <span aria-hidden="true">↻ </span>
-              {repeatLabel}
-            </span>
-          )}
-          {subtaskCount > 0 && (
+        <span className="relative text-2xl leading-none">
+          <span aria-hidden="true">{task.emoji}</span>
+          {task.timerStartedAt && (
             <span
-              className="tabular-nums"
-              aria-label={`${doneCount} of ${subtaskCount} ${subtaskCount === 1 ? 'subtask' : 'subtasks'} done`}
-            >
-              ☐ {doneCount}/{subtaskCount}
-            </span>
+              className="absolute -top-1 -right-1 h-2 w-2 rounded-full"
+              style={{
+                background: '#34d399',
+                boxShadow: '0 0 6px rgba(52,211,153,0.7)',
+                animation: 'pulse 1.4s ease-in-out infinite',
+              }}
+              role="img"
+              aria-label="Timer running"
+              title="Timer running"
+            />
           )}
-          {task.strictDeadline && (
-            <span style={{ color: selected ? '#9f1239' : OVERDUE }}>
-              strict
-            </span>
-          )}
-          {task.tags.map((t) => (
-            <span key={t}>#{t}</span>
-          ))}
+        </span>
+        <div className="min-w-0 flex-1">
+          <div
+            className="truncate font-mono text-zinc-100"
+            style={{ fontSize: '1.1rem', lineHeight: 1.15 }}
+          >
+            {task.title}
+          </div>
+          <div className="mt-1 flex flex-wrap items-center gap-x-4 gap-y-0.5 text-xs text-zinc-500">
+            {dueLabel && (
+              <span>
+                {isOverdue && (
+                  <span aria-label="Overdue" style={{ color: OVERDUE }}>
+                    ‼{' '}
+                  </span>
+                )}
+                {dueLabel}
+              </span>
+            )}
+            {task.timeFrame ? (
+              <span>{minutesToHours(task.timeFrame)}</span>
+            ) : null}
+            {repeatLabel && (
+              <span>
+                <span aria-hidden="true">↻ </span>
+                {repeatLabel}
+              </span>
+            )}
+            {subtaskCount > 0 && (
+              <span
+                className="tabular-nums"
+                aria-label={`${doneCount} of ${subtaskCount} ${subtaskCount === 1 ? 'subtask' : 'subtasks'} done`}
+              >
+                ☐ {doneCount}/{subtaskCount}
+              </span>
+            )}
+            {task.strictDeadline && (
+              <span style={{ color: OVERDUE }}>strict</span>
+            )}
+            {task.tags.map((t) => (
+              <span key={t}>#{t}</span>
+            ))}
+          </div>
         </div>
-      </div>
-      {kbd && (
-        <kbd
-          className={
-            'rounded border px-1.5 py-0.5 text-[10px] font-bold tabular-nums ' +
-            (selected
-              ? 'border-zinc-300 bg-black/10 text-zinc-900'
-              : 'border-zinc-800 bg-zinc-900 text-zinc-300')
-          }
-        >
-          {kbd}
-        </kbd>
-      )}
-    </button>
+        {kbd && (
+          <kbd className="rounded border border-zinc-800 bg-zinc-900 px-1.5 py-0.5 text-[10px] font-bold text-zinc-300 tabular-nums">
+            {kbd}
+          </kbd>
+        )}
+      </button>
+      {actions}
+    </div>
   )
 }
 

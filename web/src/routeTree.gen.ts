@@ -24,7 +24,6 @@ import { Route as ApiSelectionRouteImport } from './routes/api/selection'
 import { Route as TasksIdIndexRouteImport } from './routes/tasks.$id.index'
 import { Route as TasksIdEditRouteImport } from './routes/tasks.$id.edit'
 import { Route as ApiTasksSuggestEmojisRouteImport } from './routes/api/tasks.suggest-emojis'
-import { Route as ApiTasksSnoozeManyRouteImport } from './routes/api/tasks.snooze-many'
 import { Route as ApiTasksIdRouteImport } from './routes/api/tasks.$id'
 import { Route as ApiProgressTodayRouteImport } from './routes/api/progress.today'
 import { Route as ApiHistoryDateRouteImport } from './routes/api/history.$date'
@@ -109,11 +108,6 @@ const ApiTasksSuggestEmojisRoute = ApiTasksSuggestEmojisRouteImport.update({
   path: '/suggest-emojis',
   getParentRoute: () => ApiTasksRoute,
 } as any)
-const ApiTasksSnoozeManyRoute = ApiTasksSnoozeManyRouteImport.update({
-  id: '/snooze-many',
-  path: '/snooze-many',
-  getParentRoute: () => ApiTasksRoute,
-} as any)
 const ApiTasksIdRoute = ApiTasksIdRouteImport.update({
   id: '/$id',
   path: '/$id',
@@ -172,7 +166,6 @@ export interface FileRoutesByFullPath {
   '/api/history/$date': typeof ApiHistoryDateRoute
   '/api/progress/today': typeof ApiProgressTodayRoute
   '/api/tasks/$id': typeof ApiTasksIdRouteWithChildren
-  '/api/tasks/snooze-many': typeof ApiTasksSnoozeManyRoute
   '/api/tasks/suggest-emojis': typeof ApiTasksSuggestEmojisRoute
   '/tasks/$id/edit': typeof TasksIdEditRoute
   '/tasks/$id/': typeof TasksIdIndexRoute
@@ -197,7 +190,6 @@ export interface FileRoutesByTo {
   '/api/history/$date': typeof ApiHistoryDateRoute
   '/api/progress/today': typeof ApiProgressTodayRoute
   '/api/tasks/$id': typeof ApiTasksIdRouteWithChildren
-  '/api/tasks/snooze-many': typeof ApiTasksSnoozeManyRoute
   '/api/tasks/suggest-emojis': typeof ApiTasksSuggestEmojisRoute
   '/tasks/$id/edit': typeof TasksIdEditRoute
   '/tasks/$id': typeof TasksIdIndexRoute
@@ -224,7 +216,6 @@ export interface FileRoutesById {
   '/api/history/$date': typeof ApiHistoryDateRoute
   '/api/progress/today': typeof ApiProgressTodayRoute
   '/api/tasks/$id': typeof ApiTasksIdRouteWithChildren
-  '/api/tasks/snooze-many': typeof ApiTasksSnoozeManyRoute
   '/api/tasks/suggest-emojis': typeof ApiTasksSuggestEmojisRoute
   '/tasks/$id/edit': typeof TasksIdEditRoute
   '/tasks/$id/': typeof TasksIdIndexRoute
@@ -252,7 +243,6 @@ export interface FileRouteTypes {
     | '/api/history/$date'
     | '/api/progress/today'
     | '/api/tasks/$id'
-    | '/api/tasks/snooze-many'
     | '/api/tasks/suggest-emojis'
     | '/tasks/$id/edit'
     | '/tasks/$id/'
@@ -277,7 +267,6 @@ export interface FileRouteTypes {
     | '/api/history/$date'
     | '/api/progress/today'
     | '/api/tasks/$id'
-    | '/api/tasks/snooze-many'
     | '/api/tasks/suggest-emojis'
     | '/tasks/$id/edit'
     | '/tasks/$id'
@@ -303,7 +292,6 @@ export interface FileRouteTypes {
     | '/api/history/$date'
     | '/api/progress/today'
     | '/api/tasks/$id'
-    | '/api/tasks/snooze-many'
     | '/api/tasks/suggest-emojis'
     | '/tasks/$id/edit'
     | '/tasks/$id/'
@@ -438,13 +426,6 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiTasksSuggestEmojisRouteImport
       parentRoute: typeof ApiTasksRoute
     }
-    '/api/tasks/snooze-many': {
-      id: '/api/tasks/snooze-many'
-      path: '/snooze-many'
-      fullPath: '/api/tasks/snooze-many'
-      preLoaderRoute: typeof ApiTasksSnoozeManyRouteImport
-      parentRoute: typeof ApiTasksRoute
-    }
     '/api/tasks/$id': {
       id: '/api/tasks/$id'
       path: '/$id'
@@ -524,13 +505,11 @@ const ApiTasksIdRouteWithChildren = ApiTasksIdRoute._addFileChildren(
 
 interface ApiTasksRouteChildren {
   ApiTasksIdRoute: typeof ApiTasksIdRouteWithChildren
-  ApiTasksSnoozeManyRoute: typeof ApiTasksSnoozeManyRoute
   ApiTasksSuggestEmojisRoute: typeof ApiTasksSuggestEmojisRoute
 }
 
 const ApiTasksRouteChildren: ApiTasksRouteChildren = {
   ApiTasksIdRoute: ApiTasksIdRouteWithChildren,
-  ApiTasksSnoozeManyRoute: ApiTasksSnoozeManyRoute,
   ApiTasksSuggestEmojisRoute: ApiTasksSuggestEmojisRoute,
 }
 

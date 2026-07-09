@@ -6,7 +6,6 @@ import {
   usePrefetchTask,
   usePrimeTaskCache,
   useSelection,
-  useSnoozeManyTasks,
   useSnoozeTask,
   useTask,
   useTaskTimer,
@@ -32,11 +31,12 @@ import { useEffect, useState } from 'react'
 import { useConfirm } from '../components/ConfirmProvider'
 import { CountConfirmModal } from '../components/CountConfirmModal'
 import { ErrorState } from '../components/ErrorState'
+import { KeyHints } from '../components/KeyHints'
 import { Loading } from '../components/Loading'
 import { LinkifiedNotes } from '../components/LinkifiedNotes'
 import { MobileChrome } from '../components/MobileChrome'
 import { Skeleton } from '../components/Skeleton'
-import { TaskRow } from '../components/TaskRow'
+import { RowAction, RowMenu, TaskRow } from '../components/TaskRow'
 import { TimerWidget } from '../components/TimerWidget'
 import { useToast } from '../components/ToastProvider'
 import { TopBar } from '../components/TopBar'
@@ -149,19 +149,15 @@ function Home() {
       null)
     : null
 
-  const [selectedTaskIndex, setSelectedTaskIndex] = useState<0 | 1 | 2>(0)
-  const localSelectedTask =
-    tasks.length > selectedTaskIndex ? tasks.at(selectedTaskIndex) : tasks.at(0)
-  const selectedTask = focusTask ?? localSelectedTask
-
-  if (!focusTask && tasks.length > 0 && tasks.length <= selectedTaskIndex)
-    setSelectedTaskIndex(tasks.length === 2 ? 1 : 0)
+  // Home has exactly two states. When a task is selected it becomes the
+  // single-task Focus View; otherwise we show the top tasks as equal rows.
+  // The per-Hero actions below target the Selected Task.
+  const selectedTask = focusTask
 
   const doneMutation = useCompleteTask()
   const deleteMutation = useDeleteTask()
   const createTask = useCreateTask()
   const snoozeMutation = useSnoozeTask()
-  const snoozeManyMutation = useSnoozeManyTasks()
   const unsnoozeMutation = useUnsnoozeTask()
   const prefetchTask = usePrefetchTask()
   const primeTaskCache = usePrimeTaskCache()
@@ -173,32 +169,37 @@ function Home() {
     kind: 'over' | 'under'
   } | null>(null)
 
+  // Keyboard cursor over the Top Tasks list. The first row is focused by
+  // default; ↑/↓ and the number keys move the ring, Enter selects it.
+  const [focusIndex, setFocusIndex] = useState(0)
+
   const runComplete = (id: string, countMeasurement: boolean) => {
     doneMutation.mutate({ id, countMeasurement })
   }
 
-  const completeTaskAction = () => {
-    if (!selectedTask) return
+  const completeTaskFor = (task: Task | null | undefined) => {
+    if (!task) return
     const now = new Date()
-    if (isCompletionGated(selectedTask, now)) return
+    if (isCompletionGated(task, now)) return
     // Subtask advance never triggers the count/skip confirm — that
     // dialog is about how to record the *whole task's* timer, which
     // doesn't fire on subtask completion.
-    if (willAdvanceSubtask(selectedTask, now)) {
-      runComplete(selectedTask.id, true)
+    if (willAdvanceSubtask(task, now)) {
+      runComplete(task.id, true)
       return
     }
-    const kind = completionConfirmKind(selectedTask, now)
+    const kind = completionConfirmKind(task, now)
     if (!kind) {
-      runComplete(selectedTask.id, true)
+      runComplete(task.id, true)
       return
     }
-    setPendingComplete({ task: selectedTask, kind })
+    setPendingComplete({ task, kind })
   }
+  const completeTaskAction = () => completeTaskFor(selectedTask)
 
-  const snoozeTaskAction = () => {
-    if (!selectedTask) return
-    const { id } = selectedTask
+  const snoozeTaskFor = (task: Task | null | undefined) => {
+    if (!task) return
+    const { id } = task
     snoozeMutation.mutate(
       { id },
       {
@@ -211,6 +212,7 @@ function Home() {
       },
     )
   }
+  const snoozeTaskAction = () => snoozeTaskFor(selectedTask)
 
   const snoozeAllSubtasksAction = () => {
     if (!selectedTask) return
@@ -228,24 +230,16 @@ function Home() {
     )
   }
 
-  // Every task ranked below the current one — "clear my plate, leave just
-  // this". Snoozes them an hour out so the Now view drops to the current task.
-  const restIds = tasks.slice(selectedTaskIndex + 1).map((t) => t.id)
-  const snoozeRestAction = () => {
-    if (restIds.length === 0) return
-    snoozeManyMutation.mutate(restIds)
-  }
-
-  const deleteTaskAction = async () => {
-    if (!selectedTask) return
+  const deleteTaskFor = async (task: Task | null | undefined) => {
+    if (!task) return
     const ok = await confirm({
-      message: `Are you sure you want to delete '${selectedTask.title}'?`,
+      message: `Are you sure you want to delete '${task.title}'?`,
       confirmLabel: 'Delete',
     })
     if (!ok) return
-    const title = selectedTask.title
-    const restore = taskToInput(selectedTask)
-    deleteMutation.mutate(selectedTask.id, {
+    const title = task.title
+    const restore = taskToInput(task)
+    deleteMutation.mutate(task.id, {
       onSuccess: () =>
         toast({
           message: `Deleted '${title}'`,
@@ -254,18 +248,14 @@ function Home() {
         }),
     })
   }
+  const deleteTaskAction = () => deleteTaskFor(selectedTask)
 
-  const goEdit = () => {
-    if (!selectedTask) return
-    primeTaskCache(selectedTask)
-    navigate({ to: '/tasks/$id/edit', params: { id: selectedTask.id } })
+  const goEditFor = (task: Task | null | undefined) => {
+    if (!task) return
+    primeTaskCache(task)
+    navigate({ to: '/tasks/$id/edit', params: { id: task.id } })
   }
-
-  const goOpen = () => {
-    if (!selectedTask) return
-    primeTaskCache(selectedTask)
-    navigate({ to: '/tasks/$id', params: { id: selectedTask.id } })
-  }
+  const goEdit = () => goEditFor(selectedTask)
 
   // A 0-time-frame child runs its timer on the keeper row, like HeroTimer —
   // resolve it so the toggle reads the right `running` state. The mutation
@@ -281,83 +271,68 @@ function Home() {
     })
   }
 
+  // Selecting a top task starts its timer. Slice-1 wiring makes the started
+  // task the authoritative Selected Task, so Home flips to the Focus View —
+  // and any timer that was running elsewhere is paused server-side.
+  const selectTaskAction = (task: Task | undefined) => {
+    if (!task) return
+    primeTaskCache(task)
+    timer.mutate({ id: task.id, action: { kind: 'start' } })
+  }
+
   // Return: step off the Selected Task (pauses its timer, clears the pointer).
   const returnAction = () => {
     if (!focusTask) return
     unselectMutation.mutate()
   }
 
-  const keyActions: Array<KeyAction> = [
-    { key: 'd', description: 'Task done', action: completeTaskAction },
+  const topThree = tasks.slice(0, 3)
+  // Clamp the cursor to the current list (it can shrink as tasks complete).
+  const safeFocus = Math.min(focusIndex, Math.max(topThree.length - 1, 0))
+  const focusedTask = topThree[safeFocus]
+
+  const moveFocus = (delta: number) => {
+    setFocusIndex((i) =>
+      Math.min(Math.max(i + delta, 0), Math.max(topThree.length - 1, 0)),
+    )
+  }
+  const focusRow = (i: number) => {
+    if (i < 0 || i >= topThree.length) return
+    setFocusIndex(i)
+  }
+
+  // Navigation shortcuts work in both Home states.
+  const navActions: Array<KeyAction> = [
     {
       key: 'h',
       description: 'History',
       action: () => navigate({ to: '/history' }),
     },
-    {
-      key: 'a',
-      description: 'Stats',
-      action: () => navigate({ to: '/stats' }),
-    },
+    { key: 'a', description: 'Stats', action: () => navigate({ to: '/stats' }) },
     {
       key: '=',
       description: 'New task',
       shift: true,
       action: () => navigate({ to: '/new-task' }),
     },
-    {
-      key: 's',
-      description: 'Snooze task',
-      action: snoozeTaskAction,
-      shift: false,
-    },
+    { key: 't', description: 'Tasks', action: () => navigate({ to: '/tasks' }) },
+  ]
+
+  // Focus View: shortcuts act on the one Selected Task.
+  const focusActions: Array<KeyAction> = [
+    { key: 'd', description: 'Task done', action: completeTaskAction },
+    { key: 's', description: 'Snooze task', action: snoozeTaskAction, shift: false },
     {
       key: 'S',
       description: 'Snooze all subtasks',
       action: snoozeAllSubtasksAction,
       shift: true,
     },
-    {
-      key: 'r',
-      description: 'Snooze the rest',
-      action: snoozeRestAction,
-    },
-    {
-      key: 't',
-      description: 'Tasks',
-      action: () => navigate({ to: '/tasks' }),
-    },
     { key: 'e', description: 'Edit task', action: goEdit },
-    { key: 'enter', description: 'Open task', action: goOpen },
     {
       key: 'p',
       description: timerTask?.timerStartedAt ? 'Pause timer' : 'Start timer',
       action: toggleTimerAction,
-    },
-    {
-      key: '1',
-      description: 'Select first task',
-      action: () => setSelectedTaskIndex(0),
-    },
-    {
-      key: '2',
-      description: 'Select second task',
-      action: () => setSelectedTaskIndex(1),
-    },
-    {
-      key: '3',
-      description: 'Select third task',
-      action: () => setSelectedTaskIndex(2),
-    },
-    {
-      key: 'up',
-      description: 'Select previous task',
-      action: () => setSelectedTaskIndex((idx) => (idx === 2 ? 1 : 0)),
-    },
-    {
-      key: 'down',
-      description: 'Select next task',
-      action: () => setSelectedTaskIndex((idx) => (idx === 0 ? 1 : 2)),
     },
     {
       key: 'backspace',
@@ -369,6 +344,48 @@ function Home() {
       description: 'Return (step off the selected task)',
       action: returnAction,
     },
+  ]
+
+  // Top-tasks list: a keyboard cursor. Arrows/numbers move the focus ring;
+  // d/s/e act on the focused row in place; Enter selects it (starts its timer
+  // → Focus View). Numbers 1–3 are undisplayed fast-jumps for the three rows.
+  const listActions: Array<KeyAction> = [
+    { key: 'up', description: 'Move focus up', action: () => moveFocus(-1) },
+    { key: 'down', description: 'Move focus down', action: () => moveFocus(1) },
+    { key: '1', description: 'Focus first task', action: () => focusRow(0) },
+    { key: '2', description: 'Focus second task', action: () => focusRow(1) },
+    { key: '3', description: 'Focus third task', action: () => focusRow(2) },
+    {
+      key: 'enter',
+      description: 'Select focused task',
+      action: () => selectTaskAction(focusedTask),
+    },
+    {
+      key: 'd',
+      description: 'Task done',
+      action: () => completeTaskFor(focusedTask),
+    },
+    {
+      key: 's',
+      description: 'Snooze task',
+      action: () => snoozeTaskFor(focusedTask),
+      shift: false,
+    },
+    {
+      key: 'e',
+      description: 'Edit task',
+      action: () => goEditFor(focusedTask),
+    },
+    {
+      key: 'backspace',
+      description: 'Delete task',
+      action: () => void deleteTaskFor(focusedTask),
+    },
+  ]
+
+  const keyActions: Array<KeyAction> = [
+    ...navActions,
+    ...(focusTask ? focusActions : listActions),
   ]
   useKeyAction(keyActions)
 
@@ -386,11 +403,6 @@ function Home() {
     )
   }
 
-  const upNextTasks = tasks
-    .slice(0, 3)
-    .map((t, i) => ({ task: t, slot: (i + 1) as 1 | 2 | 3 }))
-    .filter(({ slot }) => slot - 1 !== selectedTaskIndex)
-
   return (
     <div className="relative flex min-h-screen flex-col">
       <TopBar />
@@ -403,13 +415,10 @@ function Home() {
       {focusTask ? (
         <Hero
           task={focusTask}
-          focus
           onReturn={returnAction}
           onComplete={completeTaskAction}
-          onOpen={goOpen}
           onSnooze={snoozeTaskAction}
           onSnoozeSubtasks={snoozeAllSubtasksAction}
-          restCount={0}
           onEdit={goEdit}
           onDelete={deleteTaskAction}
         />
@@ -428,64 +437,60 @@ function Home() {
           )}
         </div>
       ) : (
-        selectedTask && (
-          <Hero
-            task={selectedTask}
-            index={selectedTaskIndex}
-            onComplete={completeTaskAction}
-            onOpen={goOpen}
-            onSnooze={snoozeTaskAction}
-            onSnoozeSubtasks={snoozeAllSubtasksAction}
-            onSnoozeRest={restIds.length > 0 ? snoozeRestAction : undefined}
-            restCount={restIds.length}
-            onEdit={goEdit}
-            onDelete={deleteTaskAction}
-          />
-        )
-      )}
-
-      {/* Up-next stack — same TaskRow component used on /tasks, just with
-          a slot kbd on desktop. In-flow below the hero on every breakpoint
-          so it scrolls with the page rather than pinning to the viewport. */}
-      {!focusTask && tasks.length > 1 && (
-        <>
-          <div className="hidden justify-center px-10 pb-10 md:flex">
-            <div className="flex w-full max-w-xl flex-col gap-1.5">
-              <div className="mb-2 px-1 font-mono text-[10px] tracking-[0.25em] text-zinc-600 uppercase">
-                up next
-              </div>
-              {upNextTasks.map(({ task: t, slot }) => (
-                <TaskRow
-                  key={t.id}
-                  task={t}
-                  kbd={String(slot)}
-                  onClick={() => {
-                    primeTaskCache(t)
-                    setSelectedTaskIndex((slot - 1) as 0 | 1 | 2)
-                  }}
-                  onMouseEnter={() => prefetchTask(t.id)}
-                />
-              ))}
+        // No selection: the top tasks as equal ranked rows. Tapping a row
+        // (or Enter on the keyboard-focused row) starts its timer, which
+        // selects it and flips Home into the Focus View. Done and Snooze are
+        // inline so a row can be cleared without committing to it.
+        <div className="flex flex-1 flex-col items-center justify-center px-5 pb-20 md:px-16">
+          <div className="w-full max-w-xl">
+            <div className="mb-4 px-1 font-mono text-[10px] tracking-[0.25em] text-zinc-600 uppercase">
+              what's next
+            </div>
+            <div className="flex flex-col gap-2">
+              {topThree.map((t, i) => {
+                // No timer runs while nothing is selected, so a static "now"
+                // suffices to tell whether Done is still gated by a target.
+                const gated = isCompletionGated(t, new Date())
+                return (
+                  <TaskRow
+                    key={t.id}
+                    task={t}
+                    rank={i + 1}
+                    selected={i === safeFocus}
+                    onClick={() => selectTaskAction(t)}
+                    onMouseEnter={() => prefetchTask(t.id)}
+                    actions={
+                      <>
+                        <RowAction
+                          label="Done"
+                          onClick={() => completeTaskFor(t)}
+                          disabled={gated}
+                          title={
+                            gated ? 'Run the timer to its target first' : undefined
+                          }
+                        />
+                        <RowAction
+                          label="Snooze"
+                          onClick={() => snoozeTaskFor(t)}
+                        />
+                        <RowMenu
+                          items={[
+                            { label: 'Edit', onClick: () => goEditFor(t) },
+                            {
+                              label: 'Delete',
+                              onClick: () => void deleteTaskFor(t),
+                              danger: true,
+                            },
+                          ]}
+                        />
+                      </>
+                    }
+                  />
+                )
+              })}
             </div>
           </div>
-          <div className="px-5 pb-24 md:hidden">
-            <div className="mb-2 px-1 font-mono text-[10px] tracking-[0.25em] text-zinc-600 uppercase">
-              up next
-            </div>
-            <div className="flex flex-col gap-1.5">
-              {upNextTasks.map(({ task: t, slot }) => (
-                <TaskRow
-                  key={t.id}
-                  task={t}
-                  onClick={() => {
-                    primeTaskCache(t)
-                    setSelectedTaskIndex((slot - 1) as 0 | 1 | 2)
-                  }}
-                />
-              ))}
-            </div>
-          </div>
-        </>
+        </div>
       )}
 
       <CountConfirmModal
@@ -502,34 +507,54 @@ function Home() {
           setPendingComplete(null)
         }}
       />
+
+      {/* State-aware keyboard legend (desktop only) — the honest surface for
+          the shortcuts. Numbers are omitted; they're just focus jumps. */}
+      {(focusTask || topThree.length > 0) && (
+        <div className="hidden justify-center px-6 pb-6 md:flex">
+          <KeyHints
+            items={
+              focusTask
+                ? [
+                    ['d', 'Done'],
+                    ['s', 'Snooze'],
+                    ['e', 'Edit'],
+                    ['p', 'Timer'],
+                    ['Esc', 'Return'],
+                    ['⌫', 'Delete'],
+                  ]
+                : [
+                    ['↵', 'Select'],
+                    ['d', 'Done'],
+                    ['s', 'Snooze'],
+                    ['e', 'Edit'],
+                    ['⌫', 'Delete'],
+                    ['↑↓', 'Move'],
+                  ]
+            }
+          />
+        </div>
+      )}
     </div>
   )
 }
 
+// The Focus View: the single Selected Task, full-bleed. Only rendered when a
+// task is selected, so Return is always available.
 function Hero({
   task,
-  index,
-  focus = false,
   onReturn,
   onComplete,
-  onOpen,
   onSnooze,
   onSnoozeSubtasks,
-  onSnoozeRest,
-  restCount,
   onEdit,
   onDelete,
 }: {
   task: Task
-  index?: 0 | 1 | 2
-  focus?: boolean
-  onReturn?: () => void
+  onReturn: () => void
   onComplete: () => void
-  onOpen: () => void
   onSnooze: () => void
   onSnoozeSubtasks: () => void
-  onSnoozeRest?: () => void
-  restCount: number
   onEdit: () => void
   onDelete: () => void
 }) {
@@ -566,7 +591,7 @@ function Hero({
   return (
     <div className="flex flex-1 flex-col items-center justify-center px-5 pb-8 md:px-16 md:pb-16">
       <div className="mb-4 text-center font-mono text-[10px] tracking-[0.2em] text-zinc-500 uppercase md:mb-6 md:text-xs">
-        {focus ? 'Right now' : `Task ${(index ?? 0) + 1} of 3 · Right now`}
+        Right now
       </div>
 
       <div
@@ -639,23 +664,13 @@ function Hero({
       </button>
 
       <div className="mt-3 grid w-full max-w-[320px] grid-cols-3 gap-2 md:mt-4 md:flex md:max-w-none md:w-auto md:items-center md:gap-3">
-        {onReturn && (
-          <SecondaryAction k="Esc" label="Return" onClick={onReturn} />
-        )}
-        <SecondaryAction k="↵" label="Open" onClick={onOpen} />
+        <SecondaryAction k="Esc" label="Return" onClick={onReturn} />
         <SecondaryAction k="S" label="Snooze" onClick={onSnooze} />
         {task.subtasks.length > 0 && (
           <SecondaryAction
             k="⇧S"
             label="Snooze subtasks"
             onClick={onSnoozeSubtasks}
-          />
-        )}
-        {onSnoozeRest && (
-          <SecondaryAction
-            k="R"
-            label={`Snooze ${restCount} after`}
-            onClick={onSnoozeRest}
           />
         )}
         <SecondaryAction k="E" label="Edit" onClick={onEdit} />
@@ -668,21 +683,34 @@ function Hero({
 }
 
 function NowSkeleton() {
+  // Mirror the Top Tasks rows (the no-selection entry state) so the layout
+  // doesn't jump from a hero into a list once data arrives.
   return (
     <div className="relative flex min-h-screen flex-col">
       <TopBar />
       <div
-        className="flex flex-1 flex-col items-center justify-center px-5 pb-8 md:px-16"
+        className="flex flex-1 flex-col items-center justify-center px-5 pb-20 md:px-16"
         role="status"
         aria-label="Loading your tasks"
       >
-        <Skeleton className="mb-4 h-20 w-20 rounded-2xl md:mb-8 md:h-28 md:w-28" />
-        <Skeleton className="h-9 w-64 md:h-14 md:w-[28rem]" />
-        <Skeleton className="mt-4 h-4 w-44" />
-        <Skeleton className="mt-8 h-12 w-full max-w-[320px] rounded-full md:mt-12" />
-        <div className="mt-3 flex gap-2">
-          <Skeleton className="h-8 w-24 rounded-full" />
-          <Skeleton className="h-8 w-20 rounded-full" />
+        <div className="w-full max-w-xl">
+          <Skeleton className="mb-4 ml-1 h-3 w-20" />
+          <div className="flex flex-col gap-2">
+            {[0, 1, 2].map((i) => (
+              <div
+                key={i}
+                className="flex w-full items-center gap-4 rounded-2xl border border-zinc-800 bg-zinc-900/60 px-5 py-3"
+              >
+                <Skeleton className="h-8 w-8 rounded-lg" />
+                <div className="min-w-0 flex-1">
+                  <Skeleton className="h-5 w-2/5" />
+                  <Skeleton className="mt-2 h-3 w-1/4" />
+                </div>
+                <Skeleton className="h-7 w-14 rounded-full" />
+                <Skeleton className="h-7 w-16 rounded-full" />
+              </div>
+            ))}
+          </div>
         </div>
       </div>
     </div>
