@@ -503,17 +503,13 @@ function Home() {
                     task={t}
                     rank={i + 1}
                     selected={i === safeFocus}
-                    onClick={() => selectTaskAction(t)}
+                    onClick={() => focusRow(i)}
                     onMouseEnter={() => prefetchTask(t.id)}
                     actions={
                       <>
                         <RowAction
-                          label="Done"
-                          onClick={() => completeTaskFor(t)}
-                          disabled={gated}
-                          title={
-                            gated ? 'Run the timer to its target first' : undefined
-                          }
+                          label="Start"
+                          onClick={() => selectTaskAction(t)}
                         />
                         <RowAction
                           label="Snooze"
@@ -521,6 +517,14 @@ function Home() {
                         />
                         <RowMenu
                           items={[
+                            {
+                              label: 'Done',
+                              onClick: () => completeTaskFor(t),
+                              disabled: gated,
+                              title: gated
+                                ? 'Run the timer to its target first'
+                                : undefined,
+                            },
                             {
                               label: 'Snooze this and after',
                               onClick: () => snoozeFromHere(i),

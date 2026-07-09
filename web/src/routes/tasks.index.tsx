@@ -228,18 +228,13 @@ function TasksList() {
   const wakeAction = () => wakeFor(tasks.at(selectedTask))
 
   // Inline buttons for a row — the same rectangle-with-buttons shape as Home.
-  // A snoozed task offers Wake in place of Snooze; the secondary actions live
-  // behind the row's ⋯ menu.
+  // Start and Snooze stay inline; a snoozed task offers Wake in place of
+  // Snooze. Everything else lives behind the row's ⋯ menu.
   const rowActionsFor = (t: Task) => {
     const gated = isCompletionGated(t, new Date())
     return (
       <>
-        <RowAction
-          label="Done"
-          onClick={() => completeFor(t)}
-          disabled={gated}
-          title={gated ? 'Run the timer to its target first' : undefined}
-        />
+        <RowAction label="Start" onClick={() => selectFor(t)} />
         {isSnoozed(t) ? (
           <RowAction label="Wake" onClick={() => wakeFor(t)} />
         ) : (
@@ -247,6 +242,12 @@ function TasksList() {
         )}
         <RowMenu
           items={[
+            {
+              label: 'Done',
+              onClick: () => completeFor(t),
+              disabled: gated,
+              title: gated ? 'Run the timer to its target first' : undefined,
+            },
             { label: 'Edit', onClick: () => editFor(t) },
             { label: 'Delete', onClick: () => deleteFor(t), danger: true },
           ]}
@@ -516,7 +517,7 @@ function TasksList() {
                           <TaskRow
                             task={t}
                             selected={i === selectedTask}
-                            onClick={() => selectFor(t)}
+                            onClick={() => setSelectedTask(i)}
                             onMouseEnter={() => prefetchTask(t.id)}
                             actions={rowActionsFor(t)}
                           />
@@ -540,7 +541,7 @@ function TasksList() {
                   <TaskRow
                     task={t}
                     selected={i === selectedTask}
-                    onClick={() => selectFor(t)}
+                    onClick={() => setSelectedTask(i)}
                     onMouseEnter={() => prefetchTask(t.id)}
                     actions={rowActionsFor(t)}
                   />
