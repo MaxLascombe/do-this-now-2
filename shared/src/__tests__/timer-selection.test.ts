@@ -20,20 +20,26 @@ const fakeApi = () =>
 
 const serverTask = { id: 'keeper-1', timeframeType: 'fluid', timeFrame: 0 }
 
-function defaultsFor(qc: QueryClient) {
+// The registered defaults are invoked directly, so the callbacks are narrowed
+// to just the arguments these tests supply.
+type TimerDefaults = {
+  onMutate: (vars: unknown) => Promise<unknown>
+  onSuccess: (data: unknown, vars: unknown, ctx: unknown) => Promise<unknown>
+}
+
+function defaultsFor(qc: QueryClient): TimerDefaults {
   registerTimerMutationDefaults(qc, fakeApi())
   const d = qc.getMutationDefaults([...timerMutationKey])
   if (!d.onMutate || !d.onSuccess) throw new Error('timer defaults missing')
-  return d
+  return d as unknown as TimerDefaults
 }
 
 describe('timer start ↔ selection pointer', () => {
   it('optimistically points selection at the task the user acted on', async () => {
     const qc = new QueryClient()
     const d = defaultsFor(qc)
-    const vars = { id: 'child-1', action: { kind: 'start' } }
 
-    await d.onMutate!(vars as never)
+    await d.onMutate({ id: 'child-1', action: { kind: 'start' } })
 
     expect(qc.getQueryData(selectionKey)).toEqual({ selectedTaskId: 'child-1' })
   })
@@ -43,12 +49,12 @@ describe('timer start ↔ selection pointer', () => {
     const d = defaultsFor(qc)
     const vars = { id: 'child-1', action: { kind: 'start' } }
 
-    const ctx = await d.onMutate!(vars as never)
+    const ctx = await d.onMutate(vars)
     // A selection GET issued before the start committed resolves now, writing
-    // the pointer the server had *before* the start landed.
+    // the pointer the server held *before* the start landed.
     qc.setQueryData(selectionKey, { selectedTaskId: null })
 
-    await d.onSuccess!(serverTask as never, vars as never, ctx as never)
+    await d.onSuccess(serverTask, vars, ctx)
 
     expect(qc.getQueryData(selectionKey)).toEqual({ selectedTaskId: 'child-1' })
   })
@@ -59,8 +65,8 @@ describe('timer start ↔ selection pointer', () => {
     qc.setQueryData(selectionKey, { selectedTaskId: 'child-1' })
     const vars = { id: 'child-1', action: { kind: 'pause' } }
 
-    const ctx = await d.onMutate!(vars as never)
-    await d.onSuccess!(serverTask as never, vars as never, ctx as never)
+    const ctx = await d.onMutate(vars)
+    await d.onSuccess(serverTask, vars, ctx)
 
     expect(qc.getQueryData(selectionKey)).toEqual({ selectedTaskId: 'child-1' })
   })
