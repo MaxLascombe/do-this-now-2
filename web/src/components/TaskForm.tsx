@@ -341,7 +341,7 @@ const TaskForm = ({
               value={title}
               onChange={(e) => setTitle(e.target.value)}
               placeholder="Do this thing"
-              className="dtn-task-title w-full border-b border-zinc-700 bg-transparent pb-2 text-[1.85rem] leading-[1.1] text-zinc-50 outline-none placeholder:text-zinc-700 focus:border-zinc-50 md:text-[2.25rem]"
+              className="w-full border-b border-zinc-700 bg-transparent pb-2 font-mono text-[1.85rem] leading-[1.1] text-zinc-50 outline-none placeholder:text-zinc-700 focus:border-zinc-50 md:text-[2.25rem]"
             />
             {errors.title && (
               <div className="mt-2 font-mono text-xs text-rose-400">

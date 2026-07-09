@@ -20,7 +20,7 @@ export const PageHeading = ({
     <h1
       id="main-content"
       tabIndex={-1}
-      className={`${variant === 'task' ? 'dtn-task-title' : 'dtn-heading'} mt-1 text-zinc-50`}
+      className={`${variant === 'task' ? 'font-mono' : 'dtn-heading'} mt-1 text-zinc-50`}
       style={{ fontSize: size, lineHeight: 1 }}
     >
       {children}
