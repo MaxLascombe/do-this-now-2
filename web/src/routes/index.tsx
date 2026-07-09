@@ -12,6 +12,7 @@ import {
   useTopTasks,
   useUnselect,
   useUnsnoozeTask,
+  useUpdateTask,
 } from '@dtn/shared/queries'
 import { taskToInput } from '@dtn/shared/task-input'
 import {
@@ -36,6 +37,7 @@ import { Loading } from '../components/Loading'
 import { LinkifiedNotes } from '../components/LinkifiedNotes'
 import { MobileChrome } from '../components/MobileChrome'
 import { Skeleton } from '../components/Skeleton'
+import { SubtaskList } from '../components/SubtaskList'
 import { RowAction, RowMenu, TaskRow } from '../components/TaskRow'
 import { TimerWidget } from '../components/TimerWidget'
 import { useToast } from '../components/ToastProvider'
@@ -159,6 +161,7 @@ function Home() {
   const createTask = useCreateTask()
   const snoozeMutation = useSnoozeTask()
   const unsnoozeMutation = useUnsnoozeTask()
+  const updateTask = useUpdateTask()
   const prefetchTask = usePrefetchTask()
   const primeTaskCache = usePrimeTaskCache()
   const confirm = useConfirm()
@@ -278,6 +281,19 @@ function Home() {
     if (!task) return
     primeTaskCache(task)
     timer.mutate({ id: task.id, action: { kind: 'start' } })
+  }
+
+  // Tick a subtask of the Selected Task from the Focus View, which is where a
+  // task is worked through now that the detail page is going away.
+  const toggleSubtaskAction = (index: number) => {
+    if (!focusTask) return
+    const subtasks = focusTask.subtasks.map((s, i) =>
+      i === index ? { ...s, done: !s.done } : s,
+    )
+    updateTask.mutate({
+      id: focusTask.id,
+      input: { ...taskToInput(focusTask), subtasks },
+    })
   }
 
   // Return: step off the Selected Task (pauses its timer, clears the pointer).
@@ -419,6 +435,7 @@ function Home() {
           onComplete={completeTaskAction}
           onSnooze={snoozeTaskAction}
           onSnoozeSubtasks={snoozeAllSubtasksAction}
+          onToggleSubtask={toggleSubtaskAction}
           onEdit={goEdit}
           onDelete={deleteTaskAction}
         />
@@ -547,6 +564,7 @@ function Hero({
   onComplete,
   onSnooze,
   onSnoozeSubtasks,
+  onToggleSubtask,
   onEdit,
   onDelete,
 }: {
@@ -555,6 +573,7 @@ function Hero({
   onComplete: () => void
   onSnooze: () => void
   onSnoozeSubtasks: () => void
+  onToggleSubtask: (index: number) => void
   onEdit: () => void
   onDelete: () => void
 }) {
@@ -678,6 +697,12 @@ function Hero({
       </div>
 
       <HeroTimer task={task} />
+
+      {task.subtasks.length > 0 && (
+        <div className="mt-8 w-full max-w-[420px]">
+          <SubtaskList subtasks={task.subtasks} onToggle={onToggleSubtask} />
+        </div>
+      )}
     </div>
   )
 }
