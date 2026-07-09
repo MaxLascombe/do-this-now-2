@@ -201,11 +201,14 @@ function TasksList() {
   }
   const deleteAction = () => deleteFor(tasks.at(selectedTask))
 
+  // Rows here show un-opened tasks, so Snooze pushes the whole task out
+  // rather than just its next subtask, which isn't visible on this page.
+  // Subtask-level snoozing lives in the Focus View.
   const snoozeFor = (t: Task | undefined) => {
     if (!t) return
     const { id } = t
     snoozeMutation.mutate(
-      { id },
+      { id, allSubtasks: true },
       {
         onSuccess: () =>
           toast({
@@ -217,12 +220,6 @@ function TasksList() {
     )
   }
   const snoozeAction = () => snoozeFor(tasks.at(selectedTask))
-
-  const snoozeSubtasks = () => {
-    const t = tasks.at(selectedTask)
-    if (!t) return
-    snoozeMutation.mutate({ id: t.id, allSubtasks: true })
-  }
 
   const wakeFor = (t: Task | undefined) => {
     if (!t) return
@@ -317,12 +314,6 @@ function TasksList() {
     { key: 'enter', description: 'Select task', action: selectAction },
     { key: 's', description: 'Snooze task', action: snoozeAction, shift: false },
     { key: 'w', description: 'Wake snoozed task', action: wakeAction },
-    {
-      key: 'S',
-      description: 'Snooze all subtasks',
-      action: snoozeSubtasks,
-      shift: true,
-    },
     {
       key: 'up',
       description: 'Move focus up',

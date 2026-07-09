@@ -68,6 +68,7 @@ export type SelectionResult = { selectedTaskId: string | null }
 export type CompleteTaskResult = { advanced: boolean }
 export type CompleteTaskOptions = { countMeasurement?: boolean }
 export type SnoozeTaskResult = { scope: 'subtask' | 'task' }
+export type SnoozeManyResult = { count: number }
 export type DeleteTaskResult = Record<string, never>
 
 export type TimerAction = (
@@ -88,6 +89,7 @@ export interface ApiClient {
     complete(id: string, opts?: CompleteTaskOptions): Promise<CompleteTaskResult>
     snooze(id: string, allSubtasks?: boolean): Promise<SnoozeTaskResult>
     unsnooze(id: string): Promise<Task>
+    snoozeMany(ids: string[]): Promise<SnoozeManyResult>
     suggestEmojis(title: string): Promise<string[]>
     // Returns the task whose row actually holds the timer state — for
     // 0-time-frame children that's the keeper, not the task you passed.

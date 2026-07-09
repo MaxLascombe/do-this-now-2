@@ -6,6 +6,7 @@ import {
   usePrefetchTask,
   usePrimeTaskCache,
   useSelection,
+  useSnoozeManyTasks,
   useSnoozeTask,
   useTask,
   useTaskTimer,
@@ -160,6 +161,7 @@ function Home() {
   const deleteMutation = useDeleteTask()
   const createTask = useCreateTask()
   const snoozeMutation = useSnoozeTask()
+  const snoozeManyMutation = useSnoozeManyTasks()
   const unsnoozeMutation = useUnsnoozeTask()
   const updateTask = useUpdateTask()
   const prefetchTask = usePrefetchTask()
@@ -200,22 +202,30 @@ function Home() {
   }
   const completeTaskAction = () => completeTaskFor(selectedTask)
 
-  const snoozeTaskFor = (task: Task | null | undefined) => {
+  // A row shows an un-opened task, so its Snooze pushes the *whole* task out
+  // — snoozing just the next subtask makes no sense when that subtask isn't
+  // on screen. The Focus View, where the subtask is visible, keeps the
+  // subtask-aware snooze on `s` (and the whole-task snooze on ⇧S).
+  const snoozeTaskFor = (
+    task: Task | null | undefined,
+    wholeTask: boolean,
+  ) => {
     if (!task) return
     const { id } = task
     snoozeMutation.mutate(
-      { id },
+      { id, allSubtasks: wholeTask },
       {
-        onSuccess: () =>
+        onSuccess: (res) =>
           toast({
-            message: 'Task snoozed',
+            message:
+              res.scope === 'subtask' ? 'Subtask snoozed' : 'Task snoozed',
             actionLabel: 'Undo',
             onAction: () => unsnoozeMutation.mutate(id),
           }),
       },
     )
   }
-  const snoozeTaskAction = () => snoozeTaskFor(selectedTask)
+  const snoozeTaskAction = () => snoozeTaskFor(selectedTask, false)
 
   const snoozeAllSubtasksAction = () => {
     if (!selectedTask) return
@@ -281,6 +291,20 @@ function Home() {
     if (!task) return
     primeTaskCache(task)
     timer.mutate({ id: task.id, action: { kind: 'start' } })
+  }
+
+  // "Clear my plate from here down": snooze this task and every task ranked
+  // after it, an hour out. Spans the whole ranked list, not just the three
+  // visible rows, and always pushes whole tasks out (never a lone subtask).
+  const snoozeFromHere = (index: number) => {
+    const ids = tasks.slice(index).map((t) => t.id)
+    if (ids.length === 0) return
+    snoozeManyMutation.mutate(ids, {
+      onSuccess: (res) =>
+        toast({
+          message: `Snoozed ${res.count} task${res.count === 1 ? '' : 's'}`,
+        }),
+    })
   }
 
   // Tick a subtask of the Selected Task from the Focus View, which is where a
@@ -384,8 +408,13 @@ function Home() {
     {
       key: 's',
       description: 'Snooze task',
-      action: () => snoozeTaskFor(focusedTask),
+      action: () => snoozeTaskFor(focusedTask, true),
       shift: false,
+    },
+    {
+      key: 'r',
+      description: 'Snooze this task and all after it',
+      action: () => snoozeFromHere(safeFocus),
     },
     {
       key: 'e',
@@ -488,10 +517,14 @@ function Home() {
                         />
                         <RowAction
                           label="Snooze"
-                          onClick={() => snoozeTaskFor(t)}
+                          onClick={() => snoozeTaskFor(t, true)}
                         />
                         <RowMenu
                           items={[
+                            {
+                              label: 'Snooze this and after',
+                              onClick: () => snoozeFromHere(i),
+                            },
                             { label: 'Edit', onClick: () => goEditFor(t) },
                             {
                               label: 'Delete',
