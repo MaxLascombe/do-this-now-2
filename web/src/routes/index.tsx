@@ -578,9 +578,10 @@ function Home() {
                     ['⌫', 'Delete'],
                   ]
                 : [
-                    ['↵', 'Select'],
-                    ['d', 'Done'],
+                    ['↵', 'Start'],
                     ['s', 'Snooze'],
+                    ['r', 'Snooze rest'],
+                    ['d', 'Done'],
                     ['e', 'Edit'],
                     ['⌫', 'Delete'],
                     ['↑↓', 'Move'],
