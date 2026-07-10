@@ -665,6 +665,22 @@ export function registerTimerMutationDefaults(qc: QueryClient, api: ApiClient) {
     networkMode: 'offlineFirst',
     mutationFn: (vars: TimerVars) => api.tasks.timer(vars.id, vars.action),
     onMutate: async (vars: TimerVars): Promise<TimerCtx> => {
+      // Starting a timer selects that task server-side (the id acted on, not
+      // the resolved keeper). Mirror it into the selection cache *before this
+      // function's first await*: a caller may navigate Home the instant
+      // mutate() returns, and only the synchronous prefix of onMutate has run
+      // by then. Leaving the pointer stale until after an await lets the Focus
+      // View mount, refetch, and race the not-yet-committed start.
+      const prevSelection = qc.getQueryData<SelectionResult>(selectionKey)
+      if (vars.action.kind === 'start') {
+        qc.setQueryData<SelectionResult>(selectionKey, {
+          selectedTaskId: vars.id,
+        })
+        // Drop a poll already in flight — it predates this start. revert:false
+        // so cancelling can't restore the pointer we just overwrote.
+        void qc.cancelQueries({ queryKey: selectionKey }, { revert: false })
+      }
+
       await qc.cancelQueries({ queryKey: taskKeys.all })
       const issuer = findTaskInCaches(qc, vars.id)
       const targetId = issuer?.timekeeperId ?? vars.id
@@ -686,18 +702,6 @@ export function registerTimerMutationDefaults(qc: QueryClient, api: ApiClient) {
           xs?.map((t) => (t.id === targetId ? next : t))
         qc.setQueryData<Task[]>(taskKeys.top, patch)
         qc.setQueryData<Task[]>(taskKeys.list, patch)
-      }
-      // Starting a timer selects that task server-side (the id acted on, not
-      // the resolved keeper). Mirror it into the selection cache now so the
-      // Focus View appears without waiting for the poll.
-      const prevSelection = qc.getQueryData<SelectionResult>(selectionKey)
-      if (vars.action.kind === 'start') {
-        // Cancel an in-flight poll first: it was issued before this start and
-        // would resolve with the old pointer, undoing the optimistic write.
-        await qc.cancelQueries({ queryKey: selectionKey })
-        qc.setQueryData<SelectionResult>(selectionKey, {
-          selectedTaskId: vars.id,
-        })
       }
       return {
         prevOne,
@@ -723,7 +727,7 @@ export function registerTimerMutationDefaults(qc: QueryClient, api: ApiClient) {
       // before the commit would otherwise land afterwards carrying the old
       // null pointer and knock the Focus View out from under the user.
       if (vars.action.kind === 'start') {
-        await qc.cancelQueries({ queryKey: selectionKey })
+        await qc.cancelQueries({ queryKey: selectionKey }, { revert: false })
         qc.setQueryData<SelectionResult>(selectionKey, {
           selectedTaskId: vars.id,
         })

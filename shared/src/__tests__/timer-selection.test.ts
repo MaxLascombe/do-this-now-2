@@ -44,6 +44,19 @@ describe('timer start ↔ selection pointer', () => {
     expect(qc.getQueryData(selectionKey)).toEqual({ selectedTaskId: 'child-1' })
   })
 
+  it('writes the pointer synchronously, before onMutate yields', () => {
+    // Callers navigate Home the instant mutate() returns, which is after only
+    // onMutate's synchronous prefix. If the pointer were written after an
+    // await, the Focus View would mount on a stale pointer and refetch.
+    const qc = new QueryClient()
+    const d = defaultsFor(qc)
+    qc.setQueryData(selectionKey, { selectedTaskId: null })
+
+    void d.onMutate({ id: 'child-1', action: { kind: 'start' } })
+
+    expect(qc.getQueryData(selectionKey)).toEqual({ selectedTaskId: 'child-1' })
+  })
+
   it('re-asserts the pointer on success, overriding a stale null that raced it', async () => {
     const qc = new QueryClient()
     const d = defaultsFor(qc)
