@@ -10,7 +10,7 @@ import {
 } from '@dtn/shared/schema'
 
 import { db } from '../../../db'
-import { completeTask, snoozeTask } from '../actions'
+import { completeTask, snoozeManyTasks, snoozeTask } from '../actions'
 import { applyTimerAction } from '../timer'
 
 // Integration tests that hit a real Neon Postgres via the neon-serverless
@@ -387,6 +387,81 @@ describe.skipIf(!process.env.DATABASE_URL)('actions (integration)', () => {
         .where(eq(tasks.id, task.id))
       expect(updated.timerStartedAt).not.toBeNull()
       expect(updated.timerAccumulatedSeconds).toBe(0)
+    })
+  })
+
+  describe('snoozeManyTasks', () => {
+    it('snoozes every task in the batch and writes an event per task', async () => {
+      const a = await makeTask({ title: 'a' })
+      const b = await makeTask({ title: 'b' })
+
+      const result = await snoozeManyTasks(TEST_USER, [a.id, b.id])
+      expect(result).toEqual({ count: 2 })
+
+      const rows = await db
+        .select()
+        .from(tasks)
+        .where(eq(tasks.userId, TEST_USER))
+      expect(rows.every((t) => t.snooze)).toBe(true)
+
+      const events = await db
+        .select()
+        .from(taskEvents)
+        .where(eq(taskEvents.userId, TEST_USER))
+      expect(events).toHaveLength(2)
+      expect(events.every((e) => e.kind === 'snoozed')).toBe(true)
+    })
+
+    it('snoozes the whole task even when it has subtasks', async () => {
+      const task = await makeTask({
+        subtasks: [{ title: 's1', done: false }],
+      })
+
+      await snoozeManyTasks(TEST_USER, [task.id])
+
+      const [updated] = await db
+        .select()
+        .from(tasks)
+        .where(eq(tasks.id, task.id))
+      expect(updated.snooze).toBeTruthy()
+      expect(updated.subtasks[0].snooze).toBeFalsy()
+    })
+
+    it('skips unknown ids rather than throwing, counting only found tasks', async () => {
+      const a = await makeTask({ title: 'a' })
+
+      const result = await snoozeManyTasks(TEST_USER, [a.id, BOGUS_UUID])
+      expect(result).toEqual({ count: 1 })
+
+      const [updated] = await db
+        .select()
+        .from(tasks)
+        .where(eq(tasks.id, a.id))
+      expect(updated.snooze).toBeTruthy()
+    })
+
+    it('banks a running timer on a batched task', async () => {
+      const task = await makeTask()
+      await db
+        .update(tasks)
+        .set({
+          timerStartedAt: new Date(Date.now() - 60_000),
+          timerAccumulatedSeconds: 0,
+        })
+        .where(eq(tasks.id, task.id))
+
+      await snoozeManyTasks(TEST_USER, [task.id])
+
+      const [updated] = await db
+        .select()
+        .from(tasks)
+        .where(eq(tasks.id, task.id))
+      expect(updated.timerStartedAt).toBeNull()
+      expect(updated.timerAccumulatedSeconds).toBeGreaterThanOrEqual(59)
+    })
+
+    it('is a no-op for an empty batch', async () => {
+      expect(await snoozeManyTasks(TEST_USER, [])).toEqual({ count: 0 })
     })
   })
 

@@ -6,12 +6,14 @@ import {
   usePrefetchTask,
   usePrimeTaskCache,
   useSelection,
+  useSnoozeManyTasks,
   useSnoozeTask,
   useTask,
   useTaskTimer,
   useTopTasks,
   useUnselect,
   useUnsnoozeTask,
+  useUpdateTask,
 } from '@dtn/shared/queries'
 import { taskToInput } from '@dtn/shared/task-input'
 import {
@@ -36,6 +38,7 @@ import { Loading } from '../components/Loading'
 import { LinkifiedNotes } from '../components/LinkifiedNotes'
 import { MobileChrome } from '../components/MobileChrome'
 import { Skeleton } from '../components/Skeleton'
+import { SubtaskList } from '../components/SubtaskList'
 import { RowAction, RowMenu, TaskRow } from '../components/TaskRow'
 import { TimerWidget } from '../components/TimerWidget'
 import { useToast } from '../components/ToastProvider'
@@ -158,7 +161,9 @@ function Home() {
   const deleteMutation = useDeleteTask()
   const createTask = useCreateTask()
   const snoozeMutation = useSnoozeTask()
+  const snoozeManyMutation = useSnoozeManyTasks()
   const unsnoozeMutation = useUnsnoozeTask()
+  const updateTask = useUpdateTask()
   const prefetchTask = usePrefetchTask()
   const primeTaskCache = usePrimeTaskCache()
   const confirm = useConfirm()
@@ -197,22 +202,30 @@ function Home() {
   }
   const completeTaskAction = () => completeTaskFor(selectedTask)
 
-  const snoozeTaskFor = (task: Task | null | undefined) => {
+  // A row shows an un-opened task, so its Snooze pushes the *whole* task out
+  // — snoozing just the next subtask makes no sense when that subtask isn't
+  // on screen. The Focus View, where the subtask is visible, keeps the
+  // subtask-aware snooze on `s` (and the whole-task snooze on ⇧S).
+  const snoozeTaskFor = (
+    task: Task | null | undefined,
+    wholeTask: boolean,
+  ) => {
     if (!task) return
     const { id } = task
     snoozeMutation.mutate(
-      { id },
+      { id, allSubtasks: wholeTask },
       {
-        onSuccess: () =>
+        onSuccess: (res) =>
           toast({
-            message: 'Task snoozed',
+            message:
+              res.scope === 'subtask' ? 'Subtask snoozed' : 'Task snoozed',
             actionLabel: 'Undo',
             onAction: () => unsnoozeMutation.mutate(id),
           }),
       },
     )
   }
-  const snoozeTaskAction = () => snoozeTaskFor(selectedTask)
+  const snoozeTaskAction = () => snoozeTaskFor(selectedTask, false)
 
   const snoozeAllSubtasksAction = () => {
     if (!selectedTask) return
@@ -278,6 +291,33 @@ function Home() {
     if (!task) return
     primeTaskCache(task)
     timer.mutate({ id: task.id, action: { kind: 'start' } })
+  }
+
+  // "Clear my plate from here down": snooze this task and every task ranked
+  // after it, an hour out. Spans the whole ranked list, not just the three
+  // visible rows, and always pushes whole tasks out (never a lone subtask).
+  const snoozeFromHere = (index: number) => {
+    const ids = tasks.slice(index).map((t) => t.id)
+    if (ids.length === 0) return
+    snoozeManyMutation.mutate(ids, {
+      onSuccess: (res) =>
+        toast({
+          message: `Snoozed ${res.count} task${res.count === 1 ? '' : 's'}`,
+        }),
+    })
+  }
+
+  // Tick a subtask of the Selected Task from the Focus View, which is where a
+  // task is worked through now that the detail page is going away.
+  const toggleSubtaskAction = (index: number) => {
+    if (!focusTask) return
+    const subtasks = focusTask.subtasks.map((s, i) =>
+      i === index ? { ...s, done: !s.done } : s,
+    )
+    updateTask.mutate({
+      id: focusTask.id,
+      input: { ...taskToInput(focusTask), subtasks },
+    })
   }
 
   // Return: step off the Selected Task (pauses its timer, clears the pointer).
@@ -368,8 +408,13 @@ function Home() {
     {
       key: 's',
       description: 'Snooze task',
-      action: () => snoozeTaskFor(focusedTask),
+      action: () => snoozeTaskFor(focusedTask, true),
       shift: false,
+    },
+    {
+      key: 'r',
+      description: 'Snooze this task and all after it',
+      action: () => snoozeFromHere(safeFocus),
     },
     {
       key: 'e',
@@ -419,6 +464,7 @@ function Home() {
           onComplete={completeTaskAction}
           onSnooze={snoozeTaskAction}
           onSnoozeSubtasks={snoozeAllSubtasksAction}
+          onToggleSubtask={toggleSubtaskAction}
           onEdit={goEdit}
           onDelete={deleteTaskAction}
         />
@@ -457,24 +503,32 @@ function Home() {
                     task={t}
                     rank={i + 1}
                     selected={i === safeFocus}
-                    onClick={() => selectTaskAction(t)}
+                    onClick={() => focusRow(i)}
                     onMouseEnter={() => prefetchTask(t.id)}
                     actions={
                       <>
                         <RowAction
-                          label="Done"
-                          onClick={() => completeTaskFor(t)}
-                          disabled={gated}
-                          title={
-                            gated ? 'Run the timer to its target first' : undefined
-                          }
+                          label="Start"
+                          onClick={() => selectTaskAction(t)}
                         />
                         <RowAction
                           label="Snooze"
-                          onClick={() => snoozeTaskFor(t)}
+                          onClick={() => snoozeTaskFor(t, true)}
                         />
                         <RowMenu
                           items={[
+                            {
+                              label: 'Done',
+                              onClick: () => completeTaskFor(t),
+                              disabled: gated,
+                              title: gated
+                                ? 'Run the timer to its target first'
+                                : undefined,
+                            },
+                            {
+                              label: 'Snooze this and after',
+                              onClick: () => snoozeFromHere(i),
+                            },
                             { label: 'Edit', onClick: () => goEditFor(t) },
                             {
                               label: 'Delete',
@@ -524,9 +578,10 @@ function Home() {
                     ['⌫', 'Delete'],
                   ]
                 : [
-                    ['↵', 'Select'],
-                    ['d', 'Done'],
+                    ['↵', 'Start'],
                     ['s', 'Snooze'],
+                    ['r', 'Snooze rest'],
+                    ['d', 'Done'],
                     ['e', 'Edit'],
                     ['⌫', 'Delete'],
                     ['↑↓', 'Move'],
@@ -547,6 +602,7 @@ function Hero({
   onComplete,
   onSnooze,
   onSnoozeSubtasks,
+  onToggleSubtask,
   onEdit,
   onDelete,
 }: {
@@ -555,6 +611,7 @@ function Hero({
   onComplete: () => void
   onSnooze: () => void
   onSnoozeSubtasks: () => void
+  onToggleSubtask: (index: number) => void
   onEdit: () => void
   onDelete: () => void
 }) {
@@ -678,6 +735,12 @@ function Hero({
       </div>
 
       <HeroTimer task={task} />
+
+      {task.subtasks.length > 0 && (
+        <div className="mt-8 w-full max-w-[420px]">
+          <SubtaskList subtasks={task.subtasks} onToggle={onToggleSubtask} />
+        </div>
+      )}
     </div>
   )
 }

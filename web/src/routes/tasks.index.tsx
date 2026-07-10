@@ -201,11 +201,14 @@ function TasksList() {
   }
   const deleteAction = () => deleteFor(tasks.at(selectedTask))
 
+  // Rows here show un-opened tasks, so Snooze pushes the whole task out
+  // rather than just its next subtask, which isn't visible on this page.
+  // Subtask-level snoozing lives in the Focus View.
   const snoozeFor = (t: Task | undefined) => {
     if (!t) return
     const { id } = t
     snoozeMutation.mutate(
-      { id },
+      { id, allSubtasks: true },
       {
         onSuccess: () =>
           toast({
@@ -218,12 +221,6 @@ function TasksList() {
   }
   const snoozeAction = () => snoozeFor(tasks.at(selectedTask))
 
-  const snoozeSubtasks = () => {
-    const t = tasks.at(selectedTask)
-    if (!t) return
-    snoozeMutation.mutate({ id: t.id, allSubtasks: true })
-  }
-
   const wakeFor = (t: Task | undefined) => {
     if (!t) return
     unsnoozeMutation.mutate(t.id)
@@ -231,18 +228,13 @@ function TasksList() {
   const wakeAction = () => wakeFor(tasks.at(selectedTask))
 
   // Inline buttons for a row — the same rectangle-with-buttons shape as Home.
-  // A snoozed task offers Wake in place of Snooze; the secondary actions live
-  // behind the row's ⋯ menu.
+  // Start and Snooze stay inline; a snoozed task offers Wake in place of
+  // Snooze. Everything else lives behind the row's ⋯ menu.
   const rowActionsFor = (t: Task) => {
     const gated = isCompletionGated(t, new Date())
     return (
       <>
-        <RowAction
-          label="Done"
-          onClick={() => completeFor(t)}
-          disabled={gated}
-          title={gated ? 'Run the timer to its target first' : undefined}
-        />
+        <RowAction label="Start" onClick={() => selectFor(t)} />
         {isSnoozed(t) ? (
           <RowAction label="Wake" onClick={() => wakeFor(t)} />
         ) : (
@@ -250,6 +242,12 @@ function TasksList() {
         )}
         <RowMenu
           items={[
+            {
+              label: 'Done',
+              onClick: () => completeFor(t),
+              disabled: gated,
+              title: gated ? 'Run the timer to its target first' : undefined,
+            },
             { label: 'Edit', onClick: () => editFor(t) },
             { label: 'Delete', onClick: () => deleteFor(t), danger: true },
           ]}
@@ -317,12 +315,6 @@ function TasksList() {
     { key: 'enter', description: 'Select task', action: selectAction },
     { key: 's', description: 'Snooze task', action: snoozeAction, shift: false },
     { key: 'w', description: 'Wake snoozed task', action: wakeAction },
-    {
-      key: 'S',
-      description: 'Snooze all subtasks',
-      action: snoozeSubtasks,
-      shift: true,
-    },
     {
       key: 'up',
       description: 'Move focus up',
@@ -525,7 +517,7 @@ function TasksList() {
                           <TaskRow
                             task={t}
                             selected={i === selectedTask}
-                            onClick={() => selectFor(t)}
+                            onClick={() => setSelectedTask(i)}
                             onMouseEnter={() => prefetchTask(t.id)}
                             actions={rowActionsFor(t)}
                           />
@@ -549,7 +541,7 @@ function TasksList() {
                   <TaskRow
                     task={t}
                     selected={i === selectedTask}
-                    onClick={() => selectFor(t)}
+                    onClick={() => setSelectedTask(i)}
                     onMouseEnter={() => prefetchTask(t.id)}
                     actions={rowActionsFor(t)}
                   />

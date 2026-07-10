@@ -18,6 +18,7 @@ import {
   snoozeTaskTransition,
 } from './task-transitions'
 import { currentTimerSeconds, shouldCompleteOnPause } from './timer-utils'
+import { HOUR_MS } from './time'
 import type { TaskInput } from './task-input'
 import type { Task } from './types'
 
@@ -185,6 +186,41 @@ async function optimisticSnooze(
   return replaceTaskInCaches(qc, id, next)
 }
 
+// Whole-task snooze for a batch (the "snooze this task and everything after
+// it" action): stamp each targeted row an hour out, bank any running timer,
+// and re-sort so they sink below the still-active tasks right away.
+async function optimisticSnoozeMany(
+  qc: QueryClient,
+  ids: string[],
+): Promise<OptimisticSnapshot> {
+  await qc.cancelQueries({ queryKey: taskKeys.all })
+  const prevTop = qc.getQueryData<Task[]>(taskKeys.top)
+  const prevList = qc.getQueryData<Task[]>(taskKeys.list)
+  const idSet = new Set(ids)
+  const now = new Date()
+  const snooze = new Date(now.getTime() + HOUR_MS).toISOString()
+  const today = new Date()
+  today.setHours(0, 0, 0, 0)
+  const apply = (xs: Task[] | undefined) => {
+    if (!xs) return xs
+    const out = xs.map((t) => {
+      if (!idSet.has(t.id)) return t
+      const banked = t.timerStartedAt
+        ? {
+            timerStartedAt: null,
+            timerAccumulatedSeconds: currentTimerSeconds(t, now),
+          }
+        : {}
+      return { ...t, snooze, ...banked, updatedAt: now }
+    })
+    sortTasks(out, today)
+    return out
+  }
+  qc.setQueryData<Task[]>(taskKeys.top, apply)
+  qc.setQueryData<Task[]>(taskKeys.list, apply)
+  return { prevTop, prevList }
+}
+
 // userId borrowed from a cached task; '' fallback is harmless — onSettled refetch swaps in the real row.
 function makeOptimisticTask(input: TaskInput, userId: string): Task {
   const now = new Date()
@@ -308,7 +344,12 @@ export function useSelection() {
     queryFn: () => api.selection.get(),
     refetchInterval: ACTIVE_SYNC_INTERVAL_MS,
     refetchIntervalInBackground: true,
-    staleTime: 0,
+    // Cross-device convergence rides on the interval poll and the always-on
+    // focus refetch, not on refetch-on-mount. Keeping data fresh for one poll
+    // period stops a mount (e.g. navigating Home right after pressing Start)
+    // from firing a GET that races the not-yet-committed start and overwrites
+    // the optimistic pointer with a stale null.
+    staleTime: ACTIVE_SYNC_INTERVAL_MS,
     refetchOnWindowFocus: 'always',
   })
 }
@@ -515,6 +556,17 @@ export function useUnsnoozeTask() {
   })
 }
 
+export function useSnoozeManyTasks() {
+  const api = useApi()
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: (ids: string[]) => api.tasks.snoozeMany(ids),
+    onMutate: (ids) => optimisticSnoozeMany(qc, ids),
+    onError: (_e, _ids, ctx) => rollback(qc, ctx),
+    onSettled: () => invalidateTaskCaches(qc),
+  })
+}
+
 // Mutate a task's timer state. The id passed in may be a 0-time-frame
 // child; the server resolves it to the effective task (keeper for
 // children, self otherwise) and returns the actual updated row. We use
@@ -613,6 +665,22 @@ export function registerTimerMutationDefaults(qc: QueryClient, api: ApiClient) {
     networkMode: 'offlineFirst',
     mutationFn: (vars: TimerVars) => api.tasks.timer(vars.id, vars.action),
     onMutate: async (vars: TimerVars): Promise<TimerCtx> => {
+      // Starting a timer selects that task server-side (the id acted on, not
+      // the resolved keeper). Mirror it into the selection cache *before this
+      // function's first await*: a caller may navigate Home the instant
+      // mutate() returns, and only the synchronous prefix of onMutate has run
+      // by then. Leaving the pointer stale until after an await lets the Focus
+      // View mount, refetch, and race the not-yet-committed start.
+      const prevSelection = qc.getQueryData<SelectionResult>(selectionKey)
+      if (vars.action.kind === 'start') {
+        qc.setQueryData<SelectionResult>(selectionKey, {
+          selectedTaskId: vars.id,
+        })
+        // Drop a poll already in flight — it predates this start. revert:false
+        // so cancelling can't restore the pointer we just overwrote.
+        void qc.cancelQueries({ queryKey: selectionKey }, { revert: false })
+      }
+
       await qc.cancelQueries({ queryKey: taskKeys.all })
       const issuer = findTaskInCaches(qc, vars.id)
       const targetId = issuer?.timekeeperId ?? vars.id
@@ -635,15 +703,6 @@ export function registerTimerMutationDefaults(qc: QueryClient, api: ApiClient) {
         qc.setQueryData<Task[]>(taskKeys.top, patch)
         qc.setQueryData<Task[]>(taskKeys.list, patch)
       }
-      // Starting a timer selects that task server-side (the id acted on, not
-      // the resolved keeper). Mirror it into the selection cache now so the
-      // Focus View appears without waiting for the poll.
-      const prevSelection = qc.getQueryData<SelectionResult>(selectionKey)
-      if (vars.action.kind === 'start') {
-        qc.setQueryData<SelectionResult>(selectionKey, {
-          selectedTaskId: vars.id,
-        })
-      }
       return {
         prevOne,
         prevTop,
@@ -662,6 +721,17 @@ export function registerTimerMutationDefaults(qc: QueryClient, api: ApiClient) {
         xs?.map((t) => (t.id === server.id ? server : t))
       qc.setQueryData<Task[]>(taskKeys.top, patch)
       qc.setQueryData<Task[]>(taskKeys.list, patch)
+
+      // The start has now actually committed the pointer server-side. Re-assert
+      // it, cancelling any selection fetch still in flight — a GET issued
+      // before the commit would otherwise land afterwards carrying the old
+      // null pointer and knock the Focus View out from under the user.
+      if (vars.action.kind === 'start') {
+        await qc.cancelQueries({ queryKey: selectionKey }, { revert: false })
+        qc.setQueryData<SelectionResult>(selectionKey, {
+          selectedTaskId: vars.id,
+        })
+      }
 
       // Pausing a fixed-time-frame task once its timer has reached the target
       // is the "I'm done" signal — auto-complete it. Guard on wasRunning so a

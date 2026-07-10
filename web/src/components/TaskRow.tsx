@@ -11,6 +11,8 @@ export type RowMenuItem = {
   label: string
   onClick: () => void
   danger?: boolean
+  disabled?: boolean
+  title?: string
 }
 
 // The row's overflow menu (⋯) — holds the secondary actions (Edit, Delete) so
@@ -66,12 +68,14 @@ export const RowMenu = ({ items }: { items: Array<RowMenuItem> }) => {
               key={item.label}
               type="button"
               role="menuitem"
+              disabled={item.disabled}
+              title={item.title}
               onClick={() => {
                 setOpen(false)
                 item.onClick()
               }}
               className={
-                'block w-full px-3 py-2 text-left font-mono text-xs transition-colors hover:bg-zinc-900 ' +
+                'block w-full px-3 py-2 text-left font-mono text-xs transition-colors hover:bg-zinc-900 disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:bg-transparent ' +
                 (item.danger
                   ? 'text-rose-400 hover:text-rose-300'
                   : 'text-zinc-300 hover:text-zinc-100')
