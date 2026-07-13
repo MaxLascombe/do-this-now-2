@@ -7,7 +7,7 @@ import {
 } from '@dtn/shared/queries'
 import { taskToInput } from '@dtn/shared/task-input'
 import { Stack, useLocalSearchParams, useRouter } from 'expo-router'
-import { Alert, Pressable, ScrollView, Text, View } from 'react-native'
+import { Alert, ScrollView, View } from 'react-native'
 
 import { ErrorState } from '../../../components/ErrorState'
 import { Loading } from '../../../components/Loading'
@@ -57,24 +57,6 @@ export default function EditTask() {
   const task = taskQuery.data
   const dueDate = newSafeDate(task.due)
 
-  const onDuplicate = () => {
-    if (createMutation.isPending) return
-    const input = taskToInput(task)
-    createMutation.mutate(
-      {
-        ...input,
-        title: `${task.title} (copy)`,
-        // A fresh copy starts un-done and un-snoozed, not mid-progress.
-        subtasks: input.subtasks.map((s) => ({
-          ...s,
-          done: false,
-          snooze: undefined,
-        })),
-      },
-      { onSuccess: () => router.back() },
-    )
-  }
-
   const onDelete = () => {
     Alert.alert('Delete task', `Delete '${task.title}'?`, [
       { text: 'Cancel', style: 'cancel' },
@@ -104,24 +86,6 @@ export default function EditTask() {
       <Stack.Screen
         options={{
           title: `Edit: ${task.title}`,
-          headerRight: () => (
-            <Pressable
-              onPress={onDuplicate}
-              accessibilityRole="button"
-              accessibilityLabel="Duplicate task"
-              hitSlop={8}
-            >
-              <Text
-                style={{
-                  fontFamily: 'JetBrainsMono_400Regular',
-                  fontSize: 14,
-                  color: '#34d399',
-                }}
-              >
-                ⧉ Copy
-              </Text>
-            </Pressable>
-          ),
         }}
       />
       {timerTask && (

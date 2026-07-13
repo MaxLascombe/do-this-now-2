@@ -71,28 +71,6 @@ function TaskDetail() {
       action: { kind: timerTask?.timerStartedAt ? 'pause' : 'start' },
     })
 
-  const reschedule = (due: string) => {
-    if (!task) return
-    updateTask.mutate({ id, input: { ...taskToInput(task), due } })
-  }
-
-  // Clone the task's config as a fresh task and jump to it. Timer state,
-  // completion history, and subtask `done` flags don't carry over —
-  // taskToInput keeps only the user-authored fields.
-  const duplicateAction = async () => {
-    if (!task) return
-    const copy = await createTask.mutateAsync({
-      ...taskToInput(task),
-      title: `${task.title} (copy)`,
-      subtasks: task.subtasks.map((s) => ({
-        ...s,
-        done: false,
-        snooze: undefined,
-      })),
-    })
-    router.navigate({ to: '/tasks/$id', params: { id: copy.id } })
-  }
-
   const toggleSubtask = (index: number) => {
     if (!task) return
     const subtasks = task.subtasks.map((s, i) =>
@@ -253,22 +231,6 @@ function TaskDetail() {
     task.repeatUnit,
     task.repeatWeekdays,
   )
-  const rescheduleOptions = [
-    { label: 'Today', due: dateString(now) },
-    {
-      label: 'Tomorrow',
-      due: dateString(
-        new Date(now.getFullYear(), now.getMonth(), now.getDate() + 1),
-      ),
-    },
-    {
-      label: '+1 week',
-      due: dateString(
-        new Date(now.getFullYear(), now.getMonth(), now.getDate() + 7),
-      ),
-    },
-  ]
-
   const upcoming: Date[] = []
   {
     let cursor = task
@@ -355,30 +317,6 @@ function TaskDetail() {
           )}
         </div>
 
-        {task.repeat === 'No Repeat' && (
-          <div className="flex flex-wrap items-center gap-2">
-            <span className="font-mono text-[10px] tracking-[0.3em] text-zinc-500 uppercase">
-              Reschedule
-            </span>
-            {rescheduleOptions.map((o) => (
-              <button
-                key={o.label}
-                type="button"
-                disabled={task.due === o.due || updateTask.isPending}
-                onClick={() => reschedule(o.due)}
-                className={
-                  'rounded-full border px-3 py-1 font-mono text-xs ' +
-                  (task.due === o.due
-                    ? 'border-zinc-100 bg-zinc-50 text-zinc-950'
-                    : 'border-zinc-800 text-zinc-400 hover:border-zinc-600 hover:text-zinc-100 disabled:opacity-50')
-                }
-              >
-                {o.label}
-              </button>
-            ))}
-          </div>
-        )}
-
         {upcoming.length > 0 && (
           <div className="font-mono text-xs text-zinc-500">
             <span className="tracking-[0.2em] text-zinc-600 uppercase">
@@ -462,14 +400,6 @@ function TaskDetail() {
             className="flex items-center gap-2 rounded-full border border-zinc-800 px-4 py-1.5 text-zinc-400 hover:bg-zinc-900 hover:text-zinc-50"
           >
             {copied ? 'Copied' : 'Copy link'}
-          </button>
-          <button
-            type="button"
-            onClick={duplicateAction}
-            disabled={createTask.isPending}
-            className="flex items-center gap-2 rounded-full border border-zinc-800 px-4 py-1.5 text-zinc-400 hover:bg-zinc-900 hover:text-zinc-50 disabled:opacity-40"
-          >
-            {createTask.isPending ? 'Duplicating…' : 'Duplicate'}
           </button>
         </div>
 
