@@ -159,9 +159,12 @@ const TaskRowBase = ({
   })()
 
   return (
+    // Narrow screens stack: the task on one line, its actions on the next —
+    // both still inside the one box. Side-by-side from md up, where there's
+    // room for the buttons without crushing the title.
     <div
       className={
-        'flex w-full items-center gap-2 rounded-2xl border bg-zinc-900/60 pr-3 transition-colors ' +
+        'flex w-full flex-col rounded-2xl border bg-zinc-900/60 transition-colors md:flex-row md:items-center md:gap-2 md:pr-3 ' +
         (selected
           ? 'border-zinc-400 ring-1 ring-zinc-400/60'
           : 'border-zinc-800 hover:border-zinc-700 hover:bg-zinc-900') +
@@ -172,7 +175,7 @@ const TaskRowBase = ({
         type="button"
         onClick={onClick}
         onMouseEnter={onMouseEnter}
-        className="flex min-w-0 flex-1 items-center gap-3 py-3 pl-4 text-left font-mono"
+        className="flex min-w-0 flex-1 items-center gap-3 px-4 py-3 text-left font-mono md:pr-0"
       >
         {rank != null && (
           <span
@@ -247,7 +250,11 @@ const TaskRowBase = ({
           </kbd>
         )}
       </button>
-      {actions}
+      {actions && (
+        <div className="flex shrink-0 items-center gap-2 px-4 pb-3 md:px-0 md:pb-0">
+          {actions}
+        </div>
+      )}
     </div>
   )
 }
