@@ -46,7 +46,7 @@ export function RunningTimerChip() {
         }}
       />
       <Pressable
-        onPress={() => router.push(`/tasks/${running.id}/edit`)}
+        onPress={() => router.replace('/')}
         accessibilityRole="button"
         accessibilityLabel={`Open running timer for ${running.title}`}
         style={{ flexDirection: 'row', alignItems: 'center', gap: 5 }}

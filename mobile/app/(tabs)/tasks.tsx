@@ -7,6 +7,7 @@ import {
   useCreateTask,
   useDeleteTask,
   useSnoozeTask,
+  useTaskTimer,
   useTopTasks,
 } from '@dtn/shared/queries'
 import { sortTasks } from '@dtn/shared/task-sorting'
@@ -87,6 +88,7 @@ export default function TasksList() {
   }
   const deleteMutation = useDeleteTask()
   const snoozeMutation = useSnoozeTask()
+  const timer = useTaskTimer()
 
   const allData = sort === 'CHRON' ? allTasks.data : topTasks.data
   const onComplete = useCallback(
@@ -125,8 +127,11 @@ export default function TasksList() {
     },
     [doneMutation, allData],
   )
+  // Rows show un-opened tasks, so Snooze pushes the whole task out rather than
+  // just its next subtask, which isn't visible here. Subtask-level snoozing
+  // lives in the Focus View.
   const onSnooze = useCallback(
-    (id: string) => snoozeMutation.mutate({ id }),
+    (id: string) => snoozeMutation.mutate({ id, allSubtasks: true }),
     [snoozeMutation],
   )
   const onDelete = useCallback(
@@ -234,17 +239,48 @@ export default function TasksList() {
     [sort, allTasks.data, topTasks.data],
   )
 
+  // Starting a task selects it server-side, so Home flips to its Focus View
+  // and any timer running elsewhere is paused — one task, one timer.
+  const onStart = useCallback(
+    (t: Task) => {
+      timer.mutate({ id: t.id, action: { kind: 'start' } })
+      router.replace('/')
+    },
+    [timer, router],
+  )
+
+  // A bare tap opens the menu rather than committing to the task — the same
+  // rule as web, where the row focuses and an explicit Start commits.
+  const openMenu = useCallback(
+    (t: Task) => {
+      Alert.alert(t.title, undefined, [
+        { text: 'Start', onPress: () => onStart(t) },
+        { text: 'Done', onPress: () => onComplete(t.id) },
+        { text: 'Snooze', onPress: () => onSnooze(t.id) },
+        { text: 'Edit', onPress: () => router.push(`/tasks/${t.id}/edit`) },
+        {
+          text: 'Delete',
+          style: 'destructive',
+          onPress: () => onDelete(t.id, t.title),
+        },
+        { text: 'Cancel', style: 'cancel' },
+      ])
+    },
+    [onStart, onComplete, onSnooze, onDelete, router],
+  )
+
   const renderItem = useCallback(
     ({ item }: { item: Task }) => (
       <SwipeableTaskRow
         task={item}
+        onPress={() => openMenu(item)}
         onComplete={() => onComplete(item.id)}
         onSnooze={() => onSnooze(item.id)}
         onEdit={() => router.push(`/tasks/${item.id}/edit`)}
         onDelete={() => onDelete(item.id, item.title)}
       />
     ),
-    [onComplete, onSnooze, onDelete, router],
+    [openMenu, onComplete, onSnooze, onDelete, router],
   )
 
   const renderSectionHeader = useCallback(

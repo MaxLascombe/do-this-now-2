@@ -1,8 +1,7 @@
-import { useAllTasks } from '@dtn/shared/queries'
 import { useClerk, useUser } from '@clerk/clerk-expo'
 import * as Haptics from 'expo-haptics'
-import { Stack, useRouter } from 'expo-router'
-import { Alert, Pressable, Share, Text, View } from 'react-native'
+import { Stack } from 'expo-router'
+import { Alert, Pressable, Text, View } from 'react-native'
 import { SafeAreaView } from 'react-native-safe-area-context'
 
 import { PageHeading } from '../../components/PageHeading'
@@ -13,24 +12,9 @@ const OVERDUE = '#fb7185'
 export default function Profile() {
   const { signOut } = useClerk()
   const { user } = useUser()
-  const router = useRouter()
   const email = user?.primaryEmailAddress?.emailAddress
   const initial =
     user?.firstName?.[0]?.toUpperCase() ?? email?.[0]?.toUpperCase() ?? '?'
-
-  const tasksQuery = useAllTasks()
-  const onExport = async () => {
-    const tasks = tasksQuery.data ?? []
-    if (tasks.length === 0) {
-      Alert.alert('Nothing to export', 'Add a task first.')
-      return
-    }
-    try {
-      await Share.share({ message: JSON.stringify(tasks, null, 2) })
-    } catch {
-      // user dismissed the share sheet — non-fatal
-    }
-  }
 
   const onSignOut = () => {
     void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning)
@@ -110,91 +94,6 @@ export default function Profile() {
             </Text>
           )}
         </View>
-
-        <Pressable
-          onPress={() => router.push('/calendar')}
-          accessibilityRole="button"
-          accessibilityLabel="Calendar"
-          style={({ pressed }) => ({
-            flexDirection: 'row',
-            alignItems: 'center',
-            gap: 10,
-            paddingVertical: 14,
-            paddingHorizontal: 18,
-            borderRadius: 999,
-            borderWidth: 1,
-            borderColor: '#27272a',
-            backgroundColor: pressed ? 'rgba(24,24,27,0.8)' : 'transparent',
-          })}
-        >
-          <Text style={{ fontSize: 16 }}>🗓</Text>
-          <Text
-            style={{
-              fontFamily: 'JetBrainsMono_400Regular',
-              fontSize: 14,
-              color: '#fafafa',
-            }}
-          >
-            Calendar
-          </Text>
-        </Pressable>
-
-        <Pressable
-          onPress={() => router.push('/tags')}
-          accessibilityRole="button"
-          accessibilityLabel="Tags"
-          style={({ pressed }) => ({
-            flexDirection: 'row',
-            alignItems: 'center',
-            gap: 10,
-            paddingVertical: 14,
-            paddingHorizontal: 18,
-            borderRadius: 999,
-            borderWidth: 1,
-            borderColor: '#27272a',
-            backgroundColor: pressed ? 'rgba(24,24,27,0.8)' : 'transparent',
-          })}
-        >
-          <Text style={{ fontSize: 16 }}>🏷</Text>
-          <Text
-            style={{
-              fontFamily: 'JetBrainsMono_400Regular',
-              fontSize: 14,
-              color: '#fafafa',
-            }}
-          >
-            Tags
-          </Text>
-        </Pressable>
-
-        <Pressable
-          onPress={onExport}
-          accessibilityRole="button"
-          accessibilityLabel="Export your tasks"
-          style={({ pressed }) => ({
-            flexDirection: 'row',
-            alignItems: 'center',
-            justifyContent: 'center',
-            gap: 8,
-            paddingVertical: 14,
-            marginBottom: 12,
-            borderRadius: 999,
-            borderWidth: 1,
-            borderColor: '#27272a',
-            backgroundColor: pressed ? 'rgba(255,255,255,0.05)' : 'transparent',
-          })}
-        >
-          <Text style={{ color: '#d4d4d8', fontSize: 16 }}>⤓</Text>
-          <Text
-            style={{
-              fontFamily: 'JetBrainsMono_400Regular',
-              fontSize: 14,
-              color: '#d4d4d8',
-            }}
-          >
-            Export tasks (JSON)
-          </Text>
-        </Pressable>
 
         <Pressable
           onPress={onSignOut}
