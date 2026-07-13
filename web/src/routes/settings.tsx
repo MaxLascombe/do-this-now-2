@@ -1,8 +1,7 @@
 import { useClerk, useUser } from '@clerk/tanstack-react-start'
-import { useAllTasks, useCreateTask } from '@dtn/shared/queries'
-import { taskInputSchema } from '@dtn/shared/task-input'
+import { useAllTasks } from '@dtn/shared/queries'
 import { createFileRoute, useNavigate } from '@tanstack/react-router'
-import { useRef, useState } from 'react'
+import { useState } from 'react'
 
 import { MobileChrome } from '../components/MobileChrome'
 import { PageHeading } from '../components/PageHeading'
@@ -48,15 +47,6 @@ function Settings() {
     URL.revokeObjectURL(url)
   }
 
-  const onExport = () => {
-    const tasks = tasksQuery.data ?? []
-    if (tasks.length === 0) return
-    download(
-      'do-this-now-tasks.json',
-      new Blob([JSON.stringify(tasks, null, 2)], { type: 'application/json' }),
-    )
-  }
-
   const onExportCsv = () => {
     const tasks = tasksQuery.data ?? []
     if (tasks.length === 0) return
@@ -97,61 +87,6 @@ function Settings() {
     )
   }
 
-  const createTask = useCreateTask()
-  const fileRef = useRef<HTMLInputElement>(null)
-  const [importMsg, setImportMsg] = useState<string | null>(null)
-  const [importing, setImporting] = useState(false)
-
-  // Accepts both the raw-task export above and any TaskInput-shaped JSON —
-  // taskInputSchema strips server-only fields (id/userId/timers) and
-  // validates the rest. Bad entries (and ones the server rejects) are
-  // skipped, not fatal.
-  const onImportFile = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0]
-    e.target.value = ''
-    if (!file) return
-    setImportMsg(null)
-
-    let raw: unknown
-    try {
-      raw = JSON.parse(await file.text())
-    } catch {
-      setImportMsg("Couldn't read that file — is it valid JSON?")
-      return
-    }
-    if (!Array.isArray(raw)) {
-      setImportMsg("That file isn't a task list.")
-      return
-    }
-
-    setImporting(true)
-    try {
-      let imported = 0
-      let skipped = 0
-      for (const entry of raw) {
-        const parsed = taskInputSchema.safeParse(entry)
-        if (!parsed.success) {
-          skipped++
-          continue
-        }
-        try {
-          // Drop the timekeeper link — the exported UUID won't resolve in
-          // this account and would otherwise abort the whole import.
-          await createTask.mutateAsync({ ...parsed.data, timekeeperId: null })
-          imported++
-        } catch {
-          skipped++
-        }
-      }
-      setImportMsg(
-        `Imported ${imported} task${imported === 1 ? '' : 's'}` +
-          (skipped ? `, skipped ${skipped}.` : '.'),
-      )
-    } finally {
-      setImporting(false)
-    }
-  }
-
   const taskCount = tasksQuery.data?.length ?? 0
 
   return (
@@ -185,16 +120,6 @@ function Settings() {
 
           <button
             type="button"
-            onClick={onExport}
-            disabled={taskCount === 0}
-            className="flex items-center justify-center gap-2 rounded-full border border-zinc-800 px-4 py-3 font-mono text-sm text-zinc-300 transition-colors hover:bg-zinc-900 disabled:opacity-40 disabled:hover:bg-transparent"
-          >
-            <span aria-hidden="true">⤓</span>
-            Export tasks (JSON)
-          </button>
-
-          <button
-            type="button"
             onClick={onExportCsv}
             disabled={taskCount === 0}
             className="flex items-center justify-center gap-2 rounded-full border border-zinc-800 px-4 py-3 font-mono text-sm text-zinc-300 transition-colors hover:bg-zinc-900 disabled:opacity-40 disabled:hover:bg-transparent"
@@ -202,31 +127,6 @@ function Settings() {
             <span aria-hidden="true">⤓</span>
             Export tasks (CSV)
           </button>
-
-          <input
-            ref={fileRef}
-            type="file"
-            accept="application/json,.json"
-            onChange={onImportFile}
-            className="hidden"
-          />
-          <button
-            type="button"
-            onClick={() => fileRef.current?.click()}
-            disabled={importing}
-            className="flex items-center justify-center gap-2 rounded-full border border-zinc-800 px-4 py-3 font-mono text-sm text-zinc-300 transition-colors hover:bg-zinc-900 disabled:opacity-40 disabled:hover:bg-transparent"
-          >
-            <span aria-hidden="true">⤒</span>
-            {importing ? 'Importing…' : 'Import tasks (JSON)'}
-          </button>
-          {importMsg && (
-            <p
-              role="status"
-              className="-mt-3 text-center font-mono text-xs text-zinc-500"
-            >
-              {importMsg}
-            </p>
-          )}
 
           <button
             type="button"
