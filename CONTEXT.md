@@ -21,7 +21,7 @@ A Child is a zero-timeframe task whose time is banked onto another task — its 
 _Avoid_: timekeeper (the column name), parent, subtask (a Child is a full task, not a subtask)
 
 **Top Tasks**:
-The user's incomplete, non-snoozed tasks in ranked (priority) order. When no task is Selected, the Home page shows the top three as a decision surface — tapping one selects it.
+The user's incomplete, non-snoozed tasks in ranked (priority) order. When no task is Selected, the Home page shows the top three as a decision surface. Choosing one is deliberate: tapping a row only focuses it; an explicit "Start" commits, selecting the task and starting its timer. Done and Snooze act on a row without committing to it.
 _Avoid_: up next, the list
 
 **Subtask**:
