@@ -1,4 +1,5 @@
 import { formatDueLabel, formatRepeat } from '@dtn/shared/format'
+import { dateString } from '@dtn/shared/helpers'
 import {
   useCompleteTask,
   useCreateTask,
@@ -320,6 +321,36 @@ function Home() {
     })
   }
 
+  // Move the Selected Task's due date (Today / Tomorrow / +1 week). Ported
+  // from the retiring detail page so a task stays fully actionable from the
+  // Focus View.
+  const rescheduleFocus = (due: string, label: string) => {
+    if (!focusTask) return
+    updateTask.mutate({
+      id: focusTask.id,
+      input: { ...taskToInput(focusTask), due },
+    })
+    toast({ message: `Rescheduled to ${label}` })
+  }
+
+  // Clone the Selected Task's config as a fresh task. Timer state, history and
+  // subtask done-flags don't carry over — taskToInput keeps only the
+  // user-authored fields. Stays on the current task rather than jumping.
+  const duplicateFocus = async () => {
+    if (!focusTask) return
+    const title = focusTask.title
+    await createTask.mutateAsync({
+      ...taskToInput(focusTask),
+      title: `${title} (copy)`,
+      subtasks: focusTask.subtasks.map((s) => ({
+        ...s,
+        done: false,
+        snooze: undefined,
+      })),
+    })
+    toast({ message: `Duplicated '${title}'` })
+  }
+
   // Return: step off the Selected Task (pauses its timer, clears the pointer).
   const returnAction = () => {
     if (!focusTask) return
@@ -369,6 +400,7 @@ function Home() {
       shift: true,
     },
     { key: 'e', description: 'Edit task', action: goEdit },
+    { key: 'c', description: 'Duplicate task', action: () => void duplicateFocus() },
     {
       key: 'p',
       description: timerTask?.timerStartedAt ? 'Pause timer' : 'Start timer',
@@ -461,6 +493,8 @@ function Home() {
         <Hero
           task={focusTask}
           onReturn={returnAction}
+          onReschedule={rescheduleFocus}
+          onDuplicate={() => void duplicateFocus()}
           onComplete={completeTaskAction}
           onSnooze={snoozeTaskAction}
           onSnoozeSubtasks={snoozeAllSubtasksAction}
@@ -572,8 +606,9 @@ function Home() {
                 ? [
                     ['d', 'Done'],
                     ['s', 'Snooze'],
-                    ['e', 'Edit'],
                     ['p', 'Timer'],
+                    ['e', 'Edit'],
+                    ['c', 'Duplicate'],
                     ['Esc', 'Return'],
                     ['⌫', 'Delete'],
                   ]
@@ -599,6 +634,8 @@ function Home() {
 function Hero({
   task,
   onReturn,
+  onReschedule,
+  onDuplicate,
   onComplete,
   onSnooze,
   onSnoozeSubtasks,
@@ -608,6 +645,8 @@ function Hero({
 }: {
   task: Task
   onReturn: () => void
+  onReschedule: (due: string, label: string) => void
+  onDuplicate: () => void
   onComplete: () => void
   onSnooze: () => void
   onSnoozeSubtasks: () => void
@@ -615,6 +654,23 @@ function Hero({
   onEdit: () => void
   onDelete: () => void
 }) {
+  // Quick due-date jumps, ported from the detail page.
+  const today = new Date()
+  const rescheduleItems = [
+    { label: 'today', due: dateString(today) },
+    {
+      label: 'tomorrow',
+      due: dateString(
+        new Date(today.getFullYear(), today.getMonth(), today.getDate() + 1),
+      ),
+    },
+    {
+      label: '+1 week',
+      due: dateString(
+        new Date(today.getFullYear(), today.getMonth(), today.getDate() + 7),
+      ),
+    },
+  ]
   const nextSub =
     task.subtasks.length > 0
       ? findNextActionableSubtask(task.subtasks, new Date())
@@ -720,18 +776,23 @@ function Hero({
         <Kbd variant="on-light">D</Kbd>
       </button>
 
-      <div className="mt-3 grid w-full max-w-[320px] grid-cols-3 gap-2 md:mt-4 md:flex md:max-w-none md:w-auto md:items-center md:gap-3">
+      <div className="mt-3 flex w-full max-w-[320px] items-center justify-center gap-2 md:mt-4 md:max-w-none md:w-auto md:gap-3">
         <SecondaryAction k="Esc" label="Return" onClick={onReturn} />
         <SecondaryAction k="S" label="Snooze" onClick={onSnooze} />
-        {task.subtasks.length > 0 && (
-          <SecondaryAction
-            k="⇧S"
-            label="Snooze subtasks"
-            onClick={onSnoozeSubtasks}
-          />
-        )}
-        <SecondaryAction k="E" label="Edit" onClick={onEdit} />
-        <SecondaryAction k="⌫" label="Delete" onClick={onDelete} />
+        <RowMenu
+          items={[
+            ...rescheduleItems.map((r) => ({
+              label: `Reschedule ${r.label}`,
+              onClick: () => onReschedule(r.due, r.label),
+            })),
+            ...(task.subtasks.length > 0
+              ? [{ label: 'Snooze subtasks', onClick: onSnoozeSubtasks }]
+              : []),
+            { label: 'Duplicate', onClick: onDuplicate },
+            { label: 'Edit', onClick: onEdit },
+            { label: 'Delete', onClick: onDelete, danger: true },
+          ]}
+        />
       </div>
 
       <HeroTimer task={task} />
