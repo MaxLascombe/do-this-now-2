@@ -45,7 +45,7 @@ export function ToastProvider({ children }: { children: ReactNode }) {
           pointerEvents="box-none"
           style={{
             position: 'absolute',
-            bottom: 48,
+            bottom: 96,
             left: 0,
             right: 0,
             alignItems: 'center',

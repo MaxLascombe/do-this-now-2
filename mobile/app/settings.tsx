@@ -4,12 +4,12 @@ import { Stack } from 'expo-router'
 import { Alert, Pressable, Text, View } from 'react-native'
 import { SafeAreaView } from 'react-native-safe-area-context'
 
-import { PageHeading } from '../../components/PageHeading'
-import { TopProgress } from '../../components/TopProgress'
+import { PageHeading } from '../components/PageHeading'
+import { TopProgress } from '../components/TopProgress'
 
 const OVERDUE = '#fb7185'
 
-export default function Profile() {
+export default function Settings() {
   const { signOut } = useClerk()
   const { user } = useUser()
   const email = user?.primaryEmailAddress?.emailAddress
@@ -33,9 +33,9 @@ export default function Profile() {
       style={{ flex: 1, backgroundColor: '#0a0a0a' }}
       edges={['top']}
     >
-      <Stack.Screen options={{ headerShown: false }} />
+      <Stack.Screen options={{ headerShown: true, title: 'Settings' }} />
       <TopProgress />
-      <PageHeading eyebrow="account">Profile</PageHeading>
+      <PageHeading eyebrow="account">Settings</PageHeading>
       <View
         style={{
           flex: 1,
