@@ -337,7 +337,9 @@ function Home() {
   // subtask done-flags don't carry over — taskToInput keeps only the
   // user-authored fields. Stays on the current task rather than jumping.
   const duplicateFocus = async () => {
-    if (!focusTask) return
+    // Guard the keyboard path: a fast double-press of `c` would otherwise
+    // fire two creates before the first settles, making two copies.
+    if (!focusTask || createTask.isPending) return
     const title = focusTask.title
     await createTask.mutateAsync({
       ...taskToInput(focusTask),
@@ -495,6 +497,7 @@ function Home() {
           onReturn={returnAction}
           onReschedule={rescheduleFocus}
           onDuplicate={() => void duplicateFocus()}
+          duplicating={createTask.isPending}
           onComplete={completeTaskAction}
           onSnooze={snoozeTaskAction}
           onSnoozeSubtasks={snoozeAllSubtasksAction}
@@ -636,6 +639,7 @@ function Hero({
   onReturn,
   onReschedule,
   onDuplicate,
+  duplicating,
   onComplete,
   onSnooze,
   onSnoozeSubtasks,
@@ -647,6 +651,7 @@ function Hero({
   onReturn: () => void
   onReschedule: (due: string, label: string) => void
   onDuplicate: () => void
+  duplicating: boolean
   onComplete: () => void
   onSnooze: () => void
   onSnoozeSubtasks: () => void
@@ -788,7 +793,11 @@ function Hero({
             ...(task.subtasks.length > 0
               ? [{ label: 'Snooze subtasks', onClick: onSnoozeSubtasks }]
               : []),
-            { label: 'Duplicate', onClick: onDuplicate },
+            {
+              label: duplicating ? 'Duplicating…' : 'Duplicate',
+              onClick: onDuplicate,
+              disabled: duplicating,
+            },
             { label: 'Edit', onClick: onEdit },
             { label: 'Delete', onClick: onDelete, danger: true },
           ]}
