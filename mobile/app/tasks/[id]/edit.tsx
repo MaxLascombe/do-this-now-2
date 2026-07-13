@@ -119,7 +119,6 @@ export default function EditTask() {
           timekeeperId: task.timekeeperId,
           timeframeType: task.timeframeType,
           subtasks: task.subtasks,
-          notes: task.notes,
           tags: task.tags,
         }}
         taskId={id}

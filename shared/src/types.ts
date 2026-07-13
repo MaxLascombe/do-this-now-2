@@ -55,7 +55,6 @@ export type Task = {
   // 14. Drives the EMA bootstrap: <14 = true running average, ≥14 = EMA.
   measurementCount: number
   snooze: string | null
-  notes: string | null
   tags: string[]
   subtasks: SubTask[]
   createdAt: Date

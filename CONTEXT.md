@@ -25,5 +25,5 @@ The user's incomplete, non-snoozed tasks in ranked (priority) order. When no tas
 _Avoid_: up next, the list
 
 **Subtask**:
-A step within a task. Inspectable without committing via the Tasks-list inline row expansion (which never starts a timer); worked through in the Focus View. There is no freeform notes field on a task — subtasks are the only sub-detail.
+A step within a task. Seen and worked through in the Focus View — the Tasks list shows only a done/total count, never the subtasks themselves. There is no freeform notes field on a task; subtasks are the only sub-detail.
 _Avoid_: step, checklist item, note

@@ -81,7 +81,6 @@ export default function TasksList() {
       timekeeperId: null,
       timeframeType: 'fluid',
       subtasks: [],
-      notes: '',
       tags: [],
     })
     setQuickTitle('')
@@ -170,8 +169,7 @@ export default function TasksList() {
       tasks = tasks.filter(
         (t) =>
           t.title.toLowerCase().includes(q) ||
-          t.tags.some((tag) => tag.toLowerCase().includes(q)) ||
-          (t.notes?.toLowerCase().includes(q) ?? false),
+          t.tags.some((tag) => tag.toLowerCase().includes(q)),
       )
     if (tasks.length === 0) return []
 
@@ -291,13 +289,13 @@ export default function TasksList() {
         <TextInput
           value={query}
           onChangeText={setQuery}
-          placeholder="Search title, #tag, notes…"
+          placeholder="Search title or #tag…"
           placeholderTextColor="#52525b"
           autoCapitalize="none"
           autoCorrect={false}
           clearButtonMode="while-editing"
           returnKeyType="search"
-          accessibilityLabel="Search tasks by title, tag, or notes"
+          accessibilityLabel="Search tasks by title or tag"
           style={{
             borderWidth: 1,
             borderColor: '#27272a',

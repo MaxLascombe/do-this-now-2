@@ -17,7 +17,6 @@ const INPUT_KEYS = [
   'timekeeperId',
   'timeframeType',
   'subtasks',
-  'notes',
   'tags',
 ]
 

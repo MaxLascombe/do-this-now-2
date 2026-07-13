@@ -87,13 +87,6 @@ export const taskInputSchema = z
     timekeeperId: z.string().uuid().nullable().default(null),
     timeframeType: timeframeTypeSchema.default('fixed'),
     subtasks: z.array(subTaskSchema),
-    // Optional freeform notes; blank input normalizes to null.
-    notes: z
-      .string()
-      .max(5000)
-      .nullable()
-      .default(null)
-      .transform((s) => (s && s.trim() ? s : null)),
     // User labels; trim, drop blanks, dedupe (case-insensitive), cap.
     tags: z
       .array(z.string().max(30))
@@ -160,7 +153,6 @@ export function taskToInput(task: Task): TaskInput {
     timekeeperId: task.timekeeperId,
     timeframeType: task.timeframeType,
     subtasks: task.subtasks,
-    notes: task.notes,
     tags: task.tags,
   }
 }

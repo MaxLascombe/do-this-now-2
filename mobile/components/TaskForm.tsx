@@ -65,7 +65,6 @@ type Props = {
     timekeeperId: string | null
     timeframeType: TimeframeType
     subtasks: SubTask[]
-    notes: string | null
     tags: string[]
   }>
   // Required in edit mode so we can exclude this task from its own
@@ -126,7 +125,6 @@ export function TaskForm({
     () => (initial.subtasks ?? []).map((s) => ({ ...s, _key: newKey() })),
   )
   const [hasSubtasks, setHasSubtasks] = useState(subtasks.length > 0)
-  const [notes, setNotes] = useState(initial.notes ?? '')
   const [tags, setTags] = useState<Array<string>>(initial.tags ?? [])
   const [tagDraft, setTagDraft] = useState('')
   const addTag = () => {
@@ -236,7 +234,6 @@ export function TaskForm({
       timekeeperId,
       timeframeType,
       subtasks,
-      notes,
       tags,
     })
     if (!parsed.success) {
@@ -290,31 +287,6 @@ export function TaskForm({
             }}
           />
           {errors.title && <FieldError msg={errors.title} />}
-        </Field>
-
-        <Field label="Notes">
-          <TextInput
-            value={notes}
-            onChangeText={setNotes}
-            placeholder="Context, links, anything to remember…"
-            placeholderTextColor="#3f3f46"
-            multiline
-            style={{
-              fontFamily: 'JetBrainsMono_400Regular',
-              fontSize: 14,
-              lineHeight: 20,
-              color: '#e4e4e7',
-              minHeight: 64,
-              borderWidth: 1,
-              borderColor: '#27272a',
-              borderRadius: 10,
-              backgroundColor: 'rgba(24,24,27,0.4)',
-              paddingHorizontal: 12,
-              paddingVertical: 10,
-              textAlignVertical: 'top',
-            }}
-          />
-          {errors.notes && <FieldError msg={errors.notes} />}
         </Field>
 
         <Field label="Tags">

@@ -35,7 +35,6 @@ import { CountConfirmModal } from '../components/CountConfirmModal'
 import { ErrorState } from '../components/ErrorState'
 import { KeyHints } from '../components/KeyHints'
 import { Loading } from '../components/Loading'
-import { LinkifiedNotes } from '../components/LinkifiedNotes'
 import { MobileChrome } from '../components/MobileChrome'
 import { Skeleton } from '../components/Skeleton'
 import { SubtaskList } from '../components/SubtaskList'
@@ -688,13 +687,6 @@ function Hero({
         {task.timeFrame ? <Chip>{minutesToHours(task.timeFrame)}</Chip> : null}
         {repeatLabel && <Chip>↻ {repeatLabel}</Chip>}
       </div>
-
-      {task.notes && (
-        <LinkifiedNotes
-          text={task.notes}
-          className="mt-5 max-w-md text-center font-mono text-xs whitespace-pre-wrap text-zinc-500 md:text-sm"
-        />
-      )}
 
       <button
         type="button"
