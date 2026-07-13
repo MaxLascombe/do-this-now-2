@@ -38,7 +38,8 @@
           "imageWidth": 140,
           "resizeMode": "contain"
         }
-      ]
+      ],
+      "expo-font"
     ],
     "extra": {
       "router": {},
