@@ -307,7 +307,7 @@ function Home() {
   }
 
   // Tick a subtask of the Selected Task from the Focus View, which is where a
-  // task is worked through now that the detail page is going away.
+  // task is worked through now that the detail page is gone.
   const toggleSubtaskAction = (index: number) => {
     if (!focusTask) return
     const subtasks = focusTask.subtasks.map((s, i) =>

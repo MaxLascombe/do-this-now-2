@@ -117,8 +117,7 @@ export const RowAction = ({
 // A single task as a rectangle: emoji + title + chips on a clickable body,
 // with an optional inline `actions` cluster (buttons) to the right. `rank`
 // prints a leading number (its focus-jump key); `selected` draws the keyboard
-// cursor's ring. Callers that pass no `actions` (calendar, tags) get a plain
-// clickable row.
+// cursor's ring. Callers that pass no `actions` get a plain clickable row.
 const TaskRowBase = ({
   task,
   selected = false,
