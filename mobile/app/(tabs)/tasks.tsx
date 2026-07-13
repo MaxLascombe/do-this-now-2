@@ -9,8 +9,9 @@ import {
   useSnoozeTask,
   useTaskTimer,
   useTopTasks,
+  useUnsnoozeTask,
 } from '@dtn/shared/queries'
-import { sortTasks } from '@dtn/shared/task-sorting'
+import { isSnoozed, sortTasks } from '@dtn/shared/task-sorting'
 import { taskToInput } from '@dtn/shared/task-input'
 import { willAdvanceSubtask } from '@dtn/shared/task-transitions'
 import {
@@ -36,7 +37,7 @@ import { EmptyTasks } from '../../components/EmptyTasks'
 import { ErrorState } from '../../components/ErrorState'
 import { Loading } from '../../components/Loading'
 import { PageHeading } from '../../components/PageHeading'
-import { SwipeableTaskRow } from '../../components/SwipeableTaskRow'
+import { RowAction, RowMenu, TaskRow } from '../../components/TaskRow'
 import { TopProgress } from '../../components/TopProgress'
 import { useToast } from '../../components/ToastProvider'
 import { usePersistedState } from '../../hooks/usePersistedState'
@@ -88,6 +89,7 @@ export default function TasksList() {
   }
   const deleteMutation = useDeleteTask()
   const snoozeMutation = useSnoozeTask()
+  const unsnoozeMutation = useUnsnoozeTask()
   const timer = useTaskTimer()
 
   const allData = sort === 'CHRON' ? allTasks.data : topTasks.data
@@ -131,8 +133,23 @@ export default function TasksList() {
   // just its next subtask, which isn't visible here. Subtask-level snoozing
   // lives in the Focus View.
   const onSnooze = useCallback(
-    (id: string) => snoozeMutation.mutate({ id, allSubtasks: true }),
-    [snoozeMutation],
+    (id: string) =>
+      snoozeMutation.mutate(
+        { id, allSubtasks: true },
+        {
+          onSuccess: () =>
+            toast({
+              message: 'Task snoozed',
+              actionLabel: 'Undo',
+              onAction: () => unsnoozeMutation.mutate(id),
+            }),
+        },
+      ),
+    [snoozeMutation, unsnoozeMutation, toast],
+  )
+  const onWake = useCallback(
+    (id: string) => unsnoozeMutation.mutate(id),
+    [unsnoozeMutation],
   )
   const onDelete = useCallback(
     (id: string, title: string) => {
@@ -249,38 +266,48 @@ export default function TasksList() {
     [timer, router],
   )
 
-  // A bare tap opens the menu rather than committing to the task — the same
-  // rule as web, where the row focuses and an explicit Start commits.
-  const openMenu = useCallback(
-    (t: Task) => {
-      Alert.alert(t.title, undefined, [
-        { text: 'Start', onPress: () => onStart(t) },
-        { text: 'Done', onPress: () => onComplete(t.id) },
-        { text: 'Snooze', onPress: () => onSnooze(t.id) },
-        { text: 'Edit', onPress: () => router.push(`/tasks/${t.id}/edit`) },
-        {
-          text: 'Delete',
-          style: 'destructive',
-          onPress: () => onDelete(t.id, t.title),
-        },
-        { text: 'Cancel', style: 'cancel' },
-      ])
-    },
-    [onStart, onComplete, onSnooze, onDelete, router],
-  )
-
+  // Rows carry their actions inline, exactly as on web: Start commits to the
+  // task, Snooze (or Wake) acts in place, and everything else sits behind ⋯.
   const renderItem = useCallback(
-    ({ item }: { item: Task }) => (
-      <SwipeableTaskRow
-        task={item}
-        onPress={() => openMenu(item)}
-        onComplete={() => onComplete(item.id)}
-        onSnooze={() => onSnooze(item.id)}
-        onEdit={() => router.push(`/tasks/${item.id}/edit`)}
-        onDelete={() => onDelete(item.id, item.title)}
-      />
-    ),
-    [openMenu, onComplete, onSnooze, onDelete, router],
+    ({ item }: { item: Task }) => {
+      const gated = isCompletionGated(item, new Date())
+      return (
+        <View style={{ marginBottom: 6 }}>
+          <TaskRow
+            task={item}
+            actions={
+              <>
+                <RowAction label="Start" primary onPress={() => onStart(item)} />
+                {isSnoozed(item) ? (
+                  <RowAction label="Wake" onPress={() => onWake(item.id)} />
+                ) : (
+                  <RowAction label="Snooze" onPress={() => onSnooze(item.id)} />
+                )}
+                <RowMenu
+                  items={[
+                    {
+                      label: 'Done',
+                      onPress: () => onComplete(item.id),
+                      disabled: gated,
+                    },
+                    {
+                      label: 'Edit',
+                      onPress: () => router.push(`/tasks/${item.id}/edit`),
+                    },
+                    {
+                      label: 'Delete',
+                      onPress: () => onDelete(item.id, item.title),
+                      danger: true,
+                    },
+                  ]}
+                />
+              </>
+            }
+          />
+        </View>
+      )
+    },
+    [onStart, onComplete, onSnooze, onWake, onDelete, router],
   )
 
   const renderSectionHeader = useCallback(

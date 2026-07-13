@@ -1,49 +1,200 @@
-import { type ReactNode } from 'react'
+import { useRef, useState, type ReactNode } from 'react'
 import {
+  Dimensions,
+  Modal,
   Pressable,
+  StyleSheet,
   Text,
   View,
-  type AccessibilityActionEvent,
-  type AccessibilityActionInfo,
   type ViewProps,
 } from 'react-native'
 
 import { formatDueLabel, formatRepeat } from '@dtn/shared/format'
+import { newSafeDate } from '@dtn/shared/helpers'
 import { minutesToHours } from '@dtn/shared/time'
 import { type Task } from '@dtn/shared/types'
+
+import { PulseDot } from './PulseDot'
 
 const ACCENT = '#34d399'
 const OVERDUE = '#fb7185'
 
-type Props = {
-  task: Task
-  selected?: boolean
-  // Show a small completed-state ✓ instead of the chevron (used on /history).
-  completed?: boolean
-  // Strikethrough title (used for history rows).
-  strikethrough?: boolean
-  trailing?: ReactNode
-  onPress?: () => void
-  onLongPress?: () => void
-  containerStyle?: ViewProps['style']
-  accessibilityHint?: string
-  accessibilityActions?: ReadonlyArray<AccessibilityActionInfo>
-  onAccessibilityAction?: (event: AccessibilityActionEvent) => void
+// Mirrors the web TaskRow: a bordered rectangle with the task on one line and
+// its actions on the next — the layout web uses below its `md` breakpoint,
+// which is every phone.
+
+export type RowMenuItem = {
+  label: string
+  onPress: () => void
+  danger?: boolean
+  disabled?: boolean
+}
+
+export function RowAction({
+  label,
+  onPress,
+  disabled,
+  primary,
+}: {
+  label: string
+  onPress: () => void
+  disabled?: boolean
+  primary?: boolean
+}) {
+  return (
+    <Pressable
+      onPress={onPress}
+      disabled={disabled}
+      accessibilityRole="button"
+      accessibilityLabel={label}
+      accessibilityState={{ disabled: !!disabled }}
+      style={({ pressed }) => ({
+        paddingHorizontal: 12,
+        paddingVertical: 6,
+        borderRadius: 999,
+        borderWidth: 1,
+        opacity: disabled ? 0.4 : 1,
+        borderColor: primary ? '#fafafa' : '#27272a',
+        backgroundColor: primary
+          ? pressed
+            ? '#e4e4e7'
+            : '#fafafa'
+          : pressed
+            ? 'rgba(255,255,255,0.06)'
+            : 'transparent',
+      })}
+    >
+      <Text
+        style={{
+          fontFamily: primary
+            ? 'JetBrainsMono_700Bold'
+            : 'JetBrainsMono_400Regular',
+          fontSize: 12,
+          color: primary ? '#0a0a0a' : '#a1a1aa',
+        }}
+      >
+        {label}
+      </Text>
+    </Pressable>
+  )
+}
+
+// The row's overflow menu (⋯). Web renders an absolutely-positioned dropdown;
+// we anchor a transparent modal under the button so it reads the same.
+export function RowMenu({ items }: { items: Array<RowMenuItem> }) {
+  const [open, setOpen] = useState(false)
+  const [anchor, setAnchor] = useState({ top: 0, right: 0 })
+  const btnRef = useRef<View>(null)
+
+  const show = () => {
+    btnRef.current?.measureInWindow((x, y, w, h) => {
+      setAnchor({
+        top: y + h + 4,
+        right: Math.max(8, Dimensions.get('window').width - (x + w)),
+      })
+      setOpen(true)
+    })
+  }
+
+  return (
+    <>
+      <Pressable
+        ref={btnRef}
+        onPress={show}
+        accessibilityRole="button"
+        accessibilityLabel="More actions"
+        style={({ pressed }) => ({
+          paddingHorizontal: 12,
+          paddingVertical: 6,
+          borderRadius: 999,
+          borderWidth: 1,
+          borderColor: open ? '#52525b' : '#27272a',
+          backgroundColor: pressed ? 'rgba(255,255,255,0.06)' : 'transparent',
+        })}
+      >
+        <Text
+          style={{
+            fontFamily: 'JetBrainsMono_400Regular',
+            fontSize: 12,
+            color: '#a1a1aa',
+          }}
+        >
+          ⋯
+        </Text>
+      </Pressable>
+      <Modal
+        visible={open}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setOpen(false)}
+      >
+        <Pressable
+          style={StyleSheet.absoluteFill}
+          onPress={() => setOpen(false)}
+        />
+        <View
+          style={{
+            position: 'absolute',
+            top: anchor.top,
+            right: anchor.right,
+            minWidth: 150,
+            borderRadius: 12,
+            borderWidth: 1,
+            borderColor: '#27272a',
+            backgroundColor: '#09090b',
+            paddingVertical: 4,
+            overflow: 'hidden',
+          }}
+        >
+          {items.map((item) => (
+            <Pressable
+              key={item.label}
+              disabled={item.disabled}
+              onPress={() => {
+                setOpen(false)
+                item.onPress()
+              }}
+              accessibilityRole="menuitem"
+              accessibilityState={{ disabled: !!item.disabled }}
+              style={({ pressed }) => ({
+                paddingHorizontal: 12,
+                paddingVertical: 10,
+                opacity: item.disabled ? 0.4 : 1,
+                backgroundColor: pressed ? '#18181b' : 'transparent',
+              })}
+            >
+              <Text
+                style={{
+                  fontFamily: 'JetBrainsMono_400Regular',
+                  fontSize: 12,
+                  color: item.danger ? OVERDUE : '#d4d4d8',
+                }}
+              >
+                {item.label}
+              </Text>
+            </Pressable>
+          ))}
+        </View>
+      </Modal>
+    </>
+  )
 }
 
 export function TaskRow({
   task,
+  rank,
   selected = false,
-  completed = false,
-  strikethrough = false,
-  trailing,
+  actions,
   onPress,
-  onLongPress,
   containerStyle,
-  accessibilityHint,
-  accessibilityActions,
-  onAccessibilityAction,
-}: Props) {
+}: {
+  task: Task
+  rank?: number
+  selected?: boolean
+  actions?: ReactNode
+  onPress?: () => void
+  containerStyle?: ViewProps['style']
+}) {
   const subtaskCount = task.subtasks?.length ?? 0
   const doneCount = task.subtasks?.filter((s) => s.done).length ?? 0
   const dueLabel = formatDueLabel(task.due, task.dueTime)
@@ -53,21 +204,25 @@ export function TaskRow({
     task.repeatUnit,
     task.repeatWeekdays,
   )
-
-  const titleFont = selected
-    ? 'InstrumentSerif_400Regular_Italic'
-    : 'JetBrainsMono_400Regular'
-  const titleColor = selected ? '#0a0a0a' : '#fafafa'
-  const metaColor = selected ? '#52525b' : '#71717a'
+  const isOverdue = (() => {
+    try {
+      const today = new Date()
+      today.setHours(0, 0, 0, 0)
+      return newSafeDate(task.due).getTime() < today.getTime()
+    } catch {
+      return false
+    }
+  })()
 
   const a11yLabel = [
     task.title,
+    isOverdue ? 'overdue' : null,
     dueLabel,
     task.timeFrame ? minutesToHours(task.timeFrame) : null,
+    repeatLabel ? `repeats ${repeatLabel}` : null,
     subtaskCount > 0
       ? `${doneCount} of ${subtaskCount} ${subtaskCount === 1 ? 'subtask' : 'subtasks'} done`
       : null,
-    repeatLabel ? `repeats ${repeatLabel}` : null,
     task.strictDeadline ? 'strict deadline' : null,
     task.timerStartedAt ? 'timer running' : null,
     task.tags.length ? `tags ${task.tags.join(', ')}` : null,
@@ -75,130 +230,124 @@ export function TaskRow({
     .filter(Boolean)
     .join(', ')
 
-  const Wrapper = onPress || onLongPress ? Pressable : View
-  const wrapperProps =
-    onPress || onLongPress
-      ? {
-          onPress,
-          onLongPress,
-          delayLongPress: 350,
-          accessibilityRole: 'button' as const,
-          accessibilityLabel: a11yLabel,
-          accessibilityState: { selected },
-          accessibilityHint,
-          accessibilityActions,
-          onAccessibilityAction,
-        }
-      : {}
+  const Body = onPress ? Pressable : View
 
   return (
-    <Wrapper
-      {...wrapperProps}
+    <View
       style={[
         {
-          flexDirection: 'row',
-          alignItems: 'center',
-          gap: 12,
-          paddingHorizontal: 16,
-          paddingVertical: 12,
           borderRadius: 16,
           borderWidth: 1,
-          borderColor: selected ? '#f4f4f5' : '#27272a',
-          backgroundColor: selected ? '#fafafa' : 'rgba(24,24,27,0.6)',
+          borderColor: selected ? '#a1a1aa' : '#27272a',
+          backgroundColor: 'rgba(24,24,27,0.6)',
         },
         containerStyle,
       ]}
     >
-      {completed && (
-        <View
-          style={{
-            width: 26,
-            height: 26,
-            borderRadius: 13,
-            borderWidth: 1,
-            borderColor: ACCENT,
-            alignItems: 'center',
-            justifyContent: 'center',
-          }}
-        >
-          <Text style={{ color: ACCENT, fontSize: 14, lineHeight: 14 }}>✓</Text>
+      <Body
+        onPress={onPress}
+        accessibilityRole={onPress ? 'button' : undefined}
+        accessibilityLabel={onPress ? a11yLabel : undefined}
+        style={{
+          flexDirection: 'row',
+          alignItems: 'center',
+          gap: 10,
+          paddingHorizontal: 14,
+          paddingTop: 12,
+          paddingBottom: actions ? 8 : 12,
+        }}
+      >
+        {rank != null && (
+          <Text
+            style={{
+              fontFamily: 'JetBrainsMono_400Regular',
+              fontSize: 13,
+              color: '#52525b',
+              width: 14,
+              textAlign: 'center',
+            }}
+          >
+            {rank}
+          </Text>
+        )}
+        <View>
+          <Text
+            accessibilityElementsHidden
+            importantForAccessibility="no-hide-descendants"
+            style={{ fontSize: 22, lineHeight: 26 }}
+          >
+            {task.emoji}
+          </Text>
+          {task.timerStartedAt && (
+            <View style={{ position: 'absolute', top: -2, right: -4 }}>
+              <PulseDot color={ACCENT} />
+            </View>
+          )}
         </View>
-      )}
-      <View>
-        <Text
-          accessibilityElementsHidden={true}
-          importantForAccessibility="no-hide-descendants"
-          style={{ fontSize: 22, lineHeight: 24 }}
-        >
-          {task.emoji}
-        </Text>
-        {task.timerStartedAt && (
+        <View style={{ flex: 1, minWidth: 0 }}>
+          <Text
+            numberOfLines={1}
+            style={{
+              fontFamily: 'JetBrainsMono_400Regular',
+              fontSize: 17,
+              lineHeight: 21,
+              color: '#f4f4f5',
+            }}
+          >
+            {task.title}
+          </Text>
           <View
             style={{
-              position: 'absolute',
-              top: -2,
-              right: -3,
-              width: 8,
-              height: 8,
-              borderRadius: 4,
-              backgroundColor: ACCENT,
+              marginTop: 3,
+              flexDirection: 'row',
+              flexWrap: 'wrap',
+              alignItems: 'center',
             }}
-          />
-        )}
-      </View>
-      <View style={{ flex: 1, minWidth: 0 }}>
-        <Text
-          numberOfLines={1}
-          style={{
-            fontFamily: titleFont,
-            fontSize: selected ? 22 : 17,
-            lineHeight: selected ? 24 : 21,
-            color: titleColor,
-            textDecorationLine: strikethrough ? 'line-through' : 'none',
-            textDecorationColor: 'rgba(255,255,255,0.25)',
-          }}
-        >
-          {task.title}
-        </Text>
+          >
+            {dueLabel ? (
+              <Meta>
+                {isOverdue ? <Text style={{ color: OVERDUE }}>‼ </Text> : null}
+                {dueLabel}
+              </Meta>
+            ) : null}
+            {task.timeFrame ? <Meta>{minutesToHours(task.timeFrame)}</Meta> : null}
+            {repeatLabel ? <Meta>↻ {repeatLabel}</Meta> : null}
+            {subtaskCount > 0 ? (
+              <Meta>
+                ☐ {doneCount}/{subtaskCount}
+              </Meta>
+            ) : null}
+            {task.strictDeadline ? <Meta color={OVERDUE}>strict</Meta> : null}
+            {task.tags.map((t) => (
+              <Meta key={t}>#{t}</Meta>
+            ))}
+          </View>
+        </View>
+      </Body>
+
+      {actions ? (
         <View
           style={{
-            marginTop: 3,
             flexDirection: 'row',
-            flexWrap: 'wrap',
             alignItems: 'center',
+            gap: 8,
+            paddingHorizontal: 14,
+            paddingBottom: 12,
           }}
         >
-          {dueLabel && <Meta color={metaColor}>{dueLabel}</Meta>}
-          {task.timeFrame ? (
-            <Meta color={metaColor}>{minutesToHours(task.timeFrame)}</Meta>
-          ) : null}
-          {repeatLabel && <Meta color={metaColor}>↻ {repeatLabel}</Meta>}
-          {subtaskCount > 0 && (
-            <Meta color={metaColor}>
-              ☐ {doneCount}/{subtaskCount}
-            </Meta>
-          )}
-          {task.strictDeadline && (
-            <Meta color={selected ? '#9f1239' : OVERDUE}>strict</Meta>
-          )}
-          {task.tags.map((t) => (
-            <Meta key={t} color={metaColor}>
-              #{t}
-            </Meta>
-          ))}
+          {actions}
         </View>
-      </View>
-      {trailing}
-    </Wrapper>
+      ) : null}
+    </View>
   )
 }
 
 function Meta({
   children,
-  color,
+  color = '#71717a',
 }: {
   children: ReactNode
-  color: string
+  color?: string
 }) {
   return (
     <Text

@@ -134,13 +134,6 @@ export default function TabsLayout() {
           tabBarIcon: ({ color }) => <TabIcon glyph="▤" color={color} />,
         }}
       />
-      <Tabs.Screen
-        name="profile"
-        options={{
-          title: 'Profile',
-          tabBarIcon: ({ color }) => <TabIcon glyph="⊙" color={color} />,
-        }}
-      />
     </Tabs>
   )
 }

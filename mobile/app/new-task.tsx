@@ -9,8 +9,8 @@ export default function NewTask() {
   const mutation = useCreateTask()
   const { due, tag } = useLocalSearchParams<{ due?: string; tag?: string }>()
 
-  // Calendar's "add for this day" passes a YYYY-M-D due to pre-fill the date;
-  // the Tags screen passes a tag to pre-fill it on the new task.
+  // Optional pre-fill via route params (?due=YYYY-M-D&tag=…), mirroring the
+  // web new-task route. Nothing links here with params today.
   const initial = (() => {
     const init: { dueYear?: number; dueMonth?: number; dueDay?: number; tags?: string[] } = {}
     if (due) {

@@ -8,6 +8,7 @@ import {
   useCreateTask,
   useDeleteTask,
   useSelection,
+  useSnoozeManyTasks,
   useSnoozeTask,
   useTask,
   useTaskTimer,
@@ -41,6 +42,7 @@ import { SafeAreaView } from 'react-native-safe-area-context'
 import { EmptyTasks } from '../../components/EmptyTasks'
 import { ErrorState } from '../../components/ErrorState'
 import { Loading } from '../../components/Loading'
+import { RowAction, RowMenu, TaskRow } from '../../components/TaskRow'
 import { TimerWidget } from '../../components/TimerWidget'
 import { TopProgress } from '../../components/TopProgress'
 import { useToast } from '../../components/ToastProvider'
@@ -56,8 +58,8 @@ export default function Home() {
   const updateTask = useUpdateTask()
 
   // The authoritative Selected Task turns Home into the single-task Focus
-  // View — the same model as web. Selection is rank-independent, so the task
-  // may not be in the top list; fall back to a direct fetch when it isn't.
+  // View — same as web. Selection is rank-independent, so the task may not be
+  // in the top list; fall back to a direct fetch when it isn't.
   const serverSelectedId = selection.data?.selectedTaskId ?? null
   const fetchedSelected = useTask(serverSelectedId ?? '')
   const focusTask = serverSelectedId
@@ -66,11 +68,13 @@ export default function Home() {
       null)
     : null
 
-  const tasks = (topTasks.data ?? []).filter((t) => !isSnoozed(t)).slice(0, 3)
+  const activeTasks = (topTasks.data ?? []).filter((t) => !isSnoozed(t))
+  const topThree = activeTasks.slice(0, 3)
 
   const doneMutation = useCompleteTask()
   const deleteMutation = useDeleteTask()
   const snoozeMutation = useSnoozeTask()
+  const snoozeManyMutation = useSnoozeManyTasks()
   const unsnoozeMutation = useUnsnoozeTask()
   const createMutation = useCreateTask()
   const toast = useToast()
@@ -91,7 +95,8 @@ export default function Home() {
       { text: 'Cancel', style: 'cancel' },
       {
         text: "Don't count",
-        onPress: () => doneMutation.mutate({ id: t.id, countMeasurement: false }),
+        onPress: () =>
+          doneMutation.mutate({ id: t.id, countMeasurement: false }),
       },
       {
         text: 'Count it',
@@ -116,6 +121,19 @@ export default function Home() {
           }),
       },
     )
+  }
+
+  // "Clear my plate from here down" — snooze this task and every task ranked
+  // after it. Spans the whole ranked list, not just the three visible rows.
+  const snoozeFromHere = (index: number) => {
+    const ids = activeTasks.slice(index).map((t) => t.id)
+    if (ids.length === 0) return
+    snoozeManyMutation.mutate(ids, {
+      onSuccess: (res) =>
+        toast({
+          message: `Snoozed ${res.count} task${res.count === 1 ? '' : 's'}`,
+        }),
+    })
   }
 
   const deleteFor = (t: Task) => {
@@ -148,6 +166,20 @@ export default function Home() {
   // Return: step off the Selected Task (pauses its timer, clears the pointer).
   const returnAction = () => unselectMutation.mutate()
 
+  const snoozeAllSubtasks = (t: Task) => {
+    snoozeMutation.mutate(
+      { id: t.id, allSubtasks: true },
+      {
+        onSuccess: () =>
+          toast({
+            message: 'Subtasks snoozed',
+            actionLabel: 'Undo',
+            onAction: () => unsnoozeMutation.mutate(t.id),
+          }),
+      },
+    )
+  }
+
   const toggleSubtask = (index: number) => {
     if (!focusTask) return
     const subtasks = focusTask.subtasks.map((s, i) =>
@@ -157,39 +189,6 @@ export default function Home() {
       id: focusTask.id,
       input: { ...taskToInput(focusTask), subtasks },
     })
-  }
-
-  // The overflow menu, as a native action sheet.
-  const openMenu = (t: Task, inFocusView: boolean) => {
-    const options: Array<{
-      text: string
-      style?: 'cancel' | 'destructive'
-      onPress?: () => void
-    }> = []
-    if (inFocusView) {
-      const gated = isCompletionGated(t, new Date())
-      if (!gated) options.push({ text: 'Done', onPress: () => completeFor(t) })
-      if (t.subtasks.length > 0) {
-        options.push({
-          text: 'Snooze subtasks',
-          onPress: () => snoozeFor(t, true),
-        })
-      }
-    } else {
-      const gated = isCompletionGated(t, new Date())
-      if (!gated) options.push({ text: 'Done', onPress: () => completeFor(t) })
-    }
-    options.push({
-      text: 'Edit',
-      onPress: () => router.push(`/tasks/${t.id}/edit`),
-    })
-    options.push({
-      text: 'Delete',
-      style: 'destructive',
-      onPress: () => deleteFor(t),
-    })
-    options.push({ text: 'Cancel', style: 'cancel' })
-    Alert.alert(t.title, undefined, options)
   }
 
   const isBusy = topTasks.isPending || deleteMutation.isPending
@@ -202,10 +201,12 @@ export default function Home() {
       <Stack.Screen options={{ headerShown: false }} />
       <TopProgress />
       {isBusy ? (
-        <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center' }}>
+        <View
+          style={{ flex: 1, alignItems: 'center', justifyContent: 'center' }}
+        >
           <Loading />
         </View>
-      ) : !focusTask && tasks.length === 0 ? (
+      ) : !focusTask && topThree.length === 0 ? (
         <View
           style={{
             flex: 1,
@@ -245,7 +246,9 @@ export default function Home() {
               onReturn={returnAction}
               onComplete={() => completeFor(focusTask)}
               onSnooze={() => snoozeFor(focusTask, false)}
-              onMore={() => openMenu(focusTask, true)}
+              onSnoozeSubtasks={() => snoozeAllSubtasks(focusTask)}
+              onEdit={() => router.push(`/tasks/${focusTask.id}/edit`)}
+              onDelete={() => deleteFor(focusTask)}
               onToggleSubtask={toggleSubtask}
             />
           ) : (
@@ -261,19 +264,55 @@ export default function Home() {
                   paddingHorizontal: 4,
                 }}
               >
-                what's next
+                what&apos;s next
               </Text>
               <View style={{ gap: 8 }}>
-                {tasks.map((t, i) => (
-                  <TopTaskRow
-                    key={t.id}
-                    task={t}
-                    rank={i + 1}
-                    onStart={() => startFor(t)}
-                    onSnooze={() => snoozeFor(t, true)}
-                    onMore={() => openMenu(t, false)}
-                  />
-                ))}
+                {topThree.map((t, i) => {
+                  const gated = isCompletionGated(t, new Date())
+                  return (
+                    <TaskRow
+                      key={t.id}
+                      task={t}
+                      rank={i + 1}
+                      actions={
+                        <>
+                          <RowAction
+                            label="Start"
+                            primary
+                            onPress={() => startFor(t)}
+                          />
+                          <RowAction
+                            label="Snooze"
+                            onPress={() => snoozeFor(t, true)}
+                          />
+                          <RowMenu
+                            items={[
+                              {
+                                label: 'Done',
+                                onPress: () => completeFor(t),
+                                disabled: gated,
+                              },
+                              {
+                                label: 'Snooze this and after',
+                                onPress: () => snoozeFromHere(i),
+                              },
+                              {
+                                label: 'Edit',
+                                onPress: () =>
+                                  router.push(`/tasks/${t.id}/edit`),
+                              },
+                              {
+                                label: 'Delete',
+                                onPress: () => deleteFor(t),
+                                danger: true,
+                              },
+                            ]}
+                          />
+                        </>
+                      }
+                    />
+                  )
+                })}
               </View>
             </View>
           )}
@@ -283,166 +322,24 @@ export default function Home() {
   )
 }
 
-// One of the top tasks when nothing is selected. Start commits to it (starts
-// its timer → Focus View); Snooze and the ⋯ menu act on it in place.
-function TopTaskRow({
-  task,
-  rank,
-  onStart,
-  onSnooze,
-  onMore,
-}: {
-  task: Task
-  rank: number
-  onStart: () => void
-  onSnooze: () => void
-  onMore: () => void
-}) {
-  const dueLabel = formatDueLabel(task.due, task.dueTime)
-  const subtaskCount = task.subtasks.length
-  const doneCount = task.subtasks.filter((s) => s.done).length
-
-  return (
-    <View
-      style={{
-        borderWidth: 1,
-        borderColor: '#27272a',
-        backgroundColor: 'rgba(24,24,27,0.6)',
-        borderRadius: 16,
-        paddingHorizontal: 14,
-        paddingVertical: 12,
-        gap: 10,
-      }}
-    >
-      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
-        <Text
-          style={{
-            fontFamily: 'JetBrainsMono_400Regular',
-            fontSize: 13,
-            color: '#52525b',
-            width: 14,
-            textAlign: 'center',
-          }}
-        >
-          {rank}
-        </Text>
-        <Text style={{ fontSize: 24, lineHeight: 30 }}>{task.emoji}</Text>
-        <View style={{ flex: 1, minWidth: 0 }}>
-          <Text
-            numberOfLines={1}
-            style={{
-              fontFamily: 'JetBrainsMono_400Regular',
-              fontSize: 16,
-              color: '#f4f4f5',
-            }}
-          >
-            {task.title}
-          </Text>
-          <View
-            style={{
-              flexDirection: 'row',
-              flexWrap: 'wrap',
-              gap: 10,
-              marginTop: 3,
-            }}
-          >
-            {dueLabel ? <Meta>{dueLabel}</Meta> : null}
-            {task.timeFrame ? (
-              <Meta>{minutesToHours(task.timeFrame)}</Meta>
-            ) : null}
-            {subtaskCount > 0 ? (
-              <Meta>
-                ☐ {doneCount}/{subtaskCount}
-              </Meta>
-            ) : null}
-          </View>
-        </View>
-      </View>
-
-      {/* Actions sit under the text, like the web rows on a narrow screen. */}
-      <View style={{ flexDirection: 'row', gap: 8 }}>
-        <RowButton label="Start" onPress={onStart} primary />
-        <RowButton label="Snooze" onPress={onSnooze} />
-        <RowButton label="⋯" onPress={onMore} accessibilityLabel="More actions" />
-      </View>
-    </View>
-  )
-}
-
-function Meta({ children }: { children: React.ReactNode }) {
-  return (
-    <Text
-      style={{
-        fontFamily: 'JetBrainsMono_400Regular',
-        fontSize: 11,
-        color: '#71717a',
-      }}
-    >
-      {children}
-    </Text>
-  )
-}
-
-function RowButton({
-  label,
-  onPress,
-  primary,
-  accessibilityLabel,
-}: {
-  label: string
-  onPress: () => void
-  primary?: boolean
-  accessibilityLabel?: string
-}) {
-  return (
-    <Pressable
-      onPress={onPress}
-      accessibilityRole="button"
-      accessibilityLabel={accessibilityLabel ?? label}
-      style={({ pressed }) => ({
-        paddingHorizontal: 14,
-        paddingVertical: 7,
-        borderRadius: 999,
-        borderWidth: 1,
-        borderColor: primary ? '#fafafa' : '#27272a',
-        backgroundColor: primary
-          ? pressed
-            ? '#e4e4e7'
-            : '#fafafa'
-          : pressed
-            ? 'rgba(255,255,255,0.06)'
-            : 'transparent',
-      })}
-    >
-      <Text
-        style={{
-          fontFamily: primary
-            ? 'JetBrainsMono_700Bold'
-            : 'JetBrainsMono_400Regular',
-          fontSize: 12,
-          color: primary ? '#0a0a0a' : '#a1a1aa',
-        }}
-      >
-        {label}
-      </Text>
-    </Pressable>
-  )
-}
-
 // The Focus View: the single Selected Task.
 function Hero({
   task,
   onReturn,
   onComplete,
   onSnooze,
-  onMore,
+  onSnoozeSubtasks,
+  onEdit,
+  onDelete,
   onToggleSubtask,
 }: {
   task: Task
   onReturn: () => void
   onComplete: () => void
   onSnooze: () => void
-  onMore: () => void
+  onSnoozeSubtasks: () => void
+  onEdit: () => void
+  onDelete: () => void
   onToggleSubtask: (index: number) => void
 }) {
   const nextSub =
@@ -459,8 +356,8 @@ function Hero({
     task.repeatWeekdays,
   )
 
-  // Tick once a second while the timer is running so the gate state
-  // updates without the user touching the screen.
+  // Tick once a second while the timer runs so the Done gate re-evaluates
+  // without the user touching the screen.
   const [now, setNow] = useState(() => new Date())
   useEffect(() => {
     if (!task.timerStartedAt) return
@@ -488,7 +385,7 @@ function Hero({
         Right now
       </Text>
       <Text
-        accessibilityElementsHidden={true}
+        accessibilityElementsHidden
         importantForAccessibility="no-hide-descendants"
         style={{
           textAlign: 'center',
@@ -581,14 +478,26 @@ function Hero({
             ? `${remainingMin} min to go`
             : advance
               ? 'Subtask Done'
-              : 'Complete'}
+              : 'Done'}
         </Text>
       </Pressable>
 
-      <View style={{ marginTop: 12, flexDirection: 'row', gap: 8 }}>
+      {/* The same five secondary actions web's Focus View shows. */}
+      <View
+        style={{
+          marginTop: 12,
+          flexDirection: 'row',
+          flexWrap: 'wrap',
+          gap: 8,
+        }}
+      >
         <Ghost label="Return" glyph="↩" onPress={onReturn} />
         <Ghost label="Snooze" glyph="◑" onPress={onSnooze} />
-        <Ghost label="More" glyph="⋯" onPress={onMore} />
+        {task.subtasks.length > 0 && (
+          <Ghost label="Snooze subtasks" glyph="◑" onPress={onSnoozeSubtasks} />
+        )}
+        <Ghost label="Edit" glyph="✎" onPress={onEdit} />
+        <Ghost label="Delete" glyph="✕" onPress={onDelete} danger />
       </View>
 
       <View style={{ marginTop: 20 }}>
@@ -612,7 +521,7 @@ function Hero({
             <Pressable
               key={i}
               onPress={() => onToggleSubtask(i)}
-              accessibilityRole="button"
+              accessibilityRole="checkbox"
               accessibilityState={{ checked: s.done }}
               style={({ pressed }) => ({
                 flexDirection: 'row',
@@ -707,11 +616,11 @@ function Ghost({
       accessibilityRole="button"
       accessibilityLabel={label}
       style={({ pressed }) => ({
-        flex: 1,
         flexDirection: 'row',
         alignItems: 'center',
         justifyContent: 'center',
         gap: 6,
+        paddingHorizontal: 14,
         paddingVertical: 10,
         borderWidth: 1,
         borderColor: danger ? 'rgba(251,113,133,0.3)' : '#27272a',

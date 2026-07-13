@@ -112,6 +112,7 @@ export default function RootLayout() {
                   name="tasks/[id]/edit"
                   options={{ presentation: "modal", title: "Edit task" }}
                 />
+                <Stack.Screen name="settings" options={{ title: "Settings" }} />
               </Stack>
               {/* Overlay the sign-in screen on top when signed out. */}
               <SignedOut>
