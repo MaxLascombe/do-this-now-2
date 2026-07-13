@@ -85,8 +85,7 @@ function TasksList() {
       ? arr.filter(
           (t) =>
             t.title.toLowerCase().includes(q) ||
-            t.tags.some((tag) => tag.toLowerCase().includes(q)) ||
-            (t.notes?.toLowerCase().includes(q) ?? false),
+            t.tags.some((tag) => tag.toLowerCase().includes(q)),
         )
       : arr
   }, [sort, data, dataTop, query])
@@ -130,7 +129,6 @@ function TasksList() {
       timekeeperId: null,
       timeframeType: 'fluid',
       subtasks: [],
-      notes: '',
       tags: [],
     })
     setQuickTitle('')
@@ -437,8 +435,8 @@ function TasksList() {
               else e.currentTarget.blur()
             }
           }}
-          placeholder="Search title, #tag, notes…"
-          aria-label="Search tasks by title, tag, or notes"
+          placeholder="Search title or #tag…"
+          aria-label="Search tasks by title or tag"
           className="w-full rounded-full border border-zinc-800 bg-zinc-900/50 px-4 py-2 pr-9 font-mono text-sm text-zinc-100 outline-none placeholder:text-zinc-600 focus:border-zinc-600"
         />
         {query ? (

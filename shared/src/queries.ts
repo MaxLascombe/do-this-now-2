@@ -243,7 +243,6 @@ function makeOptimisticTask(input: TaskInput, userId: string): Task {
     timerAccumulatedSeconds: 0,
     measurementCount: 0,
     snooze: null,
-    notes: input.notes ?? null,
     tags: input.tags ?? [],
     subtasks: input.subtasks,
     createdAt: now,

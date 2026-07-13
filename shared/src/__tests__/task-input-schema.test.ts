@@ -25,31 +25,6 @@ describe('taskInputSchema', () => {
     expect(taskInputSchema.safeParse(base).success).toBe(true)
   })
 
-  describe('notes', () => {
-    it('defaults to null when omitted', () => {
-      const r = taskInputSchema.safeParse(base)
-      expect(r.success && r.data.notes).toBe(null)
-    })
-
-    it('normalizes blank/whitespace notes to null', () => {
-      for (const notes of ['', '   ', '\n\t']) {
-        const r = taskInputSchema.safeParse({ ...base, notes })
-        expect(r.success && r.data.notes).toBe(null)
-      }
-    })
-
-    it('keeps real notes content', () => {
-      const r = taskInputSchema.safeParse({ ...base, notes: 'see the doc' })
-      expect(r.success && r.data.notes).toBe('see the doc')
-    })
-
-    it('rejects notes over the length cap', () => {
-      expect(
-        taskInputSchema.safeParse({ ...base, notes: 'x'.repeat(5001) }).success,
-      ).toBe(false)
-    })
-  })
-
   describe('tags', () => {
     it('defaults to an empty array when omitted', () => {
       const r = taskInputSchema.safeParse(base)

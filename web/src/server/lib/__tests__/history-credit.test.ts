@@ -22,7 +22,6 @@ const baseTask: Task = {
   timerAccumulatedSeconds: 0,
   measurementCount: 0,
   snooze: null,
-  notes: null,
   tags: [],
   subtasks: [],
   createdAt: new Date('2026-01-01T00:00:00Z'),
