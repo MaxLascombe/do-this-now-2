@@ -9,12 +9,10 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
-import { Route as TagsRouteImport } from './routes/tags'
 import { Route as StatsRouteImport } from './routes/stats'
 import { Route as SettingsRouteImport } from './routes/settings'
 import { Route as NewTaskRouteImport } from './routes/new-task'
 import { Route as HistoryRouteImport } from './routes/history'
-import { Route as CalendarRouteImport } from './routes/calendar'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as TasksIndexRouteImport } from './routes/tasks.index'
 import { Route as TasksIdRouteImport } from './routes/tasks.$id'
@@ -34,11 +32,6 @@ import { Route as ApiTasksIdTimerRouteImport } from './routes/api/tasks.$id.time
 import { Route as ApiTasksIdSnoozeRouteImport } from './routes/api/tasks.$id.snooze'
 import { Route as ApiTasksIdCompleteRouteImport } from './routes/api/tasks.$id.complete'
 
-const TagsRoute = TagsRouteImport.update({
-  id: '/tags',
-  path: '/tags',
-  getParentRoute: () => rootRouteImport,
-} as any)
 const StatsRoute = StatsRouteImport.update({
   id: '/stats',
   path: '/stats',
@@ -57,11 +50,6 @@ const NewTaskRoute = NewTaskRouteImport.update({
 const HistoryRoute = HistoryRouteImport.update({
   id: '/history',
   path: '/history',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const CalendarRoute = CalendarRouteImport.update({
-  id: '/calendar',
-  path: '/calendar',
   getParentRoute: () => rootRouteImport,
 } as any)
 const IndexRoute = IndexRouteImport.update({
@@ -157,12 +145,10 @@ const ApiTasksIdCompleteRoute = ApiTasksIdCompleteRouteImport.update({
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
-  '/calendar': typeof CalendarRoute
   '/history': typeof HistoryRoute
   '/new-task': typeof NewTaskRoute
   '/settings': typeof SettingsRoute
   '/stats': typeof StatsRoute
-  '/tags': typeof TagsRoute
   '/api/selection': typeof ApiSelectionRoute
   '/api/stats': typeof ApiStatsRoute
   '/api/tasks': typeof ApiTasksRouteWithChildren
@@ -183,12 +169,10 @@ export interface FileRoutesByFullPath {
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
-  '/calendar': typeof CalendarRoute
   '/history': typeof HistoryRoute
   '/new-task': typeof NewTaskRoute
   '/settings': typeof SettingsRoute
   '/stats': typeof StatsRoute
-  '/tags': typeof TagsRoute
   '/api/selection': typeof ApiSelectionRoute
   '/api/stats': typeof ApiStatsRoute
   '/api/tasks': typeof ApiTasksRouteWithChildren
@@ -209,12 +193,10 @@ export interface FileRoutesByTo {
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
-  '/calendar': typeof CalendarRoute
   '/history': typeof HistoryRoute
   '/new-task': typeof NewTaskRoute
   '/settings': typeof SettingsRoute
   '/stats': typeof StatsRoute
-  '/tags': typeof TagsRoute
   '/api/selection': typeof ApiSelectionRoute
   '/api/stats': typeof ApiStatsRoute
   '/api/tasks': typeof ApiTasksRouteWithChildren
@@ -237,12 +219,10 @@ export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
   fullPaths:
     | '/'
-    | '/calendar'
     | '/history'
     | '/new-task'
     | '/settings'
     | '/stats'
-    | '/tags'
     | '/api/selection'
     | '/api/stats'
     | '/api/tasks'
@@ -263,12 +243,10 @@ export interface FileRouteTypes {
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
-    | '/calendar'
     | '/history'
     | '/new-task'
     | '/settings'
     | '/stats'
-    | '/tags'
     | '/api/selection'
     | '/api/stats'
     | '/api/tasks'
@@ -288,12 +266,10 @@ export interface FileRouteTypes {
   id:
     | '__root__'
     | '/'
-    | '/calendar'
     | '/history'
     | '/new-task'
     | '/settings'
     | '/stats'
-    | '/tags'
     | '/api/selection'
     | '/api/stats'
     | '/api/tasks'
@@ -315,12 +291,10 @@ export interface FileRouteTypes {
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
-  CalendarRoute: typeof CalendarRoute
   HistoryRoute: typeof HistoryRoute
   NewTaskRoute: typeof NewTaskRoute
   SettingsRoute: typeof SettingsRoute
   StatsRoute: typeof StatsRoute
-  TagsRoute: typeof TagsRoute
   ApiSelectionRoute: typeof ApiSelectionRoute
   ApiStatsRoute: typeof ApiStatsRoute
   ApiTasksRoute: typeof ApiTasksRouteWithChildren
@@ -333,13 +307,6 @@ export interface RootRouteChildren {
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
-    '/tags': {
-      id: '/tags'
-      path: '/tags'
-      fullPath: '/tags'
-      preLoaderRoute: typeof TagsRouteImport
-      parentRoute: typeof rootRouteImport
-    }
     '/stats': {
       id: '/stats'
       path: '/stats'
@@ -366,13 +333,6 @@ declare module '@tanstack/react-router' {
       path: '/history'
       fullPath: '/history'
       preLoaderRoute: typeof HistoryRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/calendar': {
-      id: '/calendar'
-      path: '/calendar'
-      fullPath: '/calendar'
-      preLoaderRoute: typeof CalendarRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/': {
@@ -553,12 +513,10 @@ const TasksIdRouteWithChildren =
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
-  CalendarRoute: CalendarRoute,
   HistoryRoute: HistoryRoute,
   NewTaskRoute: NewTaskRoute,
   SettingsRoute: SettingsRoute,
   StatsRoute: StatsRoute,
-  TagsRoute: TagsRoute,
   ApiSelectionRoute: ApiSelectionRoute,
   ApiStatsRoute: ApiStatsRoute,
   ApiTasksRoute: ApiTasksRouteWithChildren,

@@ -27,10 +27,7 @@ const GROUPS: Array<{
   },
   {
     title: 'Anywhere',
-    items: [
-      { keys: ['⌘', 'K'], label: 'Command palette' },
-      { keys: ['?'], label: 'This menu' },
-    ],
+    items: [{ keys: ['?'], label: 'This menu' }],
   },
 ]
 

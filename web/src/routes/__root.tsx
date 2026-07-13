@@ -2,7 +2,6 @@ import { ClerkProvider, Show, SignIn } from '@clerk/tanstack-react-start'
 import { ApiProvider } from '@dtn/shared/api-client'
 import { HeadContent, Scripts, createRootRoute } from '@tanstack/react-router'
 
-import { CommandPalette } from '../components/CommandPalette'
 import { ConfirmProvider } from '../components/ConfirmProvider'
 import { ShortcutsHelp } from '../components/ShortcutsHelp'
 import { ToastProvider } from '../components/ToastProvider'
@@ -68,7 +67,6 @@ function RootDocument({ children }: { children: ReactNode }) {
                 </a>
                 <ConfirmProvider>
                   <ToastProvider>
-                    <CommandPalette />
                     <ShortcutsHelp />
                     {children}
                   </ToastProvider>
