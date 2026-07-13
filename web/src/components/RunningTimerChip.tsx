@@ -14,8 +14,8 @@ const ACCENT = '#34d399'
  * Global timer indicator that lives in the top bar. Shows every
  * currently-running task (usually just one) with its emoji and live
  * elapsed time, plus an inline pause button so the user can stop a
- * forgotten timer from anywhere in the app. Clicking a chip opens that
- * task's detail page where the full widget lives.
+ * forgotten timer from anywhere in the app. Clicking a chip jumps Home,
+ * where the running task is the Selected Task and its Focus View lives.
  */
 export function RunningTimerChip() {
   const tasks = useAllTasks()
@@ -59,8 +59,7 @@ function TimerChip({ task, now }: { task: Task; now: Date }) {
         }}
       />
       <Link
-        to="/tasks/$id"
-        params={{ id: task.id }}
+        to="/"
         className="flex items-center gap-1.5 hover:opacity-80"
         title={`${task.title} — open`}
         aria-label={`Open running timer for ${task.title}`}
