@@ -378,7 +378,11 @@ function TasksList() {
         if (t?.subtasks.length) setExpandedId(t.id)
       },
     },
-    { key: 'left', description: 'Collapse peek', action: () => setExpandedId(null) },
+    {
+      key: 'left',
+      description: 'Collapse peek',
+      action: () => setExpandedId(null),
+    },
     // Number keys jump the focus ring straight to the nth row.
     ...Array.from({ length: 9 }, (_, n) => ({
       key: String(n + 1),
