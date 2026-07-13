@@ -57,6 +57,10 @@ const OVERDUE = '#fb7185'
 function TasksList() {
   const navigate = useNavigate()
   const [selectedTask, setSelectedTask] = useState(0)
+  // The row whose subtasks are peeked open inline. Inspection only — peeking
+  // never starts a timer (that's Start / Enter); a task is worked through in
+  // the Focus View.
+  const [expandedId, setExpandedId] = useState<string | null>(null)
   const [sort, setSort] = usePersistedState<'CHRON' | 'TOP'>(
     'dtn.tasks.sort',
     'CHRON',
@@ -256,6 +260,47 @@ function TasksList() {
     )
   }
 
+  // Clicking a row focuses it and toggles its subtask peek — collapsing any
+  // other. A row with no subtasks just focuses (and collapses the open peek).
+  const onRowClick = (i: number, t: Task) => {
+    setSelectedTask(i)
+    setExpandedId((prev) =>
+      prev === t.id ? null : t.subtasks.length > 0 ? t.id : null,
+    )
+  }
+
+  // A row plus its peeked-open subtasks. Shared by both sort layouts so the
+  // interaction is identical. The peek is read-only — inspection, not work.
+  const renderRow = (t: Task, i: number) => (
+    <div ref={setRef(t.id) as never}>
+      <TaskRow
+        task={t}
+        selected={i === selectedTask}
+        onClick={() => onRowClick(i, t)}
+        onMouseEnter={() => prefetchTask(t.id)}
+        actions={rowActionsFor(t)}
+      />
+      {expandedId === t.id && t.subtasks.length > 0 && (
+        <ul className="mt-1 mb-1 ml-12 flex flex-col gap-1">
+          {t.subtasks.map((s, si) => (
+            <li key={si} className="flex items-center gap-2 font-mono text-xs">
+              <span className={s.done ? 'text-emerald-400' : 'text-zinc-600'}>
+                {s.done ? '☑' : '☐'}
+              </span>
+              <span
+                className={
+                  s.done ? 'text-zinc-500 line-through' : 'text-zinc-300'
+                }
+              >
+                {s.title}
+              </span>
+            </li>
+          ))}
+        </ul>
+      )}
+    </div>
+  )
+
   // Only scroll when the selected row leaves the viewport. The top-bar is
   // ~70px and the bottom KeyHints strip ~50px — we add a little extra padding
   // on each side so a row never feels glued to an edge before triggering.
@@ -325,6 +370,15 @@ function TasksList() {
       description: 'Move focus down',
       action: () => setSelectedTask((t) => Math.min(t + 1, tasks.length - 1)),
     },
+    {
+      key: 'right',
+      description: 'Peek subtasks',
+      action: () => {
+        const t = tasks.at(selectedTask)
+        if (t?.subtasks.length) setExpandedId(t.id)
+      },
+    },
+    { key: 'left', description: 'Collapse peek', action: () => setExpandedId(null) },
     // Number keys jump the focus ring straight to the nth row.
     ...Array.from({ length: 9 }, (_, n) => ({
       key: String(n + 1),
@@ -510,20 +564,9 @@ function TasksList() {
                     </span>
                   </div>
                   <div className="flex flex-col gap-1.5">
-                    {gTasks.map((t) => {
-                      const i = indexOf(t.id)
-                      return (
-                        <div key={t.id} ref={setRef(t.id) as never}>
-                          <TaskRow
-                            task={t}
-                            selected={i === selectedTask}
-                            onClick={() => setSelectedTask(i)}
-                            onMouseEnter={() => prefetchTask(t.id)}
-                            actions={rowActionsFor(t)}
-                          />
-                        </div>
-                      )
-                    })}
+                    {gTasks.map((t) => (
+                      <Fragment key={t.id}>{renderRow(t, indexOf(t.id))}</Fragment>
+                    ))}
                   </div>
                 </div>
               )
@@ -537,15 +580,7 @@ function TasksList() {
                   <Separator label="Due after today" />
                 )}
                 {i === firstSnoozedTask && <Separator label="Snoozed" />}
-                <div ref={setRef(t.id) as never}>
-                  <TaskRow
-                    task={t}
-                    selected={i === selectedTask}
-                    onClick={() => setSelectedTask(i)}
-                    onMouseEnter={() => prefetchTask(t.id)}
-                    actions={rowActionsFor(t)}
-                  />
-                </div>
+                {renderRow(t, i)}
               </Fragment>
             ))}
           </div>
@@ -567,6 +602,7 @@ function TasksList() {
             ['E', 'edit'],
             ['⌫', 'delete'],
             ['↑↓', 'move'],
+            ['→', 'peek'],
             ['O', 'sort'],
             ['+', 'new'],
             ['Esc', 'home'],
