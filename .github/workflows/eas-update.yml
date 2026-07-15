@@ -5,14 +5,12 @@ name: EAS Update
 # the shared package it imports, or the lockfile. Web/server-only pushes don't
 # republish.
 #
-# Native safety: runtimeVersion uses the "fingerprint" policy, so any change to
-# a native input (deps, plugins, app.json native config) yields a new runtime
-# version, and EAS only delivers an update to a build whose runtime matches — a
-# native-divergent update silently can't reach an old build. We surface that by
-# comparing the published fingerprint against mobile/native-build.fingerprint
-# (the fingerprint of the build currently installed on the device — regenerate
-# it with `pnpm --filter mobile fingerprint:save` after every native rebuild +
-# reinstall, and commit it).
+# Native safety: runtimeVersion is a fixed string in app.json, shared by the
+# build and every update — so updates always reach the installed build. The
+# tradeoff is manual: when you change a native input (deps, plugins, native
+# config), bump that string in app.json and rebuild, or an update could land on
+# an incompatible build. (The "fingerprint" policy automated this but wasn't
+# reproducible between EAS's build image and eas-cli, so updates never matched.)
 on:
   push:
     branches: [main]
@@ -66,19 +64,6 @@ jobs:
           # project deps still use pnpm above.
           packager: npm
 
-      # iOS-only: the app is distributed to iPhone only, so the deliverability
-      # check fingerprints iOS. `eas update` itself still computes per-platform
-      # runtimes internally, so the publish is safe regardless — this only
-      # scopes the summary warning. Add Android here if it ever ships.
-      - name: Compute fingerprint
-        id: fp
-        working-directory: mobile
-        run: |
-          HASH=$(eas fingerprint:generate --platform ios --json --non-interactive \
-            | node -e "let s='';process.stdin.on('data',d=>s+=d).on('end',()=>process.stdout.write(JSON.parse(s).hash))")
-          echo "published=$HASH" >> "$GITHUB_OUTPUT"
-          echo "installed=$(cat native-build.fingerprint)" >> "$GITHUB_OUTPUT"
-
       - name: Publish update
         working-directory: mobile
         # Message via env (not inlined) so commit text can't break the shell.
@@ -92,27 +77,3 @@ jobs:
         env:
           UPDATE_MESSAGE: ${{ github.event.head_commit.message }}
         run: eas update --branch preview --environment production --platform ios --message "$UPDATE_MESSAGE" --non-interactive
-
-      - name: Report deliverability
-        run: |
-          PUBLISHED="${{ steps.fp.outputs.published }}"
-          INSTALLED="${{ steps.fp.outputs.installed }}"
-          if [ "$PUBLISHED" = "$INSTALLED" ]; then
-            {
-              echo "### ✅ OTA will reach the installed app"
-              echo
-              echo "Published runtime \`$PUBLISHED\` matches the installed build."
-            } >> "$GITHUB_STEP_SUMMARY"
-          else
-            echo "::warning title=Native change — rebuild required::Published runtime $PUBLISHED != installed build $INSTALLED. This update will NOT reach the app until you rebuild + reinstall and run 'pnpm --filter mobile fingerprint:save'."
-            {
-              echo "### ⚠️ Native change — rebuild required"
-              echo
-              echo "Published runtime \`$PUBLISHED\` ≠ installed build \`$INSTALLED\`."
-              echo
-              echo "This update was published, but **won't reach the installed app** until you rebuild the native app, reinstall it, and update the marker:"
-              echo '```'
-              echo "pnpm --filter mobile fingerprint:save  # then commit native-build.fingerprint"
-              echo '```'
-            } >> "$GITHUB_STEP_SUMMARY"
-          fi
