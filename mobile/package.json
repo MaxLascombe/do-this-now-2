@@ -6,7 +6,9 @@
     "start": "expo start",
     "android": "expo start --android",
     "ios": "expo start --ios",
-    "web": "expo start --web"
+    "web": "expo start --web",
+    "typecheck": "tsc --noEmit",
+    "fingerprint:save": "npx eas-cli fingerprint:generate --platform ios --json --non-interactive | node -e \"let s='';process.stdin.on('data',d=>s+=d).on('end',()=>process.stdout.write(JSON.parse(s).hash+'\\n'))\" > native-build.fingerprint"
   },
   "dependencies": {
     "@clerk/clerk-expo": "^2.19.31",
