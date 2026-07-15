@@ -59,6 +59,10 @@ jobs:
           # project deps still use pnpm above.
           packager: npm
 
+      # iOS-only: the app is distributed to iPhone only, so the deliverability
+      # check fingerprints iOS. `eas update` itself still computes per-platform
+      # runtimes internally, so the publish is safe regardless — this only
+      # scopes the summary warning. Add Android here if it ever ships.
       - name: Compute fingerprint
         id: fp
         working-directory: mobile
