@@ -80,9 +80,11 @@ jobs:
         # from the EAS "production" environment and inlines them into the bundle
         # (the same env our eas.json build profiles use) — without them the OTA
         # would ship a build with an undefined Clerk key and refuse to start.
+        # `--platform ios`: the only target we build; the default (all) also
+        # exports web, which this native app has no react-native-web for.
         env:
           UPDATE_MESSAGE: ${{ github.event.head_commit.message }}
-        run: eas update --branch preview --environment production --message "$UPDATE_MESSAGE" --non-interactive
+        run: eas update --branch preview --environment production --platform ios --message "$UPDATE_MESSAGE" --non-interactive
 
       - name: Report deliverability
         run: |
