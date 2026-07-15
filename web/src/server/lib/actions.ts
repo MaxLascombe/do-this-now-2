@@ -10,7 +10,11 @@ import {
 import { HOUR_MS } from '@dtn/shared/time'
 import { db } from '../../db'
 import { finalizeTodayProgress } from './progress'
-import { setSelectionTx, type Selection } from './selection'
+import {
+  clearSelectionIfTx,
+  setSelectionTx,
+  type Selection,
+} from './selection'
 import { currentTimerSeconds, pauseTimerTx } from './timer'
 import type { Task } from '@dtn/shared/schema'
 
@@ -71,6 +75,12 @@ export async function completeTask(
           ...timerFields,
         })
         .where(and(eq(tasks.userId, userId), eq(tasks.id, task.id)))
+      // Advancing to the next subtask keeps the task in the Focus View —
+      // unless completing this subtask snoozed the whole task away, in which
+      // case it leaves the active list and should be deselected.
+      if (isSnoozed(transition.nextTask)) {
+        await clearSelectionIfTx(tx, userId, task.id, now)
+      }
       return { advanced: false }
     }
 
@@ -117,6 +127,10 @@ export async function completeTask(
         .where(and(eq(tasks.userId, userId), eq(tasks.id, task.id)))
     }
 
+    // A full completion takes the task out of the active list (deleted or
+    // rescheduled to a later occurrence) — drop the Focus View pointer if it
+    // was aimed here.
+    await clearSelectionIfTx(tx, userId, task.id, now)
     return { advanced: true }
   })
 
@@ -185,6 +199,13 @@ export async function snoozeTask(
           ...timerFields,
         })
         .where(and(eq(tasks.userId, userId), eq(tasks.id, task.id)))
+    }
+
+    // When the snooze pushes the whole task out of the active list, it also
+    // leaves the Focus View — clear the pointer if it was aimed here. A lone
+    // subtask snooze that keeps the task active leaves the selection intact.
+    if (isSnoozed(transition.nextTask)) {
+      await clearSelectionIfTx(tx, userId, task.id, now)
     }
 
     return { scope: transition.scope }

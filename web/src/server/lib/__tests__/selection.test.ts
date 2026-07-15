@@ -4,7 +4,7 @@ import { afterAll, beforeEach, describe, expect, it } from 'vitest'
 import { tasks, userState } from '@dtn/shared/schema'
 
 import { db } from '../../../db'
-import { unselect } from '../actions'
+import { completeTask, snoozeTask, unselect } from '../actions'
 import { getSelection } from '../selection'
 import { applyTimerAction } from '../timer'
 
@@ -107,5 +107,43 @@ describe.skipIf(!process.env.DATABASE_URL)('selection (integration)', () => {
     await applyTimerAction(TEST_USER, task.id, { kind: 'start' })
     await db.delete(tasks).where(eq(tasks.id, task.id))
     expect(await getSelection(TEST_USER)).toEqual({ selectedTaskId: null })
+  })
+
+  it('completing the selected task clears the pointer', async () => {
+    // Repeating so the row is rescheduled (not deleted) — this exercises
+    // clearSelectionIfTx directly, not the ON DELETE SET NULL fallback.
+    const task = await makeTask({ repeat: 'Daily' })
+    await applyTimerAction(TEST_USER, task.id, { kind: 'start' })
+    await completeTask(TEST_USER, task.id, 0)
+    const [row] = await db.select().from(tasks).where(eq(tasks.id, task.id))
+    expect(row).toBeDefined() // rescheduled, still exists
+    expect(await getSelection(TEST_USER)).toEqual({ selectedTaskId: null })
+  })
+
+  it('snoozing the selected task clears the pointer', async () => {
+    const task = await makeTask()
+    await applyTimerAction(TEST_USER, task.id, { kind: 'start' })
+    await snoozeTask(TEST_USER, task.id)
+    expect(await getSelection(TEST_USER)).toEqual({ selectedTaskId: null })
+  })
+
+  it('completing a non-selected task leaves the pointer untouched', async () => {
+    const selected = await makeTask({ title: 'Selected' })
+    const other = await makeTask({ title: 'Other' })
+    await applyTimerAction(TEST_USER, selected.id, { kind: 'start' })
+    await completeTask(TEST_USER, other.id, 0)
+    expect(await getSelection(TEST_USER)).toEqual({
+      selectedTaskId: selected.id,
+    })
+  })
+
+  it('snoozing a non-selected task leaves the pointer untouched', async () => {
+    const selected = await makeTask({ title: 'Selected' })
+    const other = await makeTask({ title: 'Other' })
+    await applyTimerAction(TEST_USER, selected.id, { kind: 'start' })
+    await snoozeTask(TEST_USER, other.id)
+    expect(await getSelection(TEST_USER)).toEqual({
+      selectedTaskId: selected.id,
+    })
   })
 })

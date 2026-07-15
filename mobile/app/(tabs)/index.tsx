@@ -2,11 +2,15 @@ import {
   findNextActionableSubtask,
   isSnoozed,
 } from '@dtn/shared/task-sorting'
-import { willAdvanceSubtask } from '@dtn/shared/task-transitions'
+import {
+  snoozeTaskTransition,
+  willAdvanceSubtask,
+} from '@dtn/shared/task-transitions'
 import {
   useCompleteTask,
   useCreateTask,
   useDeleteTask,
+  useExitFocus,
   useSelection,
   useSnoozeManyTasks,
   useSnoozeTask,
@@ -73,6 +77,7 @@ export default function Home() {
   const topThree = activeTasks.slice(0, 3)
 
   const doneMutation = useCompleteTask()
+  const exitFocus = useExitFocus()
   const deleteMutation = useDeleteTask()
   const snoozeMutation = useSnoozeTask()
   const snoozeManyMutation = useSnoozeManyTasks()
@@ -80,28 +85,41 @@ export default function Home() {
   const createMutation = useCreateTask()
   const toast = useToast()
 
+  // True when `t` is the one currently held open in the Focus View — so a
+  // terminal action on it should also step out of that view.
+  const isFocusTask = (t: Task) => !!focusTask && t.id === focusTask.id
+
+  // A full completion takes the task out of the active list; drop the Focus
+  // View pointer up front so the view exits the instant Done fires (the server
+  // clears its own pointer in the same completion transaction).
+  const runComplete = (t: Task, countMeasurement: boolean) => {
+    if (isFocusTask(t)) exitFocus()
+    doneMutation.mutate({ id: t.id, countMeasurement })
+  }
+
   const completeFor = (t: Task) => {
     const now = new Date()
     if (isCompletionGated(t, now)) return
+    // Subtask advance keeps the task in the Focus View so the next subtask can
+    // be worked — don't exit or fire the count/skip confirm.
     if (willAdvanceSubtask(t, now)) {
       doneMutation.mutate({ id: t.id })
       return
     }
     const kind = completionConfirmKind(t, now)
     if (!kind) {
-      doneMutation.mutate({ id: t.id })
+      runComplete(t, true)
       return
     }
     Alert.alert('Count this time?', confirmMessage(t, now, kind), [
       { text: 'Cancel', style: 'cancel' },
       {
         text: "Don't count",
-        onPress: () =>
-          doneMutation.mutate({ id: t.id, countMeasurement: false }),
+        onPress: () => runComplete(t, false),
       },
       {
         text: 'Count it',
-        onPress: () => doneMutation.mutate({ id: t.id, countMeasurement: true }),
+        onPress: () => runComplete(t, true),
       },
     ])
   }
@@ -110,6 +128,13 @@ export default function Home() {
   // snoozing just the next subtask makes no sense when it isn't on screen.
   // The Focus View, where the subtask is visible, keeps the subtask-aware one.
   const snoozeFor = (t: Task, wholeTask: boolean) => {
+    // Snoozing the whole task out of the active list also leaves the Focus
+    // View — mirror the server's pointer-clear so the view exits at once. A
+    // lone subtask snooze that keeps the task active stays in the view.
+    if (isFocusTask(t)) {
+      const { nextTask } = snoozeTaskTransition(t, wholeTask, new Date())
+      if (isSnoozed(nextTask)) exitFocus()
+    }
     snoozeMutation.mutate(
       { id: t.id, allSubtasks: wholeTask },
       {
@@ -168,6 +193,10 @@ export default function Home() {
   const returnAction = () => unselectMutation.mutate()
 
   const snoozeAllSubtasks = (t: Task) => {
+    if (isFocusTask(t)) {
+      const { nextTask } = snoozeTaskTransition(t, true, new Date())
+      if (isSnoozed(nextTask)) exitFocus()
+    }
     snoozeMutation.mutate(
       { id: t.id, allSubtasks: true },
       {

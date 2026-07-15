@@ -353,7 +353,13 @@ export function useSelection() {
   })
 }
 
-type UnselectCtx = { prev?: SelectionResult; completeId?: string }
+type UnselectCtx = {
+  prev?: SelectionResult
+  completeId?: string
+  // Snapshot for rolling back the optimistic auto-complete (row removal +
+  // progress-bar bump) if the unselect itself fails.
+  completeSnap?: OptimisticSnapshot
+}
 
 // Return: pause the Selected Task's timer and clear the pointer. Optimistically
 // empties selection so the UI drops out of the Focus View immediately.
@@ -390,20 +396,44 @@ export function useUnselect() {
           ? timerTask.id
           : undefined
       qc.setQueryData<SelectionResult>(selectionKey, { selectedTaskId: null })
-      return { prev, completeId }
+      // Mirror the manual Done path: optimistically drop the row and bump
+      // today's progress so the bar moves the instant we step off, instead of
+      // lagging a refetch (or, before this, never updating on Return at all).
+      const completeSnap = completeId
+        ? await optimisticComplete(qc, completeId)
+        : undefined
+      return { prev, completeId, completeSnap }
     },
     onError: (_e, _v, ctx) => {
       if (ctx?.prev) qc.setQueryData(selectionKey, ctx.prev)
+      if (ctx?.completeSnap) rollback(qc, ctx.completeSnap)
     },
     onSuccess: async (_res, _v, ctx) => {
       if (ctx?.completeId) await api.tasks.complete(ctx.completeId)
     },
     onSettled: () => {
       qc.invalidateQueries({ queryKey: selectionKey })
-      // The Return also paused (and maybe completed) a task — refresh caches.
-      qc.invalidateQueries({ queryKey: taskKeys.all })
+      // The Return also paused (and maybe completed) a task — refresh caches,
+      // including today's progress so an auto-completed task credits the bar.
+      invalidateTaskCaches(qc)
     },
   })
+}
+
+// Step out of the Focus View without the Return semantics — no timer pause,
+// no auto-complete. Used after a complete/snooze has already taken the task
+// out of the active list (the server clears its own pointer in the same
+// transaction); this just drops the client pointer so the view exits the
+// instant the action fires, instead of waiting on the ~3s selection poll.
+export function useExitFocus() {
+  const qc = useQueryClient()
+  return () => {
+    qc.setQueryData<SelectionResult>(selectionKey, { selectedTaskId: null })
+    // Cancel a poll already in flight (it predates the server clearing the
+    // pointer) so it can't restore the stale selection. revert:false keeps
+    // the cancel from putting the old pointer back.
+    void qc.cancelQueries({ queryKey: selectionKey }, { revert: false })
+  }
 }
 
 export function useTopTasks(opts: EnabledOpts = {}) {
@@ -740,6 +770,22 @@ export function registerTimerMutationDefaults(qc: QueryClient, api: ApiClient) {
         ctx?.wasRunning &&
         shouldCompleteOnPause(server, new Date())
       ) {
+        // Mirror the manual Done path: drop the row and bump today's progress
+        // optimistically, so the bar moves the instant the timer auto-completes
+        // rather than lagging the invalidate refetch below.
+        await optimisticComplete(qc, server.id)
+        // The task just left the active list, so it also leaves the Focus View
+        // — clear the pointer if it was aimed here (the server clears its own
+        // in the completion below). Without this the view lingers on the
+        // finished task until the ~3s selection poll catches up.
+        const selected =
+          qc.getQueryData<SelectionResult>(selectionKey)?.selectedTaskId
+        if (selected === vars.id || selected === server.id) {
+          qc.setQueryData<SelectionResult>(selectionKey, {
+            selectedTaskId: null,
+          })
+          void qc.cancelQueries({ queryKey: selectionKey }, { revert: false })
+        }
         try {
           await api.tasks.complete(server.id)
         } finally {
