@@ -49,7 +49,7 @@
     },
     "owner": "maxlascombe1",
     "runtimeVersion": {
-      "policy": "appVersion"
+      "policy": "fingerprint"
     },
     "updates": {
       "url": "https://u.expo.dev/e1ab2955-fa97-4a46-83c5-23b3b92339f1"

@@ -1,0 +1,105 @@
+name: EAS Update
+
+# Ship JS/asset changes to the installed app over-the-air on every push to main.
+# Only fires when something the mobile bundle contains changes — mobile itself,
+# the shared package it imports, or the lockfile. Web/server-only pushes don't
+# republish.
+#
+# Native safety: runtimeVersion uses the "fingerprint" policy, so any change to
+# a native input (deps, plugins, app.json native config) yields a new runtime
+# version, and EAS only delivers an update to a build whose runtime matches — a
+# native-divergent update silently can't reach an old build. We surface that by
+# comparing the published fingerprint against mobile/native-build.fingerprint
+# (the fingerprint of the build currently installed on the device — regenerate
+# it with `pnpm --filter mobile fingerprint:save` after every native rebuild +
+# reinstall, and commit it).
+on:
+  push:
+    branches: [main]
+    paths:
+      - "mobile/**"
+      - "shared/**"
+      - "pnpm-lock.yaml"
+      - ".github/workflows/eas-update.yml"
+
+# One publish at a time; newer pushes supersede in-flight ones.
+concurrency:
+  group: eas-update-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  update:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Typecheck mobile
+        run: pnpm --filter mobile typecheck
+
+      - name: Setup EAS
+        uses: expo/expo-github-action@v8
+        with:
+          eas-version: latest
+          token: ${{ secrets.EXPO_TOKEN }}
+          # Install the global eas-cli with npm, not pnpm: pnpm exits non-zero
+          # on eas-cli's ignored build scripts. Only affects the CLI install;
+          # project deps still use pnpm above.
+          packager: npm
+
+      - name: Compute fingerprint
+        id: fp
+        working-directory: mobile
+        run: |
+          HASH=$(eas fingerprint:generate --platform ios --json --non-interactive \
+            | node -e "let s='';process.stdin.on('data',d=>s+=d).on('end',()=>process.stdout.write(JSON.parse(s).hash))")
+          echo "published=$HASH" >> "$GITHUB_OUTPUT"
+          echo "installed=$(cat native-build.fingerprint)" >> "$GITHUB_OUTPUT"
+
+      - name: Publish update
+        working-directory: mobile
+        # Message via env (not inlined) so commit text can't break the shell.
+        # Branch "preview" is the channel the internally-distributed build
+        # subscribes to. `--environment production` loads the EXPO_PUBLIC_* vars
+        # from the EAS "production" environment and inlines them into the bundle
+        # (the same env our eas.json build profiles use) — without them the OTA
+        # would ship a build with an undefined Clerk key and refuse to start.
+        env:
+          UPDATE_MESSAGE: ${{ github.event.head_commit.message }}
+        run: eas update --branch preview --environment production --message "$UPDATE_MESSAGE" --non-interactive
+
+      - name: Report deliverability
+        run: |
+          PUBLISHED="${{ steps.fp.outputs.published }}"
+          INSTALLED="${{ steps.fp.outputs.installed }}"
+          if [ "$PUBLISHED" = "$INSTALLED" ]; then
+            {
+              echo "### ✅ OTA will reach the installed app"
+              echo
+              echo "Published runtime \`$PUBLISHED\` matches the installed build."
+            } >> "$GITHUB_STEP_SUMMARY"
+          else
+            echo "::warning title=Native change — rebuild required::Published runtime $PUBLISHED != installed build $INSTALLED. This update will NOT reach the app until you rebuild + reinstall and run 'pnpm --filter mobile fingerprint:save'."
+            {
+              echo "### ⚠️ Native change — rebuild required"
+              echo
+              echo "Published runtime \`$PUBLISHED\` ≠ installed build \`$INSTALLED\`."
+              echo
+              echo "This update was published, but **won't reach the installed app** until you rebuild the native app, reinstall it, and update the marker:"
+              echo '```'
+              echo "pnpm --filter mobile fingerprint:save  # then commit native-build.fingerprint"
+              echo '```'
+            } >> "$GITHUB_STEP_SUMMARY"
+          fi
