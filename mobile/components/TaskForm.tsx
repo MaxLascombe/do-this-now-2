@@ -622,7 +622,7 @@ export function TaskForm({
 
         <Field
           label="Subtasks"
-          trailing={hasSubtasks ? 'long-press a row to reorder' : undefined}
+          trailing={hasSubtasks ? 'tap ✕ to remove' : undefined}
         >
           <View
             style={{

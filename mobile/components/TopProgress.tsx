@@ -3,6 +3,7 @@ import { computeSchedule } from '@dtn/shared/pacing'
 import { useProgressToday } from '@dtn/shared/queries'
 import { computePoints } from '@dtn/shared/scoring'
 import { minutesToHours } from '@dtn/shared/time'
+import { useRouter } from 'expo-router'
 import { useState } from 'react'
 import { Modal, Pressable, Text, View } from 'react-native'
 import { SafeAreaView } from 'react-native-safe-area-context'
@@ -15,6 +16,7 @@ const STREAK = '#f59e0b'
 const MINI_CELLS = 14
 
 export function TopProgress() {
+  const router = useRouter()
   const [open, setOpen] = useState(false)
   const now = useDate()
   const { data } = useProgressToday()
@@ -69,15 +71,18 @@ export function TopProgress() {
           }}
         />
       </View>
+      <View style={{ flexDirection: 'row', alignItems: 'center' }}>
       <Pressable
         onPress={() => setOpen(true)}
         accessibilityRole="button"
         accessibilityLabel="Show today's progress detail"
         style={{
+          flex: 1,
           flexDirection: 'row',
           alignItems: 'center',
           justifyContent: 'space-between',
-          paddingHorizontal: 20,
+          paddingLeft: 20,
+          paddingRight: 12,
           paddingVertical: 12,
         }}
       >
@@ -139,6 +144,20 @@ export function TopProgress() {
           })}
         </View>
       </Pressable>
+        <Pressable
+          onPress={() => router.push('/settings')}
+          accessibilityRole="button"
+          accessibilityLabel="Settings"
+          hitSlop={10}
+          style={({ pressed }) => ({
+            paddingRight: 20,
+            paddingLeft: 4,
+            opacity: pressed ? 0.6 : 1,
+          })}
+        >
+          <Text style={{ color: '#71717a', fontSize: 16 }}>⚙</Text>
+        </Pressable>
+      </View>
       <View
         style={{
           alignItems: 'flex-end',
@@ -197,8 +216,10 @@ function ProgressSheet({ onClose }: { onClose: () => void }) {
   })
 
   const cells = 28
-  const filled = Math.round((done / todo) * cells)
-  const tick = Math.round((shouldBeDone / todo) * cells)
+  // todo is 0 on a no-tasks day — guard like the mini-bar does, or these
+  // widths come out NaN.
+  const filled = todo > 0 ? Math.round((done / todo) * cells) : 0
+  const tick = todo > 0 ? Math.round((shouldBeDone / todo) * cells) : 0
 
   return (
     <SafeAreaView
