@@ -3,6 +3,7 @@ import {
   useCompleteTask,
   useCreateTask,
   useDeleteTask,
+  useExitFocus,
   usePrefetchTask,
   usePrimeTaskCache,
   useSelection,
@@ -20,7 +21,10 @@ import {
   findNextActionableSubtask,
   isSnoozed,
 } from '@dtn/shared/task-sorting'
-import { willAdvanceSubtask } from '@dtn/shared/task-transitions'
+import {
+  snoozeTaskTransition,
+  willAdvanceSubtask,
+} from '@dtn/shared/task-transitions'
 import { minutesToHours } from '@dtn/shared/time'
 import {
   completionConfirmKind,
@@ -157,6 +161,7 @@ function Home() {
   const selectedTask = focusTask
 
   const doneMutation = useCompleteTask()
+  const exitFocus = useExitFocus()
   const deleteMutation = useDeleteTask()
   const createTask = useCreateTask()
   const snoozeMutation = useSnoozeTask()
@@ -177,7 +182,20 @@ function Home() {
   // default; ↑/↓ and the number keys move the ring, Enter selects it.
   const [focusIndex, setFocusIndex] = useState(0)
 
-  const runComplete = (id: string, countMeasurement: boolean) => {
+  // True when `task` is the one currently held open in the Focus View — so a
+  // terminal action on it should also step out of that view.
+  const isFocusTask = (task: Task | null | undefined) =>
+    !!focusTask && task?.id === focusTask.id
+
+  const runComplete = (
+    id: string,
+    countMeasurement: boolean,
+    leaveFocus: boolean,
+  ) => {
+    // A full completion takes the task out of the active list; drop the Focus
+    // View pointer up front so the view exits the instant Done fires (the
+    // server clears its own pointer in the same completion transaction).
+    if (leaveFocus) exitFocus()
     doneMutation.mutate({ id, countMeasurement })
   }
 
@@ -187,14 +205,15 @@ function Home() {
     if (isCompletionGated(task, now)) return
     // Subtask advance never triggers the count/skip confirm — that
     // dialog is about how to record the *whole task's* timer, which
-    // doesn't fire on subtask completion.
+    // doesn't fire on subtask completion. It also keeps the task in the
+    // Focus View so the next subtask can be worked.
     if (willAdvanceSubtask(task, now)) {
-      runComplete(task.id, true)
+      runComplete(task.id, true, false)
       return
     }
     const kind = completionConfirmKind(task, now)
     if (!kind) {
-      runComplete(task.id, true)
+      runComplete(task.id, true, isFocusTask(task))
       return
     }
     setPendingComplete({ task, kind })
@@ -211,6 +230,13 @@ function Home() {
   ) => {
     if (!task) return
     const { id } = task
+    // Snoozing the whole task out of the active list also leaves the Focus
+    // View — mirror the server's pointer-clear so the view exits at once. A
+    // lone subtask snooze that keeps the task active stays in the view.
+    if (isFocusTask(task)) {
+      const { nextTask } = snoozeTaskTransition(task, wholeTask, new Date())
+      if (isSnoozed(nextTask)) exitFocus()
+    }
     snoozeMutation.mutate(
       { id, allSubtasks: wholeTask },
       {
@@ -229,6 +255,8 @@ function Home() {
   const snoozeAllSubtasksAction = () => {
     if (!selectedTask) return
     const { id } = selectedTask
+    const { nextTask } = snoozeTaskTransition(selectedTask, true, new Date())
+    if (isSnoozed(nextTask)) exitFocus()
     snoozeMutation.mutate(
       { id, allSubtasks: true },
       {
@@ -552,11 +580,21 @@ function Home() {
         kind={pendingComplete?.kind ?? null}
         onCancel={() => setPendingComplete(null)}
         onSkip={() => {
-          if (pendingComplete) runComplete(pendingComplete.task.id, false)
+          if (pendingComplete)
+            runComplete(
+              pendingComplete.task.id,
+              false,
+              isFocusTask(pendingComplete.task),
+            )
           setPendingComplete(null)
         }}
         onCount={() => {
-          if (pendingComplete) runComplete(pendingComplete.task.id, true)
+          if (pendingComplete)
+            runComplete(
+              pendingComplete.task.id,
+              true,
+              isFocusTask(pendingComplete.task),
+            )
           setPendingComplete(null)
         }}
       />
