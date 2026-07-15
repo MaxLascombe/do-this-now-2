@@ -22,6 +22,7 @@ import { ErrorState } from '../../components/ErrorState'
 import { Loading } from '../../components/Loading'
 import { PageHeading } from '../../components/PageHeading'
 import { TopProgress } from '../../components/TopProgress'
+import { usePullRefresh } from '../../hooks/usePullRefresh'
 
 const ACCENT = '#34d399'
 const OVERDUE = '#fb7185'
@@ -52,6 +53,7 @@ export default function History() {
   const isCurrentDay = daysAgo === 0
 
   const historyQuery = useHistory(dateKey)
+  const { refreshing, onRefresh } = usePullRefresh(historyQuery.refetch)
   const stats = useStats()
   const dayStat = stats.data?.heatmap.find((h) => h.date === dateKey)
   const targetHit = dayStat?.hit ?? null
@@ -210,10 +212,8 @@ export default function History() {
             contentContainerStyle={{ paddingBottom: 24 }}
             refreshControl={
               <RefreshControl
-                refreshing={
-                  historyQuery.isFetching && !historyQuery.isPending
-                }
-                onRefresh={() => historyQuery.refetch()}
+                refreshing={refreshing}
+                onRefresh={onRefresh}
                 tintColor="#fafafa"
                 colors={['#fafafa']}
               />
