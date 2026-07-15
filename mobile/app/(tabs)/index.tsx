@@ -486,7 +486,10 @@ function Hero({
         accessibilityState={{ disabled: gated }}
         style={({ pressed }) => ({
           marginTop: 24,
-          paddingVertical: 14,
+          width: '100%',
+          maxWidth: 320,
+          alignSelf: 'center',
+          paddingVertical: 15,
           borderRadius: 999,
           opacity: gated ? 0.4 : 1,
           backgroundColor: pressed ? '#e4e4e7' : '#fafafa',
@@ -501,7 +504,7 @@ function Hero({
           style={{
             fontFamily: 'JetBrainsMono_700Bold',
             color: '#0a0a0a',
-            fontSize: 16,
+            fontSize: 18,
             letterSpacing: 0.5,
           }}
         >
@@ -513,13 +516,18 @@ function Hero({
         </Text>
       </Pressable>
 
-      {/* The same five secondary actions web's Focus View shows. */}
+      {/* The same five secondary actions web's Focus View shows, in web's
+          borderless three-up grid under the Done button. */}
       <View
         style={{
           marginTop: 12,
+          width: '100%',
+          maxWidth: 320,
+          alignSelf: 'center',
           flexDirection: 'row',
           flexWrap: 'wrap',
-          gap: 8,
+          columnGap: 8,
+          rowGap: 8,
         }}
       >
         <Ghost label="Return" glyph="↩" onPress={onReturn} />
@@ -640,31 +648,35 @@ function Ghost({
   onPress: () => void
   danger?: boolean
 }) {
-  const color = danger ? OVERDUE_ROSE : '#d4d4d8'
+  // Web's SecondaryAction: borderless, muted zinc-500, background only on
+  // press. One cell of the three-up grid (flexBasis ~1/3 leaves room for the
+  // two 8px column gaps).
+  const color = danger ? OVERDUE_ROSE : '#71717a'
   return (
     <Pressable
       onPress={onPress}
       accessibilityRole="button"
       accessibilityLabel={label}
       style={({ pressed }) => ({
+        flexBasis: '31%',
+        flexGrow: 0,
         flexDirection: 'row',
         alignItems: 'center',
         justifyContent: 'center',
-        gap: 6,
-        paddingHorizontal: 14,
-        paddingVertical: 10,
-        borderWidth: 1,
-        borderColor: danger ? 'rgba(251,113,133,0.3)' : '#27272a',
+        gap: 5,
+        paddingHorizontal: 4,
+        paddingVertical: 8,
         borderRadius: 999,
-        backgroundColor: pressed ? 'rgba(255,255,255,0.04)' : 'transparent',
+        backgroundColor: pressed ? '#18181b' : 'transparent',
       })}
     >
-      <Text style={{ color, fontSize: 13 }}>{glyph}</Text>
+      <Text style={{ color, fontSize: 12 }}>{glyph}</Text>
       <Text
         style={{
           fontFamily: 'JetBrainsMono_400Regular',
-          fontSize: 13,
+          fontSize: 12,
           color,
+          textAlign: 'center',
         }}
       >
         {label}
