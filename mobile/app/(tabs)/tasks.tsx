@@ -41,6 +41,7 @@ import { RowAction, RowMenu, TaskRow } from '../../components/TaskRow'
 import { TopProgress } from '../../components/TopProgress'
 import { useToast } from '../../components/ToastProvider'
 import { usePersistedState } from '../../hooks/usePersistedState'
+import { usePullRefresh } from '../../hooks/usePullRefresh'
 
 type Sort = 'CHRON' | 'TOP'
 
@@ -316,7 +317,7 @@ export default function TasksList() {
   )
 
   const activeQuery = sort === 'CHRON' ? allTasks : topTasks
-  const isFetching = activeQuery.isFetching && !activeQuery.isPending
+  const { refreshing, onRefresh } = usePullRefresh(activeQuery.refetch)
 
   return (
     <SafeAreaView
@@ -382,8 +383,8 @@ export default function TasksList() {
         stickySectionHeadersEnabled={false}
         refreshControl={
           <RefreshControl
-            refreshing={isFetching}
-            onRefresh={() => activeQuery.refetch()}
+            refreshing={refreshing}
+            onRefresh={onRefresh}
             tintColor="#fafafa"
             colors={['#fafafa']}
           />

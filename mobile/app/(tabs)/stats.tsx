@@ -21,13 +21,15 @@ import { ErrorState } from '../../components/ErrorState'
 import { Loading } from '../../components/Loading'
 import { PageHeading } from '../../components/PageHeading'
 import { TopProgress } from '../../components/TopProgress'
+import { usePullRefresh } from '../../hooks/usePullRefresh'
 
 const ACCENT = '#34d399'
 const STREAK = '#f59e0b'
 const OVERDUE = '#fb7185'
 
 export default function Stats() {
-  const { data, isPending, isError, isFetching, refetch } = useStats()
+  const { data, isPending, isError, refetch } = useStats()
+  const { refreshing, onRefresh } = usePullRefresh(refetch)
 
   return (
     <SafeAreaView
@@ -63,8 +65,8 @@ export default function Stats() {
           }}
           refreshControl={
             <RefreshControl
-              refreshing={isFetching && !isPending}
-              onRefresh={() => refetch()}
+              refreshing={refreshing}
+              onRefresh={onRefresh}
               tintColor="#fafafa"
               colors={['#fafafa']}
             />

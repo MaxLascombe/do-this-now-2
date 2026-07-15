@@ -46,6 +46,7 @@ import { RowAction, RowMenu, TaskRow } from '../../components/TaskRow'
 import { TimerWidget } from '../../components/TimerWidget'
 import { TopProgress } from '../../components/TopProgress'
 import { useToast } from '../../components/ToastProvider'
+import { usePullRefresh } from '../../hooks/usePullRefresh'
 
 const OVERDUE_ROSE = '#fb7185'
 
@@ -192,6 +193,7 @@ export default function Home() {
   }
 
   const isBusy = topTasks.isPending || deleteMutation.isPending
+  const { refreshing, onRefresh } = usePullRefresh(topTasks.refetch)
 
   return (
     <SafeAreaView
@@ -233,8 +235,8 @@ export default function Home() {
           contentContainerStyle={{ flexGrow: 1, paddingBottom: 24 }}
           refreshControl={
             <RefreshControl
-              refreshing={topTasks.isFetching && !topTasks.isPending}
-              onRefresh={() => topTasks.refetch()}
+              refreshing={refreshing}
+              onRefresh={onRefresh}
               tintColor="#fafafa"
               colors={['#fafafa']}
             />
