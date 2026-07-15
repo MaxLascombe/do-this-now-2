@@ -44,6 +44,13 @@ jobs:
           cache: pnpm
 
       - name: Install dependencies
+        # Hoisted layout: babel.config.js resolves babel-preset-expo and its
+        # transitive plugins from mobile/node_modules. mobile/.npmrc sets this
+        # only when pnpm runs from mobile/; this job installs from the repo
+        # root, so pass it here. Scoped to this step — web/Vercel installs are
+        # untouched.
+        env:
+          npm_config_node_linker: hoisted
         run: pnpm install --frozen-lockfile
 
       - name: Typecheck mobile
