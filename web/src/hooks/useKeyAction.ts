@@ -15,11 +15,11 @@ export type KeyAction = {
 
 // Elements that own the Space/Enter keys themselves — a guarded shortcut must
 // yield to these so tabbing to a button and pressing Space still activates it.
-const ownsActivation = (el: Element | null): boolean =>
+export const ownsActivation = (el: Element | null): boolean =>
   el instanceof HTMLButtonElement ||
   el instanceof HTMLAnchorElement ||
   (el instanceof HTMLElement &&
-    (el.getAttribute('role') === 'button' || el.isContentEditable))
+    (el.getAttribute('role') === 'button' || el.isContentEditable === true))
 
 // True when a keydown should trigger this action: the named key matches and
 // no alt/ctrl/meta is held, with shift required to match only when specified.

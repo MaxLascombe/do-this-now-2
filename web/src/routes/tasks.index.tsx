@@ -590,7 +590,7 @@ const SortPill = ({
     <span>{label}</span>
     {!active && (
       <kbd className="rounded border border-zinc-800 bg-zinc-900 px-1 py-0.5 text-[10px] font-bold text-zinc-300">
-        O
+        o
       </kbd>
     )}
   </button>

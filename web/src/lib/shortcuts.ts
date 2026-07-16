@@ -90,7 +90,9 @@ export const HELP_GROUPS: ReadonlyArray<{
   { title: 'Navigate', items: [S.now, S.tasks, S.newTask, S.history, S.stats] },
   {
     title: 'Now — a task is selected',
-    items: [S.done, S.snooze, S.snoozeSubtasks, S.edit, S.timer, S.delete, S.return],
+    // Timer lists both keys: Space is primary, p the fallback for when a
+    // focused button would swallow Space (see guardInteractive).
+    items: [S.done, S.snooze, S.snoozeSubtasks, S.edit, S.timer, S.timerAlt, S.delete, S.return],
   },
   {
     title: 'Now — choosing a task',

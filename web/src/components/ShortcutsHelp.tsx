@@ -73,7 +73,7 @@ export function ShortcutsHelp() {
               <ul className="flex flex-col gap-2">
                 {g.items.map((it) => (
                   <li
-                    key={it.label}
+                    key={it.display}
                     className="flex items-center justify-between text-sm text-zinc-300"
                   >
                     <span>{it.label}</span>

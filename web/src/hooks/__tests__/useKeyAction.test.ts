@@ -1,7 +1,8 @@
+// @vitest-environment jsdom
 import keycode from 'keycode'
 import { describe, expect, it } from 'vitest'
 
-import { matchesKeyAction, type KeyAction } from '../useKeyAction'
+import { matchesKeyAction, ownsActivation, type KeyAction } from '../useKeyAction'
 
 const action: KeyAction = { key: 'j', description: 'next', action: () => {} }
 
@@ -46,5 +47,32 @@ describe('matchesKeyAction', () => {
     const unshifted: KeyAction = { ...action, shift: false }
     expect(matchesKeyAction(ev({ shiftKey: false }), unshifted)).toBe(true)
     expect(matchesKeyAction(ev({ shiftKey: true }), unshifted)).toBe(false)
+  })
+})
+
+describe('ownsActivation (guards Space from stealing button activation)', () => {
+  const withRole = (tag: string, role?: string) => {
+    const el = document.createElement(tag)
+    if (role) el.setAttribute('role', role)
+    return el
+  }
+
+  it('yields to elements that handle Space/Enter themselves', () => {
+    expect(ownsActivation(document.createElement('button'))).toBe(true)
+    expect(ownsActivation(document.createElement('a'))).toBe(true)
+    expect(ownsActivation(withRole('div', 'button'))).toBe(true)
+
+    const editable = document.createElement('div')
+    editable.contentEditable = 'true'
+    // jsdom doesn't compute isContentEditable from the attribute; force it.
+    Object.defineProperty(editable, 'isContentEditable', { value: true })
+    expect(ownsActivation(editable)).toBe(true)
+  })
+
+  it('does not guard plain elements or an empty focus', () => {
+    expect(ownsActivation(document.createElement('div'))).toBe(false)
+    expect(ownsActivation(document.createElement('h1'))).toBe(false)
+    expect(ownsActivation(withRole('div', 'heading'))).toBe(false)
+    expect(ownsActivation(null)).toBe(false)
   })
 })
