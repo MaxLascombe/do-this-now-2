@@ -52,8 +52,6 @@ import { TopProgress } from '../../components/TopProgress'
 import { useToast } from '../../components/ToastProvider'
 import { usePullRefresh } from '../../hooks/usePullRefresh'
 
-const OVERDUE_ROSE = '#fb7185'
-
 export default function Home() {
   const router = useRouter()
   const topTasks = useTopTasks()
@@ -530,13 +528,13 @@ function Hero({
           rowGap: 8,
         }}
       >
-        <Ghost label="Return" glyph="↩" onPress={onReturn} />
-        <Ghost label="Snooze" glyph="◑" onPress={onSnooze} />
+        <Ghost label="Return" onPress={onReturn} />
+        <Ghost label="Snooze" onPress={onSnooze} />
         {task.subtasks.length > 0 && (
-          <Ghost label="Snooze subtasks" glyph="◑" onPress={onSnoozeSubtasks} />
+          <Ghost label="Snooze subtasks" onPress={onSnoozeSubtasks} />
         )}
-        <Ghost label="Edit" glyph="✎" onPress={onEdit} />
-        <Ghost label="Delete" glyph="✕" onPress={onDelete} danger />
+        <Ghost label="Edit" onPress={onEdit} />
+        <Ghost label="Delete" onPress={onDelete} />
       </View>
 
       <View style={{ marginTop: 20 }}>
@@ -637,21 +635,11 @@ function Chip({ children }: { children: React.ReactNode }) {
   )
 }
 
-function Ghost({
-  label,
-  glyph,
-  onPress,
-  danger,
-}: {
-  label: string
-  glyph: string
-  onPress: () => void
-  danger?: boolean
-}) {
-  // Web's SecondaryAction: borderless, muted zinc-500, background only on
-  // press. One cell of the three-up grid (flexBasis ~1/3 leaves room for the
-  // two 8px column gaps).
-  const color = danger ? OVERDUE_ROSE : '#71717a'
+function Ghost({ label, onPress }: { label: string; onPress: () => void }) {
+  // Web's SecondaryAction, minus its leading Kbd chip — those are keyboard
+  // hints, meaningless on touch. Borderless, muted zinc-500 (Delete included,
+  // as on web), background only on press. One cell of the three-up grid
+  // (flexBasis ~1/3 leaves room for the two 8px column gaps).
   return (
     <Pressable
       onPress={onPress}
@@ -660,27 +648,26 @@ function Ghost({
       style={({ pressed }) => ({
         flexBasis: '31%',
         flexGrow: 0,
-        flexDirection: 'row',
         alignItems: 'center',
         justifyContent: 'center',
-        gap: 5,
-        paddingHorizontal: 4,
+        paddingHorizontal: 8,
         paddingVertical: 8,
         borderRadius: 999,
         backgroundColor: pressed ? '#18181b' : 'transparent',
       })}
     >
-      <Text style={{ color, fontSize: 12 }}>{glyph}</Text>
-      <Text
-        style={{
-          fontFamily: 'JetBrainsMono_400Regular',
-          fontSize: 12,
-          color,
-          textAlign: 'center',
-        }}
-      >
-        {label}
-      </Text>
+      {({ pressed }) => (
+        <Text
+          style={{
+            fontFamily: 'JetBrainsMono_400Regular',
+            fontSize: 14,
+            color: pressed ? '#f4f4f5' : '#71717a',
+            textAlign: 'center',
+          }}
+        >
+          {label}
+        </Text>
+      )}
     </Pressable>
   )
 }
