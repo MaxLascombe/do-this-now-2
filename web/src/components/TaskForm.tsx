@@ -17,7 +17,6 @@ import { ZodError } from 'zod'
 
 import useKeyAction, { type KeyAction } from '../hooks/useKeyAction'
 import { useConfirm } from './ConfirmProvider'
-import { KeyHints } from './KeyHints'
 import type {
   RepeatOption,
   RepeatUnit,
@@ -797,16 +796,7 @@ const TaskForm = ({
         </div>
       </div>
 
-      <div className="fixed right-0 bottom-[88px] left-0 z-40 flex items-center justify-between gap-3 border-t border-zinc-900 bg-black/60 px-5 py-4 backdrop-blur md:bottom-0 md:px-10 md:py-5">
-        <div className="hidden md:block">
-          <KeyHints
-            items={[
-              ['↵', 'submit'],
-              ['Esc', 'cancel'],
-              ...(isEdit ? ([['⌫', 'delete']] as const) : []),
-            ]}
-          />
-        </div>
+      <div className="fixed right-0 bottom-[88px] left-0 z-40 flex items-center justify-end gap-3 border-t border-zinc-900 bg-black/60 px-5 py-4 backdrop-blur md:bottom-0 md:px-10 md:py-5">
         <div className="flex flex-1 items-center justify-end gap-2 md:flex-none">
           {isEdit && onDelete && (
             <button

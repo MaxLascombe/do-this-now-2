@@ -1,35 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 
-const GROUPS: Array<{
-  title: string
-  items: Array<{ keys: string[]; label: string }>
-}> = [
-  {
-    title: 'Navigate',
-    items: [
-      { keys: ['N'], label: 'Now' },
-      { keys: ['T'], label: 'Tasks' },
-      { keys: ['+'], label: 'New task' },
-      { keys: ['H'], label: 'History' },
-      { keys: ['A'], label: 'Stats' },
-    ],
-  },
-  {
-    title: 'On the Now screen',
-    items: [
-      { keys: ['D'], label: 'Mark done' },
-      { keys: ['S'], label: 'Snooze' },
-      { keys: ['E'], label: 'Edit' },
-      { keys: ['1', '–', '3'], label: 'Pick a task' },
-      { keys: ['↑', '↓'], label: 'Move selection' },
-      { keys: ['⌫'], label: 'Delete' },
-    ],
-  },
-  {
-    title: 'Anywhere',
-    items: [{ keys: ['?'], label: 'This menu' }],
-  },
-]
+import { HELP_GROUPS } from '../lib/shortcuts'
 
 export function ShortcutsHelp() {
   const [open, setOpen] = useState(false)
@@ -94,7 +65,7 @@ export function ShortcutsHelp() {
           Keyboard shortcuts
         </div>
         <div className="flex flex-col gap-5 px-5 py-5">
-          {GROUPS.map((g) => (
+          {HELP_GROUPS.map((g) => (
             <div key={g.title}>
               <div className="mb-2 text-[10px] tracking-[0.2em] text-zinc-500 uppercase">
                 {g.title}
@@ -106,16 +77,9 @@ export function ShortcutsHelp() {
                     className="flex items-center justify-between text-sm text-zinc-300"
                   >
                     <span>{it.label}</span>
-                    <span className="flex items-center gap-1">
-                      {it.keys.map((k) => (
-                        <kbd
-                          key={k}
-                          className="rounded border border-zinc-800 bg-zinc-900 px-1.5 py-0.5 text-[10px] font-bold text-zinc-300"
-                        >
-                          {k}
-                        </kbd>
-                      ))}
-                    </span>
+                    <kbd className="rounded border border-zinc-800 bg-zinc-900 px-1.5 py-0.5 text-[10px] font-bold text-zinc-300">
+                      {it.display}
+                    </kbd>
                   </li>
                 ))}
               </ul>

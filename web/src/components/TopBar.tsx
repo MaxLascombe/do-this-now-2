@@ -21,11 +21,11 @@ type NavItem = {
 }
 
 const ALL_NAV: ReadonlyArray<NavItem> = [
-  { id: 'home', label: 'Now', to: '/', kbd: 'N' },
-  { id: 'tasks', label: 'Tasks', to: '/tasks', kbd: 'T' },
+  { id: 'home', label: 'Now', to: '/', kbd: 'n' },
+  { id: 'tasks', label: 'Tasks', to: '/tasks', kbd: 't' },
   { id: 'new', label: 'New', to: '/new-task', kbd: '+' },
-  { id: 'history', label: 'History', to: '/history', kbd: 'H' },
-  { id: 'stats', label: 'Stats', to: '/stats', kbd: 'A' },
+  { id: 'history', label: 'History', to: '/history', kbd: 'h' },
+  { id: 'stats', label: 'Stats', to: '/stats', kbd: 'a' },
 ] as const
 
 const Kbd = ({ children }: { children: string }) => (

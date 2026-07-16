@@ -44,6 +44,7 @@ import { useToast } from '../components/ToastProvider'
 import { TopBar } from '../components/TopBar'
 import useKeyAction from '../hooks/useKeyAction'
 import { usePersistedState } from '../hooks/usePersistedState'
+import { SHORTCUTS as S, bind } from '../lib/shortcuts'
 import type { Task } from '@dtn/shared/types'
 import type { KeyAction } from '../hooks/useKeyAction'
 
@@ -277,53 +278,22 @@ function TasksList() {
   }, [selectedTask])
 
   const keyActions: Array<KeyAction> = [
-    {
-      key: '/',
-      description: 'Search tasks',
-      action: () => searchRef.current?.focus(),
-    },
-    { key: 'd', description: 'Mark task as done', action: completeAction },
-    {
-      key: 'n',
-      description: 'Home',
-      action: () => navigate({ to: '/' }),
-    },
-    {
-      key: '=',
-      description: 'New task',
-      shift: true,
-      action: () => navigate({ to: '/new-task' }),
-    },
-    {
-      key: 'h',
-      description: 'History',
-      action: () => navigate({ to: '/history' }),
-    },
-    {
-      key: 'a',
-      description: 'Stats',
-      action: () => navigate({ to: '/stats' }),
-    },
-    {
-      key: 'o',
-      description: 'Toggle order between date and top',
-      action: () => setSort((s) => (s === 'CHRON' ? 'TOP' : 'CHRON')),
-    },
-    { key: 'e', description: 'Edit task', action: editAction },
-    { key: 'enter', description: 'Select task', action: selectAction },
-    { key: 's', description: 'Snooze task', action: snoozeAction, shift: false },
-    { key: 'w', description: 'Wake snoozed task', action: wakeAction },
-    {
-      key: 'up',
-      description: 'Move focus up',
-      action: () => setSelectedTask((t) => Math.max(t - 1, 0)),
-    },
-    {
-      key: 'down',
-      description: 'Move focus down',
-      action: () => setSelectedTask((t) => Math.min(t + 1, tasks.length - 1)),
-    },
-    // Number keys jump the focus ring straight to the nth row.
+    bind(S.search, () => searchRef.current?.focus()),
+    bind(S.done, completeAction),
+    bind(S.now, () => navigate({ to: '/' })),
+    bind(S.newTask, () => navigate({ to: '/new-task' })),
+    bind(S.history, () => navigate({ to: '/history' })),
+    bind(S.stats, () => navigate({ to: '/stats' })),
+    bind(S.sort, () => setSort((s) => (s === 'CHRON' ? 'TOP' : 'CHRON'))),
+    bind(S.edit, editAction),
+    bind(S.select, selectAction),
+    bind(S.snooze, snoozeAction),
+    bind(S.wake, wakeAction),
+    bind(S.moveUp, () => setSelectedTask((t) => Math.max(t - 1, 0))),
+    bind(S.moveDown, () =>
+      setSelectedTask((t) => Math.min(t + 1, tasks.length - 1)),
+    ),
+    // Number keys jump the focus ring straight to the nth row (undisplayed).
     ...Array.from({ length: 9 }, (_, n) => ({
       key: String(n + 1),
       description: `Focus task ${n + 1}`,
@@ -331,12 +301,8 @@ function TasksList() {
         if (n < tasks.length) setSelectedTask(n)
       },
     })),
-    { key: 'Escape', description: 'Home', action: () => navigate({ to: '/' }) },
-    {
-      key: 'Backspace',
-      description: 'Delete current task',
-      action: deleteAction,
-    },
+    bind(S.home, () => navigate({ to: '/' })),
+    bind(S.delete, deleteAction),
   ]
   useKeyAction(keyActions)
 
@@ -560,13 +526,11 @@ function TasksList() {
         <KeyHints
           items={[
             ['↵', 'select'],
-            ['D', 'done'],
-            ['S', 'snooze'],
-            ['E', 'edit'],
+            ['d', 'done'],
+            ['s', 'snooze'],
+            ['e', 'edit'],
             ['⌫', 'delete'],
             ['↑↓', 'move'],
-            ['O', 'sort'],
-            ['+', 'new'],
             ['Esc', 'home'],
           ]}
         />

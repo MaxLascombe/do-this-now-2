@@ -47,6 +47,7 @@ import { TimerWidget } from '../components/TimerWidget'
 import { useToast } from '../components/ToastProvider'
 import { TopBar } from '../components/TopBar'
 import useKeyAction from '../hooks/useKeyAction'
+import { SHORTCUTS as S, bind } from '../lib/shortcuts'
 import type { Task } from '@dtn/shared/types'
 import type { KeyAction } from '../hooks/useKeyAction'
 
@@ -368,91 +369,42 @@ function Home() {
     setFocusIndex(i)
   }
 
-  // Navigation shortcuts work in both Home states.
+  // Navigation shortcuts work in both Home states (Now itself excluded).
   const navActions: Array<KeyAction> = [
-    {
-      key: 'h',
-      description: 'History',
-      action: () => navigate({ to: '/history' }),
-    },
-    { key: 'a', description: 'Stats', action: () => navigate({ to: '/stats' }) },
-    {
-      key: '=',
-      description: 'New task',
-      shift: true,
-      action: () => navigate({ to: '/new-task' }),
-    },
-    { key: 't', description: 'Tasks', action: () => navigate({ to: '/tasks' }) },
+    bind(S.tasks, () => navigate({ to: '/tasks' })),
+    bind(S.newTask, () => navigate({ to: '/new-task' })),
+    bind(S.history, () => navigate({ to: '/history' })),
+    bind(S.stats, () => navigate({ to: '/stats' })),
   ]
 
-  // Focus View: shortcuts act on the one Selected Task.
+  // Focus View: shortcuts act on the one Selected Task. Timer toggles on Space
+  // (guarded so a focused button keeps it) with p as an unhinted fallback.
   const focusActions: Array<KeyAction> = [
-    { key: 'd', description: 'Task done', action: completeTaskAction },
-    { key: 's', description: 'Snooze task', action: snoozeTaskAction, shift: false },
-    {
-      key: 'S',
-      description: 'Snooze all subtasks',
-      action: snoozeAllSubtasksAction,
-      shift: true,
-    },
-    { key: 'e', description: 'Edit task', action: goEdit },
-    {
-      key: 'p',
-      description: timerTask?.timerStartedAt ? 'Pause timer' : 'Start timer',
-      action: toggleTimerAction,
-    },
-    {
-      key: 'backspace',
-      description: 'Delete current task',
-      action: deleteTaskAction,
-    },
-    {
-      key: 'escape',
-      description: 'Return (step off the selected task)',
-      action: returnAction,
-    },
+    bind(S.done, completeTaskAction),
+    bind(S.snooze, snoozeTaskAction),
+    bind(S.snoozeSubtasks, snoozeAllSubtasksAction),
+    bind(S.edit, goEdit),
+    bind(S.timer, toggleTimerAction),
+    bind(S.timerAlt, toggleTimerAction),
+    bind(S.delete, deleteTaskAction),
+    bind(S.return, returnAction),
   ]
 
   // Top-tasks list: a keyboard cursor. Arrows/numbers move the focus ring;
-  // d/s/e act on the focused row in place; Enter selects it (starts its timer
-  // → Focus View). Numbers 1–3 are undisplayed fast-jumps for the three rows.
+  // d/s/e act on the focused row in place; Enter starts it (→ Focus View).
+  // Numbers 1–3 are undisplayed fast-jumps for the three rows.
   const listActions: Array<KeyAction> = [
-    { key: 'up', description: 'Move focus up', action: () => moveFocus(-1) },
-    { key: 'down', description: 'Move focus down', action: () => moveFocus(1) },
+    bind(S.moveUp, () => moveFocus(-1)),
+    bind(S.moveDown, () => moveFocus(1)),
     { key: '1', description: 'Focus first task', action: () => focusRow(0) },
     { key: '2', description: 'Focus second task', action: () => focusRow(1) },
     { key: '3', description: 'Focus third task', action: () => focusRow(2) },
-    {
-      key: 'enter',
-      description: 'Select focused task',
-      action: () => selectTaskAction(focusedTask),
-    },
-    {
-      key: 'd',
-      description: 'Task done',
-      action: () => completeTaskFor(focusedTask),
-    },
-    {
-      key: 's',
-      description: 'Snooze task',
-      action: () => snoozeTaskFor(focusedTask, true),
-      shift: false,
-    },
-    {
-      key: 'r',
-      description: 'Snooze this task and all after it',
-      action: () => snoozeFromHere(safeFocus),
-    },
-    {
-      key: 'e',
-      description: 'Edit task',
-      action: () => goEditFor(focusedTask),
-    },
-    {
-      key: 'backspace',
-      description: 'Delete task',
-      action: () => void deleteTaskFor(focusedTask),
-    },
+    bind(S.start, () => selectTaskAction(focusedTask)),
+    bind(S.done, () => completeTaskFor(focusedTask)),
+    bind(S.snooze, () => snoozeTaskFor(focusedTask, true)),
+    bind(S.snoozeRest, () => snoozeFromHere(safeFocus)),
+    bind(S.edit, () => goEditFor(focusedTask)),
+    bind(S.delete, () => void deleteTaskFor(focusedTask)),
   ]
 
   const keyActions: Array<KeyAction> = [
@@ -599,31 +551,21 @@ function Home() {
         }}
       />
 
-      {/* State-aware keyboard legend (desktop only) — the honest surface for
-          the shortcuts. Numbers are omitted; they're just focus jumps. */}
-      {(focusTask || topThree.length > 0) && (
+      {/* Top-tasks legend (desktop only). The Focus View has no strip — its
+          actions are all chipped on their own buttons; the timer's Space is
+          left to the ? help. Numbers are omitted; they're just focus jumps. */}
+      {!focusTask && topThree.length > 0 && (
         <div className="hidden justify-center px-6 pb-6 md:flex">
           <KeyHints
-            items={
-              focusTask
-                ? [
-                    ['d', 'Done'],
-                    ['s', 'Snooze'],
-                    ['e', 'Edit'],
-                    ['p', 'Timer'],
-                    ['Esc', 'Return'],
-                    ['⌫', 'Delete'],
-                  ]
-                : [
-                    ['↵', 'Start'],
-                    ['s', 'Snooze'],
-                    ['r', 'Snooze rest'],
-                    ['d', 'Done'],
-                    ['e', 'Edit'],
-                    ['⌫', 'Delete'],
-                    ['↑↓', 'Move'],
-                  ]
-            }
+            items={[
+              ['↵', 'Start'],
+              ['s', 'Snooze'],
+              ['r', 'Snooze rest'],
+              ['d', 'Done'],
+              ['e', 'Edit'],
+              ['⌫', 'Delete'],
+              ['↑↓', 'Move'],
+            ]}
           />
         </div>
       )}
@@ -747,12 +689,12 @@ function Hero({
               ? 'Subtask Done'
               : 'Done'}
         </span>
-        <Kbd variant="on-light">D</Kbd>
+        <Kbd variant="on-light">d</Kbd>
       </button>
 
       <div className="mt-3 grid w-full max-w-[320px] grid-cols-3 gap-2 md:mt-4 md:flex md:max-w-none md:w-auto md:items-center md:gap-3">
         <SecondaryAction k="Esc" label="Return" onClick={onReturn} />
-        <SecondaryAction k="S" label="Snooze" onClick={onSnooze} />
+        <SecondaryAction k="s" label="Snooze" onClick={onSnooze} />
         {task.subtasks.length > 0 && (
           <SecondaryAction
             k="⇧S"
@@ -760,7 +702,7 @@ function Hero({
             onClick={onSnoozeSubtasks}
           />
         )}
-        <SecondaryAction k="E" label="Edit" onClick={onEdit} />
+        <SecondaryAction k="e" label="Edit" onClick={onEdit} />
         <SecondaryAction k="⌫" label="Delete" onClick={onDelete} />
       </div>
 
