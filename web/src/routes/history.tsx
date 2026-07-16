@@ -13,6 +13,7 @@ import { MobileChrome } from '../components/MobileChrome'
 import { PageHeading } from '../components/PageHeading'
 import { TopBar } from '../components/TopBar'
 import useKeyAction from '../hooks/useKeyAction'
+import { SHORTCUTS as S, bind } from '../lib/shortcuts'
 import type { HistoryEntry } from '@dtn/shared/types'
 import type { KeyAction } from '../hooks/useKeyAction'
 
@@ -58,26 +59,13 @@ function History() {
   }
 
   const keyActions: Array<KeyAction> = [
-    { key: 'escape', description: 'Home', action: () => navigate({ to: '/' }) },
-    { key: 'n', description: 'Home', action: () => navigate({ to: '/' }) },
-    {
-      key: 't',
-      description: 'Tasks',
-      action: () => navigate({ to: '/tasks' }),
-    },
-    {
-      key: '=',
-      description: 'New task',
-      shift: true,
-      action: () => navigate({ to: '/new-task' }),
-    },
-    {
-      key: 'a',
-      description: 'Stats',
-      action: () => navigate({ to: '/stats' }),
-    },
-    { key: 'left', description: 'Previous day', action: prev },
-    { key: 'right', description: 'Next day', action: next },
+    bind(S.home, () => navigate({ to: '/' })),
+    bind(S.now, () => navigate({ to: '/' })),
+    bind(S.tasks, () => navigate({ to: '/tasks' })),
+    bind(S.newTask, () => navigate({ to: '/new-task' })),
+    bind(S.stats, () => navigate({ to: '/stats' })),
+    bind(S.prevDay, prev),
+    bind(S.nextDay, next),
   ]
   useKeyAction(keyActions)
 
@@ -259,13 +247,7 @@ function History() {
       </div>
 
       <div className="fixed right-10 bottom-6 left-10 hidden md:block">
-        <KeyHints
-          items={[
-            ['←', 'previous day'],
-            ['→', 'next day'],
-            ['Esc', 'home'],
-          ]}
-        />
+        <KeyHints items={[['Esc', 'home']]} />
       </div>
     </div>
   )

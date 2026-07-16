@@ -17,6 +17,7 @@ import { MobileChrome } from '../components/MobileChrome'
 import { PageHeading } from '../components/PageHeading'
 import { TopBar } from '../components/TopBar'
 import useKeyAction from '../hooks/useKeyAction'
+import { SHORTCUTS as S, bind } from '../lib/shortcuts'
 import type { ReactNode } from 'react'
 import type { KeyAction } from '../hooks/useKeyAction'
 import type { StatsResult } from '@dtn/shared/types'
@@ -35,24 +36,11 @@ function Stats() {
   const [sheetOpen, setSheetOpen] = useState(false)
 
   const keyActions: Array<KeyAction> = [
-    { key: 'escape', description: 'Home', action: () => navigate({ to: '/' }) },
-    { key: 'n', description: 'Home', action: () => navigate({ to: '/' }) },
-    {
-      key: 't',
-      description: 'Tasks',
-      action: () => navigate({ to: '/tasks' }),
-    },
-    {
-      key: '=',
-      description: 'New task',
-      shift: true,
-      action: () => navigate({ to: '/new-task' }),
-    },
-    {
-      key: 'h',
-      description: 'History',
-      action: () => navigate({ to: '/history' }),
-    },
+    bind(S.home, () => navigate({ to: '/' })),
+    bind(S.now, () => navigate({ to: '/' })),
+    bind(S.tasks, () => navigate({ to: '/tasks' })),
+    bind(S.newTask, () => navigate({ to: '/new-task' })),
+    bind(S.history, () => navigate({ to: '/history' })),
   ]
   useKeyAction(keyActions)
 
