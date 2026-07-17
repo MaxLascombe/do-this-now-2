@@ -8,7 +8,7 @@ import { useEffect, useRef, useState } from 'react'
 import { useDate } from '../hooks/useDate'
 import { activeNavFromPath, type NavId } from '../lib/nav'
 import { ProgressBlocks, ProgressPopover } from './ProgressBar'
-import { RunningTimerChip } from './RunningTimerChip'
+import { FocusReturnBar } from './FocusReturnBar'
 
 const ACCENT = '#34d399'
 const STREAK = '#f59e0b'
@@ -138,7 +138,7 @@ export const TopBar = () => {
         </div>
 
         <div className="flex items-center gap-3">
-          <RunningTimerChip />
+          <FocusReturnBar />
         </div>
 
         <nav aria-label="Primary" className="flex items-center gap-1">
