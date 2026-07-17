@@ -6,7 +6,7 @@ import { useEffect } from 'react'
 import { activeNavFromPath, type NavId } from '../lib/nav'
 import { cells } from '../lib/progress-cells'
 import { useComputedProgress } from './ProgressBar'
-import { RunningTimerChip } from './RunningTimerChip'
+import { FocusReturnBar } from './FocusReturnBar'
 import type { ReactNode } from 'react'
 
 const ACCENT = '#34d399'
@@ -102,7 +102,7 @@ export const MobileTopBar = ({ onOpenSheet }: { onOpenSheet: () => void }) => {
         </Link>
       </div>
       <div className="flex justify-center px-5 pb-2 empty:hidden">
-        <RunningTimerChip />
+        <FocusReturnBar />
       </div>
     </div>
   )
