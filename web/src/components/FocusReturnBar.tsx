@@ -9,13 +9,8 @@ import type { Task } from '@dtn/shared/types'
 
 const ACCENT = '#34d399'
 
-/**
- * Replaces the old running-timer pill. Whenever a task is the Selected Task
- * and you're off Home, a "resume bar" shows that focused task and one-clicks
- * back to its Focus View. Unlike the pill it's driven by the selection, not by
- * a running timer, so it stays put while the timer is paused — and it has no
- * pause control (the deliberate trade-off: return to the Focus View to pause).
- */
+// Selection-driven (not timer-driven), so it persists while paused; there's no
+// pause control — return to the Focus View to pause.
 export function FocusReturnBar() {
   const { pathname } = useLocation()
   const selection = useSelection()
