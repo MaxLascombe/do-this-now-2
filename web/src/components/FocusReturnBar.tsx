@@ -46,9 +46,6 @@ function Bar({ id }: { id: string }) {
       title={`Return to ${task.title}`}
       className="flex items-center gap-2 rounded-lg border border-zinc-800 bg-zinc-900/60 px-2.5 py-1.5 font-mono text-xs text-zinc-300 transition-colors hover:border-zinc-600 hover:bg-zinc-900 hover:text-zinc-100"
     >
-      <span aria-hidden="true" className="text-zinc-500">
-        ↩
-      </span>
       <span className="text-sm leading-none">{task.emoji}</span>
       <span className="max-w-[9rem] truncate text-zinc-200">{task.title}</span>
       {running ? (
