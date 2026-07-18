@@ -1,4 +1,4 @@
-import { and, eq } from 'drizzle-orm'
+import { and, eq, isNull, lt, or } from 'drizzle-orm'
 
 import { livePushTokens, tasks } from '@dtn/shared/schema'
 import { db } from '../../db'
@@ -68,6 +68,28 @@ async function dropToken(id: string): Promise<void> {
   await db.delete(livePushTokens).where(eq(livePushTokens.id, id))
 }
 
+// Every start push makes iOS create a NEW activity, so a device must not
+// receive a second one until the first was acknowledged (its update token
+// registered) — otherwise a pause right after a push-to-start duplicates
+// the activity. The cooldown bounds the damage if the ack never arrives.
+export const START_ACK_COOLDOWN_MS = 15 * 60 * 1000
+
+// Pure decision — unit-tested: push-to-start iff the device has no live
+// activity AND no unacknowledged start within the cooldown.
+export function shouldSendStart(
+  row: { deviceId: string; startSentAt: Date | null },
+  devicesWithActivity: Set<string>,
+  now: Date,
+): boolean {
+  if (devicesWithActivity.has(row.deviceId)) return false
+  if (
+    row.startSentAt &&
+    now.getTime() - row.startSentAt.getTime() < START_ACK_COOLDOWN_MS
+  )
+    return false
+  return true
+}
+
 async function sendOrPrune(
   row: { id: string; token: string },
   push: Parameters<typeof sendLiveActivityPush>[1],
@@ -131,17 +153,39 @@ export async function syncLockScreen(userId: string): Promise<void> {
 
   const contentState = state as unknown as Record<string, unknown>
   const devicesWithActivity = new Set(updates.map((t) => t.deviceId))
+  const now = new Date()
   await Promise.all([
     ...updates.map((row) => sendOrPrune(row, { event: 'update', contentState })),
     ...starts
-      .filter((row) => !devicesWithActivity.has(row.deviceId))
-      .map((row) =>
-        sendOrPrune(row, {
+      .filter((row) => shouldSendStart(row, devicesWithActivity, now))
+      .map(async (row) => {
+        // Atomic claim: only the sync whose UPDATE actually flips the stamp
+        // sends. Two concurrent syncs both pass shouldSendStart on their
+        // stale SELECTs; the conditional write makes the loser skip instead
+        // of double-starting.
+        const claimed = await db
+          .update(livePushTokens)
+          .set({ startSentAt: now })
+          .where(
+            and(
+              eq(livePushTokens.id, row.id),
+              or(
+                isNull(livePushTokens.startSentAt),
+                lt(
+                  livePushTokens.startSentAt,
+                  new Date(now.getTime() - START_ACK_COOLDOWN_MS),
+                ),
+              ),
+            ),
+          )
+          .returning({ id: livePushTokens.id })
+        if (claimed.length === 0) return
+        await sendOrPrune(row, {
           event: 'start',
           contentState,
           attributesType: ATTRIBUTES_TYPE,
           attributes: {},
-        }),
-      ),
+        })
+      }),
   ])
 }

@@ -1,0 +1,1 @@
+ALTER TABLE "live_push_tokens" ADD COLUMN "start_sent_at" timestamp with time zone;

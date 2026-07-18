@@ -242,6 +242,10 @@ export const livePushTokens = pgTable(
       .references(() => lockScreenDevices.id, { onDelete: 'cascade' }),
     kind: livePushTokenKindEnum('kind').notNull(),
     token: text('token').notNull(),
+    // 'start' rows only: when we last sent a push-to-start that hasn't been
+    // acknowledged by an update-token registration. Guards against creating
+    // duplicate activities — iOS makes a NEW activity for every start push.
+    startSentAt: timestamp('start_sent_at', { withTimezone: true }),
     updatedAt: timestamp('updated_at', { withTimezone: true })
       .notNull()
       .defaultNow(),

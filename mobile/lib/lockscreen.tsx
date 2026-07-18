@@ -8,13 +8,13 @@ import LockScreenBridge from "../modules/lock-screen-bridge";
 const DEVICE_TOKEN_KEY = "dtn.lockscreen.deviceToken";
 const BASE_URL = process.env.EXPO_PUBLIC_API_URL!;
 
-// Wires this phone up as a Lock Screen Timer device (ADR-0004):
-// 1. Once per install, trade a Clerk-authed request for the long-lived
-//    device token, and park it (plus the API base URL) in the shared App
-//    Group so the widget's Pause/Resume can call the server directly.
-// 2. Stream ActivityKit push tokens (device-wide push-to-start + the
-//    per-activity update token) to the server, which drives the activity
-//    remotely via APNs whenever selection/timer state changes anywhere.
+// Wires this phone up as a Lock Screen Timer device (ADR-0004): once per
+// install, trade a Clerk-authed request for the long-lived device token,
+// park it (plus the API base URL) in the shared App Group so the widget's
+// Pause/Resume and the native token sync can call the server, then kick
+// the sync. ActivityKit token registration itself is native and
+// launch-driven (LockScreenTokenSync) — it must also run on background
+// launches where JS never starts.
 export function useLockScreenSync() {
   const { getToken, isSignedIn } = useAuth();
 
@@ -24,25 +24,6 @@ export function useLockScreenSync() {
     const bridge = LockScreenBridge;
 
     let cancelled = false;
-    const subs: { remove: () => void }[] = [];
-
-    const registerPushToken = (
-      deviceToken: string,
-      kind: "start" | "update",
-      token: string,
-    ) => {
-      void fetch(`${BASE_URL}/api/lockscreen/push-token`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${deviceToken}`,
-        },
-        body: JSON.stringify({ kind, token }),
-      }).catch(() => {
-        // Transient network failure — ActivityKit re-emits tokens on the
-        // next app launch, so a missed registration self-heals.
-      });
-    };
 
     const setup = async () => {
       let deviceToken = await SecureStore.getItemAsync(DEVICE_TOKEN_KEY);
@@ -65,21 +46,12 @@ export function useLockScreenSync() {
       if (cancelled) return;
 
       bridge.setConfig(BASE_URL, deviceToken);
-      const token = deviceToken;
-      subs.push(
-        bridge.addListener("onPushToStartToken", ({ token: t }) =>
-          registerPushToken(token, "start", t),
-        ),
-        bridge.addListener("onActivityUpdateToken", ({ token: t }) =>
-          registerPushToken(token, "update", t),
-        ),
-      );
+      bridge.startSync();
     };
 
     void setup();
     return () => {
       cancelled = true;
-      subs.forEach((s) => s.remove());
     };
   }, [isSignedIn, getToken]);
 }
