@@ -132,6 +132,7 @@ export function TaskForm({
     setTagDraft('')
   }
   const addTag = () => addTagFrom(tagDraft)
+  const [keeperQuery, setKeeperQuery] = useState('')
   const [errors, setErrors] = useState<Record<string, string>>({})
 
   const [openSheet, setOpenSheet] = useState<
@@ -193,7 +194,6 @@ export function TaskForm({
   }
   const bumpTimeFrame = (delta: number) =>
     setTimeFrame((v) => Math.max(0, v + delta))
-  const [keeperQuery, setKeeperQuery] = useState('')
   const [showCustomEmoji, setShowCustomEmoji] = useState(false)
   const [customEmoji, setCustomEmoji] = useState('')
   const quickDue = (deltaDays: number) => {
