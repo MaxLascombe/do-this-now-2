@@ -1,20 +1,13 @@
 import { requireOptionalNativeModule } from 'expo'
 
 // Null on Android and in builds without the native module (e.g. Expo Go) —
-// callers feature-detect instead of crashing at import time.
-type Subscription = { remove: () => void }
-
+// callers feature-detect instead of crashing at import time. Push-token
+// registration is native (launch-driven, see LockScreenTokenSync); JS only
+// provisions credentials and kicks a sync.
 type LockScreenBridgeModule = {
   setConfig(baseUrl: string, deviceToken: string): void
   isSupported(): boolean
-  addListener(
-    event: 'onPushToStartToken',
-    listener: (payload: { token: string }) => void,
-  ): Subscription
-  addListener(
-    event: 'onActivityUpdateToken',
-    listener: (payload: { token: string; activityId: string }) => void,
-  ): Subscription
+  startSync(): void
 }
 
 export default requireOptionalNativeModule<LockScreenBridgeModule>(

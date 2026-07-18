@@ -52,8 +52,12 @@ struct PauseResumeIntent: AppIntent {
       let state: LockScreenTimerAttributes.ContentState?
     }
     if let response = try? JSONDecoder().decode(Response.self, from: data) {
-      for activity in Activity<LockScreenTimerAttributes>.activities {
-        if let state = response.state {
+      // Update one activity; end any extras — a duplicate that slipped
+      // through gets cleaned up on the next button tap.
+      for (index, activity) in Activity<LockScreenTimerAttributes>.activities
+        .enumerated()
+      {
+        if let state = response.state, index == 0 {
           await activity.update(ActivityContent(state: state, staleDate: nil))
         } else {
           await activity.end(nil, dismissalPolicy: .immediate)

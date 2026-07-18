@@ -1,5 +1,6 @@
 import { createFileRoute } from '@tanstack/react-router'
 import { json } from '@tanstack/react-start'
+import { and, eq } from 'drizzle-orm'
 import { z } from 'zod'
 
 import { livePushTokens } from '@dtn/shared/schema'
@@ -48,6 +49,20 @@ export const Route = createFileRoute('/api/lockscreen/push-token')({
               updatedAt: new Date(),
             },
           })
+        // An update token IS the ack that a pushed-to-start activity is
+        // live — clear the device's pending-start stamp so a future
+        // selection can push-to-start again after this activity ends.
+        if (parsed.data.kind === 'update') {
+          await db
+            .update(livePushTokens)
+            .set({ startSentAt: null })
+            .where(
+              and(
+                eq(livePushTokens.deviceId, device.deviceId),
+                eq(livePushTokens.kind, 'start'),
+              ),
+            )
+        }
         return json({ ok: true })
       },
     },

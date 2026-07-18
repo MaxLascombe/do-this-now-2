@@ -68,6 +68,28 @@ async function dropToken(id: string): Promise<void> {
   await db.delete(livePushTokens).where(eq(livePushTokens.id, id))
 }
 
+// Every start push makes iOS create a NEW activity, so a device must not
+// receive a second one until the first was acknowledged (its update token
+// registered) — otherwise a pause right after a push-to-start duplicates
+// the activity. The cooldown bounds the damage if the ack never arrives.
+export const START_ACK_COOLDOWN_MS = 15 * 60 * 1000
+
+// Pure decision — unit-tested: push-to-start iff the device has no live
+// activity AND no unacknowledged start within the cooldown.
+export function shouldSendStart(
+  row: { deviceId: string; startSentAt: Date | null },
+  devicesWithActivity: Set<string>,
+  now: Date,
+): boolean {
+  if (devicesWithActivity.has(row.deviceId)) return false
+  if (
+    row.startSentAt &&
+    now.getTime() - row.startSentAt.getTime() < START_ACK_COOLDOWN_MS
+  )
+    return false
+  return true
+}
+
 async function sendOrPrune(
   row: { id: string; token: string },
   push: Parameters<typeof sendLiveActivityPush>[1],
@@ -131,17 +153,24 @@ export async function syncLockScreen(userId: string): Promise<void> {
 
   const contentState = state as unknown as Record<string, unknown>
   const devicesWithActivity = new Set(updates.map((t) => t.deviceId))
+  const now = new Date()
   await Promise.all([
     ...updates.map((row) => sendOrPrune(row, { event: 'update', contentState })),
     ...starts
-      .filter((row) => !devicesWithActivity.has(row.deviceId))
-      .map((row) =>
-        sendOrPrune(row, {
+      .filter((row) => shouldSendStart(row, devicesWithActivity, now))
+      .map(async (row) => {
+        // Stamp BEFORE sending: if two syncs race, at most one duplicate —
+        // stamping after would leave a window where both send.
+        await db
+          .update(livePushTokens)
+          .set({ startSentAt: now })
+          .where(eq(livePushTokens.id, row.id))
+        await sendOrPrune(row, {
           event: 'start',
           contentState,
           attributesType: ATTRIBUTES_TYPE,
           attributes: {},
-        }),
-      ),
+        })
+      }),
   ])
 }
