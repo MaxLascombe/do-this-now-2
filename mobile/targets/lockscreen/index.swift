@@ -25,14 +25,22 @@ struct TimerText: View {
 
 struct PauseResumeButton: View {
   let running: Bool
+  let pending: Bool
 
   var body: some View {
     Button(intent: PauseResumeIntent(resume: !running)) {
-      Image(systemName: running ? "pause.fill" : "play.fill")
-        .font(.title3)
+      if pending {
+        ProgressView()
+          .tint(.white)
+      } else {
+        Image(systemName: running ? "pause.fill" : "play.fill")
+          .font(.title3)
+      }
     }
     .buttonStyle(.bordered)
     .tint(running ? .white : .green)
+    .disabled(pending)
+    .opacity(pending ? 0.5 : 1)
   }
 }
 
@@ -67,7 +75,7 @@ struct LockScreenView: View {
         }
       }
       Spacer()
-      PauseResumeButton(running: state.running)
+      PauseResumeButton(running: state.running, pending: state.pending ?? false)
     }
     .padding(16)
   }
@@ -95,7 +103,9 @@ struct LockScreenTimerLiveActivity: Widget {
             .monospacedDigit()
         }
         DynamicIslandExpandedRegion(.bottom) {
-          PauseResumeButton(running: context.state.running)
+          PauseResumeButton(
+            running: context.state.running,
+            pending: context.state.pending ?? false)
         }
       } compactLeading: {
         Text(context.state.emoji)
