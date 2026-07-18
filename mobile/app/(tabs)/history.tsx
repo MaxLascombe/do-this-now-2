@@ -41,10 +41,7 @@ export default function History() {
   }
 
   const goOlder = useCallback(() => setDaysAgo((d) => d + 1), [])
-  const goNewer = useCallback(
-    () => setDaysAgo((d) => Math.max(0, d - 1)),
-    [],
-  )
+  const goNewer = useCallback(() => setDaysAgo((d) => Math.max(0, d - 1)), [])
 
   const dayDate = new Date(Date.now() - daysAgo * DAY_MS)
   const dateKey = dateString(dayDate)
@@ -120,9 +117,9 @@ export default function History() {
               <Text
                 style={{
                   fontFamily: 'JetBrainsMono_700Bold',
-                  fontSize: 16,
-                  color: '#fafafa',
-                  letterSpacing: 2,
+                  fontSize: 17,
+                  color: '#f4f4f5',
+                  letterSpacing: 2.5,
                   textTransform: 'uppercase',
                 }}
               >
@@ -161,46 +158,6 @@ export default function History() {
             </DateStepperButton>
           </View>
 
-          <View style={{ paddingHorizontal: 20, marginBottom: 16 }}>
-            <View
-              style={{
-                borderWidth: 1,
-                borderColor: '#27272a',
-                backgroundColor: 'rgba(24,24,27,0.4)',
-                borderRadius: 16,
-                paddingHorizontal: 20,
-                paddingVertical: 16,
-                flexDirection: 'row',
-                flexWrap: 'wrap',
-              }}
-            >
-              <Stat
-                label="Completed"
-                value={String(entries.length)}
-                unit={entries.length === 1 ? 'task' : 'tasks'}
-              />
-              <Stat
-                label="Time spent"
-                value={mins === 0 ? `${hours}h` : `${hours}h ${mins}m`}
-                unit=""
-              />
-              <Stat
-                label="On this day"
-                value={format(dayDate, 'd')}
-                unit={format(dayDate, 'LLL')}
-              />
-              {isCurrentDay ? (
-                <Stat label="Hit target" value="not yet" unit="⚡" accent={STREAK} />
-              ) : targetHit === null ? (
-                <Stat label="Hit target" value="—" unit="" />
-              ) : targetHit ? (
-                <Stat label="Hit target" value="yes" unit="✓" accent={ACCENT} />
-              ) : (
-                <Stat label="Hit target" value="no" unit="✕" accent={OVERDUE} />
-              )}
-            </View>
-          </View>
-
           <ScrollView
             style={{ flex: 1 }}
             contentContainerStyle={{ paddingBottom: 24 }}
@@ -213,10 +170,63 @@ export default function History() {
               />
             }
           >
-            {!historyQuery.isLoading && tagMinutes.length > 0 && (
+            <View style={{ paddingHorizontal: 20, marginBottom: 16 }}>
               <View
-                style={{ gap: 6, paddingHorizontal: 20, marginBottom: 20 }}
+                style={{
+                  borderWidth: 1,
+                  borderColor: '#27272a',
+                  backgroundColor: 'rgba(24,24,27,0.4)',
+                  borderRadius: 16,
+                  paddingHorizontal: 20,
+                  paddingVertical: 16,
+                  flexDirection: 'row',
+                  flexWrap: 'wrap',
+                }}
               >
+                <Stat
+                  label="Completed"
+                  value={String(entries.length)}
+                  unit={entries.length === 1 ? 'task' : 'tasks'}
+                />
+                <Stat
+                  label="Time spent"
+                  value={mins === 0 ? `${hours}h` : `${hours}h ${mins}m`}
+                  unit=""
+                />
+                <Stat
+                  label="On this day"
+                  value={format(dayDate, 'd')}
+                  unit={format(dayDate, 'LLL')}
+                />
+                {isCurrentDay ? (
+                  <Stat
+                    label="Hit target"
+                    value="not yet"
+                    unit="⚡"
+                    accent={STREAK}
+                  />
+                ) : targetHit === null ? (
+                  <Stat label="Hit target" value="—" unit="" />
+                ) : targetHit ? (
+                  <Stat
+                    label="Hit target"
+                    value="yes"
+                    unit="✓"
+                    accent={ACCENT}
+                  />
+                ) : (
+                  <Stat
+                    label="Hit target"
+                    value="no"
+                    unit="✕"
+                    accent={OVERDUE}
+                  />
+                )}
+              </View>
+            </View>
+
+            {!historyQuery.isLoading && tagMinutes.length > 0 && (
+              <View style={{ gap: 6, paddingHorizontal: 20, marginBottom: 20 }}>
                 <Text
                   style={{
                     fontFamily: 'JetBrainsMono_400Regular',
@@ -241,7 +251,7 @@ export default function History() {
                     <Text
                       numberOfLines={1}
                       style={{
-                        width: 90,
+                        width: 96,
                         color: '#d4d4d8',
                         fontFamily: 'JetBrainsMono_400Regular',
                         fontSize: 12,
@@ -263,13 +273,14 @@ export default function History() {
                           height: 8,
                           borderRadius: 999,
                           backgroundColor: ACCENT,
-                          width: `${maxTagMin > 0 ? (m / maxTagMin) * 100 : 0}%` as ViewStyle['width'],
+                          width:
+                            `${maxTagMin > 0 ? (m / maxTagMin) * 100 : 0}%` as ViewStyle['width'],
                         }}
                       />
                     </View>
                     <Text
                       style={{
-                        width: 52,
+                        width: 56,
                         textAlign: 'right',
                         color: '#71717a',
                         fontFamily: 'JetBrainsMono_400Regular',
@@ -399,7 +410,7 @@ function Stat({
         <Text
           style={{
             fontFamily: 'JetBrainsMono_700Bold',
-            fontSize: 22,
+            fontSize: 28,
             color: accent ?? '#fafafa',
           }}
         >
@@ -409,7 +420,7 @@ function Stat({
           <Text
             style={{
               fontFamily: 'JetBrainsMono_400Regular',
-              fontSize: 11,
+              fontSize: 12,
               color: '#71717a',
             }}
           >
@@ -436,7 +447,7 @@ function CompletedRow({ entry }: { entry: HistoryEntry }) {
         flexDirection: 'row',
         alignItems: 'center',
         gap: 12,
-        paddingHorizontal: 16,
+        paddingHorizontal: 20,
         paddingVertical: 12,
         borderRadius: 16,
         borderWidth: 1,
@@ -448,8 +459,8 @@ function CompletedRow({ entry }: { entry: HistoryEntry }) {
         accessibilityElementsHidden={true}
         importantForAccessibility="no-hide-descendants"
         style={{
-          width: 26,
-          height: 26,
+          width: 28,
+          height: 28,
           borderRadius: 13,
           borderWidth: 1,
           borderColor: ACCENT,
@@ -459,13 +470,13 @@ function CompletedRow({ entry }: { entry: HistoryEntry }) {
       >
         <Text style={{ color: ACCENT, fontSize: 14, lineHeight: 14 }}>✓</Text>
       </View>
-      <Text style={{ fontSize: 22, lineHeight: 24 }}>{task.emoji}</Text>
+      <Text style={{ fontSize: 24, lineHeight: 26 }}>{task.emoji}</Text>
       <View style={{ flex: 1 }}>
         <Text
           numberOfLines={1}
           style={{
             fontFamily: 'JetBrainsMono_400Regular',
-            fontSize: 17,
+            fontSize: 17.5,
             color: '#d4d4d8',
             textDecorationLine: 'line-through',
             textDecorationColor: 'rgba(255,255,255,0.25)',
@@ -499,7 +510,7 @@ function MetaItem({ children }: { children: React.ReactNode }) {
     <Text
       style={{
         fontFamily: 'JetBrainsMono_400Regular',
-        fontSize: 11,
+        fontSize: 12,
         color: '#71717a',
         marginRight: 12,
       }}
