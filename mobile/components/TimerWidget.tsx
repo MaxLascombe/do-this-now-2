@@ -69,8 +69,8 @@ export function TimerWidget({
             justifyContent: 'space-between',
             borderRadius: 16,
             borderWidth: 1,
-            borderColor: running ? ACCENT : '#27272a',
-            backgroundColor: 'rgba(24,24,27,0.4)',
+            borderColor: running ? ACCENT : '#3f3f46',
+            backgroundColor: 'rgba(24,24,27,0.75)',
             paddingHorizontal: 20,
             paddingVertical: 12,
           }}
@@ -82,7 +82,10 @@ export function TimerWidget({
                 fontFamily: 'JetBrainsMono_700Bold',
                 color: running ? ACCENT : '#fafafa',
                 fontSize: 30,
-                lineHeight: 32,
+                lineHeight: 34,
+                includeFontPadding: false,
+                textAlignVertical: 'center',
+                marginTop: 2,
               }}
             >
               {formatTimerSeconds(seconds)}
