@@ -17,10 +17,7 @@ import {
   useUpdateTask,
 } from '@dtn/shared/queries'
 import { taskToInput } from '@dtn/shared/task-input'
-import {
-  findNextActionableSubtask,
-  isSnoozed,
-} from '@dtn/shared/task-sorting'
+import { findNextActionableSubtask, isSnoozed } from '@dtn/shared/task-sorting'
 import {
   snoozeTaskTransition,
   willAdvanceSubtask,
@@ -93,7 +90,7 @@ const SecondaryAction = ({
   <button
     type="button"
     onClick={onClick}
-    className="flex items-center gap-1.5 rounded-full px-3 py-1.5 text-sm text-zinc-500 transition-colors hover:bg-zinc-900 hover:text-zinc-100"
+    className="flex items-center justify-center gap-1.5 rounded-full px-3 py-1.5 text-sm text-zinc-500 transition-colors hover:bg-zinc-900 hover:text-zinc-100"
   >
     <Kbd>{k}</Kbd>
     <span>{label}</span>
@@ -225,10 +222,7 @@ function Home() {
   // — snoozing just the next subtask makes no sense when that subtask isn't
   // on screen. The Focus View, where the subtask is visible, keeps the
   // subtask-aware snooze on `s` (and the whole-task snooze on ⇧S).
-  const snoozeTaskFor = (
-    task: Task | null | undefined,
-    wholeTask: boolean,
-  ) => {
+  const snoozeTaskFor = (task: Task | null | undefined, wholeTask: boolean) => {
     if (!task) return
     const { id } = task
     // Snoozing the whole task out of the active list also leaves the Focus
@@ -692,7 +686,7 @@ function Hero({
         <Kbd variant="on-light">d</Kbd>
       </button>
 
-      <div className="mt-3 grid w-full max-w-[320px] grid-cols-3 gap-2 md:mt-4 md:flex md:max-w-none md:w-auto md:items-center md:gap-3">
+      <div className="mt-3 flex w-full max-w-[320px] flex-wrap justify-center gap-2 md:mt-4 md:max-w-none md:w-auto md:items-center md:gap-3">
         <SecondaryAction k="Esc" label="Return" onClick={onReturn} />
         <SecondaryAction k="s" label="Snooze" onClick={onSnooze} />
         {task.subtasks.length > 0 && (

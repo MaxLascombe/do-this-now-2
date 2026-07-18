@@ -5,7 +5,6 @@ import { Alert, Pressable, Text, View } from 'react-native'
 import { SafeAreaView } from 'react-native-safe-area-context'
 
 import { PageHeading } from '../components/PageHeading'
-import { TopProgress } from '../components/TopProgress'
 
 const OVERDUE = '#fb7185'
 
@@ -34,7 +33,6 @@ export default function Settings() {
       edges={['top']}
     >
       <Stack.Screen options={{ headerShown: true, title: 'Settings' }} />
-      <TopProgress />
       <PageHeading eyebrow="account">Settings</PageHeading>
       <View
         style={{

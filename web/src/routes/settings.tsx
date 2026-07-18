@@ -26,13 +26,21 @@ function Settings() {
   const keyActions: KeyAction[] = [
     { key: 'escape', description: 'Home', action: () => navigate({ to: '/' }) },
     { key: 'n', description: 'Home', action: () => navigate({ to: '/' }) },
-    { key: 't', description: 'Tasks', action: () => navigate({ to: '/tasks' }) },
+    {
+      key: 't',
+      description: 'Tasks',
+      action: () => navigate({ to: '/tasks' }),
+    },
     {
       key: 'h',
       description: 'History',
       action: () => navigate({ to: '/history' }),
     },
-    { key: 'a', description: 'Stats', action: () => navigate({ to: '/stats' }) },
+    {
+      key: 'a',
+      description: 'Stats',
+      action: () => navigate({ to: '/stats' }),
+    },
   ]
   useKeyAction(keyActions)
 
@@ -43,6 +51,7 @@ function Settings() {
         sheetOpen={sheetOpen}
         onOpenSheet={() => setSheetOpen(true)}
         onCloseSheet={() => setSheetOpen(false)}
+        hideProgress
       />
 
       <div className="px-5 pt-2 pb-6 md:px-10">

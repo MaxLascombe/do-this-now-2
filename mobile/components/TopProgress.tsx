@@ -10,6 +10,7 @@ import { SafeAreaView } from 'react-native-safe-area-context'
 
 import { useDate } from '../hooks/useDate'
 import { FocusReturnBar } from './FocusReturnBar'
+import { ProfileIcon } from './icons'
 
 const ACCENT = '#34d399'
 const STREAK = '#f59e0b'
@@ -147,7 +148,7 @@ export function TopProgress() {
         <Pressable
           onPress={() => router.push('/settings')}
           accessibilityRole="button"
-          accessibilityLabel="Settings"
+          accessibilityLabel="Profile & settings"
           hitSlop={10}
           style={({ pressed }) => ({
             paddingRight: 20,
@@ -155,7 +156,7 @@ export function TopProgress() {
             opacity: pressed ? 0.6 : 1,
           })}
         >
-          <Text style={{ color: '#71717a', fontSize: 16 }}>⚙</Text>
+          <ProfileIcon size={20} />
         </Pressable>
       </View>
       <FocusReturnBar />

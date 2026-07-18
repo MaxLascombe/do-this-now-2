@@ -7,6 +7,7 @@ import { type Task } from '@dtn/shared/types'
 import { useEffect, useState } from 'react'
 import { Alert, Pressable, Text, View } from 'react-native'
 
+import { PauseIcon, PlayIcon, SlidersIcon } from './icons'
 import { PulseDot } from './PulseDot'
 import { TimerAdjustModal } from './TimerAdjustModal'
 
@@ -103,15 +104,7 @@ export function TimerWidget({
                 opacity: timer.isPending ? 0.3 : pressed ? 0.7 : 1,
               })}
             >
-              <Text
-                style={{
-                  fontFamily: 'JetBrainsMono_400Regular',
-                  color: '#d4d4d8',
-                  fontSize: 16,
-                }}
-              >
-                ±
-              </Text>
+              <SlidersIcon />
             </Pressable>
             <Pressable
               onPress={() => dispatch(running ? 'pause' : 'start')}
@@ -133,9 +126,7 @@ export function TimerWidget({
                 opacity: timer.isPending ? 0.6 : 1,
               })}
             >
-              <Text style={{ color: '#0a0a0a', fontSize: 16 }}>
-                {running ? '⏸' : '▶'}
-              </Text>
+              {running ? <PauseIcon size={16} /> : <PlayIcon size={16} />}
             </Pressable>
           </View>
         </View>
@@ -265,6 +256,7 @@ export function TimerWidget({
             opacity: timer.isPending ? 0.6 : 1,
           })}
         >
+          {running ? <PauseIcon size={12} /> : <PlayIcon size={12} />}
           <Text
             style={{
               fontFamily: 'JetBrainsMono_700Bold',
@@ -272,7 +264,7 @@ export function TimerWidget({
               fontSize: 15,
             }}
           >
-            {running ? '⏸  Pause' : '▶  Start'}
+            {running ? 'Pause' : 'Start'}
           </Text>
         </Pressable>
 
