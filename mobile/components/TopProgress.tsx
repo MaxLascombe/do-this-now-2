@@ -9,7 +9,7 @@ import { Modal, Pressable, Text, View } from 'react-native'
 import { SafeAreaView } from 'react-native-safe-area-context'
 
 import { useDate } from '../hooks/useDate'
-import { RunningTimerChip } from './RunningTimerChip'
+import { FocusReturnBar } from './FocusReturnBar'
 
 const ACCENT = '#34d399'
 const STREAK = '#f59e0b'
@@ -158,15 +158,7 @@ export function TopProgress() {
           <Text style={{ color: '#71717a', fontSize: 16 }}>⚙</Text>
         </Pressable>
       </View>
-      <View
-        style={{
-          alignItems: 'flex-end',
-          paddingHorizontal: 20,
-          paddingBottom: 6,
-        }}
-      >
-        <RunningTimerChip />
-      </View>
+      <FocusReturnBar />
       <Modal
         visible={open}
         animationType="slide"
@@ -228,8 +220,19 @@ function ProgressSheet({ onClose }: { onClose: () => void }) {
     >
       <View
         style={{
+          alignSelf: 'center',
+          marginTop: 12,
+          height: 4,
+          width: 40,
+          borderRadius: 999,
+          backgroundColor: '#3f3f46',
+        }}
+      />
+      <View
+        style={{
           flexDirection: 'row',
           justifyContent: 'space-between',
+          alignItems: 'center',
           padding: 20,
           paddingTop: 12,
         }}
@@ -238,21 +241,37 @@ function ProgressSheet({ onClose }: { onClose: () => void }) {
           style={{
             fontFamily: 'JetBrainsMono_400Regular',
             color: '#71717a',
-            fontSize: 11,
+            fontSize: 10,
             letterSpacing: 3,
             textTransform: 'uppercase',
           }}
         >
           Today · progress
         </Text>
-        <Pressable
-          onPress={onClose}
-          hitSlop={12}
-          accessibilityRole="button"
-          accessibilityLabel="Close"
-        >
-          <Text style={{ color: '#a1a1aa', fontSize: 18 }}>✕</Text>
-        </Pressable>
+        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 14 }}>
+          <Text
+            style={{
+              fontFamily: 'JetBrainsMono_400Regular',
+              color: '#71717a',
+              fontSize: 12,
+              fontVariant: ['tabular-nums'],
+            }}
+          >
+            {now.toLocaleTimeString('en-US', {
+              hour: '2-digit',
+              minute: '2-digit',
+              hour12: false,
+            })}
+          </Text>
+          <Pressable
+            onPress={onClose}
+            hitSlop={12}
+            accessibilityRole="button"
+            accessibilityLabel="Close"
+          >
+            <Text style={{ color: '#a1a1aa', fontSize: 18 }}>✕</Text>
+          </Pressable>
+        </View>
       </View>
       <View style={{ paddingHorizontal: 20 }}>
         <View style={{ flexDirection: 'row', gap: 2 }}>
@@ -317,7 +336,7 @@ function ProgressSheet({ onClose }: { onClose: () => void }) {
             iconColor={STREAK}
             label="Streak"
             value={streak}
-            unit={`${streak === 1 ? 'day' : 'days'}${streakIsActive ? ' · live' : ''}`}
+            unit={streak === 1 ? 'day' : 'days'}
           />
           <SheetStat
             icon="♥"

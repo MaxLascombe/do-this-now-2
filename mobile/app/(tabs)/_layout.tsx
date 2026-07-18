@@ -1,9 +1,13 @@
 import * as Haptics from 'expo-haptics'
 import { Tabs, router } from 'expo-router'
 import { Pressable, Text, View } from 'react-native'
+import { SafeAreaView } from 'react-native-safe-area-context'
+
+import { TopProgress } from '../../components/TopProgress'
 
 const ACTIVE = '#fafafa'
-const INACTIVE = '#52525b'
+// zinc-500, matching web's inactive tab color.
+const INACTIVE = '#71717a'
 
 function TabIcon({
   glyph,
@@ -55,22 +59,21 @@ function PlusButton({
           backgroundColor: '#fafafa',
           alignItems: 'center',
           justifyContent: 'center',
-          marginTop: -10,
           shadowColor: '#fff',
-          shadowOpacity: 0.25,
-          shadowRadius: 12,
-          shadowOffset: { width: 0, height: 4 },
+          shadowOpacity: 0.18,
+          shadowRadius: 20,
+          shadowOffset: { width: 0, height: 6 },
         }}
       >
         <Text
           style={{
-            fontSize: 22,
+            fontSize: 20,
             lineHeight: 24,
             color: '#0a0a0b',
-            fontFamily: 'JetBrainsMono_700Bold',
+            fontFamily: 'JetBrainsMono_400Regular',
           }}
         >
-          +
+          ＋
         </Text>
       </View>
     </Pressable>
@@ -79,11 +82,18 @@ function PlusButton({
 
 export default function TabsLayout() {
   return (
-    <Tabs
+    <SafeAreaView
+      style={{ flex: 1, backgroundColor: '#0a0a0a' }}
+      edges={['top']}
+    >
+      {/* Global chrome, like web's MobileTopBar: progress bar + return bar
+          rendered once for every tab, not per-screen. */}
+      <TopProgress />
+      <Tabs
       screenOptions={{
         headerShown: false,
         tabBarStyle: {
-          backgroundColor: '#0a0a0b',
+          backgroundColor: 'rgba(10,10,11,0.95)',
           borderTopColor: '#18181b',
           borderTopWidth: 1,
           height: 78,
@@ -134,6 +144,7 @@ export default function TabsLayout() {
           tabBarIcon: ({ color }) => <TabIcon glyph="▤" color={color} />,
         }}
       />
-    </Tabs>
+      </Tabs>
+    </SafeAreaView>
   )
 }

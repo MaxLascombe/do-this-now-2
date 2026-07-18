@@ -31,14 +31,12 @@ import {
   TextInput,
   View,
 } from 'react-native'
-import { SafeAreaView } from 'react-native-safe-area-context'
 
 import { EmptyTasks } from '../../components/EmptyTasks'
 import { ErrorState } from '../../components/ErrorState'
 import { Loading } from '../../components/Loading'
 import { PageHeading } from '../../components/PageHeading'
 import { RowAction, RowMenu, TaskRow } from '../../components/TaskRow'
-import { TopProgress } from '../../components/TopProgress'
 import { useToast } from '../../components/ToastProvider'
 import { usePersistedState } from '../../hooks/usePersistedState'
 import { usePullRefresh } from '../../hooks/usePullRefresh'
@@ -332,12 +330,8 @@ export default function TasksList() {
   const { refreshing, onRefresh } = usePullRefresh(activeQuery.refetch)
 
   return (
-    <SafeAreaView
-      style={{ flex: 1, backgroundColor: '#0a0a0a' }}
-      edges={['top']}
-    >
+    <View style={{ flex: 1, backgroundColor: '#0a0a0a' }}>
       <Stack.Screen options={{ headerShown: false }} />
-      <TopProgress />
       <PageHeading eyebrow={eyebrow}>All tasks</PageHeading>
       <View style={{ paddingHorizontal: 20, paddingBottom: 12, gap: 10 }}>
         <SortToggle value={sort} onChange={setSort} />
@@ -435,7 +429,7 @@ export default function TasksList() {
           )
         }
       />
-    </SafeAreaView>
+    </View>
   )
 }
 
