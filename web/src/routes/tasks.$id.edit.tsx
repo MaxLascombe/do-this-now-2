@@ -1,8 +1,15 @@
-import { useDeleteTask, useTask, useUpdateTask } from '@dtn/shared/queries'
+import {
+  useCreateTask,
+  useDeleteTask,
+  useTask,
+  useUpdateTask,
+} from '@dtn/shared/queries'
+import { taskToInput } from '@dtn/shared/task-input'
 import { createFileRoute, useRouter } from '@tanstack/react-router'
 import { useState } from 'react'
 
 import { useConfirm } from '../components/ConfirmProvider'
+import { useToast } from '../components/ToastProvider'
 import { ErrorState } from '../components/ErrorState'
 import { MobileChrome } from '../components/MobileChrome'
 import { PageHeading } from '../components/PageHeading'
@@ -22,7 +29,9 @@ function EditTask() {
   const taskQuery = useTask(id)
   const mutation = useUpdateTask()
   const deleteMutation = useDeleteTask()
+  const createMutation = useCreateTask()
   const confirm = useConfirm()
+  const toast = useToast()
   const [sheetOpen, setSheetOpen] = useState(false)
 
   const task = taskQuery.data
@@ -73,8 +82,16 @@ function EditTask() {
       confirmLabel: 'Delete',
     })
     if (!ok) return
+    const restore = taskToInput(task)
     deleteMutation.mutate(task.id, {
-      onSuccess: () => router.history.back(),
+      onSuccess: () => {
+        router.history.back()
+        toast({
+          message: `Deleted '${task.title}'`,
+          actionLabel: 'Undo',
+          onAction: () => createMutation.mutate(restore),
+        })
+      },
     })
   }
 

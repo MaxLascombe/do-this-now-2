@@ -2,6 +2,7 @@ import { useCreateTask } from '@dtn/shared/queries'
 import { Stack, useLocalSearchParams, useRouter } from 'expo-router'
 import { View } from 'react-native'
 
+import { Loading } from '../components/Loading'
 import { TaskForm } from '../components/TaskForm'
 
 export default function NewTask() {
@@ -32,6 +33,22 @@ export default function NewTask() {
           mutation.mutate(input, { onSuccess: () => router.back() })
         }
       />
+      {mutation.isPending && (
+        <View
+          style={{
+            position: 'absolute',
+            top: 0,
+            right: 0,
+            bottom: 0,
+            left: 0,
+            alignItems: 'center',
+            justifyContent: 'center',
+            backgroundColor: 'rgba(10,10,10,0.7)',
+          }}
+        >
+          <Loading />
+        </View>
+      )}
     </View>
   )
 }
