@@ -39,6 +39,7 @@
     "@tanstack/react-router-ssr-query": "^1.166.12",
     "@tanstack/react-start": "^1.167.65",
     "@tanstack/router-plugin": "^1.167.35",
+    "@vercel/functions": "^3.7.5",
     "date-fns": "^4.1.0",
     "drizzle-orm": "^0.45.1",
     "keycode": "^2.2.1",

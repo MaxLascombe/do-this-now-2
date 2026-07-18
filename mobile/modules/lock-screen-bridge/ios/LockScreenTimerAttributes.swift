@@ -14,5 +14,9 @@ struct LockScreenTimerAttributes: ActivityAttributes {
     var startedAtEpoch: Double?
     var accumulatedSeconds: Double
     var targetMinutes: Double
+    // Local-only: set by the button intent while its server call is in
+    // flight (greys/disables the button). The server never sends it, so
+    // any push naturally clears it.
+    var pending: Bool?
   }
 }

@@ -1,3 +1,4 @@
+import { waitUntil } from '@vercel/functions'
 import { and, eq, isNull, lt, or } from 'drizzle-orm'
 
 import { livePushTokens, tasks } from '@dtn/shared/schema'
@@ -93,9 +94,10 @@ export function shouldSendStart(
 async function sendOrPrune(
   row: { id: string; token: string },
   push: Parameters<typeof sendLiveActivityPush>[1],
-): Promise<void> {
+): Promise<'sent' | 'pruned' | 'failed'> {
   try {
     await sendLiveActivityPush(row.token, push)
+    return 'sent'
   } catch (err) {
     // 410 Unregistered / 400 BadDeviceToken = the token will never work
     // again (activity ended, app reinstalled) — drop the row. Anything else
@@ -105,29 +107,59 @@ async function sendOrPrune(
       (err.status === 410 || err.reason === 'BadDeviceToken')
     ) {
       await dropToken(row.id)
-      return
+      return 'pruned'
     }
     console.error(`lockscreen push failed (token ${tokenDigest(row.token)})`, err)
+    return 'failed'
   }
 }
 
-// Mirror the user's current state onto every registered phone. Fire-and-
-// forget from mutation routes (`void syncLockScreen(userId)`) — a push
-// failure must never fail the mutation that triggered it.
-//
-// Per device: an 'update' token means an activity is (or was) live there —
-// update it in place (also how a Selected-Task switch lands, per the
-// update-in-place decision). A device with only a 'start' token gets a
-// push-to-start. When nothing is Selected, end every live activity and
-// forget its update token (a fresh one arrives when the next activity
-// starts).
-// Route-side hook: sync without awaiting or failing the mutation.
+// Atomic claim: only the sync whose UPDATE actually flips the stamp sends.
+// Two concurrent syncs both see a stale SELECT; the conditional write makes
+// the loser skip instead of double-starting.
+async function claimStart(rowId: string, now: Date): Promise<boolean> {
+  const claimed = await db
+    .update(livePushTokens)
+    .set({ startSentAt: now })
+    .where(
+      and(
+        eq(livePushTokens.id, rowId),
+        or(
+          isNull(livePushTokens.startSentAt),
+          lt(
+            livePushTokens.startSentAt,
+            new Date(now.getTime() - START_ACK_COOLDOWN_MS),
+          ),
+        ),
+      ),
+    )
+    .returning({ id: livePushTokens.id })
+  return claimed.length > 0
+}
+
+// Route-side hook: never awaited by (or able to fail) the mutation. On
+// Vercel the response would otherwise freeze the function and kill the
+// pushes mid-flight (observed as "APNs 0" / TLS cancels / dropped DB
+// connections in prod) — waitUntil keeps the instance alive until the sync
+// settles. Outside Vercel it's a no-op and the promise just floats.
 export const syncLockScreenSoon = (userId: string): void => {
-  void syncLockScreen(userId).catch((err) =>
-    console.error('syncLockScreen failed', err),
+  waitUntil(
+    syncLockScreen(userId).catch((err) =>
+      console.error('syncLockScreen failed', err),
+    ),
   )
 }
 
+// Mirror the user's current state onto every registered phone.
+//
+// Per device: an 'update' token means an activity is live there — update it
+// in place (also how a Selected-Task switch lands, per the update-in-place
+// decision). If that token turns out dead (app reinstalled, activity gone),
+// fall through to a push-to-start in the SAME pass instead of losing an
+// action to the pruning. A device with only a 'start' token gets a
+// push-to-start, gated by the ack/cooldown claim. When nothing is Selected,
+// end every live activity and forget its update token (a fresh one arrives
+// when the next activity starts).
 export async function syncLockScreen(userId: string): Promise<void> {
   if (!apnsConfigured()) return
   const [state, tokens] = await Promise.all([
@@ -135,7 +167,6 @@ export async function syncLockScreen(userId: string): Promise<void> {
     db.select().from(livePushTokens).where(eq(livePushTokens.userId, userId)),
   ])
   const updates = tokens.filter((t) => t.kind === 'update')
-  const starts = tokens.filter((t) => t.kind === 'start')
 
   if (state === null) {
     await Promise.all(
@@ -152,40 +183,30 @@ export async function syncLockScreen(userId: string): Promise<void> {
   }
 
   const contentState = state as unknown as Record<string, unknown>
-  const devicesWithActivity = new Set(updates.map((t) => t.deviceId))
   const now = new Date()
-  await Promise.all([
-    ...updates.map((row) => sendOrPrune(row, { event: 'update', contentState })),
-    ...starts
-      .filter((row) => shouldSendStart(row, devicesWithActivity, now))
-      .map(async (row) => {
-        // Atomic claim: only the sync whose UPDATE actually flips the stamp
-        // sends. Two concurrent syncs both pass shouldSendStart on their
-        // stale SELECTs; the conditional write makes the loser skip instead
-        // of double-starting.
-        const claimed = await db
-          .update(livePushTokens)
-          .set({ startSentAt: now })
-          .where(
-            and(
-              eq(livePushTokens.id, row.id),
-              or(
-                isNull(livePushTokens.startSentAt),
-                lt(
-                  livePushTokens.startSentAt,
-                  new Date(now.getTime() - START_ACK_COOLDOWN_MS),
-                ),
-              ),
-            ),
-          )
-          .returning({ id: livePushTokens.id })
-        if (claimed.length === 0) return
-        await sendOrPrune(row, {
-          event: 'start',
+  const deviceIds = [...new Set(tokens.map((t) => t.deviceId))]
+  await Promise.all(
+    deviceIds.map(async (deviceId) => {
+      const update = updates.find((t) => t.deviceId === deviceId)
+      if (update) {
+        const outcome = await sendOrPrune(update, {
+          event: 'update',
           contentState,
-          attributesType: ATTRIBUTES_TYPE,
-          attributes: {},
         })
-      }),
-  ])
+        if (outcome !== 'pruned') return
+      }
+      const start = tokens.find(
+        (t) => t.deviceId === deviceId && t.kind === 'start',
+      )
+      if (!start) return
+      if (!shouldSendStart(start, new Set(), now)) return
+      if (!(await claimStart(start.id, now))) return
+      await sendOrPrune(start, {
+        event: 'start',
+        contentState,
+        attributesType: ATTRIBUTES_TYPE,
+        attributes: {},
+      })
+    }),
+  )
 }

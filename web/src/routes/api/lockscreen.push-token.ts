@@ -47,6 +47,11 @@ export const Route = createFileRoute('/api/lockscreen/push-token')({
             set: {
               token: parsed.data.token.toLowerCase(),
               updatedAt: new Date(),
+              // A fresh start token (app open / reinstall) invalidates any
+              // pending-start stamp aimed at the token it replaces —
+              // without this, a stale stamp mutes push-to-start for the
+              // whole cooldown after a reinstall.
+              ...(parsed.data.kind === 'start' ? { startSentAt: null } : {}),
             },
           })
         // An update token IS the ack that a pushed-to-start activity is
