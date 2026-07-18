@@ -32,6 +32,10 @@ _Avoid_: widget (that's the in-app TimerWidget), notification, pill
 Per-task property, on by default, saying the task may be worked ahead of its due date. When off, the task is a candidate only from its due date on: the Top Tasks omit it entirely while its due date is after the user's local today (calendar day only — a due-time never affects visibility), and a completion that reschedules a repeating task past today removes it from that surface immediately. Visibility is the whole story: the task stays in the all-tasks list (with a subtle marker), keeps normal rank rules once due, still counts toward progress targets, and remains selectable/startable from anywhere per the Selected Task rules.
 _Avoid_: blocked, locked, deferred, hidden task
 
+**Platform Idiom**:
+A native mechanic (system alert, bottom sheet, haptic, pull-to-refresh, swipe, native modal) used on mobile where web uses a styled in-page equivalent. Idioms are parity, not drift: the mechanic may differ, but the copy, colors, sizes, and content inside it must match the web design. Keyboard-only affordances are not idioms — they are omitted on touch entirely.
+_Avoid_: inconsistency, deviation (when describing an idiom), mobile-only feature
+
 **Subtask**:
 A step within a task. Seen and worked through in the Focus View — the Tasks list shows only a done/total count, never the subtasks themselves. There is no freeform notes field on a task; subtasks are the only sub-detail.
 _Avoid_: step, checklist item, note
