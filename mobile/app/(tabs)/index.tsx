@@ -539,6 +539,7 @@ function Hero({
           alignSelf: 'center',
           flexDirection: 'row',
           flexWrap: 'wrap',
+          justifyContent: 'center',
           columnGap: 8,
           rowGap: 8,
         }}

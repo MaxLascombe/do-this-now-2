@@ -60,8 +60,10 @@ function Bar({ id }: { id: string }) {
           gap: 8,
           borderRadius: 8,
           borderWidth: 1,
-          borderColor: pressed ? '#52525b' : '#27272a',
-          backgroundColor: 'rgba(24,24,27,0.6)',
+          borderColor: pressed ? '#52525b' : '#3f3f46',
+          backgroundColor: '#18181b',
+          flexWrap: 'nowrap',
+          maxWidth: '92%',
           paddingHorizontal: 10,
           paddingVertical: 6,
         })}
@@ -70,6 +72,7 @@ function Bar({ id }: { id: string }) {
         <Text
           numberOfLines={1}
           style={{
+            flexShrink: 1,
             maxWidth: 144,
             fontFamily: 'JetBrainsMono_400Regular',
             fontSize: 12,
