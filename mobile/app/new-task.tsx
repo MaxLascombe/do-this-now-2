@@ -13,10 +13,16 @@ export default function NewTask() {
   // Optional pre-fill via route params (?due=YYYY-M-D&tag=…), mirroring the
   // web new-task route. Nothing links here with params today.
   const initial = (() => {
-    const init: { dueYear?: number; dueMonth?: number; dueDay?: number; tags?: string[] } = {}
+    const init: {
+      dueYear?: number
+      dueMonth?: number
+      dueDay?: number
+      tags?: string[]
+    } = {}
     if (due) {
       const [y, m, d] = due.split('-').map((s) => parseInt(s, 10))
-      if (y && m && d) Object.assign(init, { dueYear: y, dueMonth: m, dueDay: d })
+      if (y && m && d)
+        Object.assign(init, { dueYear: y, dueMonth: m, dueDay: d })
     }
     if (tag) init.tags = [tag]
     return Object.keys(init).length > 0 ? init : undefined

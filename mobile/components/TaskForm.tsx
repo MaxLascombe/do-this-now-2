@@ -1,10 +1,6 @@
 import { useApi } from '@dtn/shared/api-client'
 import { formatDueDistance } from '@dtn/shared/format'
-import {
-  dateString,
-  newSafeDate,
-  newSafeDateTime,
-} from '@dtn/shared/helpers'
+import { dateString, newSafeDate, newSafeDateTime } from '@dtn/shared/helpers'
 import { useAllTasks } from '@dtn/shared/queries'
 import {
   type RepeatOption,
@@ -226,9 +222,7 @@ export function TaskForm({
 
   const displayedMinutes = Math.ceil(timeFrame)
   const timeSummary =
-    timeFrame === 0
-      ? '0 min (tracked elsewhere)'
-      : `${displayedMinutes} min`
+    timeFrame === 0 ? '0 min (tracked elsewhere)' : `${displayedMinutes} min`
 
   const dueTimeAsDate = dueTime
     ? newSafeDateTime('2000-1-1', dueTime)
@@ -557,9 +551,7 @@ export function TaskForm({
                   style={{
                     borderWidth: 1,
                     borderColor: active ? '#f4f4f5' : '#27272a',
-                    backgroundColor: active
-                      ? '#fafafa'
-                      : 'rgba(24,24,27,0.6)',
+                    backgroundColor: active ? '#fafafa' : 'rgba(24,24,27,0.6)',
                     paddingHorizontal: 12,
                     paddingVertical: 7,
                     borderRadius: 999,
@@ -935,7 +927,6 @@ export function TaskForm({
             </View>
           )}
         </Field>
-
       </ScrollView>
 
       <View
@@ -1073,7 +1064,6 @@ export function TaskForm({
         </View>
       </Sheet>
 
-
       <Sheet
         open={openSheet === 'repeat'}
         onClose={() => setOpenSheet(null)}
@@ -1149,7 +1139,14 @@ export function TaskForm({
         onClose={() => setOpenSheet(null)}
         title="Tracked under"
       >
-        <View style={{ paddingHorizontal: 20, paddingTop: 12, paddingBottom: 24, gap: 8 }}>
+        <View
+          style={{
+            paddingHorizontal: 20,
+            paddingTop: 12,
+            paddingBottom: 24,
+            gap: 8,
+          }}
+        >
           <TextInput
             value={keeperQuery}
             onChangeText={setKeeperQuery}
@@ -1426,9 +1423,7 @@ function SettingRow({
       style={({ pressed }) => ({
         borderWidth: 1,
         borderColor: '#27272a',
-        backgroundColor: pressed
-          ? 'rgba(24,24,27,0.9)'
-          : 'rgba(24,24,27,0.6)',
+        backgroundColor: pressed ? 'rgba(24,24,27,0.9)' : 'rgba(24,24,27,0.6)',
         borderRadius: 12,
         paddingHorizontal: 14,
         paddingVertical: 12,
