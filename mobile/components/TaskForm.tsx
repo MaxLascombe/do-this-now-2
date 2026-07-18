@@ -192,8 +192,12 @@ export function TaskForm({
     d.setDate(d.getDate() + deltaDays)
     setDueDate(newSafeDate(dateString(d)))
   }
-  const bumpTimeFrame = (delta: number) =>
-    setTimeFrame((v) => Math.max(0, v + delta))
+  const bumpTimeFrame = (delta: number) => {
+    const next = Math.max(0, Math.round(timeFrame) + delta)
+    setTimeFrame(next)
+    // Keep the XOR invariant: positive timeFrame implies no keeper.
+    if (next > 0 && timekeeperId !== null) setTimekeeperId(null)
+  }
   const [showCustomEmoji, setShowCustomEmoji] = useState(false)
   const [customEmoji, setCustomEmoji] = useState('')
   const quickDue = (deltaDays: number) => {
