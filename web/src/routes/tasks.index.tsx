@@ -436,8 +436,6 @@ function TasksList() {
             ) : query ? (
               `No tasks match "${query.trim()}"`
             ) : (
-              // Adopted from the mobile app's richer empty state (ADR-0005:
-              // improvements flow both ways) — a CTA card, not a bare label.
               <div className="mt-12 flex flex-col items-center gap-6">
                 <span
                   aria-hidden="true"
