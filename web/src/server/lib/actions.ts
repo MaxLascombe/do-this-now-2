@@ -266,6 +266,10 @@ export async function snoozeManyTasks(
         .update(tasks)
         .set({ snooze, updatedAt: now, ...timerFields })
         .where(and(eq(tasks.userId, userId), eq(tasks.id, task.id)))
+      // Snoozing unselects (glossary rule) — the single-task snooze path
+      // already does this; without it a batch snooze left the Focus View
+      // and the Lock Screen Timer pointing at a snoozed task.
+      await clearSelectionIfTx(tx, userId, task.id, now)
       count++
     }
     return { count }
