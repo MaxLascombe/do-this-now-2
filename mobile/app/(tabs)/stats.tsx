@@ -280,7 +280,12 @@ function Heatmap({ data }: { data: StatsResult }) {
           onLayout={(e) => setGridWidth(e.nativeEvent.layout.width)}
         >
           {cols > 0 && (
-            <View style={{ flexDirection: 'row', gap: CELL_GAP }}>
+            <View
+              accessible
+              accessibilityRole="image"
+              accessibilityLabel={`Activity over the last 6 months: ${nonZeroSorted.length} active ${nonZeroSorted.length === 1 ? 'day' : 'days'}, ${data.totalDaysHit} ${data.totalDaysHit === 1 ? 'day' : 'days'} hit the daily target.`}
+              style={{ flexDirection: 'row', gap: CELL_GAP }}
+            >
               {Array.from({ length: cols }).map((_, col) => (
                 <View key={col} style={{ gap: CELL_GAP }}>
                   {Array.from({ length: 7 }).map((_, row) => {
@@ -341,9 +346,14 @@ const axisText = legendText
 function DailyBars({ data }: { data: StatsResult }) {
   const days = data.last30Days
   const max = Math.max(1, ...days.map((d) => d.minutes))
+  const totalMinutes = days.reduce((a, d) => a + d.minutes, 0)
+  const peakMinutes = days.length ? Math.max(...days.map((d) => d.minutes)) : 0
   return (
     <Section title="Last 30 days · minutes done">
       <View
+        accessible
+        accessibilityRole="image"
+        accessibilityLabel={`Minutes completed per day over the last 30 days. ${totalMinutes} minutes total${peakMinutes > 0 ? `, peak ${peakMinutes} minutes in a day` : ''}.`}
         style={{
           height: 96,
           flexDirection: 'row',
@@ -414,6 +424,9 @@ function HourOfDay({ data }: { data: StatsResult }) {
     <Section title="Hour of day">
       <ChartHeader total={total} peak={`peak ${max}/hr`} />
       <View
+        accessible
+        accessibilityRole="image"
+        accessibilityLabel={`Completions by hour of day. Busiest hour ${data.hourOfDay.indexOf(max).toString().padStart(2, '0')}:00 with ${max} completion${max === 1 ? '' : 's'}.`}
         style={{
           height: 80,
           flexDirection: 'row',
@@ -470,6 +483,9 @@ function DayOfWeek({ data }: { data: StatsResult }) {
     <Section title="Day of week">
       <ChartHeader total={total} peak={`peak ${max}`} />
       <View
+        accessible
+        accessibilityRole="image"
+        accessibilityLabel={`Completions by day of week. Busiest day ${labels[data.dayOfWeek.indexOf(max)]} with ${max} completion${max === 1 ? '' : 's'}.`}
         style={{
           height: 80,
           flexDirection: 'row',
