@@ -225,7 +225,12 @@ export default function Home() {
     <View style={{ flex: 1, backgroundColor: '#0a0a0a' }}>
       <Stack.Screen options={{ headerShown: false }} />
       {isBusy ? (
-        <View style={{ flex: 1, justifyContent: 'center' }}>
+        <View
+          accessible
+          accessibilityRole="progressbar"
+          accessibilityLabel="Loading your tasks"
+          style={{ flex: 1, justifyContent: 'center' }}
+        >
           <View style={{ paddingHorizontal: 20 }}>
             <Skeleton
               style={{ height: 12, width: 80, marginBottom: 16, marginLeft: 4 }}
