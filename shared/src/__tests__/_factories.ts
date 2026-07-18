@@ -10,6 +10,7 @@ export const makeTask = (over: Partial<Task> = {}): Task => ({
   due: over.due ?? '2026-5-1',
   dueTime: over.dueTime ?? null,
   strictDeadline: over.strictDeadline ?? false,
+  canDoEarly: over.canDoEarly ?? true,
   repeat: over.repeat ?? 'No Repeat',
   repeatInterval: over.repeatInterval ?? 1,
   repeatUnit: over.repeatUnit ?? 'day',

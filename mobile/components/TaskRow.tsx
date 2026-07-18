@@ -224,6 +224,7 @@ export function TaskRow({
       ? `${doneCount} of ${subtaskCount} ${subtaskCount === 1 ? 'subtask' : 'subtasks'} done`
       : null,
     task.strictDeadline ? 'strict deadline' : null,
+    task.canDoEarly === false ? 'not before due' : null,
     task.timerStartedAt ? 'timer running' : null,
     task.tags.length ? `tags ${task.tags.join(', ')}` : null,
   ]
@@ -318,6 +319,7 @@ export function TaskRow({
               </Meta>
             ) : null}
             {task.strictDeadline ? <Meta color={OVERDUE}>strict</Meta> : null}
+            {task.canDoEarly === false ? <Meta>not before due</Meta> : null}
             {task.tags.map((t) => (
               <Meta key={t}>#{t}</Meta>
             ))}

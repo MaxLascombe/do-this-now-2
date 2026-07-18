@@ -76,6 +76,7 @@ export default function TasksList() {
       due: dateString(new Date()),
       dueTime: null,
       strictDeadline: false,
+      canDoEarly: true,
       repeat: 'No Repeat',
       repeatInterval: 1,
       repeatUnit: 'day',

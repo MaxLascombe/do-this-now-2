@@ -9,6 +9,7 @@ const INPUT_KEYS = [
   'due',
   'dueTime',
   'strictDeadline',
+  'canDoEarly',
   'repeat',
   'repeatInterval',
   'repeatUnit',

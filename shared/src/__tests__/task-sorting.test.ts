@@ -5,6 +5,7 @@ import {
   findNextActionableSubtask,
   isActionableSubtask,
   isSnoozed,
+  showsInTopTasks,
   sortTasks,
   willCompletingFinishTheTask,
   willSnoozingRemoveTask,
@@ -328,5 +329,34 @@ describe('dueTimeHasPassed', () => {
   it('is true on any later day', () => {
     const t = makeTask({ due: '2026-5-1', dueTime: '10:00' })
     expect(dueTimeHasPassed(t, new Date(2026, 4, 2, 8, 0))).toBe(true)
+  })
+})
+
+describe('showsInTopTasks', () => {
+  const day = new Date(2026, 4, 15) // 2026-05-15
+
+  it('always shows tasks that can be done early', () => {
+    expect(showsInTopTasks(makeTask({ due: '2026-5-20' }), day)).toBe(true)
+  })
+
+  it('hides a flag-off task while its due date is ahead', () => {
+    const t = makeTask({ canDoEarly: false, due: '2026-5-16' })
+    expect(showsInTopTasks(t, day)).toBe(false)
+  })
+
+  it('shows a flag-off task on its due date, even with a later due-time', () => {
+    const t = makeTask({ canDoEarly: false, due: '2026-5-15', dueTime: '19:00' })
+    expect(showsInTopTasks(t, day)).toBe(true)
+  })
+
+  it('shows a flag-off task once it is overdue', () => {
+    const t = makeTask({ canDoEarly: false, due: '2026-5-1' })
+    expect(showsInTopTasks(t, day)).toBe(true)
+  })
+
+  it('treats rows without the field (stale caches) as visible', () => {
+    const t = makeTask({ due: '2026-5-20' }) as Record<string, unknown>
+    delete t.canDoEarly
+    expect(showsInTopTasks(t as never, day)).toBe(true)
   })
 })

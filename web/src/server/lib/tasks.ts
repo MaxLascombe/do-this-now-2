@@ -2,7 +2,7 @@ import { and, eq } from 'drizzle-orm'
 
 import { getUserLocalNow, getUserToday } from '@dtn/shared/helpers'
 import { taskEvents, tasks } from '@dtn/shared/schema'
-import { sortTasks } from '@dtn/shared/task-sorting'
+import { showsInTopTasks, sortTasks } from '@dtn/shared/task-sorting'
 import { ceilTaskTime } from '@dtn/shared/timer-utils'
 import { db } from '../../db'
 import type { TaskInput } from '@dtn/shared/task-input'
@@ -70,8 +70,9 @@ export async function listTopTasks(
 ): Promise<Array<Task>> {
   const all = await listTasks(userId)
   const { todayDate } = getUserToday(tzOffsetMin)
-  sortTasks(all, todayDate, getUserLocalNow(tzOffsetMin))
-  return all
+  const visible = all.filter((t) => showsInTopTasks(t, todayDate))
+  sortTasks(visible, todayDate, getUserLocalNow(tzOffsetMin))
+  return visible
 }
 
 export async function getTask(

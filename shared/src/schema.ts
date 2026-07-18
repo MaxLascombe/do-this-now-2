@@ -76,6 +76,9 @@ export const tasks = pgTable(
     // (date + time) has passed — and ranks above non-timed past-due tasks.
     dueTime: text('due_time'),
     strictDeadline: boolean('strict_deadline').notNull().default(false),
+    // Off = keep the task out of the Top Tasks query until its due date
+    // arrives. Default true so legacy rows keep today's behavior.
+    canDoEarly: boolean('can_do_early').notNull().default(true),
     repeat: repeatOptionEnum('repeat').notNull().default('No Repeat'),
     repeatInterval: integer('repeat_interval').notNull().default(1),
     repeatUnit: repeatUnitEnum('repeat_unit').notNull().default('day'),

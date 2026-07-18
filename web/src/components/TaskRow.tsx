@@ -238,6 +238,7 @@ const TaskRowBase = ({
             {task.strictDeadline && (
               <span style={{ color: OVERDUE }}>strict</span>
             )}
+            {task.canDoEarly === false && <span>not before due</span>}
             {task.tags.map((t) => (
               <span key={t}>#{t}</span>
             ))}

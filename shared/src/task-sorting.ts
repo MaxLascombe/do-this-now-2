@@ -61,6 +61,12 @@ export const isSnoozed = (t: Task): boolean => {
   return false
 }
 
+// A task that can't be done early is a Top Tasks candidate only from its
+// due date on (calendar day; a due-time never affects visibility).
+// `!== false` keeps stale cached rows without the field visible.
+export const showsInTopTasks = (t: Task, today: Date): boolean =>
+  t.canDoEarly !== false || newSafeDate(t.due) <= today
+
 // A task with a due-time is only "actionable" once the local wall-clock
 // has passed that time. Without a due-time, plain calendar comparison.
 const dueOrPastDue = (t: Task, today: Date, now: Date): boolean => {

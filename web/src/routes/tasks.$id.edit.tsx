@@ -119,6 +119,7 @@ function EditTask() {
         due={task.due}
         dueTime={task.dueTime}
         strictDeadline={task.strictDeadline}
+        canDoEarly={task.canDoEarly}
         repeat={task.repeat}
         repeatInterval={task.repeatInterval}
         repeatUnit={task.repeatUnit}

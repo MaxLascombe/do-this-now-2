@@ -16,6 +16,7 @@ const makeTask = (over: Partial<Task> = {}): Task => ({
   due: '2026-5-1',
   dueTime: null,
   strictDeadline: false,
+  canDoEarly: true,
   repeat: 'No Repeat',
   repeatInterval: 1,
   repeatUnit: 'day',

@@ -72,6 +72,7 @@ const TaskForm = ({
   dueTime: initialDueTime,
   errorMessage,
   strictDeadline: initialStrictDeadline,
+  canDoEarly: initialCanDoEarly,
   repeat: initialRepeat,
   repeatInterval: initialRepeatInterval,
   repeatUnit: initialRepeatUnit,
@@ -116,6 +117,7 @@ const TaskForm = ({
   const [strictDeadline, setStrictDeadline] = useState(
     initialStrictDeadline ?? false,
   )
+  const [canDoEarly, setCanDoEarly] = useState(initialCanDoEarly ?? true)
   const [repeat, setRepeat] = useState<RepeatOption>(
     initialRepeat ?? 'No Repeat',
   )
@@ -219,6 +221,7 @@ const TaskForm = ({
       due,
       dueTime,
       strictDeadline,
+      canDoEarly,
       repeat,
       repeatInterval,
       repeatUnit,
@@ -705,6 +708,21 @@ const TaskForm = ({
                 on={strictDeadline}
                 onChange={setStrictDeadline}
               />
+            </div>
+          </Field>
+
+          <Field label="Can be done early?">
+            <div className="flex items-center gap-3 font-mono">
+              <Toggle
+                label="Can be done early"
+                on={canDoEarly}
+                onChange={setCanDoEarly}
+              />
+              {!canDoEarly && (
+                <span className="text-xs text-zinc-500">
+                  stays out of Top Tasks until its due date
+                </span>
+              )}
             </div>
           </Field>
 
