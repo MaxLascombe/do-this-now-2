@@ -57,6 +57,7 @@
   },
   "devDependencies": {
     "@babel/core": "^7.29.0",
+    "@bacons/apple-targets": "^5.0.0",
     "@types/react": "~19.1.17",
     "babel-preset-expo": "54.0.11",
     "tailwindcss": "3",

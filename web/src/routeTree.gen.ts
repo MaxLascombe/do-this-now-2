@@ -25,6 +25,9 @@ import { Route as ApiTasksSuggestEmojisRouteImport } from './routes/api/tasks.su
 import { Route as ApiTasksSnoozeManyRouteImport } from './routes/api/tasks.snooze-many'
 import { Route as ApiTasksIdRouteImport } from './routes/api/tasks.$id'
 import { Route as ApiProgressTodayRouteImport } from './routes/api/progress.today'
+import { Route as ApiLockscreenTimerRouteImport } from './routes/api/lockscreen.timer'
+import { Route as ApiLockscreenPushTokenRouteImport } from './routes/api/lockscreen.push-token'
+import { Route as ApiLockscreenDeviceRouteImport } from './routes/api/lockscreen.device'
 import { Route as ApiHistoryDateRouteImport } from './routes/api/history.$date'
 import { Route as ApiAdminBackfillEmojisRouteImport } from './routes/api/admin/backfill-emojis'
 import { Route as ApiTasksIdUnsnoozeRouteImport } from './routes/api/tasks.$id.unsnooze'
@@ -112,6 +115,21 @@ const ApiProgressTodayRoute = ApiProgressTodayRouteImport.update({
   path: '/api/progress/today',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiLockscreenTimerRoute = ApiLockscreenTimerRouteImport.update({
+  id: '/api/lockscreen/timer',
+  path: '/api/lockscreen/timer',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiLockscreenPushTokenRoute = ApiLockscreenPushTokenRouteImport.update({
+  id: '/api/lockscreen/push-token',
+  path: '/api/lockscreen/push-token',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiLockscreenDeviceRoute = ApiLockscreenDeviceRouteImport.update({
+  id: '/api/lockscreen/device',
+  path: '/api/lockscreen/device',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ApiHistoryDateRoute = ApiHistoryDateRouteImport.update({
   id: '/api/history/$date',
   path: '/api/history/$date',
@@ -156,6 +174,9 @@ export interface FileRoutesByFullPath {
   '/tasks/': typeof TasksIndexRoute
   '/api/admin/backfill-emojis': typeof ApiAdminBackfillEmojisRoute
   '/api/history/$date': typeof ApiHistoryDateRoute
+  '/api/lockscreen/device': typeof ApiLockscreenDeviceRoute
+  '/api/lockscreen/push-token': typeof ApiLockscreenPushTokenRoute
+  '/api/lockscreen/timer': typeof ApiLockscreenTimerRoute
   '/api/progress/today': typeof ApiProgressTodayRoute
   '/api/tasks/$id': typeof ApiTasksIdRouteWithChildren
   '/api/tasks/snooze-many': typeof ApiTasksSnoozeManyRoute
@@ -179,6 +200,9 @@ export interface FileRoutesByTo {
   '/tasks': typeof TasksIndexRoute
   '/api/admin/backfill-emojis': typeof ApiAdminBackfillEmojisRoute
   '/api/history/$date': typeof ApiHistoryDateRoute
+  '/api/lockscreen/device': typeof ApiLockscreenDeviceRoute
+  '/api/lockscreen/push-token': typeof ApiLockscreenPushTokenRoute
+  '/api/lockscreen/timer': typeof ApiLockscreenTimerRoute
   '/api/progress/today': typeof ApiProgressTodayRoute
   '/api/tasks/$id': typeof ApiTasksIdRouteWithChildren
   '/api/tasks/snooze-many': typeof ApiTasksSnoozeManyRoute
@@ -204,6 +228,9 @@ export interface FileRoutesById {
   '/tasks/': typeof TasksIndexRoute
   '/api/admin/backfill-emojis': typeof ApiAdminBackfillEmojisRoute
   '/api/history/$date': typeof ApiHistoryDateRoute
+  '/api/lockscreen/device': typeof ApiLockscreenDeviceRoute
+  '/api/lockscreen/push-token': typeof ApiLockscreenPushTokenRoute
+  '/api/lockscreen/timer': typeof ApiLockscreenTimerRoute
   '/api/progress/today': typeof ApiProgressTodayRoute
   '/api/tasks/$id': typeof ApiTasksIdRouteWithChildren
   '/api/tasks/snooze-many': typeof ApiTasksSnoozeManyRoute
@@ -230,6 +257,9 @@ export interface FileRouteTypes {
     | '/tasks/'
     | '/api/admin/backfill-emojis'
     | '/api/history/$date'
+    | '/api/lockscreen/device'
+    | '/api/lockscreen/push-token'
+    | '/api/lockscreen/timer'
     | '/api/progress/today'
     | '/api/tasks/$id'
     | '/api/tasks/snooze-many'
@@ -253,6 +283,9 @@ export interface FileRouteTypes {
     | '/tasks'
     | '/api/admin/backfill-emojis'
     | '/api/history/$date'
+    | '/api/lockscreen/device'
+    | '/api/lockscreen/push-token'
+    | '/api/lockscreen/timer'
     | '/api/progress/today'
     | '/api/tasks/$id'
     | '/api/tasks/snooze-many'
@@ -277,6 +310,9 @@ export interface FileRouteTypes {
     | '/tasks/'
     | '/api/admin/backfill-emojis'
     | '/api/history/$date'
+    | '/api/lockscreen/device'
+    | '/api/lockscreen/push-token'
+    | '/api/lockscreen/timer'
     | '/api/progress/today'
     | '/api/tasks/$id'
     | '/api/tasks/snooze-many'
@@ -302,6 +338,9 @@ export interface RootRouteChildren {
   TasksIndexRoute: typeof TasksIndexRoute
   ApiAdminBackfillEmojisRoute: typeof ApiAdminBackfillEmojisRoute
   ApiHistoryDateRoute: typeof ApiHistoryDateRoute
+  ApiLockscreenDeviceRoute: typeof ApiLockscreenDeviceRoute
+  ApiLockscreenPushTokenRoute: typeof ApiLockscreenPushTokenRoute
+  ApiLockscreenTimerRoute: typeof ApiLockscreenTimerRoute
   ApiProgressTodayRoute: typeof ApiProgressTodayRoute
 }
 
@@ -419,6 +458,27 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiProgressTodayRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/lockscreen/timer': {
+      id: '/api/lockscreen/timer'
+      path: '/api/lockscreen/timer'
+      fullPath: '/api/lockscreen/timer'
+      preLoaderRoute: typeof ApiLockscreenTimerRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/lockscreen/push-token': {
+      id: '/api/lockscreen/push-token'
+      path: '/api/lockscreen/push-token'
+      fullPath: '/api/lockscreen/push-token'
+      preLoaderRoute: typeof ApiLockscreenPushTokenRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/lockscreen/device': {
+      id: '/api/lockscreen/device'
+      path: '/api/lockscreen/device'
+      fullPath: '/api/lockscreen/device'
+      preLoaderRoute: typeof ApiLockscreenDeviceRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/history/$date': {
       id: '/api/history/$date'
       path: '/api/history/$date'
@@ -524,6 +584,9 @@ const rootRouteChildren: RootRouteChildren = {
   TasksIndexRoute: TasksIndexRoute,
   ApiAdminBackfillEmojisRoute: ApiAdminBackfillEmojisRoute,
   ApiHistoryDateRoute: ApiHistoryDateRoute,
+  ApiLockscreenDeviceRoute: ApiLockscreenDeviceRoute,
+  ApiLockscreenPushTokenRoute: ApiLockscreenPushTokenRoute,
+  ApiLockscreenTimerRoute: ApiLockscreenTimerRoute,
   ApiProgressTodayRoute: ApiProgressTodayRoute,
 }
 export const routeTree = rootRouteImport

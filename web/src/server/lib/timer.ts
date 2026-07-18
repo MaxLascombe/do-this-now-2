@@ -4,6 +4,7 @@ import { tasks } from '@dtn/shared/schema'
 import { isSnoozed } from '@dtn/shared/task-sorting'
 import { ceilTaskTime } from '@dtn/shared/timer-utils'
 import { db } from '../../db'
+import { syncLockScreenSoon } from './lockscreen'
 import { setSelectionTx } from './selection'
 import type { Task } from '@dtn/shared/schema'
 
@@ -130,7 +131,7 @@ export async function applyTimerAction(
   id: string,
   action: TimerAction,
 ): Promise<Task> {
-  return db.transaction(async (tx) => {
+  const result = await db.transaction(async (tx) => {
     const target = await resolveTimerTarget(tx, userId, id)
     const serverNow = new Date()
     // Clamp client-stamped `at` to server-now so a clock-skewed device can't inflate elapsed time or jump past the stale guard.
@@ -222,4 +223,9 @@ export async function applyTimerAction(
 
     return ceilTaskTime(updated)
   })
+  // In the shared lib, not the routes, so BOTH entry points — the web
+  // app's server-fns and the mobile REST routes — mirror the change onto
+  // the Lock Screen Timer.
+  syncLockScreenSoon(userId)
+  return result
 }

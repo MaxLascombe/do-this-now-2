@@ -9,6 +9,7 @@ import {
 } from '@dtn/shared/task-transitions'
 import { HOUR_MS } from '@dtn/shared/time'
 import { db } from '../../db'
+import { syncLockScreenSoon } from './lockscreen'
 import { finalizeTodayProgress } from './progress'
 import {
   clearSelectionIfTx,
@@ -146,6 +147,9 @@ export async function completeTask(
     console.error('finalizeTodayProgress failed after completeTask', err)
   }
 
+  // Lib-level so both the web server-fns and the mobile REST routes
+  // mirror the change onto the Lock Screen Timer.
+  syncLockScreenSoon(userId)
   return completionResult
 }
 
@@ -158,7 +162,7 @@ export async function snoozeTask(
   // snoozes on the same task (e.g. a fast double-tap) can't read the same
   // baseline and clobber each other's subtask write. Same exposure that
   // motivated wrapping completeTask in a tx.
-  return db.transaction(async (tx) => {
+  const result = await db.transaction(async (tx) => {
     const task = await loadTask(tx, userId, id)
     if (!task) throw new TaskNotFoundError('Task not found')
 
@@ -210,6 +214,8 @@ export async function snoozeTask(
 
     return { scope: transition.scope }
   })
+  syncLockScreenSoon(userId)
+  return result
 }
 
 // Bring a snoozed task fully back to the active list: clear the top-level
@@ -240,7 +246,7 @@ export async function snoozeManyTasks(
   ids: string[],
 ): Promise<{ count: number }> {
   if (ids.length === 0) return { count: 0 }
-  return db.transaction(async (tx) => {
+  const result = await db.transaction(async (tx) => {
     const now = new Date()
     const snooze = new Date(now.getTime() + HOUR_MS).toISOString()
     let count = 0
@@ -264,6 +270,8 @@ export async function snoozeManyTasks(
     }
     return { count }
   })
+  syncLockScreenSoon(userId)
+  return result
 }
 
 export async function getHistory(
@@ -296,7 +304,7 @@ export async function getHistory(
 // silently clobber a selection made in the gap between reading and clearing.
 // Idempotent when nothing is selected.
 export async function unselect(userId: string): Promise<Selection> {
-  return db.transaction(async (tx) => {
+  const result = await db.transaction(async (tx) => {
     const rows = await tx
       .select({ selectedTaskId: userState.selectedTaskId })
       .from(userState)
@@ -310,4 +318,6 @@ export async function unselect(userId: string): Promise<Selection> {
     await setSelectionTx(tx, userId, null, now)
     return { selectedTaskId: null }
   })
+  syncLockScreenSoon(userId)
+  return result
 }

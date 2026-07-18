@@ -10,6 +10,7 @@ import {
   primaryKey,
   text,
   timestamp,
+  uniqueIndex,
   uuid,
 } from 'drizzle-orm/pg-core'
 
@@ -195,6 +196,61 @@ export const userState = pgTable('user_state', {
     .notNull()
     .defaultNow(),
 })
+
+// A phone that can show the Lock Screen Timer. The row IS the widget's
+// credential: `tokenHash` is the sha256 of a server-issued secret the app
+// stores in the device Keychain; the widget's Pause/Resume authenticates
+// with it (Clerk JWTs expire too fast for a widget extension to hold).
+// Revoke = delete the row.
+export const lockScreenDevices = pgTable(
+  'lock_screen_devices',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    userId: text('user_id').notNull(),
+    tokenHash: text('token_hash').notNull().unique(),
+    // Human label for a future "devices" management UI, e.g. "iPhone".
+    label: text('label'),
+    createdAt: timestamp('created_at', { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+    lastSeenAt: timestamp('last_seen_at', { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+  },
+  (t) => [index('lock_screen_devices_user_id_idx').on(t.userId)],
+)
+
+// 'start': the device-wide ActivityKit push-to-start token (launches a new
+//   Live Activity when nothing is on the lock screen yet).
+// 'update': the per-activity token (updates/ends the activity in place).
+export const livePushTokenKindEnum = pgEnum('live_push_token_kind', [
+  'start',
+  'update',
+])
+
+// APNs tokens for driving the Lock Screen Timer remotely. One 'start' row
+// per device; the 'update' row is replaced each time a new activity starts
+// on that device (an ended activity's token is useless, so we keep only the
+// latest). Cascade with the device row — revoking a device kills its pushes.
+export const livePushTokens = pgTable(
+  'live_push_tokens',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    userId: text('user_id').notNull(),
+    deviceId: uuid('device_id')
+      .notNull()
+      .references(() => lockScreenDevices.id, { onDelete: 'cascade' }),
+    kind: livePushTokenKindEnum('kind').notNull(),
+    token: text('token').notNull(),
+    updatedAt: timestamp('updated_at', { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+  },
+  (t) => [
+    index('live_push_tokens_user_id_idx').on(t.userId),
+    uniqueIndex('live_push_tokens_device_kind_idx').on(t.deviceId, t.kind),
+  ],
+)
 
 // Global cache of Claude-generated emoji suggestions, keyed by normalized
 // task title, so a repeated title is served from Postgres instead of a fresh
