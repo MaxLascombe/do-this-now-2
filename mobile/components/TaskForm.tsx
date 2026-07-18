@@ -1,10 +1,6 @@
 import { useApi } from '@dtn/shared/api-client'
 import { formatDueDistance } from '@dtn/shared/format'
-import {
-  dateString,
-  newSafeDate,
-  newSafeDateTime,
-} from '@dtn/shared/helpers'
+import { dateString, newSafeDate, newSafeDateTime } from '@dtn/shared/helpers'
 import { useAllTasks } from '@dtn/shared/queries'
 import {
   type RepeatOption,
@@ -129,16 +125,18 @@ export function TaskForm({
   const [hasSubtasks, setHasSubtasks] = useState(subtasks.length > 0)
   const [tags, setTags] = useState<Array<string>>(initial.tags ?? [])
   const [tagDraft, setTagDraft] = useState('')
-  const addTag = () => {
-    const t = tagDraft.trim()
+  const addTagFrom = (raw: string) => {
+    const t = raw.trim()
     if (t && !tags.some((x) => x.toLowerCase() === t.toLowerCase()))
       setTags([...tags, t])
     setTagDraft('')
   }
+  const addTag = () => addTagFrom(tagDraft)
+  const [keeperQuery, setKeeperQuery] = useState('')
   const [errors, setErrors] = useState<Record<string, string>>({})
 
   const [openSheet, setOpenSheet] = useState<
-    null | 'date' | 'dueTime' | 'time' | 'repeat' | 'keeper'
+    null | 'date' | 'dueTime' | 'repeat' | 'keeper'
   >(null)
 
   // Eligible timekeepers: this user's fixed-type tasks with a positive
@@ -153,6 +151,9 @@ export function TaskForm({
     )
     .sort((a, b) => a.title.localeCompare(b.title))
   const selectedKeeper = keeperCandidates.find((t) => t.id === timekeeperId)
+  const filteredKeeperCandidates = keeperCandidates.filter((t) =>
+    t.title.toLowerCase().includes(keeperQuery.trim().toLowerCase()),
+  )
 
   useEffect(() => {
     const t = title.trim()
@@ -186,6 +187,19 @@ export function TaskForm({
   )
   const dayDiffPhrase = formatDueDistance(dayDiff)
 
+  const shiftDueDays = (deltaDays: number) => {
+    const d = new Date(dueDate)
+    d.setDate(d.getDate() + deltaDays)
+    setDueDate(newSafeDate(dateString(d)))
+  }
+  const bumpTimeFrame = (delta: number) => {
+    const next = Math.max(0, Math.round(timeFrame) + delta)
+    setTimeFrame(next)
+    // Keep the XOR invariant: positive timeFrame implies no keeper.
+    if (next > 0 && timekeeperId !== null) setTimekeeperId(null)
+  }
+  const [showCustomEmoji, setShowCustomEmoji] = useState(false)
+  const [customEmoji, setCustomEmoji] = useState('')
   const quickDue = (deltaDays: number) => {
     const d = new Date()
     d.setDate(d.getDate() + deltaDays)
@@ -212,14 +226,12 @@ export function TaskForm({
 
   const displayedMinutes = Math.ceil(timeFrame)
   const timeSummary =
-    timeFrame === 0
-      ? '0 min (tracked elsewhere)'
-      : `${displayedMinutes} min`
+    timeFrame === 0 ? '0 min (tracked elsewhere)' : `${displayedMinutes} min`
 
   const dueTimeAsDate = dueTime
     ? newSafeDateTime('2000-1-1', dueTime)
     : new Date(2000, 0, 1, 9, 0)
-  const dueTimeSummary = dueTime ? format(dueTimeAsDate, 'h:mm a') : 'None'
+  const dueTimeSummary = dueTime ? format(dueTimeAsDate, 'HH:mm') : 'None'
 
   const submit = () => {
     const parsed = taskInputSchema.safeParse({
@@ -252,8 +264,6 @@ export function TaskForm({
     onSubmit(parsed.data)
   }
 
-  const errorList = Object.entries(errors)
-
   return (
     <View style={{ flex: 1 }}>
       <ScrollView
@@ -280,9 +290,9 @@ export function TaskForm({
             placeholderTextColor="#3f3f46"
             autoFocus={!initial.title}
             style={{
-              fontFamily: 'InstrumentSerif_400Regular_Italic',
-              fontSize: 28,
-              lineHeight: 34,
+              fontFamily: 'JetBrainsMono_400Regular',
+              fontSize: 30,
+              lineHeight: 36,
               color: '#fafafa',
               borderBottomWidth: 1,
               borderBottomColor: '#3f3f46',
@@ -292,7 +302,7 @@ export function TaskForm({
           {errors.title && <FieldError msg={errors.title} />}
         </Field>
 
-        <Field label="Tags">
+        <Field label="Tags" trailing="optional">
           {tags.length > 0 && (
             <View
               style={{
@@ -303,11 +313,8 @@ export function TaskForm({
               }}
             >
               {tags.map((t) => (
-                <Pressable
+                <View
                   key={t}
-                  onPress={() => setTags(tags.filter((x) => x !== t))}
-                  accessibilityRole="button"
-                  accessibilityLabel={`Remove tag ${t}`}
                   style={{
                     flexDirection: 'row',
                     alignItems: 'center',
@@ -329,14 +336,33 @@ export function TaskForm({
                   >
                     {t}
                   </Text>
-                  <Text style={{ color: '#71717a', fontSize: 12 }}>✕</Text>
-                </Pressable>
+                  <Pressable
+                    onPress={() => setTags(tags.filter((x) => x !== t))}
+                    accessibilityRole="button"
+                    accessibilityLabel={`Remove tag ${t}`}
+                    hitSlop={6}
+                  >
+                    <Text style={{ color: '#71717a', fontSize: 12 }}>✕</Text>
+                  </Pressable>
+                </View>
               ))}
             </View>
           )}
           <TextInput
             value={tagDraft}
-            onChangeText={setTagDraft}
+            onChangeText={(text) => {
+              if (text.endsWith(',')) {
+                setTagDraft(text.slice(0, -1))
+                addTagFrom(text.slice(0, -1))
+                return
+              }
+              setTagDraft(text)
+            }}
+            onKeyPress={({ nativeEvent }) => {
+              if (nativeEvent.key === 'Backspace' && tagDraft === '') {
+                setTags((arr) => arr.slice(0, -1))
+              }
+            }}
             onSubmitEditing={addTag}
             onBlur={addTag}
             blurOnSubmit={false}
@@ -393,6 +419,50 @@ export function TaskForm({
                 </Pressable>
               )
             })}
+            {showCustomEmoji ? (
+              <TextInput
+                value={customEmoji}
+                onChangeText={(text) => {
+                  setCustomEmoji(text)
+                  if (text.trim()) setEmoji(text.trim())
+                }}
+                maxLength={16}
+                autoFocus
+                accessibilityLabel="Custom emoji"
+                style={{
+                  width: 48,
+                  height: 48,
+                  borderRadius: 12,
+                  borderWidth: 1,
+                  borderColor:
+                    customEmoji && emoji === customEmoji.trim()
+                      ? '#f4f4f5'
+                      : '#27272a',
+                  backgroundColor: 'rgba(24,24,27,0.6)',
+                  textAlign: 'center',
+                  fontSize: 24,
+                  color: '#fafafa',
+                }}
+              />
+            ) : (
+              <Pressable
+                onPress={() => setShowCustomEmoji(true)}
+                accessibilityRole="button"
+                accessibilityLabel="Enter a custom emoji"
+                style={{
+                  width: 48,
+                  height: 48,
+                  borderRadius: 12,
+                  borderWidth: 1,
+                  borderStyle: 'dashed',
+                  borderColor: '#3f3f46',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                }}
+              >
+                <Text style={{ color: '#71717a', fontSize: 20 }}>＋</Text>
+              </Pressable>
+            )}
             {emojiLoading && (
               <View
                 style={{
@@ -409,11 +479,25 @@ export function TaskForm({
         </Field>
 
         <Field label="Due date">
-          <SettingRow
-            value={`${format(dueDate, 'EEE · LLL d, u')}`}
-            sub={dayDiffPhrase}
-            onPress={() => setOpenSheet('date')}
-          />
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+            <DayStepButton
+              label="−"
+              accessibilityLabel="One day earlier"
+              onPress={() => shiftDueDays(-1)}
+            />
+            <View style={{ flex: 1 }}>
+              <SettingRow
+                value={`${format(dueDate, 'EEEE, LLL d')}`}
+                sub={dayDiffPhrase}
+                onPress={() => setOpenSheet('date')}
+              />
+            </View>
+            <DayStepButton
+              label="＋"
+              accessibilityLabel="One day later"
+              onPress={() => shiftDueDays(1)}
+            />
+          </View>
           <View
             style={{
               flexDirection: 'row',
@@ -452,7 +536,7 @@ export function TaskForm({
           </View>
         </Field>
 
-        <Field label="Due time">
+        <Field label="Due time?">
           <SettingRow
             value={dueTimeSummary}
             sub={dueTime ? `ranks to top once ${dueTimeSummary}` : 'optional'}
@@ -471,9 +555,7 @@ export function TaskForm({
                   style={{
                     borderWidth: 1,
                     borderColor: active ? '#f4f4f5' : '#27272a',
-                    backgroundColor: active
-                      ? '#fafafa'
-                      : 'rgba(24,24,27,0.6)',
+                    backgroundColor: active ? '#fafafa' : 'rgba(24,24,27,0.6)',
                     paddingHorizontal: 12,
                     paddingVertical: 7,
                     borderRadius: 999,
@@ -545,11 +627,44 @@ export function TaskForm({
         </Field>
 
         <Field label="Time frame">
-          <SettingRow
-            value={timeSummary}
-            sub="tap to adjust"
-            onPress={() => setOpenSheet('time')}
-          />
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+            <StepButton label="−15" onPress={() => bumpTimeFrame(-15)} />
+            <StepButton label="−1" onPress={() => bumpTimeFrame(-1)} />
+            <View
+              style={{
+                flex: 1,
+                alignItems: 'center',
+                borderWidth: 1,
+                borderColor: '#27272a',
+                borderRadius: 10,
+                backgroundColor: 'rgba(24,24,27,0.4)',
+                paddingVertical: 10,
+              }}
+            >
+              <Text
+                style={{
+                  fontFamily: 'JetBrainsMono_400Regular',
+                  fontSize: 16,
+                  color: '#fafafa',
+                  fontVariant: ['tabular-nums'],
+                }}
+              >
+                {displayedMinutes}
+              </Text>
+            </View>
+            <StepButton label="＋1" onPress={() => bumpTimeFrame(1)} />
+            <StepButton label="＋15" onPress={() => bumpTimeFrame(15)} />
+          </View>
+          <Text
+            style={{
+              marginTop: 6,
+              fontFamily: 'JetBrainsMono_400Regular',
+              fontSize: 11,
+              color: '#71717a',
+            }}
+          >
+            {timeFrame === 0 ? 'tracked under another task' : 'minutes'}
+          </Text>
         </Field>
 
         {timeFrame > 0 ? (
@@ -564,7 +679,7 @@ export function TaskForm({
               <TimeframeTypeOption
                 active={timeframeType === 'fluid'}
                 label="Fluid — measured time"
-                description="The time frame is a live estimate. Each completion self-tunes via a 14-day rolling average. Best when you want a realistic recurring estimate (workout, design review)."
+                description="The time frame is a live estimate. Each completion self-tunes the value via a 14-day rolling average. Best when you want a realistic recurring estimate (workout, design review)."
                 onPress={() => setTimeframeType('fluid')}
               />
             </View>
@@ -595,24 +710,8 @@ export function TaskForm({
           </Field>
         )}
 
-        <Field label="Strict deadline">
-          <View
-            style={{
-              flexDirection: 'row',
-              alignItems: 'center',
-              justifyContent: 'space-between',
-              paddingVertical: 4,
-            }}
-          >
-            <Text
-              style={{
-                fontFamily: 'JetBrainsMono_400Regular',
-                fontSize: 13,
-                color: '#a1a1aa',
-              }}
-            >
-              Lock this task to its due time
-            </Text>
+        <Field label="Strict deadline?">
+          <View style={{ alignItems: 'flex-start', paddingVertical: 4 }}>
             <RNSwitch
               accessibilityLabel="Strict deadline"
               value={strictDeadline}
@@ -623,24 +722,15 @@ export function TaskForm({
           </View>
         </Field>
 
-        <Field label="Can be done early">
+        <Field label="Can be done early?">
           <View
             style={{
               flexDirection: 'row',
               alignItems: 'center',
-              justifyContent: 'space-between',
+              gap: 12,
               paddingVertical: 4,
             }}
           >
-            <Text
-              style={{
-                fontFamily: 'JetBrainsMono_400Regular',
-                fontSize: 13,
-                color: '#a1a1aa',
-              }}
-            >
-              Show in Top Tasks before its due date
-            </Text>
             <RNSwitch
               accessibilityLabel="Can be done early"
               value={canDoEarly}
@@ -648,12 +738,24 @@ export function TaskForm({
               trackColor={{ false: '#27272a', true: ACCENT }}
               thumbColor="#fafafa"
             />
+            {!canDoEarly && (
+              <Text
+                style={{
+                  fontFamily: 'JetBrainsMono_400Regular',
+                  fontSize: 12,
+                  color: '#71717a',
+                  flexShrink: 1,
+                }}
+              >
+                stays out of Top Tasks until its due date
+              </Text>
+            )}
           </View>
         </Field>
 
         <Field
           label="Subtasks"
-          trailing={hasSubtasks ? 'tap ✕ to remove' : undefined}
+          trailing={hasSubtasks ? '▲▼ to reorder · ✕ to remove' : undefined}
         >
           <View
             style={{
@@ -719,29 +821,53 @@ export function TaskForm({
                     backgroundColor: 'rgba(24,24,27,0.4)',
                   }}
                 >
-                  <Pressable
-                    onPress={() =>
-                      setSubtasks((arr) =>
-                        arr.map((x, idx) =>
-                          idx === i ? { ...x, done: !x.done } : x,
-                        ),
-                      )
-                    }
-                    style={{
-                      width: 18,
-                      height: 18,
-                      borderRadius: 9,
-                      borderWidth: 1,
-                      borderColor: s.done ? ACCENT : '#3f3f46',
-                      backgroundColor: s.done ? ACCENT : 'transparent',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                    }}
-                  >
-                    {s.done && (
-                      <Text style={{ color: '#0a0a0a', fontSize: 10 }}>✓</Text>
-                    )}
-                  </Pressable>
+                  <View style={{ gap: 2 }}>
+                    <Pressable
+                      onPress={() =>
+                        i > 0 &&
+                        setSubtasks((arr) => {
+                          const next = [...arr]
+                          ;[next[i - 1], next[i]] = [next[i], next[i - 1]]
+                          return next
+                        })
+                      }
+                      disabled={i === 0}
+                      hitSlop={6}
+                      accessibilityLabel={`Move subtask ${i + 1} up`}
+                    >
+                      <Text
+                        style={{
+                          color: i === 0 ? '#27272a' : '#52525b',
+                          fontSize: 10,
+                        }}
+                      >
+                        ▲
+                      </Text>
+                    </Pressable>
+                    <Pressable
+                      onPress={() =>
+                        setSubtasks((arr) => {
+                          if (i >= arr.length - 1) return arr
+                          const next = [...arr]
+                          ;[next[i], next[i + 1]] = [next[i + 1], next[i]]
+                          return next
+                        })
+                      }
+                      disabled={i === subtasks.length - 1}
+                      hitSlop={6}
+                      accessibilityLabel={`Move subtask ${i + 1} down`}
+                    >
+                      <Text
+                        style={{
+                          color:
+                            i === subtasks.length - 1 ? '#27272a' : '#52525b',
+                          fontSize: 10,
+                        }}
+                      >
+                        ▼
+                      </Text>
+                    </Pressable>
+                  </View>
                   <TextInput
                     value={s.title}
                     onChangeText={(text) =>
@@ -805,33 +931,6 @@ export function TaskForm({
             </View>
           )}
         </Field>
-
-        {errorList.length > 0 && (
-          <View
-            style={{
-              borderRadius: 12,
-              borderWidth: 1,
-              borderColor: 'rgba(251,113,133,0.3)',
-              backgroundColor: 'rgba(251,113,133,0.08)',
-              paddingHorizontal: 12,
-              paddingVertical: 10,
-              gap: 4,
-            }}
-          >
-            {errorList.map(([k, msg]) => (
-              <Text
-                key={k}
-                style={{
-                  fontFamily: 'JetBrainsMono_400Regular',
-                  color: OVERDUE,
-                  fontSize: 11,
-                }}
-              >
-                {k}: {msg}
-              </Text>
-            ))}
-          </View>
-        )}
       </ScrollView>
 
       <View
@@ -970,78 +1069,6 @@ export function TaskForm({
       </Sheet>
 
       <Sheet
-        open={openSheet === 'time'}
-        onClose={() => setOpenSheet(null)}
-        title="Time frame"
-      >
-        <View style={{ alignItems: 'center', gap: 20, paddingVertical: 24 }}>
-          <Text
-            style={{
-              fontFamily: 'JetBrainsMono_700Bold',
-              fontSize: 32,
-              color: '#fafafa',
-            }}
-          >
-            {displayedMinutes} min
-          </Text>
-          <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8, justifyContent: 'center' }}>
-            {[-15, -1, 1, 15].map((delta) => (
-              <Pressable
-                key={delta}
-                onPress={() => {
-                  const next = Math.max(0, Math.round(timeFrame) + delta)
-                  setTimeFrame(next)
-                  // Keep the XOR invariant: positive timeFrame => no keeper.
-                  if (next > 0 && timekeeperId !== null) {
-                    setTimekeeperId(null)
-                  }
-                }}
-                style={{
-                  paddingHorizontal: 16,
-                  paddingVertical: 10,
-                  borderRadius: 999,
-                  borderWidth: 1,
-                  borderColor: '#27272a',
-                  backgroundColor: 'rgba(24,24,27,0.6)',
-                }}
-              >
-                <Text
-                  style={{
-                    fontFamily: 'JetBrainsMono_400Regular',
-                    color: '#fafafa',
-                    fontSize: 13,
-                  }}
-                >
-                  {delta > 0 ? `+${delta}m` : `${delta}m`}
-                </Text>
-              </Pressable>
-            ))}
-            <Pressable
-              onPress={() => setTimeFrame(0)}
-              style={{
-                paddingHorizontal: 16,
-                paddingVertical: 10,
-                borderRadius: 999,
-                borderWidth: 1,
-                borderColor: '#27272a',
-                backgroundColor: 'rgba(24,24,27,0.6)',
-              }}
-            >
-              <Text
-                style={{
-                  fontFamily: 'JetBrainsMono_400Regular',
-                  color: '#fafafa',
-                  fontSize: 13,
-                }}
-              >
-                Clear
-              </Text>
-            </Pressable>
-          </View>
-        </View>
-      </Sheet>
-
-      <Sheet
         open={openSheet === 'repeat'}
         onClose={() => setOpenSheet(null)}
         title="Custom repeat"
@@ -1116,15 +1143,44 @@ export function TaskForm({
         onClose={() => setOpenSheet(null)}
         title="Tracked under"
       >
-        <View style={{ paddingHorizontal: 20, paddingTop: 12, paddingBottom: 24, gap: 8 }}>
-          {keeperCandidates.length === 0 ? (
+        <View
+          style={{
+            paddingHorizontal: 20,
+            paddingTop: 12,
+            paddingBottom: 24,
+            gap: 8,
+          }}
+        >
+          <TextInput
+            value={keeperQuery}
+            onChangeText={setKeeperQuery}
+            placeholder="Search tasks…"
+            placeholderTextColor="#3f3f46"
+            autoCapitalize="none"
+            autoCorrect={false}
+            accessibilityLabel="Search keeper candidates"
+            style={{
+              fontFamily: 'JetBrainsMono_400Regular',
+              fontSize: 14,
+              color: '#e4e4e7',
+              borderWidth: 1,
+              borderColor: '#27272a',
+              borderRadius: 10,
+              backgroundColor: 'rgba(24,24,27,0.4)',
+              paddingHorizontal: 12,
+              paddingVertical: 10,
+            }}
+          />
+          {filteredKeeperCandidates.length === 0 ? (
             <Text style={{ color: '#71717a', fontSize: 12 }}>
               {allTasksQuery.isPending
                 ? 'Loading…'
-                : 'No matching keepers. Create a fixed task with a positive time frame first.'}
+                : keeperQuery
+                  ? 'No matching keepers.'
+                  : 'No matching keepers. Create one with a positive time frame first.'}
             </Text>
           ) : (
-            keeperCandidates.map((t) => {
+            filteredKeeperCandidates.map((t) => {
               const selected = timekeeperId === t.id
               return (
                 <Pressable
@@ -1177,6 +1233,71 @@ export function TaskForm({
         </View>
       </Sheet>
     </View>
+  )
+}
+
+function StepButton({
+  label,
+  onPress,
+  accessibilityLabel,
+}: {
+  label: string
+  onPress: () => void
+  accessibilityLabel?: string
+}) {
+  return (
+    <Pressable
+      onPress={onPress}
+      accessibilityRole="button"
+      accessibilityLabel={accessibilityLabel ?? label}
+      style={({ pressed }) => ({
+        borderWidth: 1,
+        borderColor: pressed ? '#52525b' : '#27272a',
+        backgroundColor: 'rgba(24,24,27,0.6)',
+        borderRadius: 10,
+        paddingHorizontal: 10,
+        paddingVertical: 10,
+      })}
+    >
+      <Text
+        style={{
+          fontFamily: 'JetBrainsMono_400Regular',
+          fontSize: 13,
+          color: '#a1a1aa',
+        }}
+      >
+        {label}
+      </Text>
+    </Pressable>
+  )
+}
+
+function DayStepButton({
+  label,
+  onPress,
+  accessibilityLabel,
+}: {
+  label: string
+  onPress: () => void
+  accessibilityLabel: string
+}) {
+  return (
+    <Pressable
+      onPress={onPress}
+      accessibilityRole="button"
+      accessibilityLabel={accessibilityLabel}
+      style={({ pressed }) => ({
+        width: 40,
+        height: 40,
+        borderRadius: 20,
+        borderWidth: 1,
+        borderColor: pressed ? '#52525b' : '#27272a',
+        alignItems: 'center',
+        justifyContent: 'center',
+      })}
+    >
+      <Text style={{ color: '#d4d4d8', fontSize: 16 }}>{label}</Text>
+    </Pressable>
   )
 }
 
@@ -1306,9 +1427,7 @@ function SettingRow({
       style={({ pressed }) => ({
         borderWidth: 1,
         borderColor: '#27272a',
-        backgroundColor: pressed
-          ? 'rgba(24,24,27,0.9)'
-          : 'rgba(24,24,27,0.6)',
+        backgroundColor: pressed ? 'rgba(24,24,27,0.9)' : 'rgba(24,24,27,0.6)',
         borderRadius: 12,
         paddingHorizontal: 14,
         paddingVertical: 12,

@@ -835,6 +835,12 @@ const TaskForm = ({
             disabled={isSaving}
             className="flex flex-1 items-center justify-center gap-3 rounded-full bg-zinc-50 px-6 py-3 font-mono font-semibold text-zinc-900 hover:bg-zinc-100 disabled:opacity-60 md:flex-none"
           >
+            {isSaving && (
+              <span
+                aria-hidden="true"
+                className="inline-block h-4 w-4 animate-spin rounded-full border-2 border-zinc-900/30 border-t-zinc-900"
+              />
+            )}
             <span>{isEdit ? 'Save' : 'Create task'}</span>
             <kbd className="hidden rounded-md bg-black/15 px-2 py-1 text-xs font-bold md:inline">
               ↵
