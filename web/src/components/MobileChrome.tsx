@@ -20,13 +20,21 @@ export const MobileTopBar = ({ onOpenSheet }: { onOpenSheet: () => void }) => {
   const p = useComputedProgress()
   const progress = useProgressToday()
   // todo is 0 on a no-tasks day; guard so the bar reads empty (0%) rather
-  // than a NaN width.
+  // than a NaN width. Only read fully complete once the target is actually
+  // met — rounding would fill the bar a hair early (same rule as
+  // ProgressBlocks and the mobile app).
+  const hitTodo =
+    !!progress.data &&
+    progress.data.todo > 0 &&
+    progress.data.done >= progress.data.todo
   const pct =
     progress.data && progress.data.todo > 0
-      ? Math.min(
-          100,
-          Math.round((progress.data.done / progress.data.todo) * 100),
-        )
+      ? hitTodo
+        ? 100
+        : Math.min(
+            99,
+            Math.round((progress.data.done / progress.data.todo) * 100),
+          )
       : 0
 
   let points = 0
@@ -36,7 +44,11 @@ export const MobileTopBar = ({ onOpenSheet }: { onOpenSheet: () => void }) => {
   }
 
   const filledCount =
-    p && p.todo > 0 ? Math.round((p.done / p.todo) * MINI_CELLS) : 0
+    p && p.todo > 0
+      ? p.done >= p.todo
+        ? MINI_CELLS
+        : Math.min(MINI_CELLS - 1, Math.round((p.done / p.todo) * MINI_CELLS))
+      : 0
   const tickAt =
     p && p.todo > 0 ? Math.round((p.shouldBeDone / p.todo) * MINI_CELLS) : 0
 
@@ -226,7 +238,10 @@ export const MobileProgressSheet = ({ onClose }: { onClose: () => void }) => {
   if (!p) return null
 
   const SHEET_CELLS = 28
-  const filledCount = Math.round((p.done / p.todo) * SHEET_CELLS)
+  const filledCount =
+    p.done >= p.todo
+      ? SHEET_CELLS
+      : Math.min(SHEET_CELLS - 1, Math.round((p.done / p.todo) * SHEET_CELLS))
   const tickAt = Math.round((p.shouldBeDone / p.todo) * SHEET_CELLS)
 
   return (

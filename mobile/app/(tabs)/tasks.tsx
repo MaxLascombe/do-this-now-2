@@ -50,6 +50,9 @@ type Group = {
   label: string
   eyebrow: string
   overdueSuffix: string | null
+  // TOP-sort groups render as web's inline Separator (label + hairline, no
+  // count) — or nothing at all for the leading run.
+  separator?: boolean
   data: Task[]
 }
 
@@ -99,18 +102,18 @@ export default function TasksList() {
     (id: string) => {
       const t = (allData ?? []).find((x) => x.id === id)
       if (!t) {
-        doneMutation.mutate({ id })
+        doneMutation.mutate({ id, countMeasurement: true })
         return
       }
       const now = new Date()
       if (isCompletionGated(t, now)) return
       if (willAdvanceSubtask(t, now)) {
-        doneMutation.mutate({ id })
+        doneMutation.mutate({ id, countMeasurement: true })
         return
       }
       const kind = completionConfirmKind(t, now)
       if (!kind) {
-        doneMutation.mutate({ id })
+        doneMutation.mutate({ id, countMeasurement: true })
         return
       }
       Alert.alert('Count this time?', confirmMessage(t, now, kind), [
@@ -219,43 +222,51 @@ export default function TasksList() {
       }))
     }
 
+    // Mirror web: keep the exact sortTasks ranking as ONE flat list and
+    // only mark the first-occurrence boundaries with inline separators —
+    // never re-bucket (that could reorder tasks vs their rank).
     sortTasks(tasks, today0)
-    const top: Task[] = []
-    const afterToday: Task[] = []
-    const snoozed: Task[] = []
     const now = new Date()
-    for (const task of tasks) {
-      if (task.snooze && new Date(task.snooze) > now) snoozed.push(task)
-      else if (newSafeDate(task.due) > now) afterToday.push(task)
-      else top.push(task)
-    }
+    const marks = new Map<number, string>()
+    const firstAfter = tasks.findIndex((t) => newSafeDate(t.due) > now)
+    if (firstAfter >= 0) marks.set(firstAfter, 'Due after today')
+    const firstSnoozed = tasks.findIndex(
+      (t) => t.snooze && new Date(t.snooze) > now,
+    )
+    // Both boundaries can land on one index (first future-due task is also
+    // the first snoozed one); web stacks two separators there — SectionList
+    // has one header per section, so join the labels instead of dropping one.
+    if (firstSnoozed >= 0)
+      marks.set(
+        firstSnoozed,
+        marks.has(firstSnoozed)
+          ? `${marks.get(firstSnoozed)} · Snoozed`
+          : 'Snoozed',
+      )
+    const starts = Array.from(new Set([0, ...marks.keys()])).sort(
+      (a, b) => a - b,
+    )
     const result: Group[] = []
-    const blank = { eyebrow: '', overdueSuffix: null as string | null }
-    if (top.length)
-      result.push({ key: 'top', label: 'Today', ...blank, data: top })
-    if (afterToday.length)
+    starts.forEach((s, j) => {
+      const end = starts[j + 1] ?? tasks.length
+      if (end <= s) return
       result.push({
-        key: 'after',
-        label: 'Due after today',
-        ...blank,
-        data: afterToday,
+        key: `top-${s}`,
+        label: marks.get(s) ?? '',
+        eyebrow: '',
+        overdueSuffix: null,
+        separator: true,
+        data: tasks.slice(s, end),
       })
-    if (snoozed.length)
-      result.push({
-        key: 'snoozed',
-        label: 'Snoozed',
-        ...blank,
-        data: snoozed,
-      })
+    })
     return result
   }, [sort, allTasks.data, topTasks.data, query])
 
+  // Count what's on screen — like web, the eyebrow reflects the current
+  // search filter, not the raw backlog.
   const eyebrow = useMemo(
-    () =>
-      tasksListEyebrow(
-        sort === 'CHRON' ? (allTasks.data ?? []) : (topTasks.data ?? []),
-      ),
-    [sort, allTasks.data, topTasks.data],
+    () => tasksListEyebrow(sections.flatMap((s) => s.data)),
+    [sections],
   )
 
   // Starting a task selects it server-side, so Home flips to its Focus View
@@ -483,6 +494,43 @@ function SortToggle({
 }
 
 function GroupHeader({ group }: { group: Group }) {
+  // TOP-sort separators mirror web: the leading run has no header at all;
+  // boundary runs get label + hairline, uppercase heading style, no count.
+  if (group.separator) {
+    if (group.label === '') return null
+    return (
+      <View
+        style={{
+          paddingHorizontal: 20,
+          marginTop: 12,
+          marginBottom: 4,
+          flexDirection: 'row',
+          alignItems: 'baseline',
+          gap: 12,
+        }}
+      >
+        <Text
+          style={{
+            fontFamily: 'JetBrainsMono_700Bold',
+            fontSize: 15,
+            color: '#f4f4f5',
+            letterSpacing: 2.3,
+            textTransform: 'uppercase',
+          }}
+        >
+          {group.label}
+        </Text>
+        <View
+          style={{
+            flex: 1,
+            height: 1,
+            backgroundColor: '#18181b',
+            marginBottom: 4,
+          }}
+        />
+      </View>
+    )
+  }
   return (
     <View
       style={{

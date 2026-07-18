@@ -101,7 +101,7 @@ export default function Home() {
     // Subtask advance keeps the task in the Focus View so the next subtask can
     // be worked — don't exit or fire the count/skip confirm.
     if (willAdvanceSubtask(t, now)) {
-      doneMutation.mutate({ id: t.id })
+      doneMutation.mutate({ id: t.id, countMeasurement: true })
       return
     }
     const kind = completionConfirmKind(t, now)

@@ -68,12 +68,15 @@ export const TopBar = () => {
   }, [open])
 
   // todo is 0 on a no-tasks day; guard so the bar reads empty (0%) not NaN%.
+  // Cap at 99% until the target is actually met — a full bar must MEAN done.
   const pct =
     progress.data && progress.data.todo > 0
-      ? Math.min(
-          100,
-          Math.round((progress.data.done / progress.data.todo) * 100),
-        )
+      ? progress.data.done >= progress.data.todo
+        ? 100
+        : Math.min(
+            99,
+            Math.round((progress.data.done / progress.data.todo) * 100),
+          )
       : 0
 
   let scheduleShort: string | null = null
