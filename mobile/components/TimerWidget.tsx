@@ -153,8 +153,8 @@ export function TimerWidget({
       style={{
         borderRadius: 16,
         borderWidth: 1,
-        borderColor: running ? ACCENT : '#27272a',
-        backgroundColor: 'rgba(24,24,27,0.4)',
+        borderColor: running ? ACCENT : '#3f3f46',
+        backgroundColor: 'rgba(24,24,27,0.75)',
         padding: 16,
       }}
     >
