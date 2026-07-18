@@ -13,7 +13,7 @@ import { useState } from 'react'
 import { RefreshControl, ScrollView, Text, View } from 'react-native'
 
 import { ErrorState } from '../../components/ErrorState'
-import { Loading } from '../../components/Loading'
+import { Skeleton } from '../../components/Skeleton'
 import { PageHeading } from '../../components/PageHeading'
 import { usePullRefresh } from '../../hooks/usePullRefresh'
 
@@ -28,57 +28,75 @@ export default function Stats() {
   return (
     <View style={{ flex: 1, backgroundColor: '#0a0a0a' }}>
       <Stack.Screen options={{ headerShown: false }} />
-      <PageHeading eyebrow="all the numbers">Stats</PageHeading>
       {!data ? (
-        <View
-          style={{
-            flex: 1,
-            alignItems: 'center',
-            justifyContent: 'center',
-          }}
-        >
-          {isError && !isPending ? (
-            <ErrorState
-              message="Couldn't load your stats."
-              onRetry={() => refetch()}
-            />
-          ) : (
-            <Loading />
-          )}
-        </View>
-      ) : (
-        <ScrollView
-          contentContainerStyle={{
-            paddingHorizontal: 20,
-            paddingBottom: 32,
-            gap: 24,
-          }}
-          refreshControl={
-            <RefreshControl
-              refreshing={refreshing}
-              onRefresh={onRefresh}
-              tintColor="#fafafa"
-              colors={['#fafafa']}
-            />
-          }
-        >
-          <VanityCounters data={data} />
-          <StreakSummary data={data} />
-          <Heatmap data={data} />
-          <DailyBars data={data} />
-          <View style={{ flexDirection: 'row', gap: 24 }}>
-            <View style={{ flex: 1 }}>
-              <HourOfDay data={data} />
+        isError && !isPending ? (
+          <>
+            <PageHeading eyebrow="all the numbers">Stats</PageHeading>
+            <View
+              style={{
+                flex: 1,
+                alignItems: 'center',
+                justifyContent: 'center',
+              }}
+            >
+              <ErrorState
+                message="Couldn't load your stats."
+                onRetry={() => refetch()}
+              />
             </View>
-            <View style={{ flex: 1 }}>
-              <DayOfWeek data={data} />
-            </View>
+          </>
+        ) : (
+          <View
+            accessible
+            accessibilityRole="progressbar"
+            accessibilityLabel="Loading stats"
+            style={{ paddingHorizontal: 20, paddingTop: 8, gap: 24 }}
+          >
+            <Skeleton style={{ height: 32, width: 160 }} />
+            {[0, 1, 2, 3].map((i) => (
+              <Skeleton
+                key={i}
+                style={{ height: 112, width: '100%', borderRadius: 16 }}
+              />
+            ))}
           </View>
-          <TopTasks data={data} />
-          <TagTime data={data} />
-          <EmojiMix data={data} />
-          <Discipline data={data} />
-        </ScrollView>
+        )
+      ) : (
+        <>
+          <PageHeading eyebrow="all the numbers">Stats</PageHeading>
+          <ScrollView
+            contentContainerStyle={{
+              paddingHorizontal: 20,
+              paddingBottom: 32,
+              gap: 24,
+            }}
+            refreshControl={
+              <RefreshControl
+                refreshing={refreshing}
+                onRefresh={onRefresh}
+                tintColor="#fafafa"
+                colors={['#fafafa']}
+              />
+            }
+          >
+            <VanityCounters data={data} />
+            <StreakSummary data={data} />
+            <Heatmap data={data} />
+            <DailyBars data={data} />
+            <View style={{ flexDirection: 'row', gap: 24 }}>
+              <View style={{ flex: 1 }}>
+                <HourOfDay data={data} />
+              </View>
+              <View style={{ flex: 1 }}>
+                <DayOfWeek data={data} />
+              </View>
+            </View>
+            <TopTasks data={data} />
+            <TagTime data={data} />
+            <EmojiMix data={data} />
+            <Discipline data={data} />
+          </ScrollView>
+        </>
       )}
     </View>
   )

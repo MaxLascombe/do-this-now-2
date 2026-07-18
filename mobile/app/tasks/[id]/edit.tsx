@@ -10,7 +10,7 @@ import { Stack, useLocalSearchParams, useRouter } from 'expo-router'
 import { Alert, ScrollView, View } from 'react-native'
 
 import { ErrorState } from '../../../components/ErrorState'
-import { Loading } from '../../../components/Loading'
+import { Skeleton } from '../../../components/Skeleton'
 import { TaskForm } from '../../../components/TaskForm'
 import { TimerWidget } from '../../../components/TimerWidget'
 import { useToast } from '../../../components/ToastProvider'
@@ -41,7 +41,18 @@ export default function EditTask() {
       >
         <Stack.Screen options={{ title: 'Edit' }} />
         {taskQuery.isPending ? (
-          <Loading />
+          <View
+            accessible
+            accessibilityRole="progressbar"
+            accessibilityLabel="Loading task"
+            style={{ width: '100%', paddingHorizontal: 20, gap: 24 }}
+          >
+            <Skeleton style={{ height: 16, width: '33%' }} />
+            <Skeleton style={{ height: 80, width: '100%', borderRadius: 16 }} />
+            <Skeleton
+              style={{ height: 288, width: '100%', borderRadius: 16 }}
+            />
+          </View>
         ) : taskQuery.isError ? (
           <ErrorState
             message="Couldn't load this task."

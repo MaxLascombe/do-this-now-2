@@ -35,6 +35,7 @@ import {
 import { EmptyTasks } from '../../components/EmptyTasks'
 import { ErrorState } from '../../components/ErrorState'
 import { Loading } from '../../components/Loading'
+import { TaskListSkeleton } from '../../components/Skeleton'
 import { PageHeading } from '../../components/PageHeading'
 import { RowAction, RowMenu, TaskRow } from '../../components/TaskRow'
 import { useToast } from '../../components/ToastProvider'
@@ -435,7 +436,7 @@ export default function TasksList() {
         }
         ListEmptyComponent={
           activeQuery.isPending ? (
-            <Loading />
+            <TaskListSkeleton rows={6} />
           ) : activeQuery.isError ? (
             <View style={{ marginTop: 40 }}>
               <ErrorState

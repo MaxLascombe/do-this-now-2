@@ -41,7 +41,7 @@ import {
 
 import { EmptyTasks } from '../../components/EmptyTasks'
 import { ErrorState } from '../../components/ErrorState'
-import { Loading } from '../../components/Loading'
+import { Skeleton, TaskRowSkeleton } from '../../components/Skeleton'
 import { RowAction, RowMenu, TaskRow } from '../../components/TaskRow'
 import { TimerWidget } from '../../components/TimerWidget'
 import { useToast } from '../../components/ToastProvider'
@@ -226,9 +226,23 @@ export default function Home() {
       <Stack.Screen options={{ headerShown: false }} />
       {isBusy ? (
         <View
-          style={{ flex: 1, alignItems: 'center', justifyContent: 'center' }}
+          accessible
+          accessibilityRole="progressbar"
+          accessibilityLabel="Loading your tasks"
+          style={{ flex: 1, justifyContent: 'center' }}
         >
-          <Loading />
+          <View style={{ paddingHorizontal: 20 }}>
+            <Skeleton
+              style={{ height: 12, width: 80, marginBottom: 16, marginLeft: 4 }}
+            />
+          </View>
+          <View style={{ gap: 8 }}>
+            {[0, 1, 2].map((i) => (
+              <View key={i} style={{ paddingHorizontal: 20 }}>
+                <TaskRowSkeleton />
+              </View>
+            ))}
+          </View>
         </View>
       ) : !focusTask && topThree.length === 0 ? (
         <View
