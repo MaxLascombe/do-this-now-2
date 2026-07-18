@@ -90,7 +90,7 @@ const SecondaryAction = ({
   <button
     type="button"
     onClick={onClick}
-    className="flex items-center justify-center gap-1.5 rounded-full px-3 py-1.5 text-sm text-zinc-500 transition-colors hover:bg-zinc-900 hover:text-zinc-100"
+    className="flex items-center justify-center gap-1.5 rounded-full border border-zinc-800 bg-zinc-900/60 px-3 py-1.5 text-sm text-zinc-400 transition-colors hover:border-zinc-600 hover:bg-zinc-900 hover:text-zinc-100"
   >
     <Kbd>{k}</Kbd>
     <span>{label}</span>
