@@ -78,7 +78,7 @@ export function TimerAdjustModal({
             style={{
               fontFamily: 'JetBrainsMono_700Bold',
               color: '#fafafa',
-              fontSize: 36,
+              fontSize: 32,
               textAlign: 'center',
               marginTop: 14,
               lineHeight: 36,
