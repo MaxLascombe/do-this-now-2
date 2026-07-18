@@ -21,7 +21,7 @@ import {
   isCompletionGated,
 } from '@dtn/shared/timer-utils'
 
-import { createFileRoute, useNavigate } from '@tanstack/react-router'
+import { createFileRoute, Link, useNavigate } from '@tanstack/react-router'
 import {
   Fragment,
   useCallback,
@@ -436,7 +436,28 @@ function TasksList() {
             ) : query ? (
               `No tasks match "${query.trim()}"`
             ) : (
-              'No tasks'
+              <div className="mt-12 flex flex-col items-center gap-6">
+                <span
+                  aria-hidden="true"
+                  className="text-5xl leading-none select-none"
+                >
+                  ✺
+                </span>
+                <div className="space-y-1.5">
+                  <p className="font-mono text-lg text-zinc-200">
+                    No tasks yet
+                  </p>
+                  <p className="font-mono text-sm text-zinc-500">
+                    Create your first task to get started.
+                  </p>
+                </div>
+                <Link
+                  to="/new-task"
+                  className="rounded-full bg-zinc-50 px-4 py-2 font-mono text-sm font-semibold text-zinc-900 hover:bg-zinc-100"
+                >
+                  New task
+                </Link>
+              </div>
             )}
           </div>
         )}

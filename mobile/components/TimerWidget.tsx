@@ -70,7 +70,7 @@ export function TimerWidget({
             borderWidth: 1,
             borderColor: running ? ACCENT : '#27272a',
             backgroundColor: 'rgba(24,24,27,0.4)',
-            paddingHorizontal: 18,
+            paddingHorizontal: 20,
             paddingVertical: 12,
           }}
         >
@@ -126,7 +126,7 @@ export function TimerWidget({
                 backgroundColor: running
                   ? pressed
                     ? '#d97706'
-                    : '#f59e0b'
+                    : 'rgba(251,191,36,0.9)'
                   : pressed
                     ? '#e4e4e7'
                     : '#fafafa',
@@ -254,13 +254,13 @@ export function TimerWidget({
             flexDirection: 'row',
             alignItems: 'center',
             gap: 8,
-            paddingHorizontal: 18,
+            paddingHorizontal: 20,
             paddingVertical: 10,
             borderRadius: 999,
             backgroundColor: running
               ? pressed
                 ? '#d97706'
-                : '#f59e0b'
+                : 'rgba(251,191,36,0.9)'
               : pressed
                 ? '#e4e4e7'
                 : '#fafafa',

@@ -4,10 +4,12 @@ export function EmptyTasks({
   title,
   subtitle,
   onNewTask,
+  onViewAll,
 }: {
   title: string
   subtitle: string
   onNewTask: () => void
+  onViewAll?: () => void
 }) {
   return (
     <View
@@ -15,17 +17,17 @@ export function EmptyTasks({
         alignItems: 'center',
         justifyContent: 'center',
         paddingHorizontal: 24,
-        gap: 20,
+        gap: 24,
       }}
     >
-      <Text style={{ fontSize: 44 }} accessibilityElementsHidden>
+      <Text style={{ fontSize: 48 }} accessibilityElementsHidden>
         ✺
       </Text>
       <View style={{ gap: 6, alignItems: 'center' }}>
         <Text
           style={{
             fontFamily: 'JetBrainsMono_400Regular',
-            fontSize: 17,
+            fontSize: 18,
             color: '#e4e4e7',
             textAlign: 'center',
           }}
@@ -35,7 +37,7 @@ export function EmptyTasks({
         <Text
           style={{
             fontFamily: 'JetBrainsMono_400Regular',
-            fontSize: 13,
+            fontSize: 14,
             color: '#71717a',
             textAlign: 'center',
           }}
@@ -43,26 +45,51 @@ export function EmptyTasks({
           {subtitle}
         </Text>
       </View>
-      <Pressable
-        onPress={onNewTask}
-        accessibilityRole="button"
-        style={{
-          backgroundColor: '#fafafa',
-          paddingHorizontal: 18,
-          paddingVertical: 11,
-          borderRadius: 999,
-        }}
-      >
-        <Text
+      <View style={{ flexDirection: 'row', gap: 8 }}>
+        <Pressable
+          onPress={onNewTask}
+          accessibilityRole="button"
           style={{
-            fontFamily: 'JetBrainsMono_400Regular',
-            fontSize: 14,
-            color: '#0a0a0a',
+            backgroundColor: '#fafafa',
+            paddingHorizontal: 18,
+            paddingVertical: 11,
+            borderRadius: 999,
           }}
         >
-          New task
-        </Text>
-      </Pressable>
+          <Text
+            style={{
+              fontFamily: 'JetBrainsMono_600SemiBold',
+              fontSize: 14,
+              color: '#18181b',
+            }}
+          >
+            New task
+          </Text>
+        </Pressable>
+        {onViewAll && (
+          <Pressable
+            onPress={onViewAll}
+            accessibilityRole="button"
+            style={({ pressed }) => ({
+              borderWidth: 1,
+              borderColor: pressed ? '#52525b' : '#27272a',
+              paddingHorizontal: 18,
+              paddingVertical: 11,
+              borderRadius: 999,
+            })}
+          >
+            <Text
+              style={{
+                fontFamily: 'JetBrainsMono_400Regular',
+                fontSize: 14,
+                color: '#a1a1aa',
+              }}
+            >
+              View all tasks
+            </Text>
+          </Pressable>
+        )}
+      </View>
     </View>
   )
 }

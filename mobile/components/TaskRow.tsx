@@ -34,12 +34,10 @@ export function RowAction({
   label,
   onPress,
   disabled,
-  primary,
 }: {
   label: string
   onPress: () => void
   disabled?: boolean
-  primary?: boolean
 }) {
   return (
     <Pressable
@@ -54,23 +52,15 @@ export function RowAction({
         borderRadius: 999,
         borderWidth: 1,
         opacity: disabled ? 0.4 : 1,
-        borderColor: primary ? '#fafafa' : '#27272a',
-        backgroundColor: primary
-          ? pressed
-            ? '#e4e4e7'
-            : '#fafafa'
-          : pressed
-            ? 'rgba(255,255,255,0.06)'
-            : 'transparent',
+        borderColor: '#27272a',
+        backgroundColor: pressed ? 'rgba(255,255,255,0.06)' : 'transparent',
       })}
     >
       <Text
         style={{
-          fontFamily: primary
-            ? 'JetBrainsMono_700Bold'
-            : 'JetBrainsMono_400Regular',
+          fontFamily: 'JetBrainsMono_400Regular',
           fontSize: 12,
-          color: primary ? '#0a0a0a' : '#a1a1aa',
+          color: '#a1a1aa',
         }}
       >
         {label}
@@ -252,8 +242,8 @@ export function TaskRow({
         style={{
           flexDirection: 'row',
           alignItems: 'center',
-          gap: 10,
-          paddingHorizontal: 14,
+          gap: 12,
+          paddingHorizontal: 16,
           paddingTop: 12,
           paddingBottom: actions ? 8 : 12,
         }}
@@ -262,7 +252,7 @@ export function TaskRow({
           <Text
             style={{
               fontFamily: 'JetBrainsMono_400Regular',
-              fontSize: 13,
+              fontSize: 14,
               color: '#52525b',
               width: 14,
               textAlign: 'center',
@@ -275,13 +265,13 @@ export function TaskRow({
           <Text
             accessibilityElementsHidden
             importantForAccessibility="no-hide-descendants"
-            style={{ fontSize: 22, lineHeight: 26 }}
+            style={{ fontSize: 24, lineHeight: 28 }}
           >
             {task.emoji}
           </Text>
           {task.timerStartedAt && (
             <View style={{ position: 'absolute', top: -2, right: -4 }}>
-              <PulseDot color={ACCENT} />
+              <PulseDot color={ACCENT} size={8} glow />
             </View>
           )}
         </View>
@@ -290,8 +280,8 @@ export function TaskRow({
             numberOfLines={1}
             style={{
               fontFamily: 'JetBrainsMono_400Regular',
-              fontSize: 17,
-              lineHeight: 21,
+              fontSize: 17.5,
+              lineHeight: 20,
               color: '#f4f4f5',
             }}
           >
@@ -299,7 +289,7 @@ export function TaskRow({
           </Text>
           <View
             style={{
-              marginTop: 3,
+              marginTop: 4,
               flexDirection: 'row',
               flexWrap: 'wrap',
               alignItems: 'center',
@@ -333,7 +323,7 @@ export function TaskRow({
             flexDirection: 'row',
             alignItems: 'center',
             gap: 8,
-            paddingHorizontal: 14,
+            paddingHorizontal: 16,
             paddingBottom: 12,
           }}
         >
@@ -355,8 +345,8 @@ function Meta({
     <Text
       style={{
         fontFamily: 'JetBrainsMono_400Regular',
-        fontSize: 11,
-        marginRight: 12,
+        fontSize: 12,
+        marginRight: 16,
         color,
       }}
     >

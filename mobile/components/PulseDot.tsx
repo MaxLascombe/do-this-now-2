@@ -5,9 +5,11 @@ import { Animated, Easing } from 'react-native'
 export function PulseDot({
   color,
   size = 6,
+  glow = false,
 }: {
   color: string
   size?: number
+  glow?: boolean
 }) {
   const opacity = useRef(new Animated.Value(1)).current
   useEffect(() => {
@@ -38,6 +40,14 @@ export function PulseDot({
         height: size,
         borderRadius: size / 2,
         backgroundColor: color,
+        ...(glow
+          ? {
+              shadowColor: color,
+              shadowOpacity: 0.9,
+              shadowRadius: 6,
+              shadowOffset: { width: 0, height: 0 },
+            }
+          : {}),
         opacity,
       }}
     />

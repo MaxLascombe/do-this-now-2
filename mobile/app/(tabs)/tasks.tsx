@@ -156,31 +156,35 @@ export default function TasksList() {
   )
   const onDelete = useCallback(
     (id: string, title: string) => {
-      Alert.alert('Delete task', `Delete '${title}'?`, [
-        { text: 'Cancel', style: 'cancel' },
-        {
-          text: 'Delete',
-          style: 'destructive',
-          onPress: () => {
-            // Snapshot for Undo — recreate restores content + subtasks (new id).
-            const task = [
-              ...(allTasks.data ?? []),
-              ...(topTasks.data ?? []),
-            ].find((x) => x.id === id)
-            const restore = task ? taskToInput(task) : null
-            deleteMutation.mutate(id, {
-              onSuccess: () => {
-                if (!restore) return
-                toast({
-                  message: `Deleted '${title}'`,
-                  actionLabel: 'Undo',
-                  onAction: () => createMutation.mutate(restore),
-                })
-              },
-            })
+      Alert.alert(
+        'Delete task',
+        `Are you sure you want to delete '${title}'?`,
+        [
+          { text: 'Cancel', style: 'cancel' },
+          {
+            text: 'Delete',
+            style: 'destructive',
+            onPress: () => {
+              // Snapshot for Undo — recreate restores content + subtasks (new id).
+              const task = [
+                ...(allTasks.data ?? []),
+                ...(topTasks.data ?? []),
+              ].find((x) => x.id === id)
+              const restore = task ? taskToInput(task) : null
+              deleteMutation.mutate(id, {
+                onSuccess: () => {
+                  if (!restore) return
+                  toast({
+                    message: `Deleted '${title}'`,
+                    actionLabel: 'Undo',
+                    onAction: () => createMutation.mutate(restore),
+                  })
+                },
+              })
+            },
           },
-        },
-      ])
+        ],
+      )
     },
     [deleteMutation, createMutation, toast, allTasks.data, topTasks.data],
   )
@@ -200,8 +204,7 @@ export default function TasksList() {
 
     if (sort === 'CHRON') {
       tasks.sort(
-        (a, b) =>
-          newSafeDate(a.due).getTime() - newSafeDate(b.due).getTime(),
+        (a, b) => newSafeDate(a.due).getTime() - newSafeDate(b.due).getTime(),
       )
       const groups: Record<string, Task[]> = {}
       const order: string[] = []
@@ -288,7 +291,7 @@ export default function TasksList() {
             task={item}
             actions={
               <>
-                <RowAction label="Start" primary onPress={() => onStart(item)} />
+                <RowAction label="Start" onPress={() => onStart(item)} />
                 {isSnoozed(item) ? (
                   <RowAction label="Wake" onPress={() => onWake(item.id)} />
                 ) : (
@@ -405,27 +408,25 @@ export default function TasksList() {
                 onRetry={() => activeQuery.refetch()}
               />
             </View>
+          ) : query ? (
+            <Text
+              style={{
+                textAlign: 'center',
+                marginTop: 40,
+                color: '#71717a',
+                fontFamily: 'JetBrainsMono_400Regular',
+              }}
+            >
+              {`No tasks match "${query.trim()}"`}
+            </Text>
           ) : (
-            query ? (
-              <Text
-                style={{
-                  textAlign: 'center',
-                  marginTop: 40,
-                  color: '#71717a',
-                  fontFamily: 'JetBrainsMono_400Regular',
-                }}
-              >
-                {`No tasks match "${query.trim()}"`}
-              </Text>
-            ) : (
-              <View style={{ marginTop: 48 }}>
-                <EmptyTasks
-                  title="No tasks yet"
-                  subtitle="Create your first task to get started."
-                  onNewTask={() => router.push('/new-task')}
-                />
-              </View>
-            )
+            <View style={{ marginTop: 48 }}>
+              <EmptyTasks
+                title="No tasks yet"
+                subtitle="Create your first task to get started."
+                onNewTask={() => router.push('/new-task')}
+              />
+            </View>
           )
         }
       />
@@ -570,7 +571,12 @@ function GroupHeader({ group }: { group: Group }) {
         </Text>
       </View>
       <View
-        style={{ flex: 1, height: 1, backgroundColor: '#18181b', marginBottom: 6 }}
+        style={{
+          flex: 1,
+          height: 1,
+          backgroundColor: '#18181b',
+          marginBottom: 6,
+        }}
       />
       <Text
         style={{

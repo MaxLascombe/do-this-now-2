@@ -1,7 +1,4 @@
-import {
-  findNextActionableSubtask,
-  isSnoozed,
-} from '@dtn/shared/task-sorting'
+import { findNextActionableSubtask, isSnoozed } from '@dtn/shared/task-sorting'
 import {
   snoozeTaskTransition,
   willAdvanceSubtask,
@@ -159,24 +156,28 @@ export default function Home() {
   }
 
   const deleteFor = (t: Task) => {
-    Alert.alert('Delete task', `Delete '${t.title}'?`, [
-      { text: 'Cancel', style: 'cancel' },
-      {
-        text: 'Delete',
-        style: 'destructive',
-        onPress: () => {
-          const restore = taskToInput(t)
-          deleteMutation.mutate(t.id, {
-            onSuccess: () =>
-              toast({
-                message: `Deleted '${t.title}'`,
-                actionLabel: 'Undo',
-                onAction: () => createMutation.mutate(restore),
-              }),
-          })
+    Alert.alert(
+      'Delete task',
+      `Are you sure you want to delete '${t.title}'?`,
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Delete',
+          style: 'destructive',
+          onPress: () => {
+            const restore = taskToInput(t)
+            deleteMutation.mutate(t.id, {
+              onSuccess: () =>
+                toast({
+                  message: `Deleted '${t.title}'`,
+                  actionLabel: 'Undo',
+                  onAction: () => createMutation.mutate(restore),
+                }),
+            })
+          },
         },
-      },
-    ])
+      ],
+    )
   }
 
   // Starting a task's timer selects it server-side, so Home flips to the Focus
@@ -248,12 +249,17 @@ export default function Home() {
               title="Nothing to do right now"
               subtitle="You're all caught up. Add a task to line up what's next."
               onNewTask={() => router.push('/new-task')}
+              onViewAll={() => router.push('/tasks')}
             />
           )}
         </View>
       ) : (
         <ScrollView
-          contentContainerStyle={{ flexGrow: 1, paddingBottom: 24 }}
+          contentContainerStyle={{
+            flexGrow: 1,
+            justifyContent: 'center',
+            paddingBottom: 24,
+          }}
           refreshControl={
             <RefreshControl
               refreshing={refreshing}
@@ -283,7 +289,7 @@ export default function Home() {
                   letterSpacing: 2.5,
                   textTransform: 'uppercase',
                   color: '#52525b',
-                  marginBottom: 12,
+                  marginBottom: 16,
                   paddingHorizontal: 4,
                 }}
               >
@@ -301,7 +307,6 @@ export default function Home() {
                         <>
                           <RowAction
                             label="Start"
-                            primary
                             onPress={() => startFor(t)}
                           />
                           <RowAction
@@ -400,7 +405,7 @@ function Hero({
           textAlign: 'center',
           fontFamily: 'JetBrainsMono_400Regular',
           fontSize: 10,
-          letterSpacing: 2.5,
+          letterSpacing: 2,
           color: '#71717a',
           textTransform: 'uppercase',
         }}
@@ -412,8 +417,8 @@ function Hero({
         importantForAccessibility="no-hide-descendants"
         style={{
           textAlign: 'center',
-          fontSize: 64,
-          lineHeight: 72,
+          fontSize: 80,
+          lineHeight: 88,
           marginTop: 16,
         }}
       >
@@ -424,7 +429,10 @@ function Hero({
           textAlign: 'center',
           fontFamily: 'InstrumentSerif_400Regular_Italic',
           fontSize: 42,
-          lineHeight: 46,
+          lineHeight: 44,
+          letterSpacing: -0.6,
+          maxWidth: 320,
+          alignSelf: 'center',
           color: '#fafafa',
           marginTop: 12,
         }}
@@ -445,7 +453,7 @@ function Hero({
           <Text
             style={{
               fontFamily: 'InstrumentSerif_400Regular_Italic',
-              fontSize: 14,
+              fontSize: 17,
             }}
           >
             {task.title}
@@ -477,27 +485,26 @@ function Hero({
         accessibilityRole="button"
         accessibilityState={{ disabled: gated }}
         style={({ pressed }) => ({
-          marginTop: 24,
+          marginTop: 32,
           width: '100%',
           maxWidth: 320,
           alignSelf: 'center',
-          paddingVertical: 15,
+          paddingVertical: 14,
           borderRadius: 999,
           opacity: gated ? 0.4 : 1,
-          backgroundColor: pressed ? '#e4e4e7' : '#fafafa',
+          backgroundColor: pressed ? '#e4e4e7' : '#fff',
           alignItems: 'center',
           shadowColor: '#fff',
-          shadowOpacity: 0.18,
-          shadowRadius: 24,
+          shadowOpacity: 0.1,
+          shadowRadius: 40,
           shadowOffset: { width: 0, height: 0 },
         })}
       >
         <Text
           style={{
-            fontFamily: 'JetBrainsMono_700Bold',
-            color: '#0a0a0a',
+            fontFamily: 'JetBrainsMono_600SemiBold',
+            color: '#000',
             fontSize: 18,
-            letterSpacing: 0.5,
           }}
         >
           {gated
@@ -531,23 +538,41 @@ function Hero({
         <Ghost label="Delete" onPress={onDelete} />
       </View>
 
-      <View style={{ marginTop: 20 }}>
+      <View style={{ marginTop: 24 }}>
         <HeroTimer task={task} />
       </View>
 
       {task.subtasks.length > 0 && (
-        <View style={{ marginTop: 24, gap: 6 }}>
-          <Text
+        <View style={{ marginTop: 32, gap: 4 }}>
+          <View
             style={{
-              fontFamily: 'JetBrainsMono_400Regular',
-              fontSize: 10,
-              letterSpacing: 2.5,
-              textTransform: 'uppercase',
-              color: '#71717a',
+              flexDirection: 'row',
+              justifyContent: 'space-between',
+              alignItems: 'baseline',
             }}
           >
-            Subtasks {doneCount}/{task.subtasks.length}
-          </Text>
+            <Text
+              style={{
+                fontFamily: 'JetBrainsMono_400Regular',
+                fontSize: 10,
+                letterSpacing: 3,
+                textTransform: 'uppercase',
+                color: '#71717a',
+              }}
+            >
+              Subtasks
+            </Text>
+            <Text
+              style={{
+                fontFamily: 'JetBrainsMono_400Regular',
+                fontSize: 10,
+                letterSpacing: 3,
+                color: '#71717a',
+              }}
+            >
+              {doneCount}/{task.subtasks.length}
+            </Text>
+          </View>
           {task.subtasks.map((s, i) => (
             <Pressable
               key={i}
@@ -557,11 +582,11 @@ function Hero({
               style={({ pressed }) => ({
                 flexDirection: 'row',
                 alignItems: 'center',
-                gap: 10,
+                gap: 12,
                 borderWidth: 1,
                 borderColor: '#27272a',
                 borderRadius: 12,
-                paddingHorizontal: 12,
+                paddingHorizontal: 16,
                 paddingVertical: 10,
                 backgroundColor: pressed
                   ? 'rgba(255,255,255,0.04)'
@@ -575,8 +600,8 @@ function Hero({
                 style={{
                   flex: 1,
                   fontFamily: 'JetBrainsMono_400Regular',
-                  fontSize: 13,
-                  color: s.done ? '#71717a' : '#d4d4d8',
+                  fontSize: 14,
+                  color: s.done ? '#71717a' : '#f4f4f5',
                   textDecorationLine: s.done ? 'line-through' : 'none',
                 }}
               >
@@ -611,15 +636,15 @@ function Chip({ children }: { children: React.ReactNode }) {
         borderWidth: 1,
         borderColor: '#27272a',
         backgroundColor: 'rgba(24,24,27,0.8)',
-        paddingHorizontal: 10,
-        paddingVertical: 5,
+        paddingHorizontal: 12,
+        paddingVertical: 4,
         borderRadius: 999,
       }}
     >
       <Text
         style={{
           fontFamily: 'JetBrainsMono_400Regular',
-          fontSize: 12,
+          fontSize: 14,
           color: '#a1a1aa',
         }}
       >
