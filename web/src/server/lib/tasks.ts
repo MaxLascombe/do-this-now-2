@@ -5,6 +5,7 @@ import { taskEvents, tasks } from '@dtn/shared/schema'
 import { showsInTopTasks, sortTasks } from '@dtn/shared/task-sorting'
 import { ceilTaskTime } from '@dtn/shared/timer-utils'
 import { db } from '../../db'
+import { syncLockScreenSoon } from './lockscreen'
 import type { TaskInput } from '@dtn/shared/task-input'
 import type { Task } from '@dtn/shared/schema'
 
@@ -108,7 +109,7 @@ export async function updateTask(
   id: string,
   input: TaskInput,
 ): Promise<Task | null> {
-  return db.transaction(async (tx) => {
+  const result = await db.transaction(async (tx) => {
     if (input.timekeeperId) {
       // Self-reference is also blocked by the CHECK constraint, but check
       // here too for a friendlier error.
@@ -142,6 +143,10 @@ export async function updateTask(
     ).at(0)
     return row ? ceilTaskTime(row) : null
   })
+  // Edits to the Selected Task's title/emoji/target refresh its
+  // lock-screen face. Lib-level so both entry points fire it.
+  syncLockScreenSoon(userId)
+  return result
 }
 
 export async function deleteTask(userId: string, id: string): Promise<void> {
@@ -162,4 +167,7 @@ export async function deleteTask(userId: string, id: string): Promise<void> {
       .delete(tasks)
       .where(and(eq(tasks.userId, userId), eq(tasks.id, id)))
   })
+  // Deleting the Selected Task clears the pointer via the FK with no app
+  // code running — this hook is the only thing that ends its activity.
+  syncLockScreenSoon(userId)
 }

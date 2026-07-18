@@ -36,6 +36,10 @@ struct PauseResumeIntent: AppIntent {
     req.httpMethod = "POST"
     req.setValue("application/json", forHTTPHeaderField: "Content-Type")
     req.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
+    // Minutes west of UTC, matching JS getTimezoneOffset() — so a pause
+    // that completes a task credits the right local day.
+    let tzOffsetMin = -TimeZone.current.secondsFromGMT() / 60
+    req.setValue(String(tzOffsetMin), forHTTPHeaderField: "X-Tz-Offset")
     let at = ISO8601DateFormatter().string(from: Date())
     req.httpBody = try JSONSerialization.data(withJSONObject: [
       "action": resume ? "resume" : "pause",

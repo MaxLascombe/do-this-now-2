@@ -4,7 +4,7 @@ import { tasks } from '@dtn/shared/schema'
 import { shouldCompleteOnPause } from '@dtn/shared/timer-utils'
 import { db } from '../../db'
 import { completeTask } from './actions'
-import { buildLockScreenState, syncLockScreen } from './lockscreen'
+import { buildLockScreenState } from './lockscreen'
 import { getSelection } from './selection'
 import { applyTimerAction } from './timer'
 import type { LockScreenState } from './lockscreen'
@@ -58,8 +58,7 @@ export async function applyLockScreenTimerAction(
     }
   }
 
-  void syncLockScreen(userId).catch((err) =>
-    console.error('syncLockScreen after widget action failed', err),
-  )
+  // No explicit sync here: applyTimerAction / completeTask fire it from
+  // the lib layer like every other entry point.
   return buildLockScreenState(userId)
 }
