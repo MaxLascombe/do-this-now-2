@@ -84,7 +84,7 @@ export default function Settings() {
             <Text
               style={{
                 fontFamily: 'JetBrainsMono_400Regular',
-                fontSize: 12,
+                fontSize: 13,
                 color: '#71717a',
               }}
             >
@@ -113,7 +113,7 @@ export default function Settings() {
           <Text
             style={{
               fontFamily: 'JetBrainsMono_400Regular',
-              fontSize: 14,
+              fontSize: 15,
               color: OVERDUE,
             }}
           >

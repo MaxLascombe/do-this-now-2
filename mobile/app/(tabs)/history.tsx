@@ -117,7 +117,7 @@ export default function History() {
               <Text
                 style={{
                   fontFamily: 'JetBrainsMono_700Bold',
-                  fontSize: 17,
+                  fontSize: 18,
                   color: '#f4f4f5',
                   letterSpacing: 2.5,
                   textTransform: 'uppercase',
@@ -128,7 +128,7 @@ export default function History() {
               <Text
                 style={{
                   fontFamily: 'JetBrainsMono_400Regular',
-                  fontSize: 10,
+                  fontSize: 11,
                   letterSpacing: 2.5,
                   color: '#71717a',
                   textTransform: 'uppercase',
@@ -230,7 +230,7 @@ export default function History() {
                 <Text
                   style={{
                     fontFamily: 'JetBrainsMono_400Regular',
-                    fontSize: 10,
+                    fontSize: 11,
                     letterSpacing: 2.5,
                     textTransform: 'uppercase',
                     color: '#71717a',
@@ -254,7 +254,7 @@ export default function History() {
                         width: 96,
                         color: '#d4d4d8',
                         fontFamily: 'JetBrainsMono_400Regular',
-                        fontSize: 12,
+                        fontSize: 13,
                       }}
                     >
                       #{tag}
@@ -284,7 +284,7 @@ export default function History() {
                         textAlign: 'right',
                         color: '#71717a',
                         fontFamily: 'JetBrainsMono_400Regular',
-                        fontSize: 12,
+                        fontSize: 13,
                       }}
                     >
                       {minutesToHours(m)}
@@ -318,7 +318,7 @@ export default function History() {
                 <Text
                   style={{
                     fontFamily: 'JetBrainsMono_400Regular',
-                    fontSize: 10,
+                    fontSize: 11,
                     letterSpacing: 2.5,
                     textTransform: 'uppercase',
                     color: '#71717a',
@@ -389,7 +389,7 @@ function Stat({
       <Text
         style={{
           fontFamily: 'JetBrainsMono_400Regular',
-          fontSize: 10,
+          fontSize: 11,
           letterSpacing: 2.5,
           color: '#71717a',
           textTransform: 'uppercase',
@@ -418,7 +418,7 @@ function Stat({
           <Text
             style={{
               fontFamily: 'JetBrainsMono_400Regular',
-              fontSize: 12,
+              fontSize: 13,
               color: '#71717a',
             }}
           >
@@ -466,7 +466,7 @@ function CompletedRow({ entry }: { entry: HistoryEntry }) {
           justifyContent: 'center',
         }}
       >
-        <Text style={{ color: ACCENT, fontSize: 14, lineHeight: 14 }}>✓</Text>
+        <Text style={{ color: ACCENT, fontSize: 15, lineHeight: 16 }}>✓</Text>
       </View>
       <Text style={{ fontSize: 24, lineHeight: 26 }}>{task.emoji}</Text>
       <View style={{ flex: 1 }}>
@@ -474,7 +474,7 @@ function CompletedRow({ entry }: { entry: HistoryEntry }) {
           numberOfLines={1}
           style={{
             fontFamily: 'JetBrainsMono_400Regular',
-            fontSize: 17.5,
+            fontSize: 18,
             color: '#d4d4d8',
             textDecorationLine: 'line-through',
             textDecorationColor: 'rgba(255,255,255,0.25)',
@@ -508,7 +508,7 @@ function MetaItem({ children }: { children: React.ReactNode }) {
     <Text
       style={{
         fontFamily: 'JetBrainsMono_400Regular',
-        fontSize: 12,
+        fontSize: 13,
         color: '#71717a',
         marginRight: 12,
       }}

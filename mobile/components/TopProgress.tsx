@@ -89,11 +89,11 @@ export function TopProgress() {
             <View
               style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}
             >
-              <Text style={{ color: '#fafafa', fontSize: 13 }}>★</Text>
+              <Text style={{ color: '#fafafa', fontSize: 14 }}>★</Text>
               <Text
                 style={{
                   color: '#a1a1aa',
-                  fontSize: 13,
+                  fontSize: 14,
                   fontFamily: 'JetBrainsMono_400Regular',
                 }}
               >
@@ -103,11 +103,11 @@ export function TopProgress() {
             <View
               style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}
             >
-              <Text style={{ color: STREAK, fontSize: 13 }}>▲</Text>
+              <Text style={{ color: STREAK, fontSize: 14 }}>▲</Text>
               <Text
                 style={{
                   color: STREAK,
-                  fontSize: 13,
+                  fontSize: 14,
                   fontFamily: 'JetBrainsMono_400Regular',
                 }}
               >
@@ -117,7 +117,7 @@ export function TopProgress() {
             <Text
               style={{
                 color: ACCENT,
-                fontSize: 13,
+                fontSize: 14,
                 fontFamily: 'JetBrainsMono_400Regular',
               }}
             >
@@ -242,7 +242,7 @@ function ProgressSheet({ onClose }: { onClose: () => void }) {
           style={{
             fontFamily: 'JetBrainsMono_400Regular',
             color: '#71717a',
-            fontSize: 10,
+            fontSize: 11,
             letterSpacing: 3,
             textTransform: 'uppercase',
           }}
@@ -254,7 +254,7 @@ function ProgressSheet({ onClose }: { onClose: () => void }) {
             style={{
               fontFamily: 'JetBrainsMono_400Regular',
               color: '#71717a',
-              fontSize: 12,
+              fontSize: 13,
               fontVariant: ['tabular-nums'],
             }}
           >
@@ -316,7 +316,7 @@ function ProgressSheet({ onClose }: { onClose: () => void }) {
             style={{
               fontFamily: 'JetBrainsMono_400Regular',
               color: ACCENT,
-              fontSize: 13,
+              fontSize: 14,
             }}
           >
             {scheduleShort}
@@ -378,14 +378,14 @@ function SheetStat({
   return (
     <View style={{ width: '50%', paddingVertical: 10 }}>
       <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
-        <Text style={{ color: iconColor ?? '#fafafa', fontSize: 13 }}>
+        <Text style={{ color: iconColor ?? '#fafafa', fontSize: 14 }}>
           {icon}
         </Text>
         <Text
           style={{
             fontFamily: 'JetBrainsMono_400Regular',
             color: '#71717a',
-            fontSize: 10,
+            fontSize: 11,
             letterSpacing: 2.5,
             textTransform: 'uppercase',
           }}
@@ -414,7 +414,7 @@ function SheetStat({
           style={{
             fontFamily: 'JetBrainsMono_400Regular',
             color: '#71717a',
-            fontSize: 11,
+            fontSize: 12,
           }}
         >
           {unit}

@@ -350,7 +350,7 @@ export default function TasksList() {
             paddingHorizontal: 16,
           }}
         >
-          <Text style={{ color: '#71717a', fontSize: 14, marginRight: 8 }}>
+          <Text style={{ color: '#71717a', fontSize: 15, marginRight: 8 }}>
             ＋
           </Text>
           <TextInput
@@ -364,9 +364,9 @@ export default function TasksList() {
             accessibilityLabel="Quick-add a task"
             style={{
               flex: 1,
-              paddingVertical: 9,
+              paddingVertical: 12,
               fontFamily: 'JetBrainsMono_400Regular',
-              fontSize: 14,
+              fontSize: 15,
               color: '#fafafa',
             }}
           />
@@ -393,9 +393,9 @@ export default function TasksList() {
             accessibilityLabel="Search tasks by title or tag"
             style={{
               flex: 1,
-              paddingVertical: 9,
+              paddingVertical: 12,
               fontFamily: 'JetBrainsMono_400Regular',
-              fontSize: 14,
+              fontSize: 15,
               color: '#fafafa',
             }}
           />
@@ -406,7 +406,7 @@ export default function TasksList() {
               accessibilityLabel="Clear search"
               hitSlop={8}
             >
-              <Text style={{ color: '#71717a', fontSize: 14 }}>✕</Text>
+              <Text style={{ color: '#71717a', fontSize: 15 }}>✕</Text>
             </Pressable>
           )}
         </View>
@@ -511,7 +511,7 @@ function SortToggle({
             <Text
               style={{
                 fontFamily: 'JetBrainsMono_400Regular',
-                fontSize: 13,
+                fontSize: 14,
                 color: active ? '#0a0a0a' : '#a1a1aa',
               }}
             >
@@ -543,7 +543,7 @@ function GroupHeader({ group }: { group: Group }) {
         <Text
           style={{
             fontFamily: 'JetBrainsMono_700Bold',
-            fontSize: 15,
+            fontSize: 16,
             color: '#f4f4f5',
             letterSpacing: 2.3,
             textTransform: 'uppercase',
@@ -578,7 +578,7 @@ function GroupHeader({ group }: { group: Group }) {
           <Text
             style={{
               fontFamily: 'JetBrainsMono_400Regular',
-              fontSize: 10,
+              fontSize: 11,
               letterSpacing: 2.5,
               textTransform: 'uppercase',
               color: '#a1a1aa',
@@ -596,7 +596,7 @@ function GroupHeader({ group }: { group: Group }) {
         <Text
           style={{
             fontFamily: 'JetBrainsMono_700Bold',
-            fontSize: 14,
+            fontSize: 15,
             color: '#fafafa',
             letterSpacing: 2,
             textTransform: 'uppercase',
@@ -617,7 +617,7 @@ function GroupHeader({ group }: { group: Group }) {
       <Text
         style={{
           fontFamily: 'JetBrainsMono_400Regular',
-          fontSize: 11,
+          fontSize: 12,
           color: '#52525b',
         }}
       >

@@ -16,7 +16,7 @@ export function ErrorState({
       <Text
         style={{
           color: '#a1a1aa',
-          fontSize: 14,
+          fontSize: 15,
           fontFamily: 'JetBrainsMono_400Regular',
           textAlign: 'center',
         }}
@@ -39,7 +39,7 @@ export function ErrorState({
           <Text
             style={{
               color: '#d4d4d8',
-              fontSize: 13,
+              fontSize: 14,
               fontFamily: 'JetBrainsMono_400Regular',
             }}
           >
