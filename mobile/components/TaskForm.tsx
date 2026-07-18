@@ -57,6 +57,7 @@ type Props = {
     dueYear: number
     dueTime: string | null
     strictDeadline: boolean
+    canDoEarly: boolean
     repeat: RepeatOption
     repeatInterval: number
     repeatUnit: RepeatUnit
@@ -100,6 +101,7 @@ export function TaskForm({
   const [strictDeadline, setStrictDeadline] = useState(
     initial.strictDeadline ?? false,
   )
+  const [canDoEarly, setCanDoEarly] = useState(initial.canDoEarly ?? true)
   const [repeat, setRepeat] = useState<RepeatOption>(
     initial.repeat ?? 'No Repeat',
   )
@@ -226,6 +228,7 @@ export function TaskForm({
       due: dateString(dueDate),
       dueTime,
       strictDeadline,
+      canDoEarly,
       repeat,
       repeatInterval,
       repeatUnit,
@@ -614,6 +617,34 @@ export function TaskForm({
               accessibilityLabel="Strict deadline"
               value={strictDeadline}
               onValueChange={setStrictDeadline}
+              trackColor={{ false: '#27272a', true: ACCENT }}
+              thumbColor="#fafafa"
+            />
+          </View>
+        </Field>
+
+        <Field label="Can be done early">
+          <View
+            style={{
+              flexDirection: 'row',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              paddingVertical: 4,
+            }}
+          >
+            <Text
+              style={{
+                fontFamily: 'JetBrainsMono_400Regular',
+                fontSize: 13,
+                color: '#a1a1aa',
+              }}
+            >
+              Show in Top Tasks before its due date
+            </Text>
+            <RNSwitch
+              accessibilityLabel="Can be done early"
+              value={canDoEarly}
+              onValueChange={setCanDoEarly}
               trackColor={{ false: '#27272a', true: ACCENT }}
               thumbColor="#fafafa"
             />

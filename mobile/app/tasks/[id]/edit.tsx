@@ -111,6 +111,7 @@ export default function EditTask() {
           dueYear: dueDate.getFullYear(),
           dueTime: task.dueTime,
           strictDeadline: task.strictDeadline,
+          canDoEarly: task.canDoEarly,
           repeat: task.repeat,
           repeatInterval: task.repeatInterval,
           repeatUnit: task.repeatUnit,

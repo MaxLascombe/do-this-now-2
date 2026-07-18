@@ -1,0 +1,1 @@
+ALTER TABLE "tasks" ADD COLUMN "can_do_early" boolean DEFAULT true NOT NULL;

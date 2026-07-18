@@ -12,7 +12,7 @@ import type {
   TimerAction,
 } from './api-client'
 import { useApi } from './api-client'
-import { isSnoozed, sortTasks } from './task-sorting'
+import { isSnoozed, showsInTopTasks, sortTasks } from './task-sorting'
 import {
   completeTaskTransition,
   snoozeTaskTransition,
@@ -78,6 +78,15 @@ async function optimisticRemove(
   return { prevTop, prevList }
 }
 
+// The server's top query omits tasks that can't be done early until their
+// due date; mirror that whenever a top-cache write may have pushed a task's
+// due date past today (e.g. completing a repeating task), so the row
+// vanishes now instead of on the next refetch.
+const dropHiddenFromTop =
+  (write: (xs: Task[] | undefined) => Task[] | undefined, today: Date) =>
+  (xs: Task[] | undefined) =>
+    write(xs)?.filter((t) => showsInTopTasks(t, today))
+
 async function replaceTaskInCaches(
   qc: QueryClient,
   id: string,
@@ -95,7 +104,7 @@ async function replaceTaskInCaches(
     if (reSort) sortTasks(out, today)
     return out
   }
-  qc.setQueryData<Task[]>(taskKeys.top, replace)
+  qc.setQueryData<Task[]>(taskKeys.top, dropHiddenFromTop(replace, today))
   qc.setQueryData<Task[]>(taskKeys.list, replace)
   return { prevTop, prevList }
 }
@@ -232,6 +241,7 @@ function makeOptimisticTask(input: TaskInput, userId: string): Task {
     due: input.due,
     dueTime: input.dueTime,
     strictDeadline: input.strictDeadline,
+    canDoEarly: input.canDoEarly,
     repeat: input.repeat,
     repeatInterval: input.repeatInterval,
     repeatUnit: input.repeatUnit,
@@ -270,7 +280,7 @@ async function optimisticCreate(
     sortTasks(next, today)
     return next
   }
-  qc.setQueryData<Task[]>(taskKeys.top, insertSorted)
+  qc.setQueryData<Task[]>(taskKeys.top, dropHiddenFromTop(insertSorted, today))
   qc.setQueryData<Task[]>(taskKeys.list, insertSorted)
 
   return { prevTop, prevList }
@@ -302,7 +312,7 @@ async function optimisticUpdate(
     sortTasks(out, today)
     return out
   }
-  qc.setQueryData<Task[]>(taskKeys.top, replaceSorted)
+  qc.setQueryData<Task[]>(taskKeys.top, dropHiddenFromTop(replaceSorted, today))
   qc.setQueryData<Task[]>(taskKeys.list, replaceSorted)
   qc.setQueryData<Task>(taskKeys.one(id), next)
 

@@ -21,8 +21,12 @@ A Child is a zero-timeframe task whose time is banked onto another task — its 
 _Avoid_: timekeeper (the column name), parent, subtask (a Child is a full task, not a subtask)
 
 **Top Tasks**:
-The user's incomplete, non-snoozed tasks in ranked (priority) order. When no task is Selected, the Home page shows the top three as a decision surface. Choosing one is deliberate: tapping a row only focuses it; an explicit "Start" commits, selecting the task and starting its timer. Done and Snooze act on a row without committing to it.
+The user's incomplete, non-snoozed tasks in ranked (priority) order, omitting tasks that Can't Do Early while their due date is still ahead. When no task is Selected, the Home page shows the top three as a decision surface. Choosing one is deliberate: tapping a row only focuses it; an explicit "Start" commits, selecting the task and starting its timer. Done and Snooze act on a row without committing to it.
 _Avoid_: up next, the list
+
+**Can Do Early**:
+Per-task property, on by default, saying the task may be worked ahead of its due date. When off, the task is a candidate only from its due date on: the Top Tasks omit it entirely while its due date is after the user's local today (calendar day only — a due-time never affects visibility), and a completion that reschedules a repeating task past today removes it from that surface immediately. Visibility is the whole story: the task stays in the all-tasks list (with a subtle marker), keeps normal rank rules once due, still counts toward progress targets, and remains selectable/startable from anywhere per the Selected Task rules.
+_Avoid_: blocked, locked, deferred, hidden task
 
 **Subtask**:
 A step within a task. Seen and worked through in the Focus View — the Tasks list shows only a done/total count, never the subtasks themselves. There is no freeform notes field on a task; subtasks are the only sub-detail.

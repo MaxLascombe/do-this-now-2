@@ -36,6 +36,10 @@ export type Task = {
   due: string
   dueTime: string | null
   strictDeadline: boolean
+  // Off = only a Top Tasks candidate from its due date on; the top query
+  // omits it while the due date is still ahead. Everything else (all-tasks
+  // list, selection, progress) ignores this.
+  canDoEarly: boolean
   repeat: RepeatOption
   repeatInterval: number
   repeatUnit: RepeatUnit
