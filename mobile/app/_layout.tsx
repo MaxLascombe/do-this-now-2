@@ -22,6 +22,7 @@ import { ErrorScreen } from "../components/ErrorScreen";
 import { SignInScreen } from "../components/SignInScreen";
 import { ToastProvider } from "../components/ToastProvider";
 import { MobileApiAndQuery } from "../lib/api-client";
+import { useLockScreenSync } from "../lib/lockscreen";
 import { tokenCache } from "../lib/token-cache";
 
 import "../global.css";
@@ -29,6 +30,12 @@ import "../global.css";
 // expo-router renders this for any uncaught render error in the tree.
 export function ErrorBoundary(props: ErrorBoundaryProps) {
   return <ErrorScreen {...props} />;
+}
+
+// Hook host — must sit inside ClerkProvider to read the session.
+function LockScreenSync() {
+  useLockScreenSync();
+  return null;
 }
 
 void SplashScreen.preventAutoHideAsync();
@@ -93,6 +100,7 @@ export default function RootLayout() {
         <GestureHandlerRootView style={{ flex: 1, backgroundColor: "#000" }}>
           <MobileApiAndQuery>
             <ToastProvider>
+              <LockScreenSync />
               <StatusBar style="light" />
               <Stack
                 screenOptions={{

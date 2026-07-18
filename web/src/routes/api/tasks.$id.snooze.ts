@@ -9,6 +9,7 @@ import {
   readJsonBody,
   withAuth,
 } from '../../server/lib/http'
+import { syncLockScreenSoon } from '../../server/lib/lockscreen'
 
 type Params = { id: string }
 
@@ -31,13 +32,13 @@ export const Route = createFileRoute('/api/tasks/$id/snooze')({
         const parsed = snoozeBodySchema.safeParse(candidate)
         if (!parsed.success) return invalid(parsed.error.flatten())
         try {
-          return json(
-            await snoozeTask(
-              userId,
-              params.id,
-              parsed.data.allSubtasks ?? false,
-            ),
+          const result = await snoozeTask(
+            userId,
+            params.id,
+            parsed.data.allSubtasks ?? false,
           )
+          syncLockScreenSoon(userId)
+          return json(result)
         } catch (e) {
           if (e instanceof TaskNotFoundError) return notFound()
           throw e

@@ -10,6 +10,7 @@ import {
   readJsonBody,
   withAuth,
 } from '../../server/lib/http'
+import { syncLockScreenSoon } from '../../server/lib/lockscreen'
 
 type Params = { id: string }
 
@@ -32,14 +33,14 @@ export const Route = createFileRoute('/api/tasks/$id/complete')({
         const parsed = completeBodySchema.safeParse(candidate)
         if (!parsed.success) return invalid(parsed.error.flatten())
         try {
-          return json(
-            await completeTask(
-              userId,
-              params.id,
-              getTzFromRequest(request),
-              parsed.data.countMeasurement ?? true,
-            ),
+          const result = await completeTask(
+            userId,
+            params.id,
+            getTzFromRequest(request),
+            parsed.data.countMeasurement ?? true,
           )
+          syncLockScreenSoon(userId)
+          return json(result)
         } catch (e) {
           if (e instanceof TaskNotFoundError) return notFound()
           throw e

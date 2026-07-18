@@ -4,6 +4,7 @@ import { z } from 'zod'
 
 import { applyTimerAction } from '../../server/lib/timer'
 import { invalid, notFound, withAuth } from '../../server/lib/http'
+import { syncLockScreenSoon } from '../../server/lib/lockscreen'
 
 type Params = { id: string }
 
@@ -31,6 +32,7 @@ export const Route = createFileRoute('/api/tasks/$id/timer')({
         const parsed = timerBodySchema.safeParse(candidate)
         if (!parsed.success) return invalid(parsed.error.flatten())
         const result = await applyTimerAction(userId, params.id, parsed.data)
+        syncLockScreenSoon(userId)
         return json(result)
       }),
     },

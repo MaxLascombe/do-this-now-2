@@ -13,7 +13,15 @@
       "supportsTablet": true,
       "bundleIdentifier": "com.maxlascombe.dothisnow",
       "infoPlist": {
-        "ITSAppUsesNonExemptEncryption": false
+        "ITSAppUsesNonExemptEncryption": false,
+        "NSSupportsLiveActivities": true,
+        "NSSupportsLiveActivitiesFrequentUpdates": true
+      },
+      "entitlements": {
+        "aps-environment": "production",
+        "com.apple.security.application-groups": [
+          "group.com.maxlascombe.dothisnow"
+        ]
       }
     },
     "android": {
@@ -26,6 +34,7 @@
       "package": "com.maxlascombe.dothisnow"
     },
     "plugins": [
+      ["@bacons/apple-targets", { "appleTeamId": "REPLACE_WITH_TEAM_ID" }],
       "expo-router",
       "expo-secure-store",
       "expo-web-browser",
@@ -48,7 +57,7 @@
       }
     },
     "owner": "maxlascombe1",
-    "runtimeVersion": "8514231bc4c6cb4b04b2b0703739f244002a723a",
+    "runtimeVersion": "lock-screen-timer-1",
     "updates": {
       "url": "https://u.expo.dev/e1ab2955-fa97-4a46-83c5-23b3b92339f1",
       "checkAutomatically": "ON_LOAD",
