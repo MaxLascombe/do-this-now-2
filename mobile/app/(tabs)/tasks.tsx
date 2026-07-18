@@ -156,7 +156,10 @@ export default function TasksList() {
   )
   const onDelete = useCallback(
     (id: string, title: string) => {
-      Alert.alert('Delete task', `Delete '${title}'?`, [
+      Alert.alert(
+        'Delete task',
+        `Are you sure you want to delete '${title}'?`,
+        [
         { text: 'Cancel', style: 'cancel' },
         {
           text: 'Delete',
@@ -288,7 +291,7 @@ export default function TasksList() {
             task={item}
             actions={
               <>
-                <RowAction label="Start" primary onPress={() => onStart(item)} />
+                <RowAction label="Start" onPress={() => onStart(item)} />
                 {isSnoozed(item) ? (
                   <RowAction label="Wake" onPress={() => onWake(item.id)} />
                 ) : (

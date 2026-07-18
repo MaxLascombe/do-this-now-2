@@ -20,7 +20,7 @@ export function TimerAdjustModal({
 }) {
   const confirmClear = () => {
     if (seconds === 0) return
-    Alert.alert('Clear timer?', 'This sets the timer back to 0.', [
+    Alert.alert('Clear timer', 'Clear timer to 0?', [
       { text: 'Cancel', style: 'cancel' },
       { text: 'Clear', style: 'destructive', onPress: onClear },
     ])
