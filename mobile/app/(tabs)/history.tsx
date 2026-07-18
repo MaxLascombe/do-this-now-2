@@ -18,7 +18,7 @@ import {
 import { Gesture, GestureDetector } from 'react-native-gesture-handler'
 
 import { ErrorState } from '../../components/ErrorState'
-import { Loading } from '../../components/Loading'
+import { TaskListSkeleton } from '../../components/Skeleton'
 import { PageHeading } from '../../components/PageHeading'
 import { usePullRefresh } from '../../hooks/usePullRefresh'
 
@@ -294,9 +294,7 @@ export default function History() {
               </View>
             )}
             {historyQuery.isLoading ? (
-              <View style={{ paddingVertical: 40 }}>
-                <Loading />
-              </View>
+              <TaskListSkeleton rows={5} />
             ) : historyQuery.isError && entries.length === 0 ? (
               <View style={{ paddingVertical: 40 }}>
                 <ErrorState
