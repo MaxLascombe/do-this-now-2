@@ -233,7 +233,16 @@ export default function TasksList() {
     const firstSnoozed = tasks.findIndex(
       (t) => t.snooze && new Date(t.snooze) > now,
     )
-    if (firstSnoozed >= 0) marks.set(firstSnoozed, 'Snoozed')
+    // Both boundaries can land on one index (first future-due task is also
+    // the first snoozed one); web stacks two separators there — SectionList
+    // has one header per section, so join the labels instead of dropping one.
+    if (firstSnoozed >= 0)
+      marks.set(
+        firstSnoozed,
+        marks.has(firstSnoozed)
+          ? `${marks.get(firstSnoozed)} · Snoozed`
+          : 'Snoozed',
+      )
     const starts = Array.from(new Set([0, ...marks.keys()])).sort(
       (a, b) => a - b,
     )
