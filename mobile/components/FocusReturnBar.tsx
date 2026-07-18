@@ -19,7 +19,11 @@ export function FocusReturnBar() {
   const selection = useSelection()
   const selectedId = selection.data?.selectedTaskId ?? null
 
-  if (!selectedId || pathname === '/') return null
+  // Allowlist, not blocklist: Home hosts the Focus View itself, and the
+  // tab layout underneath the settings stack screen would otherwise flash
+  // the bar during the close animation.
+  const showOn = ['/tasks', '/history', '/stats']
+  if (!selectedId || !showOn.includes(pathname)) return null
   return <Bar id={selectedId} />
 }
 
@@ -82,11 +86,13 @@ function Bar({ id }: { id: string }) {
           {task.title}
         </Text>
         <Text
+          numberOfLines={1}
           style={{
             fontFamily: 'JetBrainsMono_400Regular',
             fontSize: 13,
             color: running ? ACCENT : '#71717a',
             fontVariant: ['tabular-nums'],
+            flexShrink: 0,
           }}
         >
           {running ? '' : '⏸ '}

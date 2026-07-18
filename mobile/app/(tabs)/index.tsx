@@ -271,7 +271,6 @@ export default function Home() {
         <ScrollView
           contentContainerStyle={{
             flexGrow: 1,
-            justifyContent: 'center',
             paddingBottom: 24,
           }}
           refreshControl={
@@ -284,18 +283,26 @@ export default function Home() {
           }
         >
           {focusTask ? (
-            <Hero
-              task={focusTask}
-              onReturn={returnAction}
-              onComplete={() => completeFor(focusTask)}
-              onSnooze={() => snoozeFor(focusTask, false)}
-              onSnoozeSubtasks={() => snoozeAllSubtasks(focusTask)}
-              onEdit={() => router.push(`/tasks/${focusTask.id}/edit`)}
-              onDelete={() => deleteFor(focusTask)}
-              onToggleSubtask={toggleSubtask}
-            />
+            <View style={{ marginVertical: 'auto' }}>
+              <Hero
+                task={focusTask}
+                onReturn={returnAction}
+                onComplete={() => completeFor(focusTask)}
+                onSnooze={() => snoozeFor(focusTask, false)}
+                onSnoozeSubtasks={() => snoozeAllSubtasks(focusTask)}
+                onEdit={() => router.push(`/tasks/${focusTask.id}/edit`)}
+                onDelete={() => deleteFor(focusTask)}
+                onToggleSubtask={toggleSubtask}
+              />
+            </View>
           ) : (
-            <View style={{ paddingHorizontal: 20, paddingTop: 16 }}>
+            <View
+              style={{
+                marginVertical: 'auto',
+                paddingHorizontal: 20,
+                paddingTop: 16,
+              }}
+            >
               <Text
                 style={{
                   fontFamily: 'JetBrainsMono_400Regular',
@@ -690,7 +697,9 @@ function Ghost({ label, onPress }: { label: string; onPress: () => void }) {
         paddingHorizontal: 8,
         paddingVertical: 10,
         borderRadius: 999,
-        backgroundColor: pressed ? '#18181b' : 'transparent',
+        borderWidth: 1,
+        borderColor: pressed ? '#52525b' : '#27272a',
+        backgroundColor: pressed ? '#18181b' : 'rgba(24,24,27,0.6)',
       })}
     >
       {({ pressed }) => (
