@@ -276,7 +276,7 @@ export function TaskForm({
         {errorMessage && (
           <Text
             accessibilityLiveRegion="assertive"
-            style={{ color: OVERDUE, fontSize: 13, marginTop: 4 }}
+            style={{ color: OVERDUE, fontSize: 14, marginTop: 4 }}
           >
             {errorMessage}
           </Text>
@@ -330,7 +330,7 @@ export function TaskForm({
                   <Text
                     style={{
                       color: '#e4e4e7',
-                      fontSize: 12,
+                      fontSize: 13,
                       fontFamily: 'JetBrainsMono_400Regular',
                     }}
                   >
@@ -342,7 +342,7 @@ export function TaskForm({
                     accessibilityLabel={`Remove tag ${t}`}
                     hitSlop={6}
                   >
-                    <Text style={{ color: '#71717a', fontSize: 12 }}>✕</Text>
+                    <Text style={{ color: '#71717a', fontSize: 13 }}>✕</Text>
                   </Pressable>
                 </View>
               ))}
@@ -372,7 +372,7 @@ export function TaskForm({
             returnKeyType="done"
             style={{
               fontFamily: 'JetBrainsMono_400Regular',
-              fontSize: 14,
+              fontSize: 15,
               color: '#e4e4e7',
               borderWidth: 1,
               borderColor: '#27272a',
@@ -524,7 +524,7 @@ export function TaskForm({
                   <Text
                     style={{
                       fontFamily: 'JetBrainsMono_400Regular',
-                      fontSize: 12,
+                      fontSize: 13,
                       color: active ? '#0a0a0a' : '#a1a1aa',
                     }}
                   >
@@ -564,7 +564,7 @@ export function TaskForm({
                   <Text
                     style={{
                       fontFamily: 'JetBrainsMono_400Regular',
-                      fontSize: 12,
+                      fontSize: 13,
                       color: active ? '#0a0a0a' : '#a1a1aa',
                     }}
                   >
@@ -604,7 +604,7 @@ export function TaskForm({
                     <Text
                       style={{
                         fontFamily: 'JetBrainsMono_400Regular',
-                        fontSize: 11,
+                        fontSize: 12,
                         color: on ? '#0a0a0a' : '#a1a1aa',
                       }}
                     >
@@ -659,7 +659,7 @@ export function TaskForm({
             style={{
               marginTop: 6,
               fontFamily: 'JetBrainsMono_400Regular',
-              fontSize: 11,
+              fontSize: 12,
               color: '#71717a',
             }}
           >
@@ -703,7 +703,7 @@ export function TaskForm({
               onPress={() => setOpenSheet('keeper')}
             />
             {errors.timekeeperId && (
-              <Text style={{ color: OVERDUE, fontSize: 11, marginTop: 6 }}>
+              <Text style={{ color: OVERDUE, fontSize: 12, marginTop: 6 }}>
                 {errors.timekeeperId}
               </Text>
             )}
@@ -742,7 +742,7 @@ export function TaskForm({
               <Text
                 style={{
                   fontFamily: 'JetBrainsMono_400Regular',
-                  fontSize: 12,
+                  fontSize: 13,
                   color: '#71717a',
                   flexShrink: 1,
                 }}
@@ -768,7 +768,7 @@ export function TaskForm({
             <Text
               style={{
                 fontFamily: 'JetBrainsMono_400Regular',
-                fontSize: 13,
+                fontSize: 14,
                 color: '#a1a1aa',
               }}
             >
@@ -838,7 +838,7 @@ export function TaskForm({
                       <Text
                         style={{
                           color: i === 0 ? '#27272a' : '#52525b',
-                          fontSize: 10,
+                          fontSize: 11,
                         }}
                       >
                         ▲
@@ -861,7 +861,7 @@ export function TaskForm({
                         style={{
                           color:
                             i === subtasks.length - 1 ? '#27272a' : '#52525b',
-                          fontSize: 10,
+                          fontSize: 11,
                         }}
                       >
                         ▼
@@ -884,7 +884,7 @@ export function TaskForm({
                       flex: 1,
                       fontFamily: 'JetBrainsMono_400Regular',
                       color: '#fafafa',
-                      fontSize: 14,
+                      fontSize: 15,
                     }}
                   />
                   <Pressable
@@ -917,12 +917,12 @@ export function TaskForm({
                   borderStyle: 'dashed',
                 }}
               >
-                <Text style={{ color: '#a1a1aa', fontSize: 14 }}>+</Text>
+                <Text style={{ color: '#a1a1aa', fontSize: 15 }}>+</Text>
                 <Text
                   style={{
                     fontFamily: 'JetBrainsMono_400Regular',
                     color: '#a1a1aa',
-                    fontSize: 12,
+                    fontSize: 13,
                   }}
                 >
                   Add subtask
@@ -985,7 +985,7 @@ export function TaskForm({
               style={{
                 fontFamily: 'JetBrainsMono_700Bold',
                 color: '#0a0a0a',
-                fontSize: 15,
+                fontSize: 16,
                 letterSpacing: 0.5,
               }}
             >
@@ -1079,7 +1079,7 @@ export function TaskForm({
               style={{
                 fontFamily: 'JetBrainsMono_400Regular',
                 color: '#a1a1aa',
-                fontSize: 13,
+                fontSize: 14,
               }}
             >
               every
@@ -1125,7 +1125,7 @@ export function TaskForm({
                       style={{
                         fontFamily: 'JetBrainsMono_400Regular',
                         color: active ? '#0a0a0a' : '#a1a1aa',
-                        fontSize: 12,
+                        fontSize: 13,
                       }}
                     >
                       {u}s
@@ -1161,7 +1161,7 @@ export function TaskForm({
             accessibilityLabel="Search keeper candidates"
             style={{
               fontFamily: 'JetBrainsMono_400Regular',
-              fontSize: 14,
+              fontSize: 15,
               color: '#e4e4e7',
               borderWidth: 1,
               borderColor: '#27272a',
@@ -1172,7 +1172,7 @@ export function TaskForm({
             }}
           />
           {filteredKeeperCandidates.length === 0 ? (
-            <Text style={{ color: '#71717a', fontSize: 12 }}>
+            <Text style={{ color: '#71717a', fontSize: 13 }}>
               {allTasksQuery.isPending
                 ? 'Loading…'
                 : keeperQuery
@@ -1212,7 +1212,7 @@ export function TaskForm({
                       flex: 1,
                       fontFamily: 'JetBrainsMono_400Regular',
                       color: '#fafafa',
-                      fontSize: 14,
+                      fontSize: 15,
                     }}
                   >
                     {t.title}
@@ -1221,7 +1221,7 @@ export function TaskForm({
                     style={{
                       fontFamily: 'JetBrainsMono_400Regular',
                       color: '#71717a',
-                      fontSize: 12,
+                      fontSize: 13,
                     }}
                   >
                     {Math.ceil(t.timeFrame)}m
@@ -1262,7 +1262,7 @@ function StepButton({
       <Text
         style={{
           fontFamily: 'JetBrainsMono_400Regular',
-          fontSize: 13,
+          fontSize: 14,
           color: '#a1a1aa',
         }}
       >
@@ -1343,7 +1343,7 @@ function TimeframeTypeOption({
           style={{
             fontFamily: 'JetBrainsMono_700Bold',
             color: '#fafafa',
-            fontSize: 14,
+            fontSize: 15,
           }}
         >
           {label}
@@ -1355,7 +1355,7 @@ function TimeframeTypeOption({
           marginLeft: 20,
           fontFamily: 'JetBrainsMono_400Regular',
           color: '#71717a',
-          fontSize: 11,
+          fontSize: 12,
           lineHeight: 16,
         }}
       >
@@ -1387,7 +1387,7 @@ function Field({
         <Text
           style={{
             fontFamily: 'JetBrainsMono_400Regular',
-            fontSize: 10,
+            fontSize: 11,
             letterSpacing: 2.5,
             textTransform: 'uppercase',
             color: '#71717a',
@@ -1399,7 +1399,7 @@ function Field({
           <Text
             style={{
               fontFamily: 'JetBrainsMono_400Regular',
-              fontSize: 10,
+              fontSize: 11,
               color: '#52525b',
             }}
           >
@@ -1441,7 +1441,7 @@ function SettingRow({
           style={{
             fontFamily: 'JetBrainsMono_400Regular',
             color: '#fafafa',
-            fontSize: 14,
+            fontSize: 15,
           }}
         >
           {value}
@@ -1451,7 +1451,7 @@ function SettingRow({
             style={{
               fontFamily: 'JetBrainsMono_400Regular',
               color: '#71717a',
-              fontSize: 11,
+              fontSize: 12,
               marginTop: 2,
             }}
           >
@@ -1459,7 +1459,7 @@ function SettingRow({
           </Text>
         )}
       </View>
-      <Text style={{ color: '#52525b', fontSize: 14 }}>▸</Text>
+      <Text style={{ color: '#52525b', fontSize: 15 }}>▸</Text>
     </Pressable>
   )
 }
@@ -1471,7 +1471,7 @@ function FieldError({ msg }: { msg: string }) {
         marginTop: 6,
         fontFamily: 'JetBrainsMono_400Regular',
         color: OVERDUE,
-        fontSize: 11,
+        fontSize: 12,
       }}
     >
       {msg}
@@ -1512,7 +1512,7 @@ function Sheet({
           <Text
             style={{
               fontFamily: 'JetBrainsMono_700Bold',
-              fontSize: 14,
+              fontSize: 15,
               letterSpacing: 2,
               textTransform: 'uppercase',
               color: '#fafafa',

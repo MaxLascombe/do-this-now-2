@@ -25,13 +25,7 @@ export function TopProgress() {
     return <View style={{ height: 2, backgroundColor: '#18181b' }} />
   }
 
-  const {
-    done,
-    todo,
-    lives,
-    streak,
-    minutesToReduceTomorrowDays,
-  } = data
+  const { done, todo, lives, streak, minutesToReduceTomorrowDays } = data
   const { shouldBeDone, isBeforeWorkday } = computeSchedule(
     now,
     todo,
@@ -51,7 +45,11 @@ export function TopProgress() {
   // target is actually met — rounding would fill the bar a hair early.
   const hitTodo = todo > 0 && done >= todo
   const pct =
-    todo > 0 ? (hitTodo ? 100 : Math.min(99, Math.round((done / todo) * 100))) : 0
+    todo > 0
+      ? hitTodo
+        ? 100
+        : Math.min(99, Math.round((done / todo) * 100))
+      : 0
   const filledCount =
     todo > 0
       ? hitTodo
@@ -72,78 +70,80 @@ export function TopProgress() {
         />
       </View>
       <View style={{ flexDirection: 'row', alignItems: 'center' }}>
-      <Pressable
-        onPress={() => setOpen(true)}
-        accessibilityRole="button"
-        accessibilityLabel="Show today's progress detail"
-        style={{
-          flex: 1,
-          flexDirection: 'row',
-          alignItems: 'center',
-          justifyContent: 'space-between',
-          paddingLeft: 20,
-          paddingRight: 12,
-          paddingVertical: 12,
-        }}
-      >
-        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
-          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
-            <Text style={{ color: '#fafafa', fontSize: 13 }}>★</Text>
-            <Text
-              style={{
-                color: '#a1a1aa',
-                fontSize: 13,
-                fontFamily: 'JetBrainsMono_400Regular',
-              }}
+        <Pressable
+          onPress={() => setOpen(true)}
+          accessibilityRole="button"
+          accessibilityLabel="Show today's progress detail"
+          style={{
+            flex: 1,
+            flexDirection: 'row',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            paddingLeft: 20,
+            paddingRight: 12,
+            paddingVertical: 12,
+          }}
+        >
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
+            <View
+              style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}
             >
-              {points}
-            </Text>
-          </View>
-          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
-            <Text style={{ color: STREAK, fontSize: 13 }}>▲</Text>
-            <Text
-              style={{
-                color: STREAK,
-                fontSize: 13,
-                fontFamily: 'JetBrainsMono_400Regular',
-              }}
-            >
-              {streak}
-            </Text>
-          </View>
-          <Text
-            style={{
-              color: ACCENT,
-              fontSize: 13,
-              fontFamily: 'JetBrainsMono_400Regular',
-            }}
-          >
-            {scheduleShort}
-          </Text>
-        </View>
-        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 2 }}>
-          {Array.from({ length: MINI_CELLS }).map((_, i) => {
-            const filled = i < filledCount
-            const isTick = i === tickAt - 1 && !filled
-            return (
-              <View
-                key={i}
+              <Text style={{ color: '#fafafa', fontSize: 14 }}>★</Text>
+              <Text
                 style={{
-                  width: 5,
-                  height: 12,
-                  backgroundColor: filled
-                    ? ACCENT
-                    : 'rgba(255,255,255,0.12)',
-                  borderWidth: isTick ? 1 : 0,
-                  borderColor: isTick
-                    ? 'rgba(255,255,255,0.9)'
-                    : 'transparent',
+                  color: '#a1a1aa',
+                  fontSize: 14,
+                  fontFamily: 'JetBrainsMono_400Regular',
                 }}
-              />
-            )
-          })}
-        </View>
-      </Pressable>
+              >
+                {points}
+              </Text>
+            </View>
+            <View
+              style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}
+            >
+              <Text style={{ color: STREAK, fontSize: 14 }}>▲</Text>
+              <Text
+                style={{
+                  color: STREAK,
+                  fontSize: 14,
+                  fontFamily: 'JetBrainsMono_400Regular',
+                }}
+              >
+                {streak}
+              </Text>
+            </View>
+            <Text
+              style={{
+                color: ACCENT,
+                fontSize: 14,
+                fontFamily: 'JetBrainsMono_400Regular',
+              }}
+            >
+              {scheduleShort}
+            </Text>
+          </View>
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 2 }}>
+            {Array.from({ length: MINI_CELLS }).map((_, i) => {
+              const filled = i < filledCount
+              const isTick = i === tickAt - 1 && !filled
+              return (
+                <View
+                  key={i}
+                  style={{
+                    width: 5,
+                    height: 12,
+                    backgroundColor: filled ? ACCENT : 'rgba(255,255,255,0.12)',
+                    borderWidth: isTick ? 1 : 0,
+                    borderColor: isTick
+                      ? 'rgba(255,255,255,0.9)'
+                      : 'transparent',
+                  }}
+                />
+              )
+            })}
+          </View>
+        </Pressable>
         <Pressable
           onPress={() => router.push('/settings')}
           accessibilityRole="button"
@@ -241,7 +241,7 @@ function ProgressSheet({ onClose }: { onClose: () => void }) {
           style={{
             fontFamily: 'JetBrainsMono_400Regular',
             color: '#71717a',
-            fontSize: 10,
+            fontSize: 11,
             letterSpacing: 3,
             textTransform: 'uppercase',
           }}
@@ -253,7 +253,7 @@ function ProgressSheet({ onClose }: { onClose: () => void }) {
             style={{
               fontFamily: 'JetBrainsMono_400Regular',
               color: '#71717a',
-              fontSize: 12,
+              fontSize: 13,
               fontVariant: ['tabular-nums'],
             }}
           >
@@ -286,9 +286,7 @@ function ProgressSheet({ onClose }: { onClose: () => void }) {
                   height: 18,
                   backgroundColor: f ? ACCENT : 'rgba(255,255,255,0.1)',
                   borderWidth: isTick ? 1 : 0,
-                  borderColor: isTick
-                    ? 'rgba(255,255,255,0.9)'
-                    : 'transparent',
+                  borderColor: isTick ? 'rgba(255,255,255,0.9)' : 'transparent',
                 }}
               />
             )
@@ -317,7 +315,7 @@ function ProgressSheet({ onClose }: { onClose: () => void }) {
             style={{
               fontFamily: 'JetBrainsMono_400Regular',
               color: ACCENT,
-              fontSize: 13,
+              fontSize: 14,
             }}
           >
             {scheduleShort}
@@ -356,12 +354,7 @@ function ProgressSheet({ onClose }: { onClose: () => void }) {
             value={`~${daysUntilAllDone}d`}
             unit={clearByLabel}
           />
-          <SheetStat
-            icon="◷"
-            label="Workday"
-            value="08:30"
-            unit="– 24:00"
-          />
+          <SheetStat icon="◷" label="Workday" value="08:30" unit="– 24:00" />
         </View>
       </View>
     </SafeAreaView>
@@ -384,14 +377,14 @@ function SheetStat({
   return (
     <View style={{ width: '50%', paddingVertical: 10 }}>
       <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
-        <Text style={{ color: iconColor ?? '#fafafa', fontSize: 13 }}>
+        <Text style={{ color: iconColor ?? '#fafafa', fontSize: 14 }}>
           {icon}
         </Text>
         <Text
           style={{
             fontFamily: 'JetBrainsMono_400Regular',
             color: '#71717a',
-            fontSize: 10,
+            fontSize: 11,
             letterSpacing: 2.5,
             textTransform: 'uppercase',
           }}
@@ -420,7 +413,7 @@ function SheetStat({
           style={{
             fontFamily: 'JetBrainsMono_400Regular',
             color: '#71717a',
-            fontSize: 11,
+            fontSize: 12,
           }}
         >
           {unit}

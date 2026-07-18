@@ -72,7 +72,7 @@ export function ToastProvider({ children }: { children: ReactNode }) {
             <Text
               style={{
                 fontFamily: 'JetBrainsMono_400Regular',
-                fontSize: 13,
+                fontSize: 14,
                 color: '#e4e4e7',
               }}
             >
@@ -96,7 +96,7 @@ export function ToastProvider({ children }: { children: ReactNode }) {
                 <Text
                   style={{
                     fontFamily: 'JetBrainsMono_700Bold',
-                    fontSize: 12,
+                    fontSize: 13,
                     color: '#0a0a0b',
                   }}
                 >

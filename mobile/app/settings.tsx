@@ -86,7 +86,7 @@ export default function Settings() {
             <Text
               style={{
                 fontFamily: 'JetBrainsMono_400Regular',
-                fontSize: 12,
+                fontSize: 13,
                 color: '#71717a',
               }}
             >
@@ -108,16 +108,14 @@ export default function Settings() {
             borderRadius: 999,
             borderWidth: 1,
             borderColor: 'rgba(251,113,133,0.3)',
-            backgroundColor: pressed
-              ? 'rgba(251,113,133,0.12)'
-              : 'transparent',
+            backgroundColor: pressed ? 'rgba(251,113,133,0.12)' : 'transparent',
           })}
         >
           <Text style={{ color: OVERDUE, fontSize: 16 }}>⏻</Text>
           <Text
             style={{
               fontFamily: 'JetBrainsMono_400Regular',
-              fontSize: 14,
+              fontSize: 15,
               color: OVERDUE,
             }}
           >

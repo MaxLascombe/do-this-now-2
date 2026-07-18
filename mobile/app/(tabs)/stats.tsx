@@ -122,7 +122,7 @@ function Section({
       <Text
         style={{
           fontFamily: 'JetBrainsMono_400Regular',
-          fontSize: 10,
+          fontSize: 11,
           letterSpacing: 3,
           textTransform: 'uppercase',
           color: '#71717a',
@@ -141,7 +141,7 @@ function MutedNote({ children }: { children: React.ReactNode }) {
     <Text
       style={{
         fontFamily: 'JetBrainsMono_400Regular',
-        fontSize: 14,
+        fontSize: 15,
         color: '#71717a',
       }}
     >
@@ -166,7 +166,7 @@ function Counter({
       <Text
         style={{
           fontFamily: 'JetBrainsMono_400Regular',
-          fontSize: 10,
+          fontSize: 11,
           letterSpacing: 3,
           textTransform: 'uppercase',
           color: '#71717a',
@@ -283,7 +283,7 @@ function Heatmap({ data }: { data: StatsResult }) {
               key={i}
               style={{
                 fontFamily: 'JetBrainsMono_400Regular',
-                fontSize: 10,
+                fontSize: 11,
                 lineHeight: CELL,
                 height: CELL,
                 color: '#52525b',
@@ -355,7 +355,7 @@ function Heatmap({ data }: { data: StatsResult }) {
 
 const legendText = {
   fontFamily: 'JetBrainsMono_400Regular',
-  fontSize: 10,
+  fontSize: 11,
   color: '#52525b',
 } as const
 
@@ -559,7 +559,7 @@ function BarRow({
         style={{
           flex: 1,
           fontFamily: 'JetBrainsMono_400Regular',
-          fontSize: 14,
+          fontSize: 15,
           color: '#e4e4e7',
         }}
       >
@@ -596,7 +596,7 @@ function BarRow({
             width: countWidth,
             textAlign: 'right',
             fontFamily: 'JetBrainsMono_400Regular',
-            fontSize: 12,
+            fontSize: 13,
             color: '#a1a1aa',
             fontVariant: ['tabular-nums'],
           }}
@@ -703,7 +703,7 @@ function DisciplinePill({
       <Text
         style={{
           fontFamily: 'JetBrainsMono_400Regular',
-          fontSize: 10,
+          fontSize: 11,
           letterSpacing: 3,
           textTransform: 'uppercase',
           color: '#71717a',

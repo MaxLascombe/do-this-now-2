@@ -175,7 +175,7 @@ export function TimerWidget({
           style={{
             fontFamily: 'JetBrainsMono_400Regular',
             color: '#71717a',
-            fontSize: 10,
+            fontSize: 11,
             letterSpacing: 3,
             textTransform: 'uppercase',
           }}
@@ -183,9 +183,7 @@ export function TimerWidget({
           Timer
         </Text>
         {running && (
-          <View
-            style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}
-          >
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
             <View
               style={{
                 width: 6,
@@ -198,7 +196,7 @@ export function TimerWidget({
               style={{
                 fontFamily: 'JetBrainsMono_400Regular',
                 color: ACCENT,
-                fontSize: 10,
+                fontSize: 11,
                 letterSpacing: 3,
                 textTransform: 'uppercase',
               }}
@@ -237,7 +235,7 @@ export function TimerWidget({
             style={{
               fontFamily: 'JetBrainsMono_400Regular',
               color: STREAK,
-              fontSize: 11,
+              fontSize: 12,
             }}
           >
             Timer is &gt;1.5× the planned {Math.ceil(plannedSec / 60)} min —
@@ -271,7 +269,7 @@ export function TimerWidget({
             style={{
               fontFamily: 'JetBrainsMono_700Bold',
               color: '#0a0a0a',
-              fontSize: 14,
+              fontSize: 15,
             }}
           >
             {running ? '⏸  Pause' : '▶  Start'}
@@ -294,7 +292,7 @@ export function TimerWidget({
             style={{
               fontFamily: 'JetBrainsMono_400Regular',
               color: '#a1a1aa',
-              fontSize: 12,
+              fontSize: 13,
             }}
           >
             Reset
@@ -328,7 +326,7 @@ export function TimerWidget({
               style={{
                 fontFamily: 'JetBrainsMono_400Regular',
                 color: '#d4d4d8',
-                fontSize: 12,
+                fontSize: 13,
               }}
             >
               {m > 0 ? `+${m}m` : `${m}m`}

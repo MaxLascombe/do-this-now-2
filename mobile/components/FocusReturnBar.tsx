@@ -66,13 +66,13 @@ function Bar({ id }: { id: string }) {
           paddingVertical: 6,
         })}
       >
-        <Text style={{ fontSize: 14, lineHeight: 16 }}>{task.emoji}</Text>
+        <Text style={{ fontSize: 15, lineHeight: 16 }}>{task.emoji}</Text>
         <Text
           numberOfLines={1}
           style={{
             maxWidth: 144,
             fontFamily: 'JetBrainsMono_400Regular',
-            fontSize: 12,
+            fontSize: 13,
             color: '#e4e4e7',
           }}
         >
@@ -81,7 +81,7 @@ function Bar({ id }: { id: string }) {
         <Text
           style={{
             fontFamily: 'JetBrainsMono_400Regular',
-            fontSize: 12,
+            fontSize: 13,
             color: running ? ACCENT : '#71717a',
             fontVariant: ['tabular-nums'],
           }}

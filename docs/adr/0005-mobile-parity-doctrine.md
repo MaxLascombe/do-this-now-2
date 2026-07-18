@@ -25,3 +25,4 @@ The mobile app drifted visually and behaviorally from the web app, which is wher
 - Future mobile work must pull values (sizes, copy, colors) from the web source rather than inventing near matches; reviewers should treat a nudged px value or reworded string as a defect.
 - Some web changes now exist purely to honor "improvements flow both ways" — their origin is the mobile app.
 - Where a web value physically misfits a phone (e.g. fixed chart widths), the shared design is made responsive on BOTH platforms instead of forking.
+- **Type-scale exception (2026-07-18)**: web's px font sizes read too small on a phone, so mobile deliberately renders type one step larger (9–15px sizes bump +1, row titles 18, page headings 36). Layout, spacing, color, and wording still follow web exactly; only the type scale diverges.

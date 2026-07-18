@@ -19,7 +19,7 @@ export default function NotFound() {
         <Text
           style={{
             fontFamily: 'JetBrainsMono_400Regular',
-            fontSize: 11,
+            fontSize: 12,
             letterSpacing: 4,
             color: '#71717a',
           }}
@@ -39,7 +39,7 @@ export default function NotFound() {
         <Text
           style={{
             fontFamily: 'JetBrainsMono_400Regular',
-            fontSize: 13,
+            fontSize: 14,
             color: '#71717a',
             textAlign: 'center',
           }}
@@ -63,7 +63,7 @@ export default function NotFound() {
           <Text
             style={{
               fontFamily: 'JetBrainsMono_400Regular',
-              fontSize: 14,
+              fontSize: 15,
               color: '#d4d4d8',
             }}
           >

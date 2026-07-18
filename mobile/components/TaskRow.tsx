@@ -47,8 +47,8 @@ export function RowAction({
       accessibilityLabel={label}
       accessibilityState={{ disabled: !!disabled }}
       style={({ pressed }) => ({
-        paddingHorizontal: 12,
-        paddingVertical: 6,
+        paddingHorizontal: 16,
+        paddingVertical: 9,
         borderRadius: 999,
         borderWidth: 1,
         opacity: disabled ? 0.4 : 1,
@@ -59,7 +59,7 @@ export function RowAction({
       <Text
         style={{
           fontFamily: 'JetBrainsMono_400Regular',
-          fontSize: 12,
+          fontSize: 13,
           color: '#a1a1aa',
         }}
       >
@@ -105,7 +105,7 @@ export function RowMenu({ items }: { items: Array<RowMenuItem> }) {
         <Text
           style={{
             fontFamily: 'JetBrainsMono_400Regular',
-            fontSize: 12,
+            fontSize: 13,
             color: '#a1a1aa',
           }}
         >
@@ -156,7 +156,7 @@ export function RowMenu({ items }: { items: Array<RowMenuItem> }) {
               <Text
                 style={{
                   fontFamily: 'JetBrainsMono_400Regular',
-                  fontSize: 12,
+                  fontSize: 13,
                   color: item.danger ? OVERDUE : '#d4d4d8',
                 }}
               >
@@ -252,7 +252,7 @@ export function TaskRow({
           <Text
             style={{
               fontFamily: 'JetBrainsMono_400Regular',
-              fontSize: 14,
+              fontSize: 15,
               color: '#52525b',
               width: 14,
               textAlign: 'center',
@@ -280,8 +280,8 @@ export function TaskRow({
             numberOfLines={1}
             style={{
               fontFamily: 'JetBrainsMono_400Regular',
-              fontSize: 17.5,
-              lineHeight: 20,
+              fontSize: 18,
+              lineHeight: 22,
               color: '#f4f4f5',
             }}
           >
@@ -301,7 +301,9 @@ export function TaskRow({
                 {dueLabel}
               </Meta>
             ) : null}
-            {task.timeFrame ? <Meta>{minutesToHours(task.timeFrame)}</Meta> : null}
+            {task.timeFrame ? (
+              <Meta>{minutesToHours(task.timeFrame)}</Meta>
+            ) : null}
             {repeatLabel ? <Meta>↻ {repeatLabel}</Meta> : null}
             {subtaskCount > 0 ? (
               <Meta>
@@ -345,7 +347,7 @@ function Meta({
     <Text
       style={{
         fontFamily: 'JetBrainsMono_400Regular',
-        fontSize: 12,
+        fontSize: 13,
         marginRight: 16,
         color,
       }}

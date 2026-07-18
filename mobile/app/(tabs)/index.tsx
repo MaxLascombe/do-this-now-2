@@ -299,7 +299,7 @@ export default function Home() {
               <Text
                 style={{
                   fontFamily: 'JetBrainsMono_400Regular',
-                  fontSize: 10,
+                  fontSize: 11,
                   letterSpacing: 2.5,
                   textTransform: 'uppercase',
                   color: '#52525b',
@@ -418,7 +418,7 @@ function Hero({
         style={{
           textAlign: 'center',
           fontFamily: 'JetBrainsMono_400Regular',
-          fontSize: 10,
+          fontSize: 11,
           letterSpacing: 2,
           color: '#71717a',
           textTransform: 'uppercase',
@@ -459,7 +459,7 @@ function Hero({
             textAlign: 'center',
             marginTop: 12,
             fontFamily: 'JetBrainsMono_400Regular',
-            fontSize: 12,
+            fontSize: 13,
             color: '#a1a1aa',
           }}
         >
@@ -467,7 +467,7 @@ function Hero({
           <Text
             style={{
               fontFamily: 'InstrumentSerif_400Regular_Italic',
-              fontSize: 17,
+              fontSize: 18,
             }}
           >
             {task.title}
@@ -568,7 +568,7 @@ function Hero({
             <Text
               style={{
                 fontFamily: 'JetBrainsMono_400Regular',
-                fontSize: 10,
+                fontSize: 11,
                 letterSpacing: 3,
                 textTransform: 'uppercase',
                 color: '#71717a',
@@ -579,7 +579,7 @@ function Hero({
             <Text
               style={{
                 fontFamily: 'JetBrainsMono_400Regular',
-                fontSize: 10,
+                fontSize: 11,
                 letterSpacing: 3,
                 color: '#71717a',
               }}
@@ -614,7 +614,7 @@ function Hero({
                 style={{
                   flex: 1,
                   fontFamily: 'JetBrainsMono_400Regular',
-                  fontSize: 14,
+                  fontSize: 15,
                   color: s.done ? '#71717a' : '#f4f4f5',
                   textDecorationLine: s.done ? 'line-through' : 'none',
                 }}
@@ -658,7 +658,7 @@ function Chip({ children }: { children: React.ReactNode }) {
       <Text
         style={{
           fontFamily: 'JetBrainsMono_400Regular',
-          fontSize: 14,
+          fontSize: 15,
           color: '#a1a1aa',
         }}
       >
@@ -684,7 +684,7 @@ function Ghost({ label, onPress }: { label: string; onPress: () => void }) {
         alignItems: 'center',
         justifyContent: 'center',
         paddingHorizontal: 8,
-        paddingVertical: 8,
+        paddingVertical: 10,
         borderRadius: 999,
         backgroundColor: pressed ? '#18181b' : 'transparent',
       })}
@@ -693,7 +693,7 @@ function Ghost({ label, onPress }: { label: string; onPress: () => void }) {
         <Text
           style={{
             fontFamily: 'JetBrainsMono_400Regular',
-            fontSize: 14,
+            fontSize: 15,
             color: pressed ? '#f4f4f5' : '#71717a',
             textAlign: 'center',
           }}

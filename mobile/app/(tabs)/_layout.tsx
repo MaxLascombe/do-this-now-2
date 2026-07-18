@@ -102,7 +102,7 @@ export default function TabsLayout() {
           tabBarActiveTintColor: ACTIVE,
           tabBarInactiveTintColor: INACTIVE,
           tabBarLabelStyle: {
-            fontSize: 10,
+            fontSize: 11,
             letterSpacing: 1,
             textTransform: 'uppercase',
             fontFamily: 'JetBrainsMono_400Regular',

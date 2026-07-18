@@ -28,7 +28,7 @@ export function PageHeading({
           <Text
             style={{
               fontFamily: 'JetBrainsMono_400Regular',
-              fontSize: 10,
+              fontSize: 11,
               letterSpacing: 3,
               color: '#71717a',
               textTransform: 'uppercase',

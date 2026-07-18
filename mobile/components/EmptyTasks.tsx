@@ -37,7 +37,7 @@ export function EmptyTasks({
         <Text
           style={{
             fontFamily: 'JetBrainsMono_400Regular',
-            fontSize: 14,
+            fontSize: 15,
             color: '#71717a',
             textAlign: 'center',
           }}
@@ -59,7 +59,7 @@ export function EmptyTasks({
           <Text
             style={{
               fontFamily: 'JetBrainsMono_600SemiBold',
-              fontSize: 14,
+              fontSize: 15,
               color: '#18181b',
             }}
           >
@@ -81,7 +81,7 @@ export function EmptyTasks({
             <Text
               style={{
                 fontFamily: 'JetBrainsMono_400Regular',
-                fontSize: 14,
+                fontSize: 15,
                 color: '#a1a1aa',
               }}
             >

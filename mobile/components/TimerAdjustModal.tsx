@@ -61,13 +61,13 @@ export function TimerAdjustModal({
             hitSlop={8}
             style={{ position: 'absolute', top: 10, right: 12, padding: 4 }}
           >
-            <Text style={{ color: '#71717a', fontSize: 14 }}>✕</Text>
+            <Text style={{ color: '#71717a', fontSize: 15 }}>✕</Text>
           </Pressable>
           <Text
             style={{
               fontFamily: 'JetBrainsMono_400Regular',
               color: '#71717a',
-              fontSize: 10,
+              fontSize: 11,
               letterSpacing: 3,
               textTransform: 'uppercase',
             }}
@@ -78,7 +78,7 @@ export function TimerAdjustModal({
             style={{
               fontFamily: 'JetBrainsMono_700Bold',
               color: '#fafafa',
-              fontSize: 32,
+              fontSize: 36,
               textAlign: 'center',
               marginTop: 14,
               lineHeight: 36,
@@ -116,7 +116,7 @@ export function TimerAdjustModal({
                   style={{
                     fontFamily: 'JetBrainsMono_400Regular',
                     color: '#d4d4d8',
-                    fontSize: 13,
+                    fontSize: 14,
                   }}
                 >
                   {m > 0 ? `+${m}` : m}
@@ -136,15 +136,14 @@ export function TimerAdjustModal({
               borderWidth: 1,
               borderColor: '#27272a',
               alignItems: 'center',
-              opacity:
-                disabled || seconds === 0 ? 0.3 : pressed ? 0.7 : 1,
+              opacity: disabled || seconds === 0 ? 0.3 : pressed ? 0.7 : 1,
             })}
           >
             <Text
               style={{
                 fontFamily: 'JetBrainsMono_400Regular',
                 color: '#d4d4d8',
-                fontSize: 14,
+                fontSize: 15,
               }}
             >
               Clear timer
