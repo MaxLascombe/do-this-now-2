@@ -4,7 +4,12 @@ import { afterAll, beforeEach, describe, expect, it } from 'vitest'
 import { tasks, userState } from '@dtn/shared/schema'
 
 import { db } from '../../../db'
-import { completeTask, snoozeTask, unselect } from '../actions'
+import {
+  completeTask,
+  snoozeManyTasks,
+  snoozeTask,
+  unselect,
+} from '../actions'
 import { getSelection } from '../selection'
 import { applyTimerAction } from '../timer'
 
@@ -125,6 +130,24 @@ describe.skipIf(!process.env.DATABASE_URL)('selection (integration)', () => {
     await applyTimerAction(TEST_USER, task.id, { kind: 'start' })
     await snoozeTask(TEST_USER, task.id)
     expect(await getSelection(TEST_USER)).toEqual({ selectedTaskId: null })
+  })
+
+  it('batch-snoozing tasks that include the selected one clears the pointer', async () => {
+    const selected = await makeTask({ title: 'Selected' })
+    const other = await makeTask({ title: 'Other' })
+    await applyTimerAction(TEST_USER, selected.id, { kind: 'start' })
+    await snoozeManyTasks(TEST_USER, [other.id, selected.id])
+    expect(await getSelection(TEST_USER)).toEqual({ selectedTaskId: null })
+  })
+
+  it('batch-snoozing only non-selected tasks leaves the pointer untouched', async () => {
+    const selected = await makeTask({ title: 'Selected' })
+    const other = await makeTask({ title: 'Other' })
+    await applyTimerAction(TEST_USER, selected.id, { kind: 'start' })
+    await snoozeManyTasks(TEST_USER, [other.id])
+    expect(await getSelection(TEST_USER)).toEqual({
+      selectedTaskId: selected.id,
+    })
   })
 
   it('completing a non-selected task leaves the pointer untouched', async () => {
