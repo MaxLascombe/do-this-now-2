@@ -338,49 +338,77 @@ export default function TasksList() {
       <PageHeading eyebrow={eyebrow}>All tasks</PageHeading>
       <View style={{ paddingHorizontal: 20, paddingBottom: 12, gap: 10 }}>
         <SortToggle value={sort} onChange={setSort} />
-        <TextInput
-          value={quickTitle}
-          onChangeText={setQuickTitle}
-          onSubmitEditing={quickAdd}
-          blurOnSubmit={false}
-          placeholder="＋ Add a task…"
-          placeholderTextColor="#52525b"
-          returnKeyType="done"
-          accessibilityLabel="Quick-add a task"
+        <View
           style={{
+            flexDirection: 'row',
+            alignItems: 'center',
             borderWidth: 1,
             borderColor: '#27272a',
             backgroundColor: 'rgba(24,24,27,0.5)',
             borderRadius: 999,
             paddingHorizontal: 16,
-            paddingVertical: 9,
-            fontFamily: 'JetBrainsMono_400Regular',
-            fontSize: 14,
-            color: '#fafafa',
           }}
-        />
-        <TextInput
-          value={query}
-          onChangeText={setQuery}
-          placeholder="Search title or #tag…"
-          placeholderTextColor="#52525b"
-          autoCapitalize="none"
-          autoCorrect={false}
-          clearButtonMode="while-editing"
-          returnKeyType="search"
-          accessibilityLabel="Search tasks by title or tag"
+        >
+          <Text style={{ color: '#71717a', fontSize: 14, marginRight: 8 }}>
+            ＋
+          </Text>
+          <TextInput
+            value={quickTitle}
+            onChangeText={setQuickTitle}
+            onSubmitEditing={quickAdd}
+            blurOnSubmit={false}
+            placeholder="Add a task…"
+            placeholderTextColor="#52525b"
+            returnKeyType="done"
+            accessibilityLabel="Quick-add a task"
+            style={{
+              flex: 1,
+              paddingVertical: 9,
+              fontFamily: 'JetBrainsMono_400Regular',
+              fontSize: 14,
+              color: '#fafafa',
+            }}
+          />
+        </View>
+        <View
           style={{
+            flexDirection: 'row',
+            alignItems: 'center',
             borderWidth: 1,
             borderColor: '#27272a',
             backgroundColor: 'rgba(24,24,27,0.5)',
             borderRadius: 999,
             paddingHorizontal: 16,
-            paddingVertical: 9,
-            fontFamily: 'JetBrainsMono_400Regular',
-            fontSize: 14,
-            color: '#fafafa',
           }}
-        />
+        >
+          <TextInput
+            value={query}
+            onChangeText={setQuery}
+            placeholder="Search title or #tag…"
+            placeholderTextColor="#52525b"
+            autoCapitalize="none"
+            autoCorrect={false}
+            returnKeyType="search"
+            accessibilityLabel="Search tasks by title or tag"
+            style={{
+              flex: 1,
+              paddingVertical: 9,
+              fontFamily: 'JetBrainsMono_400Regular',
+              fontSize: 14,
+              color: '#fafafa',
+            }}
+          />
+          {query !== '' && (
+            <Pressable
+              onPress={() => setQuery('')}
+              accessibilityRole="button"
+              accessibilityLabel="Clear search"
+              hitSlop={8}
+            >
+              <Text style={{ color: '#71717a', fontSize: 14 }}>✕</Text>
+            </Pressable>
+          )}
+        </View>
       </View>
       <SectionList
         style={{ flex: 1 }}
@@ -390,6 +418,13 @@ export default function TasksList() {
         renderItem={renderItem}
         renderSectionHeader={renderSectionHeader}
         stickySectionHeadersEnabled={false}
+        ListFooterComponent={
+          activeQuery.isFetching && sections.length > 0 ? (
+            <View style={{ paddingVertical: 16, alignItems: 'center' }}>
+              <Loading />
+            </View>
+          ) : null
+        }
         refreshControl={
           <RefreshControl
             refreshing={refreshing}
