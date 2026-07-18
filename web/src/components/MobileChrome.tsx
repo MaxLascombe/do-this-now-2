@@ -2,6 +2,7 @@ import { useProgressToday } from '@dtn/shared/queries'
 import { computePoints } from '@dtn/shared/scoring'
 import { minutesToHours } from '@dtn/shared/time'
 import { Link, useLocation } from '@tanstack/react-router'
+import { CircleUserRound } from 'lucide-react'
 import { useEffect } from 'react'
 import { activeNavFromPath, type NavId } from '../lib/nav'
 import { cells } from '../lib/progress-cells'
@@ -61,56 +62,56 @@ export const MobileTopBar = ({ onOpenSheet }: { onOpenSheet: () => void }) => {
         />
       </div>
       <div className="flex items-center">
-      <button
-        type="button"
-        onClick={onOpenSheet}
-        aria-label="Open progress detail"
-        aria-haspopup="dialog"
-        className="relative flex flex-1 items-center justify-between px-5 py-3 text-left font-mono text-[13px] active:bg-zinc-900/40"
-      >
-        <div className="flex items-center gap-3 text-zinc-400">
-          {progress.data && (
-            <>
-              <span className="flex items-center gap-1">
-                <span className="text-zinc-100">★</span>
-                <span className="tabular-nums">{points}</span>
-              </span>
-              <span
-                className="flex items-center gap-1"
-                style={{ color: STREAK }}
-              >
-                <span>▲</span>
-                <span className="tabular-nums">{progress.data.streak}</span>
-              </span>
-              <span style={{ color: ACCENT }}>{p?.scheduleShort}</span>
-            </>
-          )}
-        </div>
-        <span className="inline-flex items-center gap-[2px]">
-          {cells(MINI_CELLS, filledCount, tickAt).map(
-            ({ key, filled, isTick }) => (
-              <span
-                key={key}
-                style={{
-                  width: 5,
-                  height: 12,
-                  background: filled ? ACCENT : 'rgba(255,255,255,0.12)',
-                  outline: isTick
-                    ? '1px solid rgba(255,255,255,0.9)'
-                    : undefined,
-                  outlineOffset: isTick ? -1 : undefined,
-                }}
-              />
-            ),
-          )}
-        </span>
-      </button>
+        <button
+          type="button"
+          onClick={onOpenSheet}
+          aria-label="Open progress detail"
+          aria-haspopup="dialog"
+          className="relative flex flex-1 items-center justify-between px-5 py-3 text-left font-mono text-[13px] active:bg-zinc-900/40"
+        >
+          <div className="flex items-center gap-3 text-zinc-400">
+            {progress.data && (
+              <>
+                <span className="flex items-center gap-1">
+                  <span className="text-zinc-100">★</span>
+                  <span className="tabular-nums">{points}</span>
+                </span>
+                <span
+                  className="flex items-center gap-1"
+                  style={{ color: STREAK }}
+                >
+                  <span>▲</span>
+                  <span className="tabular-nums">{progress.data.streak}</span>
+                </span>
+                <span style={{ color: ACCENT }}>{p?.scheduleShort}</span>
+              </>
+            )}
+          </div>
+          <span className="inline-flex items-center gap-[2px]">
+            {cells(MINI_CELLS, filledCount, tickAt).map(
+              ({ key, filled, isTick }) => (
+                <span
+                  key={key}
+                  style={{
+                    width: 5,
+                    height: 12,
+                    background: filled ? ACCENT : 'rgba(255,255,255,0.12)',
+                    outline: isTick
+                      ? '1px solid rgba(255,255,255,0.9)'
+                      : undefined,
+                    outlineOffset: isTick ? -1 : undefined,
+                  }}
+                />
+              ),
+            )}
+          </span>
+        </button>
         <Link
           to="/settings"
-          aria-label="Settings"
+          aria-label="Profile & settings"
           className="px-4 py-3 text-base text-zinc-500 active:text-zinc-200"
         >
-          ⚙
+          <CircleUserRound size={18} aria-hidden />
         </Link>
       </div>
       <div className="flex justify-center px-5 pb-2 empty:hidden">
@@ -341,15 +342,18 @@ export const MobileChrome = ({
   sheetOpen,
   onOpenSheet,
   onCloseSheet,
+  hideProgress = false,
   children,
 }: {
   sheetOpen: boolean
   onOpenSheet: () => void
   onCloseSheet: () => void
+  // Settings is a "different place" — no progress bar or return bar there.
+  hideProgress?: boolean
   children?: ReactNode
 }) => (
   <>
-    <MobileTopBar onOpenSheet={onOpenSheet} />
+    {!hideProgress && <MobileTopBar onOpenSheet={onOpenSheet} />}
     {children}
     <MobileTabBar />
     {sheetOpen && <MobileProgressSheet onClose={onCloseSheet} />}

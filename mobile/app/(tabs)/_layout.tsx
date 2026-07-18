@@ -3,6 +3,7 @@ import { Tabs, router } from 'expo-router'
 import { Pressable, Text, View } from 'react-native'
 import { SafeAreaView } from 'react-native-safe-area-context'
 
+import { PlusIcon } from '../../components/icons'
 import { TopProgress } from '../../components/TopProgress'
 
 const ACTIVE = '#fafafa'
@@ -65,16 +66,7 @@ function PlusButton({
           shadowOffset: { width: 0, height: 6 },
         }}
       >
-        <Text
-          style={{
-            fontSize: 20,
-            lineHeight: 24,
-            color: '#0a0a0b',
-            fontFamily: 'JetBrainsMono_400Regular',
-          }}
-        >
-          ＋
-        </Text>
+        <PlusIcon size={22} />
       </View>
     </Pressable>
   )

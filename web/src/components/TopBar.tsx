@@ -3,6 +3,7 @@ import { computeSchedule } from '@dtn/shared/pacing'
 import { useProgressToday } from '@dtn/shared/queries'
 import { computePoints } from '@dtn/shared/scoring'
 import { Link, useLocation } from '@tanstack/react-router'
+import { CircleUserRound } from 'lucide-react'
 import { useEffect, useRef, useState } from 'react'
 
 import { useDate } from '../hooks/useDate'
@@ -166,7 +167,7 @@ export const TopBar = () => {
           })}
           <Link
             to="/settings"
-            aria-label="Settings"
+            aria-label="Profile & settings"
             aria-current={pathname.startsWith('/settings') ? 'page' : undefined}
             className={
               'flex items-center rounded-full px-3 py-1.5 text-base transition-colors ' +
@@ -175,7 +176,7 @@ export const TopBar = () => {
                 : 'text-zinc-400 hover:bg-zinc-900 hover:text-zinc-100')
             }
           >
-            ⚙
+            <CircleUserRound size={18} aria-hidden />
           </Link>
         </nav>
       </div>
