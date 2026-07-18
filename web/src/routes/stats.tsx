@@ -8,7 +8,7 @@ import {
 import { useStats } from '@dtn/shared/queries'
 import { minutesToHours } from '@dtn/shared/time'
 import { createFileRoute, useNavigate } from '@tanstack/react-router'
-import { useState } from 'react'
+import { useLayoutEffect, useRef, useState } from 'react'
 
 import { KeyHints } from '../components/KeyHints'
 import { ErrorState } from '../components/ErrorState'
@@ -185,9 +185,36 @@ function StreakSummary({ data }: { data: StatsResult }) {
   )
 }
 
-const HEATMAP_COLS = 26
+const HEATMAP_CELL = 14
+const HEATMAP_GAP = 3
+
+// As many week-columns as fit the available width — the shared rule with
+// the mobile app's heatmap.
+function useHeatmapCols(): [React.RefObject<HTMLDivElement | null>, number] {
+  const ref = useRef<HTMLDivElement>(null)
+  const [cols, setCols] = useState(26)
+  useLayoutEffect(() => {
+    const el = ref.current
+    if (!el) return
+    const compute = () =>
+      setCols(
+        Math.max(
+          4,
+          Math.floor(
+            (el.clientWidth + HEATMAP_GAP) / (HEATMAP_CELL + HEATMAP_GAP),
+          ),
+        ),
+      )
+    compute()
+    const ro = new ResizeObserver(compute)
+    ro.observe(el)
+    return () => ro.disconnect()
+  }, [])
+  return [ref, cols]
+}
 
 function Heatmap({ data }: { data: StatsResult }) {
+  const [gridRef, HEATMAP_COLS] = useHeatmapCols()
   const last = data.heatmap.at(-1)
   if (!last) return null
   const today = newSafeDate(last.date)
@@ -222,7 +249,7 @@ function Heatmap({ data }: { data: StatsResult }) {
 
   return (
     <Section title="Last 6 months">
-      <div className="flex justify-center gap-2 overflow-x-auto">
+      <div className="flex gap-2">
         <div className="flex flex-col gap-[3px] pr-1 font-mono text-[10px] text-zinc-600">
           {dayLabels.map((d, i) => (
             <div key={i} className="h-[14px] leading-[14px]">
@@ -230,44 +257,46 @@ function Heatmap({ data }: { data: StatsResult }) {
             </div>
           ))}
         </div>
-        <div
-          role="img"
-          aria-label={`Activity over the last 6 months: ${nonZeroSorted.length} active ${
-            nonZeroSorted.length === 1 ? 'day' : 'days'
-          }, ${data.totalDaysHit} ${
-            data.totalDaysHit === 1 ? 'day' : 'days'
-          } hit the daily target.`}
-          className="grid gap-[3px]"
-          style={{
-            gridTemplateColumns: `repeat(${HEATMAP_COLS}, 14px)`,
-            gridTemplateRows: 'repeat(7, 14px)',
-            gridAutoFlow: 'column',
-          }}
-        >
-          {Array.from({ length: HEATMAP_COLS * 7 }).map((_, idx) => {
-            const col = Math.floor(idx / 7)
-            const row = idx % 7
-            const cell = visible.find((c) => c.col === col && c.row === row)
-            if (!cell) {
+        <div ref={gridRef} className="min-w-0 flex-1">
+          <div
+            role="img"
+            aria-label={`Activity over the last 6 months: ${nonZeroSorted.length} active ${
+              nonZeroSorted.length === 1 ? 'day' : 'days'
+            }, ${data.totalDaysHit} ${
+              data.totalDaysHit === 1 ? 'day' : 'days'
+            } hit the daily target.`}
+            className="grid gap-[3px]"
+            style={{
+              gridTemplateColumns: `repeat(${HEATMAP_COLS}, 14px)`,
+              gridTemplateRows: 'repeat(7, 14px)',
+              gridAutoFlow: 'column',
+            }}
+          >
+            {Array.from({ length: HEATMAP_COLS * 7 }).map((_, idx) => {
+              const col = Math.floor(idx / 7)
+              const row = idx % 7
+              const cell = visible.find((c) => c.col === col && c.row === row)
+              if (!cell) {
+                return (
+                  <div
+                    key={idx}
+                    className="h-[14px] w-[14px] rounded-[2px]"
+                    style={{ background: 'rgba(255,255,255,0.02)' }}
+                  />
+                )
+              }
               return (
                 <div
                   key={idx}
+                  title={`${cell.date}: ${cell.minutes} min${cell.hit ? ' · hit' : ''}`}
                   className="h-[14px] w-[14px] rounded-[2px]"
-                  style={{ background: 'rgba(255,255,255,0.02)' }}
+                  style={{
+                    background: heatmapColor(cell.minutes, cell.hit, p33, p66),
+                  }}
                 />
               )
-            }
-            return (
-              <div
-                key={idx}
-                title={`${cell.date}: ${cell.minutes} min${cell.hit ? ' · hit' : ''}`}
-                className="h-[14px] w-[14px] rounded-[2px]"
-                style={{
-                  background: heatmapColor(cell.minutes, cell.hit, p33, p66),
-                }}
-              />
-            )
-          })}
+            })}
+          </div>
         </div>
         <div className="ml-3 flex flex-col items-end justify-between font-mono text-[10px] text-zinc-600">
           <span>more</span>
@@ -421,7 +450,8 @@ function DayOfWeek({ data }: { data: StatsResult }) {
                 style={{
                   height: c === 0 ? '4px' : `${Math.max(8, pct)}%`,
                   background: c === 0 ? 'rgba(255,255,255,0.06)' : STREAK,
-                  opacity: c === 0 ? 1 : 0.55 + Math.min(1, c / scaleMax) * 0.45,
+                  opacity:
+                    c === 0 ? 1 : 0.55 + Math.min(1, c / scaleMax) * 0.45,
                 }}
               />
               <div className="font-mono text-[10px] text-zinc-600">
