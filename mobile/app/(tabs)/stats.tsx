@@ -15,12 +15,10 @@ import {
   View,
   type ViewStyle,
 } from 'react-native'
-import { SafeAreaView } from 'react-native-safe-area-context'
 
 import { ErrorState } from '../../components/ErrorState'
 import { Loading } from '../../components/Loading'
 import { PageHeading } from '../../components/PageHeading'
-import { TopProgress } from '../../components/TopProgress'
 import { usePullRefresh } from '../../hooks/usePullRefresh'
 
 const ACCENT = '#34d399'
@@ -32,12 +30,8 @@ export default function Stats() {
   const { refreshing, onRefresh } = usePullRefresh(refetch)
 
   return (
-    <SafeAreaView
-      style={{ flex: 1, backgroundColor: '#0a0a0a' }}
-      edges={['top']}
-    >
+    <View style={{ flex: 1, backgroundColor: '#0a0a0a' }}>
       <Stack.Screen options={{ headerShown: false }} />
-      <TopProgress />
       <PageHeading eyebrow="all the numbers">Stats</PageHeading>
       {!data ? (
         <View
@@ -90,7 +84,7 @@ export default function Stats() {
           <Discipline data={data} />
         </ScrollView>
       )}
-    </SafeAreaView>
+    </View>
   )
 }
 

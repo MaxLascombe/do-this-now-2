@@ -16,12 +16,10 @@ import {
   type ViewStyle,
 } from 'react-native'
 import { Gesture, GestureDetector } from 'react-native-gesture-handler'
-import { SafeAreaView } from 'react-native-safe-area-context'
 
 import { ErrorState } from '../../components/ErrorState'
 import { Loading } from '../../components/Loading'
 import { PageHeading } from '../../components/PageHeading'
-import { TopProgress } from '../../components/TopProgress'
 import { usePullRefresh } from '../../hooks/usePullRefresh'
 
 const ACCENT = '#34d399'
@@ -92,12 +90,8 @@ export default function History() {
   const relLabel = formatDaysAgo(daysAgo)
 
   return (
-    <SafeAreaView
-      style={{ flex: 1, backgroundColor: '#0a0a0a' }}
-      edges={['top']}
-    >
+    <View style={{ flex: 1, backgroundColor: '#0a0a0a' }}>
       <Stack.Screen options={{ headerShown: false }} />
-      <TopProgress />
       <GestureDetector gesture={swipe}>
         <View style={{ flex: 1 }}>
           <PageHeading eyebrow="past completions">History</PageHeading>
@@ -332,7 +326,7 @@ export default function History() {
           </ScrollView>
         </View>
       </GestureDetector>
-    </SafeAreaView>
+    </View>
   )
 }
 

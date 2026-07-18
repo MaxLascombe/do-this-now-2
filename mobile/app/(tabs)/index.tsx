@@ -41,14 +41,12 @@ import {
   Text,
   View,
 } from 'react-native'
-import { SafeAreaView } from 'react-native-safe-area-context'
 
 import { EmptyTasks } from '../../components/EmptyTasks'
 import { ErrorState } from '../../components/ErrorState'
 import { Loading } from '../../components/Loading'
 import { RowAction, RowMenu, TaskRow } from '../../components/TaskRow'
 import { TimerWidget } from '../../components/TimerWidget'
-import { TopProgress } from '../../components/TopProgress'
 import { useToast } from '../../components/ToastProvider'
 import { usePullRefresh } from '../../hooks/usePullRefresh'
 
@@ -223,12 +221,8 @@ export default function Home() {
   const { refreshing, onRefresh } = usePullRefresh(topTasks.refetch)
 
   return (
-    <SafeAreaView
-      style={{ flex: 1, backgroundColor: '#0a0a0a' }}
-      edges={['top']}
-    >
+    <View style={{ flex: 1, backgroundColor: '#0a0a0a' }}>
       <Stack.Screen options={{ headerShown: false }} />
-      <TopProgress />
       {isBusy ? (
         <View
           style={{ flex: 1, alignItems: 'center', justifyContent: 'center' }}
@@ -347,7 +341,7 @@ export default function Home() {
           )}
         </ScrollView>
       )}
-    </SafeAreaView>
+    </View>
   )
 }
 
