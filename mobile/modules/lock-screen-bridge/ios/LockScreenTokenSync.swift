@@ -26,8 +26,11 @@ final class LockScreenTokenSync {
       }
     }
     Task {
-      self.endDuplicateActivities()
-      for activity in Activity<LockScreenTimerAttributes>.activities {
+      // End duplicates BEFORE observing, and await the ends — otherwise a
+      // dying activity's token could be the last one registered, and the
+      // server would push to a dead activity.
+      let survivors = await self.endDuplicateActivities()
+      for activity in survivors {
         self.observe(activity)
       }
       for await activity in Activity<LockScreenTimerAttributes>
@@ -55,14 +58,18 @@ final class LockScreenTokenSync {
   }
 
   // Belt-and-braces cleanup: if a duplicate ever slipped through, keep one
-  // copy and end the rest at launch.
+  // copy and end the rest at launch. Returns the survivors so callers only
+  // observe (and hence register tokens for) activities that stay alive.
   @available(iOS 17.2, *)
-  private func endDuplicateActivities() {
+  private func endDuplicateActivities() async
+    -> [Activity<LockScreenTimerAttributes>]
+  {
     let activities = Activity<LockScreenTimerAttributes>.activities
-    guard activities.count > 1 else { return }
+    guard activities.count > 1 else { return activities }
     for extra in activities.dropFirst() {
-      Task { await extra.end(nil, dismissalPolicy: .immediate) }
+      await extra.end(nil, dismissalPolicy: .immediate)
     }
+    return Array(activities.prefix(1))
   }
 
   @available(iOS 17.2, *)

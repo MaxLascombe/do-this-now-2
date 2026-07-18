@@ -1,4 +1,4 @@
-import { and, eq } from 'drizzle-orm'
+import { and, eq, isNull, lt, or } from 'drizzle-orm'
 
 import { livePushTokens, tasks } from '@dtn/shared/schema'
 import { db } from '../../db'
@@ -159,12 +159,27 @@ export async function syncLockScreen(userId: string): Promise<void> {
     ...starts
       .filter((row) => shouldSendStart(row, devicesWithActivity, now))
       .map(async (row) => {
-        // Stamp BEFORE sending: if two syncs race, at most one duplicate —
-        // stamping after would leave a window where both send.
-        await db
+        // Atomic claim: only the sync whose UPDATE actually flips the stamp
+        // sends. Two concurrent syncs both pass shouldSendStart on their
+        // stale SELECTs; the conditional write makes the loser skip instead
+        // of double-starting.
+        const claimed = await db
           .update(livePushTokens)
           .set({ startSentAt: now })
-          .where(eq(livePushTokens.id, row.id))
+          .where(
+            and(
+              eq(livePushTokens.id, row.id),
+              or(
+                isNull(livePushTokens.startSentAt),
+                lt(
+                  livePushTokens.startSentAt,
+                  new Date(now.getTime() - START_ACK_COOLDOWN_MS),
+                ),
+              ),
+            ),
+          )
+          .returning({ id: livePushTokens.id })
+        if (claimed.length === 0) return
         await sendOrPrune(row, {
           event: 'start',
           contentState,

@@ -54,14 +54,29 @@ struct PauseResumeIntent: AppIntent {
     if let response = try? JSONDecoder().decode(Response.self, from: data) {
       // Update one activity; end any extras — a duplicate that slipped
       // through gets cleaned up on the next button tap.
-      for (index, activity) in Activity<LockScreenTimerAttributes>.activities
-        .enumerated()
-      {
-        if let state = response.state, index == 0 {
+      var kept: Activity<LockScreenTimerAttributes>?
+      for activity in Activity<LockScreenTimerAttributes>.activities {
+        if let state = response.state, kept == nil {
+          kept = activity
           await activity.update(ActivityContent(state: state, staleDate: nil))
         } else {
           await activity.end(nil, dismissalPolicy: .immediate)
         }
+      }
+      // Local array order doesn't say which activity's token the server
+      // holds — re-register the survivor's so server pushes land on the
+      // activity that's actually still on the lock screen.
+      if let kept, let pushToken = kept.pushToken {
+        let hexToken = pushToken.map { String(format: "%02x", $0) }.joined()
+        var reg = URLRequest(url: URL(string: base + "/api/lockscreen/push-token")!)
+        reg.httpMethod = "POST"
+        reg.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        reg.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
+        reg.httpBody = try? JSONSerialization.data(withJSONObject: [
+          "kind": "update",
+          "token": hexToken,
+        ])
+        _ = try? await URLSession.shared.data(for: reg)
       }
     }
     return .result()
