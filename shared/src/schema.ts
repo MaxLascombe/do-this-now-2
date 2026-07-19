@@ -139,7 +139,9 @@ export const history = pgTable(
     userId: text('user_id').notNull(),
     // SET NULL on task delete: the history row stays (taskSnapshot keeps the
     // displayable copy) but the live-task back-reference clears.
-    taskId: uuid('task_id').references(() => tasks.id, { onDelete: 'set null' }),
+    taskId: uuid('task_id').references(() => tasks.id, {
+      onDelete: 'set null',
+    }),
     taskSnapshot: jsonb('task_snapshot').$type<Task>().notNull(),
     // Timer value at completion, in seconds. Null on legacy rows pre-timer
     // feature — readers fall back to `taskSnapshot.timeFrame * 60`.
@@ -226,6 +228,9 @@ export const lockScreenDevices = pgTable(
 export const livePushTokenKindEnum = pgEnum('live_push_token_kind', [
   'start',
   'update',
+  // The app's plain APNs token — silent content-available wakes so a
+  // backgrounded app can refresh the progress widget after remote changes.
+  'device',
 ])
 
 // APNs tokens for driving the Lock Screen Timer remotely. One 'start' row
@@ -267,4 +272,3 @@ export const emojiSuggestions = pgTable('emoji_suggestions', {
     .notNull()
     .defaultNow(),
 })
-

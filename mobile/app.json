@@ -15,7 +15,8 @@
       "infoPlist": {
         "ITSAppUsesNonExemptEncryption": false,
         "NSSupportsLiveActivities": true,
-        "NSSupportsLiveActivitiesFrequentUpdates": true
+        "NSSupportsLiveActivitiesFrequentUpdates": true,
+        "UIBackgroundModes": ["remote-notification"]
       },
       "entitlements": {
         "aps-environment": "production",

@@ -12,6 +12,7 @@ final class LockScreenTokenSync {
   static let shared = LockScreenTokenSync()
   private var started = false
   private var observedActivityIds = Set<String>()
+  private var lastDeviceToken: Data?
 
   func start() {
     guard !started else { return }
@@ -41,11 +42,22 @@ final class LockScreenTokenSync {
     }
   }
 
+  // The app's plain APNs token, used for silent progress-widget wakes.
+  // Kept for flush(): the callback often fires before sign-in writes the
+  // credentials, and iOS won't re-issue it.
+  func registerDeviceToken(_ data: Data) {
+    lastDeviceToken = data
+    register(kind: "device", token: hex(data))
+  }
+
   // Re-register the CURRENT tokens. Needed right after JS writes the
   // credentials: tokens observed before that were dropped by register()'s
   // missing-creds guard, and the long-lived observer streams won't re-emit
   // them.
   func flush() {
+    if let token = lastDeviceToken {
+      register(kind: "device", token: hex(token))
+    }
     guard #available(iOS 17.2, *) else { return }
     if let token = Activity<LockScreenTimerAttributes>.pushToStartToken {
       register(kind: "start", token: hex(token))
