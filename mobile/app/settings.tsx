@@ -1,7 +1,7 @@
 import { useClerk, useUser } from '@clerk/clerk-expo'
-import * as Updates from 'expo-updates'
 import * as Haptics from 'expo-haptics'
 import { Stack } from 'expo-router'
+import * as Updates from 'expo-updates'
 import { Alert, Pressable, Text, View } from 'react-native'
 import { SafeAreaView } from 'react-native-safe-area-context'
 
