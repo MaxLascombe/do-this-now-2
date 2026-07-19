@@ -29,6 +29,18 @@ export async function issueDeviceToken(
 
 export type DeviceAuth = { userId: string; deviceId: string }
 
+// Resolve a raw device token to its row id without touching lastSeenAt —
+// used to identify a request's originating device, not to authenticate it.
+export async function deviceIdForToken(token: string): Promise<string | null> {
+  if (!token.startsWith('dtnlst_')) return null
+  const rows = await db
+    .select({ id: lockScreenDevices.id })
+    .from(lockScreenDevices)
+    .where(eq(lockScreenDevices.tokenHash, hash(token)))
+    .limit(1)
+  return rows[0]?.id ?? null
+}
+
 // Resolve `Authorization: Bearer dtnlst_…` to the device row. Null on any
 // mismatch — routes translate that to 401. Bumps lastSeenAt (fire-and-forget)
 // so a future devices UI can show staleness.

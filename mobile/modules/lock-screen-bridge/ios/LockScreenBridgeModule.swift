@@ -35,5 +35,42 @@ public class LockScreenBridgeModule: Module {
         await activity.end(nil, dismissalPolicy: .immediate)
       }
     }
+
+    // Local-first mirror: apply the app's current state to the Live Activity
+    // immediately; the server's push follows as the cross-device backup.
+    AsyncFunction("syncActivity") { (stateJson: String) in
+      guard #available(iOS 17.2, *) else { return }
+      guard
+        let data = stateJson.data(using: .utf8),
+        let state = try? JSONDecoder().decode(
+          LockScreenTimerAttributes.ContentState.self, from: data)
+      else { return }
+      await LocalActivitySync.shared.apply(state)
+    }
+  }
+}
+
+// Actor-serialized so two rapid cache changes can't both see "no activity"
+// and double-request one.
+@available(iOS 17.2, *)
+actor LocalActivitySync {
+  static let shared = LocalActivitySync()
+
+  func apply(_ state: LockScreenTimerAttributes.ContentState) async {
+    let activities = Activity<LockScreenTimerAttributes>.activities
+    if let current = activities.first {
+      for extra in activities.dropFirst() {
+        await extra.end(nil, dismissalPolicy: .immediate)
+      }
+      await current.update(ActivityContent(state: state, staleDate: nil))
+      return
+    }
+    guard ActivityAuthorizationInfo().areActivitiesEnabled else { return }
+    // pushType .token: the token-sync observer registers the new activity's
+    // update token, so server pushes keep flowing to it.
+    _ = try? Activity<LockScreenTimerAttributes>.request(
+      attributes: LockScreenTimerAttributes(),
+      content: ActivityContent(state: state, staleDate: nil),
+      pushType: .token)
   }
 }

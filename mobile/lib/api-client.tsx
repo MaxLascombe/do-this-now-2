@@ -9,6 +9,7 @@ import { getTzOffsetMin } from '@dtn/shared/time'
 import type { HistoryEntry, StatsResult, Task } from '@dtn/shared/types'
 import { type ReactNode, useMemo } from 'react'
 
+import { getLockScreenDeviceToken } from './lockscreen'
 import { QueryProvider } from './query-client'
 
 const BASE_URL = process.env.EXPO_PUBLIC_API_URL!
@@ -23,6 +24,9 @@ async function jsonFetch<T>(
   path: string,
   init: FetchInit = {},
 ): Promise<T> {
+  // Identifies this phone as the action's origin so the server skips its
+  // push-to-start (the app mirrors the Live Activity locally).
+  const originDevice = getLockScreenDeviceToken()
   const res = await fetch(`${BASE_URL}${path}`, {
     ...init,
     headers: {
@@ -32,6 +36,7 @@ async function jsonFetch<T>(
       // a separate parameter.
       'X-Tz-Offset': String(getTzOffsetMin()),
       ...(token ? { Authorization: `Bearer ${token}` } : {}),
+      ...(originDevice ? { 'X-Lockscreen-Device': originDevice } : {}),
       ...(init.headers ?? {}),
     },
     body: init.body !== undefined ? JSON.stringify(init.body) : undefined,
@@ -42,9 +47,7 @@ async function jsonFetch<T>(
   return res.json() as Promise<T>
 }
 
-function createMobileApi(
-  getToken: () => Promise<string | null>,
-): ApiClient {
+function createMobileApi(getToken: () => Promise<string | null>): ApiClient {
   const call = async <T,>(path: string, init?: FetchInit): Promise<T> => {
     const token = await getToken()
     return jsonFetch<T>(token, path, init)
