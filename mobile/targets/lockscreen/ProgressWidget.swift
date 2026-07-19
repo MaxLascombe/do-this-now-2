@@ -14,6 +14,9 @@ struct ProgressEntry: TimelineEntry {
   let done: Double
   let todo: Double
   var minutesToReduceTomorrowDays: Double = 0
+  // False only on the failed-fetch fallback — a real zero-task day is
+  // loaded data and still gets its headline.
+  var loaded: Bool = true
 }
 
 struct ProgressProvider: TimelineProvider {
@@ -33,7 +36,8 @@ struct ProgressProvider: TimelineProvider {
         date: start.addingTimeInterval(Double(i) * 60),
         done: base.done,
         todo: base.todo,
-        minutesToReduceTomorrowDays: base.minutesToReduceTomorrowDays)
+        minutesToReduceTomorrowDays: base.minutesToReduceTomorrowDays,
+        loaded: base.loaded)
     }
   }
 
@@ -55,7 +59,7 @@ struct ProgressProvider: TimelineProvider {
       // Retry a failed fetch sooner than the regular 20-minute cadence.
       let entries =
         fetched.map(minuteEntries(from:))
-        ?? [ProgressEntry(date: Date(), done: 0, todo: 0)]
+        ?? [ProgressEntry(date: Date(), done: 0, todo: 0, loaded: false)]
       let minutes: TimeInterval = fetched == nil ? 5 : 20
       completion(
         Timeline(
@@ -139,11 +143,9 @@ struct ProgressWidgetView: View {
       .gaugeStyle(.accessoryCircularCapacity)
     default:
       VStack(alignment: .leading, spacing: 3) {
-        // Headline suppressed on the empty/failed 0-everything entry — an
-        // "On schedule" verdict with no data would be a lie.
-        if entry.done > 0 || entry.todo > 0
-          || entry.minutesToReduceTomorrowDays > 0
-        {
+        // Suppressed only when the fetch failed — a verdict with no data
+        // would be baseless, but a real zero-task day keeps its headline.
+        if entry.loaded {
           Text(scheduleHeadline(entry))
             .font(.system(.headline, design: .monospaced))
         }
