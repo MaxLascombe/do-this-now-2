@@ -16,11 +16,12 @@ vi.mock('../apns', async (importOriginal) => {
     ...actual,
     apnsConfigured: () => true,
     sendLiveActivityPush: vi.fn(async () => {}),
+    sendBackgroundPush: vi.fn(async () => {}),
   }
 })
 
 import { db } from '../../../db'
-import { sendLiveActivityPush } from '../apns'
+import { ApnsError, sendBackgroundPush, sendLiveActivityPush } from '../apns'
 import { syncLockScreen } from '../lockscreen'
 
 // Guards the duplicate-start race closed by the local-first mirror
@@ -59,14 +60,18 @@ async function seedSelectedTask() {
     .values({ userId: TEST_USER, selectedTaskId: task.id })
 }
 
-async function seedDeviceWithStartToken(tokenHash: string, token: string) {
+async function seedDeviceWithToken(
+  tokenHash: string,
+  token: string,
+  kind: 'start' | 'update' | 'device' = 'start',
+) {
   const [device] = await db
     .insert(lockScreenDevices)
     .values({ userId: TEST_USER, tokenHash, label: null })
     .returning()
   await db
     .insert(livePushTokens)
-    .values({ userId: TEST_USER, deviceId: device.id, kind: 'start', token })
+    .values({ userId: TEST_USER, deviceId: device.id, kind, token })
   return device.id
 }
 
@@ -76,13 +81,15 @@ describe.skipIf(!process.env.DATABASE_URL)(
     beforeEach(async () => {
       await cleanup()
       vi.mocked(sendLiveActivityPush).mockClear()
+      vi.mocked(sendBackgroundPush).mockReset()
+      vi.mocked(sendBackgroundPush).mockResolvedValue(undefined)
     })
     afterAll(cleanup)
 
     it('skips push-to-start for the origin device but not for others', async () => {
       await seedSelectedTask()
-      const originId = await seedDeviceWithStartToken('hash-origin', 'aa11')
-      const otherId = await seedDeviceWithStartToken('hash-other', 'bb22')
+      const originId = await seedDeviceWithToken('hash-origin', 'aa11')
+      const otherId = await seedDeviceWithToken('hash-other', 'bb22')
 
       await syncLockScreen(TEST_USER, { deviceId: originId })
 
@@ -104,8 +111,8 @@ describe.skipIf(!process.env.DATABASE_URL)(
 
     it('without an origin, both devices get a push-to-start', async () => {
       await seedSelectedTask()
-      await seedDeviceWithStartToken('hash-a', 'aa11')
-      await seedDeviceWithStartToken('hash-b', 'bb22')
+      await seedDeviceWithToken('hash-a', 'aa11')
+      await seedDeviceWithToken('hash-b', 'bb22')
 
       await syncLockScreen(TEST_USER, null)
 
@@ -114,6 +121,37 @@ describe.skipIf(!process.env.DATABASE_URL)(
         .mock.calls.map(([t]) => t)
         .sort()
       expect(tokens).toEqual(['aa11', 'bb22'])
+    })
+
+    it('wakes other devices but never the origin', async () => {
+      await seedSelectedTask()
+      const originId = await seedDeviceWithToken(
+        'hash-origin',
+        'cc33',
+        'device',
+      )
+      await seedDeviceWithToken('hash-other', 'dd44', 'device')
+
+      await syncLockScreen(TEST_USER, { deviceId: originId })
+
+      const woken = vi.mocked(sendBackgroundPush).mock.calls.map(([t]) => t)
+      expect(woken).toEqual(['dd44'])
+    })
+
+    it('prunes a dead device token on 410 without failing the sync', async () => {
+      await seedSelectedTask()
+      const deadId = await seedDeviceWithToken('hash-dead', 'ee55', 'device')
+      vi.mocked(sendBackgroundPush).mockRejectedValue(
+        new ApnsError(410, 'Unregistered'),
+      )
+
+      await syncLockScreen(TEST_USER, null)
+
+      const rows = await db
+        .select()
+        .from(livePushTokens)
+        .where(eq(livePushTokens.userId, TEST_USER))
+      expect(rows.filter((r) => r.deviceId === deadId)).toHaveLength(0)
     })
   },
 )
