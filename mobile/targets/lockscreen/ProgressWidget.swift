@@ -34,11 +34,14 @@ struct ProgressProvider: TimelineProvider {
     in _: Context, completion: @escaping (Timeline<ProgressEntry>) -> Void
   ) {
     Task {
-      let entry = await fetch() ?? ProgressEntry(date: Date(), done: 0, todo: 0)
+      let fetched = await fetch()
+      let entry = fetched ?? ProgressEntry(date: Date(), done: 0, todo: 0)
+      // Retry a failed fetch sooner than the regular 20-minute cadence.
+      let minutes: TimeInterval = fetched == nil ? 5 : 20
       completion(
         Timeline(
           entries: [entry],
-          policy: .after(Date().addingTimeInterval(20 * 60))))
+          policy: .after(Date().addingTimeInterval(minutes * 60))))
     }
   }
 
@@ -79,7 +82,9 @@ struct ProgressWidgetView: View {
   @Environment(\.widgetFamily) private var family
 
   private var fraction: Double {
-    entry.todo > 0 ? min(entry.done / entry.todo, 1) : 1
+    if entry.todo > 0 { return min(entry.done / entry.todo, 1) }
+    // todo 0 with work done = day cleared; 0/0 (incl. failed fetch) = empty
+    return entry.done > 0 ? 1 : 0
   }
 
   var body: some View {

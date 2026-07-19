@@ -57,11 +57,6 @@ struct PauseResumeIntent: AppIntent {
       await applyToAll(optimistic)
     }
 
-    defer {
-      // Pause-at-target completes the task — refresh the progress ring.
-      WidgetCenter.shared.reloadTimelines(ofKind: PROGRESS_WIDGET_KIND)
-    }
-
     do {
       var req = URLRequest(url: url)
       req.httpMethod = "POST"
@@ -100,6 +95,12 @@ struct PauseResumeIntent: AppIntent {
           await activity.end(nil, dismissalPolicy: .immediate)
         }
       }
+      // Extension-side reloads count against the WidgetKit budget — only
+      // spend one when the pause actually completed the task.
+      if response.state == nil {
+        WidgetCenter.shared.reloadTimelines(ofKind: PROGRESS_WIDGET_KIND)
+      }
+
       // Local array order doesn't say which activity's token the server
       // holds — re-register the survivor's so server pushes land on the
       // activity that's actually still on the lock screen.
