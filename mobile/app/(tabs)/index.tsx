@@ -406,13 +406,16 @@ function Hero({
   )
 
   // Tick once a second while the timer runs so the Done gate re-evaluates
-  // without the user touching the screen.
+  // without the user touching the screen. Keyed on the boolean, not the
+  // Date object — cache refreshes hand back fresh instances every poll and
+  // an identity dep would reset the interval mid-tick (visible stutter).
+  const timerRunning = task.timerStartedAt != null
   const [now, setNow] = useState(() => new Date())
   useEffect(() => {
-    if (!task.timerStartedAt) return
+    if (!timerRunning) return
     const t = setInterval(() => setNow(new Date()), 1000)
     return () => clearInterval(t)
-  }, [task.timerStartedAt])
+  }, [timerRunning])
   const gated = isCompletionGated(task, now)
   const remainingMin = gated
     ? Math.ceil((task.timeFrame * 60 - currentTimerSeconds(task, now)) / 60)
