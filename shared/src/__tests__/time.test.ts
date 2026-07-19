@@ -21,4 +21,11 @@ describe('minutesToHours', () => {
     expect(minutesToHours(90)).toBe('1h30')
     expect(minutesToHours(125)).toBe('2h05')
   })
+
+  it('rounds fluid EMA decimals instead of printing them', () => {
+    expect(minutesToHours(30.42)).toBe('0h30')
+    expect(minutesToHours(33.51966)).toBe('0h34')
+    expect(minutesToHours(119.7)).toBe('2h')
+    expect(minutesToHours(59.9)).toBe('1h')
+  })
 })

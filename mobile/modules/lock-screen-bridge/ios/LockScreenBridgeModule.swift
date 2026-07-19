@@ -27,5 +27,13 @@ public class LockScreenBridgeModule: Module {
       LockScreenTokenSync.shared.start()
       LockScreenTokenSync.shared.flush()
     }
+
+    // instant local clear on unfocus — don't make the lock screen wait on APNs
+    AsyncFunction("endAllActivities") {
+      guard #available(iOS 17.2, *) else { return }
+      for activity in Activity<LockScreenTimerAttributes>.activities {
+        await activity.end(nil, dismissalPolicy: .immediate)
+      }
+    }
   }
 }

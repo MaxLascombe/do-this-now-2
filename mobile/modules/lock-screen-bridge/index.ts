@@ -8,6 +8,8 @@ type LockScreenBridgeModule = {
   setConfig(baseUrl: string, deviceToken: string): void
   isSupported(): boolean
   startSync(): void
+  // Absent on builds older than the native method — feature-detect.
+  endAllActivities?: () => Promise<void>
 }
 
 export default requireOptionalNativeModule<LockScreenBridgeModule>(

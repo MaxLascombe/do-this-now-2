@@ -75,8 +75,9 @@ function History() {
     (acc, e) => acc + (e.taskSnapshot.timeFrame ?? 0),
     0,
   )
-  const hours = Math.floor(totalMinutes / 60)
-  const mins = totalMinutes % 60
+  const roundedMinutes = Math.round(totalMinutes)
+  const hours = Math.floor(roundedMinutes / 60)
+  const mins = roundedMinutes % 60
 
   // Minutes-per-tag for the viewed day, same timeFrame basis as "Time spent".
   const tagMinutes = useMemo(() => {

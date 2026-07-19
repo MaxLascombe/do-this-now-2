@@ -109,7 +109,10 @@ async function sendOrPrune(
       await dropToken(row.id)
       return 'pruned'
     }
-    console.error(`lockscreen push failed (token ${tokenDigest(row.token)})`, err)
+    console.error(
+      `lockscreen push failed (token ${tokenDigest(row.token)})`,
+      err,
+    )
     return 'failed'
   }
 }
@@ -171,12 +174,14 @@ export async function syncLockScreen(userId: string): Promise<void> {
   if (state === null) {
     await Promise.all(
       updates.map(async (row) => {
-        await sendOrPrune(row, {
+        const outcome = await sendOrPrune(row, {
           event: 'end',
           contentState: {},
           dismissalDate: new Date(),
         })
-        await dropToken(row.id)
+        // keep the token on transient failure so the next sync retries the end
+        // ('pruned' already dropped it inside sendOrPrune)
+        if (outcome === 'sent') await dropToken(row.id)
       }),
     )
     return
