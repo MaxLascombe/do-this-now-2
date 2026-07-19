@@ -1,6 +1,7 @@
 import ActivityKit
 import AppIntents
 import Foundation
+import WidgetKit
 
 // The lock-screen button. Runs in the widget extension process (no app
 // launch): POSTs to the server with the device token the app parked in the
@@ -9,9 +10,11 @@ import Foundation
 // server carries the real semantics — pausing a fixed task at its target
 // completes it, in which case `state` comes back null and the activity ends.
 //
-// UX: the tap immediately re-renders the activity with `pending` set (grey,
-// disabled, spinner) so the button never feels dead during the network
-// call; the server response (or a failure revert) clears it.
+// UX: the tap immediately applies the expected outcome (digits stop/start
+// on the spot, button stays disabled via `pending`); the server response
+// replaces it with the authoritative state, and a failure reverts to the
+// pre-tap snapshot so the lock screen never lies about a change that
+// didn't commit.
 struct PauseResumeIntent: AppIntent {
   static var title: LocalizedStringResource = "Pause or resume the timer"
   static var isDiscoverable: Bool = false
@@ -35,7 +38,30 @@ struct PauseResumeIntent: AppIntent {
       return .result()
     }
 
-    await setPending(true)
+    // Optimistic flip from the current state; kept for the failure revert.
+    let snapshot = Activity<LockScreenTimerAttributes>.activities.first?
+      .content.state
+    if var optimistic = snapshot {
+      let now = Date().timeIntervalSince1970
+      if resume {
+        optimistic.running = true
+        optimistic.startedAtEpoch = now
+      } else {
+        if let started = optimistic.startedAtEpoch {
+          optimistic.accumulatedSeconds += max(0, now - started)
+        }
+        optimistic.running = false
+        optimistic.startedAtEpoch = nil
+      }
+      optimistic.pending = true
+      await applyToAll(optimistic)
+    }
+
+    defer {
+      // Pause-at-target completes the task — refresh the progress ring.
+      WidgetCenter.shared.reloadTimelines(ofKind: PROGRESS_WIDGET_KIND)
+    }
+
     do {
       var req = URLRequest(url: url)
       req.httpMethod = "POST"
@@ -59,7 +85,7 @@ struct PauseResumeIntent: AppIntent {
       guard
         let response = try? JSONDecoder().decode(Response.self, from: data)
       else {
-        await setPending(false)
+        await revert(to: snapshot)
         return .result()
       }
 
@@ -91,17 +117,25 @@ struct PauseResumeIntent: AppIntent {
         _ = try? await URLSession.shared.data(for: reg)
       }
     } catch {
-      // Network failed — put the button back so the user can retry.
-      await setPending(false)
+      // Network failed — undo the optimistic flip so the user can retry.
+      await revert(to: snapshot)
     }
     return .result()
   }
 
-  private func setPending(_ pending: Bool) async {
+  private func applyToAll(
+    _ state: LockScreenTimerAttributes.ContentState
+  ) async {
     for activity in Activity<LockScreenTimerAttributes>.activities {
-      var state = activity.content.state
-      state.pending = pending ? true : nil
       await activity.update(ActivityContent(state: state, staleDate: nil))
     }
+  }
+
+  private func revert(
+    to snapshot: LockScreenTimerAttributes.ContentState?
+  ) async {
+    guard var state = snapshot else { return }
+    state.pending = nil
+    await applyToAll(state)
   }
 }

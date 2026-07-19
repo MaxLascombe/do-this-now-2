@@ -27,6 +27,7 @@ import { Route as ApiTasksIdRouteImport } from './routes/api/tasks.$id'
 import { Route as ApiProgressTodayRouteImport } from './routes/api/progress.today'
 import { Route as ApiLockscreenTimerRouteImport } from './routes/api/lockscreen.timer'
 import { Route as ApiLockscreenPushTokenRouteImport } from './routes/api/lockscreen.push-token'
+import { Route as ApiLockscreenProgressRouteImport } from './routes/api/lockscreen.progress'
 import { Route as ApiLockscreenDeviceRouteImport } from './routes/api/lockscreen.device'
 import { Route as ApiHistoryDateRouteImport } from './routes/api/history.$date'
 import { Route as ApiAdminBackfillEmojisRouteImport } from './routes/api/admin/backfill-emojis'
@@ -125,6 +126,11 @@ const ApiLockscreenPushTokenRoute = ApiLockscreenPushTokenRouteImport.update({
   path: '/api/lockscreen/push-token',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiLockscreenProgressRoute = ApiLockscreenProgressRouteImport.update({
+  id: '/api/lockscreen/progress',
+  path: '/api/lockscreen/progress',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ApiLockscreenDeviceRoute = ApiLockscreenDeviceRouteImport.update({
   id: '/api/lockscreen/device',
   path: '/api/lockscreen/device',
@@ -175,6 +181,7 @@ export interface FileRoutesByFullPath {
   '/api/admin/backfill-emojis': typeof ApiAdminBackfillEmojisRoute
   '/api/history/$date': typeof ApiHistoryDateRoute
   '/api/lockscreen/device': typeof ApiLockscreenDeviceRoute
+  '/api/lockscreen/progress': typeof ApiLockscreenProgressRoute
   '/api/lockscreen/push-token': typeof ApiLockscreenPushTokenRoute
   '/api/lockscreen/timer': typeof ApiLockscreenTimerRoute
   '/api/progress/today': typeof ApiProgressTodayRoute
@@ -201,6 +208,7 @@ export interface FileRoutesByTo {
   '/api/admin/backfill-emojis': typeof ApiAdminBackfillEmojisRoute
   '/api/history/$date': typeof ApiHistoryDateRoute
   '/api/lockscreen/device': typeof ApiLockscreenDeviceRoute
+  '/api/lockscreen/progress': typeof ApiLockscreenProgressRoute
   '/api/lockscreen/push-token': typeof ApiLockscreenPushTokenRoute
   '/api/lockscreen/timer': typeof ApiLockscreenTimerRoute
   '/api/progress/today': typeof ApiProgressTodayRoute
@@ -229,6 +237,7 @@ export interface FileRoutesById {
   '/api/admin/backfill-emojis': typeof ApiAdminBackfillEmojisRoute
   '/api/history/$date': typeof ApiHistoryDateRoute
   '/api/lockscreen/device': typeof ApiLockscreenDeviceRoute
+  '/api/lockscreen/progress': typeof ApiLockscreenProgressRoute
   '/api/lockscreen/push-token': typeof ApiLockscreenPushTokenRoute
   '/api/lockscreen/timer': typeof ApiLockscreenTimerRoute
   '/api/progress/today': typeof ApiProgressTodayRoute
@@ -258,6 +267,7 @@ export interface FileRouteTypes {
     | '/api/admin/backfill-emojis'
     | '/api/history/$date'
     | '/api/lockscreen/device'
+    | '/api/lockscreen/progress'
     | '/api/lockscreen/push-token'
     | '/api/lockscreen/timer'
     | '/api/progress/today'
@@ -284,6 +294,7 @@ export interface FileRouteTypes {
     | '/api/admin/backfill-emojis'
     | '/api/history/$date'
     | '/api/lockscreen/device'
+    | '/api/lockscreen/progress'
     | '/api/lockscreen/push-token'
     | '/api/lockscreen/timer'
     | '/api/progress/today'
@@ -311,6 +322,7 @@ export interface FileRouteTypes {
     | '/api/admin/backfill-emojis'
     | '/api/history/$date'
     | '/api/lockscreen/device'
+    | '/api/lockscreen/progress'
     | '/api/lockscreen/push-token'
     | '/api/lockscreen/timer'
     | '/api/progress/today'
@@ -339,6 +351,7 @@ export interface RootRouteChildren {
   ApiAdminBackfillEmojisRoute: typeof ApiAdminBackfillEmojisRoute
   ApiHistoryDateRoute: typeof ApiHistoryDateRoute
   ApiLockscreenDeviceRoute: typeof ApiLockscreenDeviceRoute
+  ApiLockscreenProgressRoute: typeof ApiLockscreenProgressRoute
   ApiLockscreenPushTokenRoute: typeof ApiLockscreenPushTokenRoute
   ApiLockscreenTimerRoute: typeof ApiLockscreenTimerRoute
   ApiProgressTodayRoute: typeof ApiProgressTodayRoute
@@ -472,6 +485,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiLockscreenPushTokenRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/lockscreen/progress': {
+      id: '/api/lockscreen/progress'
+      path: '/api/lockscreen/progress'
+      fullPath: '/api/lockscreen/progress'
+      preLoaderRoute: typeof ApiLockscreenProgressRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/lockscreen/device': {
       id: '/api/lockscreen/device'
       path: '/api/lockscreen/device'
@@ -585,6 +605,7 @@ const rootRouteChildren: RootRouteChildren = {
   ApiAdminBackfillEmojisRoute: ApiAdminBackfillEmojisRoute,
   ApiHistoryDateRoute: ApiHistoryDateRoute,
   ApiLockscreenDeviceRoute: ApiLockscreenDeviceRoute,
+  ApiLockscreenProgressRoute: ApiLockscreenProgressRoute,
   ApiLockscreenPushTokenRoute: ApiLockscreenPushTokenRoute,
   ApiLockscreenTimerRoute: ApiLockscreenTimerRoute,
   ApiProgressTodayRoute: ApiProgressTodayRoute,

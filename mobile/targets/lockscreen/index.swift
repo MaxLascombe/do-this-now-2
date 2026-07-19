@@ -6,6 +6,7 @@ import WidgetKit
 struct LockScreenTimerBundle: WidgetBundle {
   var body: some Widget {
     LockScreenTimerLiveActivity()
+    LockScreenProgressWidget()
   }
 }
 
