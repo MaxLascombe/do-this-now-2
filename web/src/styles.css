@@ -18,14 +18,28 @@ html,
 body {
   @apply m-0 text-zinc-50;
   font-family: var(--font-mono);
-  background:
-    radial-gradient(ellipse at top, #1a1a1a 0%, #0a0a0a 50%, #050505 100%) fixed;
+  background: radial-gradient(
+      ellipse at top,
+      #1a1a1a 0%,
+      #0a0a0a 50%,
+      #050505 100%
+    )
+    fixed;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
 }
 
 code {
   font-family: var(--font-mono);
+}
+
+/* Tailwind v4's preflight resets <button> to cursor:default; every enabled
+   button in this app is clickable, so give them all the pointer. */
+button:not(:disabled),
+[role='button']:not([aria-disabled='true']),
+input[type='date'],
+input[type='time'] {
+  cursor: pointer;
 }
 
 /* Every <kbd> in the app is a keyboard-shortcut hint. Below the md

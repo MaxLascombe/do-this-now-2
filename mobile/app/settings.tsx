@@ -1,6 +1,7 @@
 import { useClerk, useUser } from '@clerk/clerk-expo'
 import * as Haptics from 'expo-haptics'
 import { Stack } from 'expo-router'
+import * as Updates from 'expo-updates'
 import { Alert, Pressable, Text, View } from 'react-native'
 import { SafeAreaView } from 'react-native-safe-area-context'
 
@@ -91,6 +92,22 @@ export default function Settings() {
               {email}
             </Text>
           )}
+          <Text
+            style={{
+              fontFamily: 'JetBrainsMono_400Regular',
+              fontSize: 12,
+              color: '#52525b',
+              marginTop: 12,
+            }}
+          >
+            {Updates.updateId
+              ? `update ${Updates.updateId.slice(0, 8)} · ${
+                  Updates.createdAt
+                    ? new Date(Updates.createdAt).toLocaleString()
+                    : ''
+                }`
+              : 'embedded bundle (no OTA applied)'}
+          </Text>
         </View>
 
         <Pressable
