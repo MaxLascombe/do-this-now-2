@@ -247,24 +247,6 @@ function Home() {
   }
   const snoozeTaskAction = () => snoozeTaskFor(selectedTask, false)
 
-  const snoozeAllSubtasksAction = () => {
-    if (!selectedTask) return
-    const { id } = selectedTask
-    const { nextTask } = snoozeTaskTransition(selectedTask, true, new Date())
-    if (isSnoozed(nextTask)) exitFocus()
-    snoozeMutation.mutate(
-      { id, allSubtasks: true },
-      {
-        onSuccess: () =>
-          toast({
-            message: 'Subtasks snoozed',
-            actionLabel: 'Undo',
-            onAction: () => unsnoozeMutation.mutate(id),
-          }),
-      },
-    )
-  }
-
   const deleteTaskFor = async (task: Task | null | undefined) => {
     if (!task) return
     const ok = await confirm({
@@ -376,7 +358,6 @@ function Home() {
   const focusActions: Array<KeyAction> = [
     bind(S.done, completeTaskAction),
     bind(S.snooze, snoozeTaskAction),
-    bind(S.snoozeSubtasks, snoozeAllSubtasksAction),
     bind(S.edit, goEdit),
     bind(S.timer, toggleTimerAction),
     bind(S.timerAlt, toggleTimerAction),
@@ -436,7 +417,6 @@ function Home() {
           onReturn={returnAction}
           onComplete={completeTaskAction}
           onSnooze={snoozeTaskAction}
-          onSnoozeSubtasks={snoozeAllSubtasksAction}
           onToggleSubtask={toggleSubtaskAction}
           onEdit={goEdit}
           onDelete={deleteTaskAction}
@@ -574,7 +554,6 @@ function Hero({
   onReturn,
   onComplete,
   onSnooze,
-  onSnoozeSubtasks,
   onToggleSubtask,
   onEdit,
   onDelete,
@@ -583,7 +562,6 @@ function Hero({
   onReturn: () => void
   onComplete: () => void
   onSnooze: () => void
-  onSnoozeSubtasks: () => void
   onToggleSubtask: (index: number) => void
   onEdit: () => void
   onDelete: () => void
@@ -689,13 +667,6 @@ function Hero({
       <div className="mt-3 flex w-full max-w-[320px] flex-wrap justify-center gap-2 md:mt-4 md:max-w-none md:w-auto md:items-center md:gap-3">
         <SecondaryAction k="Esc" label="Return" onClick={onReturn} />
         <SecondaryAction k="s" label="Snooze" onClick={onSnooze} />
-        {task.subtasks.length > 0 && (
-          <SecondaryAction
-            k="⇧S"
-            label="Snooze subtasks"
-            onClick={onSnoozeSubtasks}
-          />
-        )}
         <SecondaryAction k="e" label="Edit" onClick={onEdit} />
         <SecondaryAction k="⌫" label="Delete" onClick={onDelete} />
       </div>

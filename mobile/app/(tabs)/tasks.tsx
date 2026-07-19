@@ -1,6 +1,6 @@
 import { startOfToday } from '@dtn/shared/day-index'
 import { dueGroupLabel, tasksListEyebrow } from '@dtn/shared/format'
-import { dateString, newSafeDate } from '@dtn/shared/helpers'
+import { newSafeDate } from '@dtn/shared/helpers'
 import {
   useAllTasks,
   useCompleteTask,
@@ -37,6 +37,7 @@ import { ErrorState } from '../../components/ErrorState'
 import { Loading } from '../../components/Loading'
 import { TaskListSkeleton } from '../../components/Skeleton'
 import { PageHeading } from '../../components/PageHeading'
+import { SearchIcon } from '../../components/icons'
 import { RowAction, RowMenu, TaskRow } from '../../components/TaskRow'
 import { useToast } from '../../components/ToastProvider'
 import { usePersistedState } from '../../hooks/usePersistedState'
@@ -61,7 +62,7 @@ export default function TasksList() {
   const router = useRouter()
   const [sort, setSort] = usePersistedState<Sort>('dtn.tasks.sort', 'CHRON')
   const [query, setQuery] = useState('')
-  const [quickTitle, setQuickTitle] = useState('')
+  const [searchOpen, setSearchOpen] = useState(false)
 
   const allTasks = useAllTasks({ enabled: sort === 'CHRON' })
   const topTasks = useTopTasks({ enabled: sort === 'TOP' })
@@ -69,28 +70,6 @@ export default function TasksList() {
   const doneMutation = useCompleteTask()
   const createMutation = useCreateTask()
   const toast = useToast()
-  const quickAdd = () => {
-    const title = quickTitle.trim()
-    if (!title || createMutation.isPending) return
-    createMutation.mutate({
-      title,
-      emoji: '📝',
-      due: dateString(new Date()),
-      dueTime: null,
-      strictDeadline: false,
-      canDoEarly: true,
-      repeat: 'No Repeat',
-      repeatInterval: 1,
-      repeatUnit: 'day',
-      repeatWeekdays: [false, false, false, false, false, false, false],
-      timeFrame: 30,
-      timekeeperId: null,
-      timeframeType: 'fluid',
-      subtasks: [],
-      tags: [],
-    })
-    setQuickTitle('')
-  }
   const deleteMutation = useDeleteTask()
   const snoozeMutation = useSnoozeTask()
   const unsnoozeMutation = useUnsnoozeTask()
@@ -287,7 +266,7 @@ export default function TasksList() {
     ({ item }: { item: Task }) => {
       const gated = isCompletionGated(item, new Date())
       return (
-        <View style={{ marginBottom: 6 }}>
+        <View style={{ marginBottom: 6, paddingHorizontal: 20 }}>
           <TaskRow
             task={item}
             actions={
@@ -338,78 +317,75 @@ export default function TasksList() {
       <Stack.Screen options={{ headerShown: false }} />
       <PageHeading eyebrow={eyebrow}>All tasks</PageHeading>
       <View style={{ paddingHorizontal: 20, paddingBottom: 12, gap: 10 }}>
-        <SortToggle value={sort} onChange={setSort} />
-        <View
-          style={{
-            flexDirection: 'row',
-            alignItems: 'center',
-            borderWidth: 1,
-            borderColor: '#27272a',
-            backgroundColor: 'rgba(24,24,27,0.5)',
-            borderRadius: 999,
-            paddingHorizontal: 16,
-          }}
-        >
-          <Text style={{ color: '#71717a', fontSize: 15, marginRight: 8 }}>
-            ＋
-          </Text>
-          <TextInput
-            value={quickTitle}
-            onChangeText={setQuickTitle}
-            onSubmitEditing={quickAdd}
-            blurOnSubmit={false}
-            placeholder="Add a task…"
-            placeholderTextColor="#52525b"
-            returnKeyType="done"
-            accessibilityLabel="Quick-add a task"
-            style={{
-              flex: 1,
-              paddingVertical: 12,
-              fontFamily: 'JetBrainsMono_400Regular',
-              fontSize: 15,
-              color: '#fafafa',
+        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
+          <View style={{ flex: 1 }}>
+            <SortToggle value={sort} onChange={setSort} />
+          </View>
+          <Pressable
+            onPress={() => {
+              if (searchOpen) {
+                setSearchOpen(false)
+                setQuery('')
+              } else {
+                setSearchOpen(true)
+              }
             }}
-          />
-        </View>
-        <View
-          style={{
-            flexDirection: 'row',
-            alignItems: 'center',
-            borderWidth: 1,
-            borderColor: '#27272a',
-            backgroundColor: 'rgba(24,24,27,0.5)',
-            borderRadius: 999,
-            paddingHorizontal: 16,
-          }}
-        >
-          <TextInput
-            value={query}
-            onChangeText={setQuery}
-            placeholder="Search title or #tag…"
-            placeholderTextColor="#52525b"
-            autoCapitalize="none"
-            autoCorrect={false}
-            returnKeyType="search"
-            accessibilityLabel="Search tasks by title or tag"
+            accessibilityRole="button"
+            accessibilityState={{ expanded: searchOpen }}
+            accessibilityLabel={searchOpen ? 'Close search' : 'Search tasks'}
             style={{
-              flex: 1,
-              paddingVertical: 12,
-              fontFamily: 'JetBrainsMono_400Regular',
-              fontSize: 15,
-              color: '#fafafa',
+              borderWidth: 1,
+              borderColor: '#27272a',
+              backgroundColor: searchOpen ? '#27272a' : 'rgba(24,24,27,0.6)',
+              borderRadius: 999,
+              padding: 11,
             }}
-          />
-          {query !== '' && (
-            <Pressable
-              onPress={() => setQuery('')}
-              accessibilityRole="button"
-              accessibilityLabel="Clear search"
-              hitSlop={8}
-            >
-              <Text style={{ color: '#71717a', fontSize: 15 }}>✕</Text>
-            </Pressable>
-          )}
+          >
+            <SearchIcon color={searchOpen ? '#fafafa' : '#a1a1aa'} />
+          </Pressable>
         </View>
+        {searchOpen && (
+          <View
+            style={{
+              flexDirection: 'row',
+              alignItems: 'center',
+              borderWidth: 1,
+              borderColor: '#27272a',
+              backgroundColor: 'rgba(24,24,27,0.5)',
+              borderRadius: 999,
+              paddingHorizontal: 16,
+            }}
+          >
+            <TextInput
+              value={query}
+              onChangeText={setQuery}
+              autoFocus
+              placeholder="Search title or #tag…"
+              placeholderTextColor="#52525b"
+              autoCapitalize="none"
+              autoCorrect={false}
+              returnKeyType="search"
+              accessibilityLabel="Search tasks by title or tag"
+              style={{
+                flex: 1,
+                paddingVertical: 12,
+                fontFamily: 'JetBrainsMono_400Regular',
+                fontSize: 15,
+                color: '#fafafa',
+              }}
+            />
+            {query !== '' && (
+              <Pressable
+                onPress={() => setQuery('')}
+                accessibilityRole="button"
+                accessibilityLabel="Clear search"
+                hitSlop={8}
+              >
+                <Text style={{ color: '#71717a', fontSize: 15 }}>✕</Text>
+              </Pressable>
+            )}
+          </View>
+        )}
       </View>
       <SectionList
         style={{ flex: 1 }}
