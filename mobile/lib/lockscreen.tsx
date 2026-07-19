@@ -1,4 +1,5 @@
 import { useAuth } from "@clerk/clerk-expo";
+import { useSelection } from "@dtn/shared/queries";
 import * as SecureStore from "expo-secure-store";
 import { useEffect } from "react";
 import { Platform } from "react-native";
@@ -17,6 +18,17 @@ const BASE_URL = process.env.EXPO_PUBLIC_API_URL!;
 // launches where JS never starts.
 export function useLockScreenSync() {
   const { getToken, isSignedIn } = useAuth();
+
+  // when the selection empties, end the activity locally instead of waiting on the APNs end push
+  const selection = useSelection();
+  const selectedTaskId = selection.data?.selectedTaskId ?? null;
+  const selectionLoaded = selection.data !== undefined;
+  useEffect(() => {
+    if (Platform.OS !== "ios" || selectedTaskId || !selectionLoaded) return;
+    if (typeof LockScreenBridge?.endAllActivities === "function") {
+      void LockScreenBridge.endAllActivities();
+    }
+  }, [selectionLoaded, selectedTaskId]);
 
   useEffect(() => {
     if (Platform.OS !== "ios" || !isSignedIn) return;
