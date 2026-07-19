@@ -25,8 +25,6 @@ import { MobileApiAndQuery } from '../lib/api-client'
 import { useLockScreenSync } from '../lib/lockscreen'
 import { tokenCache } from '../lib/token-cache'
 
-import '../global.css'
-
 // expo-router renders this for any uncaught render error in the tree.
 export function ErrorBoundary(props: ErrorBoundaryProps) {
   return <ErrorScreen {...props} />

@@ -10,6 +10,7 @@ import {
   KeyboardAvoidingView,
   Platform,
   ScrollView,
+  StyleSheet,
   Text,
   TextInput,
   TouchableOpacity,
@@ -39,9 +40,9 @@ export function SignInScreen() {
   const [password, setPassword] = useState('')
   const [error, setError] = useState<string | null>(null)
   const [emailLoading, setEmailLoading] = useState(false)
-  const [oauthLoading, setOauthLoading] = useState<
-    null | 'google' | 'apple'
-  >(null)
+  const [oauthLoading, setOauthLoading] = useState<null | 'google' | 'apple'>(
+    null,
+  )
   const [pendingMfa, setPendingMfa] = useState<{
     signIn: SignInResource
     setActive: NonNullable<ReturnType<typeof useSignIn>['setActive']>
@@ -136,17 +137,14 @@ export function SignInScreen() {
     setError(null)
     try {
       const factors = pendingMfa.signIn.supportedSecondFactors ?? []
-      const strategy:
-        | 'totp'
-        | 'backup_code'
-        | 'phone_code'
-        | 'email_code' = factors.some((f) => f.strategy === 'totp')
-        ? 'totp'
-        : factors.some((f) => f.strategy === 'email_code')
-          ? 'email_code'
-          : factors.some((f) => f.strategy === 'phone_code')
-            ? 'phone_code'
-            : 'backup_code'
+      const strategy: 'totp' | 'backup_code' | 'phone_code' | 'email_code' =
+        factors.some((f) => f.strategy === 'totp')
+          ? 'totp'
+          : factors.some((f) => f.strategy === 'email_code')
+            ? 'email_code'
+            : factors.some((f) => f.strategy === 'phone_code')
+              ? 'phone_code'
+              : 'backup_code'
       const result = await pendingMfa.signIn.attemptSecondFactor({
         strategy,
         code: totpCode,
@@ -202,11 +200,11 @@ export function SignInScreen() {
   const canSubmitEmail = !anyLoading && email.length > 0 && password.length > 0
 
   return (
-    <View className="absolute inset-0 z-50 bg-black">
-      <SafeAreaView className="flex-1">
+    <View style={s.root}>
+      <SafeAreaView style={s.flex1}>
         <KeyboardAvoidingView
           behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-          className="flex-1"
+          style={s.flex1}
         >
           <ScrollView
             contentContainerStyle={{
@@ -217,29 +215,23 @@ export function SignInScreen() {
             }}
             keyboardShouldPersistTaps="handled"
           >
-            <View className="mx-auto w-full max-w-sm">
-              <Text className="mb-2 text-center text-3xl font-bold text-white">
-                Do This Now
-              </Text>
-              <Text className="mb-10 text-center text-sm text-gray-500">
-                Sign in to continue
-              </Text>
+            <View style={s.card}>
+              <Text style={s.title}>Do This Now</Text>
+              <Text style={s.subtitle}>Sign in to continue</Text>
 
               {Platform.OS === 'ios' && (
                 <TouchableOpacity
                   onPress={() => onSSOSignIn('apple')}
                   disabled={anyLoading}
                   activeOpacity={0.8}
-                  className="mb-3 w-full flex-row items-center justify-center gap-2 rounded-lg bg-white px-4 py-3.5"
+                  style={[s.oauthButton, s.appleButton]}
                 >
                   {oauthLoading === 'apple' ? (
                     <ActivityIndicator color="#000" />
                   ) : (
                     <>
                       <FontAwesomeIcon icon={faApple} size={18} color="#000" />
-                      <Text className="text-base font-semibold text-black">
-                        Continue with Apple
-                      </Text>
+                      <Text style={s.appleButtonText}>Continue with Apple</Text>
                     </>
                   )}
                 </TouchableOpacity>
@@ -249,29 +241,25 @@ export function SignInScreen() {
                 onPress={() => onSSOSignIn('google')}
                 disabled={anyLoading}
                 activeOpacity={0.8}
-                className="mb-6 w-full flex-row items-center justify-center gap-2 rounded-lg border border-gray-700 bg-gray-950 px-4 py-3.5"
+                style={[s.oauthButton, s.googleButton]}
               >
                 {oauthLoading === 'google' ? (
                   <ActivityIndicator color="#fff" />
                 ) : (
                   <>
                     <FontAwesomeIcon icon={faGoogle} size={16} color="#fff" />
-                    <Text className="text-base font-semibold text-white">
-                      Continue with Google
-                    </Text>
+                    <Text style={s.googleButtonText}>Continue with Google</Text>
                   </>
                 )}
               </TouchableOpacity>
 
-              <View className="mb-6 flex-row items-center gap-3">
-                <View className="h-px flex-1 bg-gray-800" />
-                <Text className="text-xs text-gray-600">or with email</Text>
-                <View className="h-px flex-1 bg-gray-800" />
+              <View style={s.dividerRow}>
+                <View style={s.dividerLine} />
+                <Text style={s.dividerText}>or with email</Text>
+                <View style={s.dividerLine} />
               </View>
 
-              <Text className="mb-1.5 text-xs font-medium tracking-wider text-gray-400 uppercase">
-                Email
-              </Text>
+              <Text style={s.fieldLabel}>Email</Text>
               <TextInput
                 accessibilityLabel="Email"
                 autoCapitalize="none"
@@ -283,12 +271,10 @@ export function SignInScreen() {
                 value={email}
                 onChangeText={setEmail}
                 returnKeyType="next"
-                className="mb-5 w-full rounded-lg border border-gray-800 bg-gray-950 px-4 py-3.5 text-base text-white"
+                style={s.input}
               />
 
-              <Text className="mb-1.5 text-xs font-medium tracking-wider text-gray-400 uppercase">
-                Password
-              </Text>
+              <Text style={s.fieldLabel}>Password</Text>
               <TextInput
                 accessibilityLabel="Password"
                 secureTextEntry
@@ -300,15 +286,12 @@ export function SignInScreen() {
                 onChangeText={setPassword}
                 returnKeyType="go"
                 onSubmitEditing={onEmailSignIn}
-                className="mb-5 w-full rounded-lg border border-gray-800 bg-gray-950 px-4 py-3.5 text-base text-white"
+                style={s.input}
               />
 
               {error && (
-                <View
-                  accessibilityLiveRegion="assertive"
-                  className="mb-5 rounded-lg border border-red-900/50 bg-red-950/30 px-4 py-3"
-                >
-                  <Text className="text-sm text-red-400">{error}</Text>
+                <View accessibilityLiveRegion="assertive" style={s.errorBox}>
+                  <Text style={s.errorText}>{error}</Text>
                 </View>
               )}
 
@@ -316,21 +299,19 @@ export function SignInScreen() {
                 onPress={onEmailSignIn}
                 disabled={!canSubmitEmail}
                 activeOpacity={0.8}
-                className={
-                  'w-full items-center justify-center rounded-lg px-4 py-4 ' +
-                  (canSubmitEmail
-                    ? 'border border-gray-700 bg-gray-900'
-                    : 'border border-gray-800 bg-black')
-                }
+                style={[
+                  s.emailButton,
+                  canSubmitEmail ? s.emailButtonEnabled : s.emailButtonDisabled,
+                ]}
               >
                 {emailLoading ? (
                   <ActivityIndicator color="#fff" />
                 ) : (
                   <Text
-                    className={
-                      'text-base font-semibold ' +
-                      (canSubmitEmail ? 'text-white' : 'text-gray-600')
-                    }
+                    style={[
+                      s.emailButtonText,
+                      { color: canSubmitEmail ? '#fff' : '#4b5563' },
+                    ]}
                   >
                     Sign in with email
                   </Text>
@@ -342,12 +323,10 @@ export function SignInScreen() {
       </SafeAreaView>
 
       {pendingMfa && (
-        <View className="absolute inset-0 z-[60] items-center justify-center bg-black/90 px-6">
-          <View className="w-full max-w-sm rounded-2xl border border-gray-800 bg-gray-950 p-6">
-            <Text className="mb-2 text-center text-lg font-semibold text-white">
-              Two-factor authentication
-            </Text>
-            <Text className="mb-5 text-center text-sm text-gray-500">
+        <View style={s.mfaBackdrop}>
+          <View style={s.mfaCard}>
+            <Text style={s.mfaTitle}>Two-factor authentication</Text>
+            <Text style={s.mfaSubtitle}>
               {(() => {
                 const factors = pendingMfa.signIn.supportedSecondFactors ?? []
                 if (factors.some((f) => f.strategy === 'totp'))
@@ -372,35 +351,32 @@ export function SignInScreen() {
               onChangeText={setTotpCode}
               onSubmitEditing={onSubmitMfa}
               returnKeyType="go"
-              className="mb-4 w-full rounded-lg border border-gray-800 bg-black px-4 py-3.5 text-center text-xl tracking-widest text-white"
+              style={s.mfaInput}
             />
             {error && (
-              <View
-                accessibilityLiveRegion="assertive"
-                className="mb-4 rounded-lg border border-red-900/50 bg-red-950/30 px-4 py-3"
-              >
-                <Text className="text-sm text-red-400">{error}</Text>
+              <View accessibilityLiveRegion="assertive" style={s.errorBox}>
+                <Text style={s.errorText}>{error}</Text>
               </View>
             )}
             <TouchableOpacity
               onPress={onSubmitMfa}
               disabled={mfaLoading || totpCode.length < 6}
               activeOpacity={0.8}
-              className={
-                'mb-2 w-full items-center rounded-lg px-4 py-3.5 ' +
-                (totpCode.length >= 6 && !mfaLoading
-                  ? 'bg-white'
-                  : 'bg-gray-800')
-              }
+              style={[
+                s.mfaSubmit,
+                totpCode.length >= 6 && !mfaLoading
+                  ? s.mfaSubmitEnabled
+                  : s.mfaSubmitDisabled,
+              ]}
             >
               {mfaLoading ? (
                 <ActivityIndicator color="#000" />
               ) : (
                 <Text
-                  className={
-                    'text-base font-semibold ' +
-                    (totpCode.length >= 6 ? 'text-black' : 'text-gray-500')
-                  }
+                  style={[
+                    s.mfaSubmitText,
+                    { color: totpCode.length >= 6 ? '#000' : '#6b7280' },
+                  ]}
                 >
                   Verify
                 </Text>
@@ -413,9 +389,9 @@ export function SignInScreen() {
                 setError(null)
               }}
               activeOpacity={0.8}
-              className="w-full items-center px-4 py-2"
+              style={s.mfaCancel}
             >
-              <Text className="text-sm text-gray-500">Cancel</Text>
+              <Text style={s.mfaCancelText}>Cancel</Text>
             </TouchableOpacity>
           </View>
         </View>
@@ -423,3 +399,165 @@ export function SignInScreen() {
     </View>
   )
 }
+
+const s = StyleSheet.create({
+  root: {
+    position: 'absolute',
+    top: 0,
+    right: 0,
+    bottom: 0,
+    left: 0,
+    zIndex: 50,
+    backgroundColor: '#000',
+  },
+  flex1: { flex: 1 },
+  card: { width: '100%', maxWidth: 384, alignSelf: 'center' },
+  title: {
+    marginBottom: 8,
+    textAlign: 'center',
+    fontSize: 30,
+    fontWeight: '700',
+    color: '#fff',
+  },
+  subtitle: {
+    marginBottom: 40,
+    textAlign: 'center',
+    fontSize: 14,
+    color: '#6b7280',
+  },
+  oauthButton: {
+    width: '100%',
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+    borderRadius: 8,
+    paddingHorizontal: 16,
+    paddingVertical: 14,
+  },
+  appleButton: { marginBottom: 12, backgroundColor: '#fff' },
+  appleButtonText: { fontSize: 16, fontWeight: '600', color: '#000' },
+  googleButton: {
+    marginBottom: 24,
+    borderWidth: 1,
+    borderColor: '#374151',
+    backgroundColor: '#030712',
+  },
+  googleButtonText: { fontSize: 16, fontWeight: '600', color: '#fff' },
+  dividerRow: {
+    marginBottom: 24,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+  },
+  dividerLine: { height: 1, flex: 1, backgroundColor: '#1f2937' },
+  dividerText: { fontSize: 12, color: '#4b5563' },
+  fieldLabel: {
+    marginBottom: 6,
+    fontSize: 12,
+    fontWeight: '500',
+    letterSpacing: 1,
+    color: '#9ca3af',
+    textTransform: 'uppercase',
+  },
+  input: {
+    marginBottom: 20,
+    width: '100%',
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: '#1f2937',
+    backgroundColor: '#030712',
+    paddingHorizontal: 16,
+    paddingVertical: 14,
+    fontSize: 16,
+    color: '#fff',
+  },
+  errorBox: {
+    marginBottom: 20,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: 'rgba(127,29,29,0.5)',
+    backgroundColor: 'rgba(69,10,10,0.3)',
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+  },
+  errorText: { fontSize: 14, color: '#f87171' },
+  emailButton: {
+    width: '100%',
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderRadius: 8,
+    paddingHorizontal: 16,
+    paddingVertical: 16,
+    borderWidth: 1,
+  },
+  emailButtonEnabled: { borderColor: '#374151', backgroundColor: '#111827' },
+  emailButtonDisabled: { borderColor: '#1f2937', backgroundColor: '#000' },
+  emailButtonText: { fontSize: 16, fontWeight: '600' },
+  mfaBackdrop: {
+    position: 'absolute',
+    top: 0,
+    right: 0,
+    bottom: 0,
+    left: 0,
+    zIndex: 60,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: 'rgba(0,0,0,0.9)',
+    paddingHorizontal: 24,
+  },
+  mfaCard: {
+    width: '100%',
+    maxWidth: 384,
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: '#1f2937',
+    backgroundColor: '#030712',
+    padding: 24,
+  },
+  mfaTitle: {
+    marginBottom: 8,
+    textAlign: 'center',
+    fontSize: 18,
+    fontWeight: '600',
+    color: '#fff',
+  },
+  mfaSubtitle: {
+    marginBottom: 20,
+    textAlign: 'center',
+    fontSize: 14,
+    color: '#6b7280',
+  },
+  mfaInput: {
+    marginBottom: 16,
+    width: '100%',
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: '#1f2937',
+    backgroundColor: '#000',
+    paddingHorizontal: 16,
+    paddingVertical: 14,
+    textAlign: 'center',
+    fontSize: 20,
+    letterSpacing: 6,
+    color: '#fff',
+  },
+  mfaSubmit: {
+    marginBottom: 8,
+    width: '100%',
+    alignItems: 'center',
+    borderRadius: 8,
+    paddingHorizontal: 16,
+    paddingVertical: 14,
+  },
+  mfaSubmitEnabled: { backgroundColor: '#fff' },
+  mfaSubmitDisabled: { backgroundColor: '#1f2937' },
+  mfaSubmitText: { fontSize: 16, fontWeight: '600' },
+  mfaCancel: {
+    width: '100%',
+    alignItems: 'center',
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+  },
+  mfaCancelText: { fontSize: 14, color: '#6b7280' },
+})
