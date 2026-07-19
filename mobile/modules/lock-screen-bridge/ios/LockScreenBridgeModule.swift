@@ -1,5 +1,6 @@
 import ActivityKit
 import ExpoModulesCore
+import WidgetKit
 
 // App-side half of the Lock Screen Timer: parks the widget's credentials in
 // the shared App Group and kicks the native token sync. Registration itself
@@ -30,6 +31,7 @@ public class LockScreenBridgeModule: Module {
 
     // instant local clear on unfocus — don't make the lock screen wait on APNs
     AsyncFunction("endAllActivities") {
+      WidgetCenter.shared.reloadTimelines(ofKind: "LockScreenProgress")
       guard #available(iOS 17.2, *) else { return }
       for activity in Activity<LockScreenTimerAttributes>.activities {
         await activity.end(nil, dismissalPolicy: .immediate)
@@ -39,6 +41,7 @@ public class LockScreenBridgeModule: Module {
     // Local-first mirror: apply the app's current state to the Live Activity
     // immediately; the server's push follows as the cross-device backup.
     AsyncFunction("syncActivity") { (stateJson: String) in
+      WidgetCenter.shared.reloadTimelines(ofKind: "LockScreenProgress")
       guard #available(iOS 17.2, *) else { return }
       guard
         let data = stateJson.data(using: .utf8),
