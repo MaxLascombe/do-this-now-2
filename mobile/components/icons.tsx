@@ -137,3 +137,34 @@ export function PlusIcon({ color = '#0a0a0b', size = 20 }) {
     </View>
   )
 }
+
+export function SearchIcon({ color = '#a1a1aa', size = 16 }) {
+  return (
+    <View style={{ width: size, height: size }}>
+      <View
+        style={{
+          position: 'absolute',
+          top: 0,
+          left: 0,
+          width: size * 0.72,
+          height: size * 0.72,
+          borderRadius: size * 0.36,
+          borderWidth: size * 0.11,
+          borderColor: color,
+        }}
+      />
+      <View
+        style={{
+          position: 'absolute',
+          bottom: size * 0.03,
+          right: size * 0.03,
+          width: size * 0.4,
+          height: size * 0.11,
+          borderRadius: size * 0.06,
+          backgroundColor: color,
+          transform: [{ rotate: '45deg' }],
+        }}
+      />
+    </View>
+  )
+}

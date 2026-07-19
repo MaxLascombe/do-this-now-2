@@ -189,24 +189,6 @@ export default function Home() {
   // Return: step off the Selected Task (pauses its timer, clears the pointer).
   const returnAction = () => unselectMutation.mutate()
 
-  const snoozeAllSubtasks = (t: Task) => {
-    if (isFocusTask(t)) {
-      const { nextTask } = snoozeTaskTransition(t, true, new Date())
-      if (isSnoozed(nextTask)) exitFocus()
-    }
-    snoozeMutation.mutate(
-      { id: t.id, allSubtasks: true },
-      {
-        onSuccess: () =>
-          toast({
-            message: 'Subtasks snoozed',
-            actionLabel: 'Undo',
-            onAction: () => unsnoozeMutation.mutate(t.id),
-          }),
-      },
-    )
-  }
-
   const toggleSubtask = (index: number) => {
     if (!focusTask) return
     const subtasks = focusTask.subtasks.map((s, i) =>
@@ -289,7 +271,6 @@ export default function Home() {
                 onReturn={returnAction}
                 onComplete={() => completeFor(focusTask)}
                 onSnooze={() => snoozeFor(focusTask, false)}
-                onSnoozeSubtasks={() => snoozeAllSubtasks(focusTask)}
                 onEdit={() => router.push(`/tasks/${focusTask.id}/edit`)}
                 onDelete={() => deleteFor(focusTask)}
                 onToggleSubtask={toggleSubtask}
@@ -377,7 +358,6 @@ function Hero({
   onReturn,
   onComplete,
   onSnooze,
-  onSnoozeSubtasks,
   onEdit,
   onDelete,
   onToggleSubtask,
@@ -386,7 +366,6 @@ function Hero({
   onReturn: () => void
   onComplete: () => void
   onSnooze: () => void
-  onSnoozeSubtasks: () => void
   onEdit: () => void
   onDelete: () => void
   onToggleSubtask: (index: number) => void
@@ -556,9 +535,6 @@ function Hero({
       >
         <Ghost label="Return" onPress={onReturn} />
         <Ghost label="Snooze" onPress={onSnooze} />
-        {task.subtasks.length > 0 && (
-          <Ghost label="Snooze subtasks" onPress={onSnoozeSubtasks} />
-        )}
         <Ghost label="Edit" onPress={onEdit} />
         <Ghost label="Delete" onPress={onDelete} />
       </View>

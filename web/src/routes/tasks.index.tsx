@@ -1,6 +1,6 @@
 import { startOfToday } from '@dtn/shared/day-index'
 import { dueGroupLabel, tasksListEyebrow } from '@dtn/shared/format'
-import { dateString, newSafeDate } from '@dtn/shared/helpers'
+import { newSafeDate } from '@dtn/shared/helpers'
 import {
   useAllTasks,
   useCompleteTask,
@@ -22,6 +22,7 @@ import {
 } from '@dtn/shared/timer-utils'
 
 import { createFileRoute, Link, useNavigate } from '@tanstack/react-router'
+import { Search } from 'lucide-react'
 import {
   Fragment,
   useCallback,
@@ -63,8 +64,15 @@ function TasksList() {
     'CHRON',
   )
   const [query, setQuery] = useState('')
+  const [searchOpen, setSearchOpen] = useState(false)
   const taskElems = useRef<Array<HTMLElement>>([])
   const searchRef = useRef<HTMLInputElement>(null)
+
+  // Focus follows the fold-out: the bar only exists while open, so focus
+  // once it has rendered.
+  useEffect(() => {
+    if (searchOpen) searchRef.current?.focus()
+  }, [searchOpen])
 
   const allTasks = useAllTasks({ enabled: sort === 'CHRON' })
   const topTasks = useTopTasks({ enabled: sort === 'TOP' })
@@ -110,31 +118,6 @@ function TasksList() {
   const prefetchTask = usePrefetchTask()
   const primeTaskCache = usePrimeTaskCache()
   const confirm = useConfirm()
-
-  const [quickTitle, setQuickTitle] = useState('')
-  // Capture a task fast: a title plus sensible defaults (due today, 30 min).
-  const quickAdd = () => {
-    const title = quickTitle.trim()
-    if (!title || createMutation.isPending) return
-    createMutation.mutate({
-      title,
-      emoji: '📝',
-      due: dateString(new Date()),
-      dueTime: null,
-      strictDeadline: false,
-      canDoEarly: true,
-      repeat: 'No Repeat',
-      repeatInterval: 1,
-      repeatUnit: 'day',
-      repeatWeekdays: [false, false, false, false, false, false, false],
-      timeFrame: 30,
-      timekeeperId: null,
-      timeframeType: 'fluid',
-      subtasks: [],
-      tags: [],
-    })
-    setQuickTitle('')
-  }
 
   const [pendingComplete, setPendingComplete] = useState<{
     task: Task
@@ -279,7 +262,10 @@ function TasksList() {
   }, [selectedTask])
 
   const keyActions: Array<KeyAction> = [
-    bind(S.search, () => searchRef.current?.focus()),
+    bind(S.search, () => {
+      setSearchOpen(true)
+      searchRef.current?.focus()
+    }),
     bind(S.done, completeAction),
     bind(S.now, () => navigate({ to: '/' })),
     bind(S.newTask, () => navigate({ to: '/new-task' })),
@@ -364,66 +350,73 @@ function TasksList() {
 
       <div className="flex flex-col items-stretch gap-3 px-5 pt-2 pb-4 md:flex-row md:items-end md:justify-between md:gap-0 md:px-10">
         <PageHeading eyebrow={eyebrow}>All tasks</PageHeading>
-        <SortToggle
-          sort={sort}
-          onToggle={() => setSort((s) => (s === 'CHRON' ? 'TOP' : 'CHRON'))}
-        />
-      </div>
-
-      <form
-        onSubmit={(e) => {
-          e.preventDefault()
-          quickAdd()
-        }}
-        className="relative px-5 pb-3 md:px-10"
-      >
-        <span className="pointer-events-none absolute top-1/2 left-9 -translate-y-1/2 font-mono text-sm text-zinc-500 md:left-14">
-          ＋
-        </span>
-        <input
-          type="text"
-          value={quickTitle}
-          onChange={(e) => setQuickTitle(e.target.value)}
-          placeholder="Add a task — press Enter"
-          aria-label="Quick-add a task"
-          className="w-full rounded-full border border-zinc-800 bg-zinc-900/50 py-2 pr-4 pl-9 font-mono text-sm text-zinc-100 outline-none placeholder:text-zinc-600 focus:border-zinc-600 md:pl-10"
-        />
-      </form>
-
-      <div className="relative px-5 pb-3 md:px-10">
-        <input
-          ref={searchRef}
-          type="text"
-          value={query}
-          onChange={(e) => setQuery(e.target.value)}
-          onKeyDown={(e) => {
-            if (e.key === 'Escape') {
-              if (query) setQuery('')
-              else e.currentTarget.blur()
-            }
-          }}
-          placeholder="Search title or #tag…"
-          aria-label="Search tasks by title or tag"
-          className="w-full rounded-full border border-zinc-800 bg-zinc-900/50 px-4 py-2 pr-9 font-mono text-sm text-zinc-100 outline-none placeholder:text-zinc-600 focus:border-zinc-600"
-        />
-        {query ? (
+        <div className="flex w-full items-center gap-2 md:w-auto">
+          <div className="min-w-0 flex-1 md:flex-none">
+            <SortToggle
+              sort={sort}
+              onToggle={() => setSort((s) => (s === 'CHRON' ? 'TOP' : 'CHRON'))}
+            />
+          </div>
           <button
             type="button"
             onClick={() => {
-              setQuery('')
-              searchRef.current?.focus()
+              if (searchOpen) {
+                setSearchOpen(false)
+                setQuery('')
+              } else {
+                setSearchOpen(true)
+              }
             }}
-            aria-label="Clear search"
-            className="absolute top-1/2 right-8 -translate-y-1/2 px-1 font-mono text-sm text-zinc-500 hover:text-zinc-200 md:right-12"
+            aria-expanded={searchOpen}
+            aria-label={searchOpen ? 'Close search' : 'Search tasks'}
+            className={
+              'rounded-full border border-zinc-800 p-2.5 transition-colors ' +
+              (searchOpen
+                ? 'bg-zinc-800 text-zinc-100'
+                : 'bg-zinc-900/60 text-zinc-400 hover:text-zinc-100')
+            }
           >
-            ✕
+            <Search className="h-4 w-4" strokeWidth={1.5} />
           </button>
-        ) : (
-          <kbd className="absolute top-1/2 right-8 -translate-y-1/2 rounded border border-zinc-800 bg-zinc-900 px-1 py-0.5 font-mono text-[10px] font-bold text-zinc-500 md:right-12">
-            /
-          </kbd>
-        )}
+        </div>
       </div>
+
+      {searchOpen && (
+        <div className="relative px-5 pb-3 md:px-10">
+          <input
+            ref={searchRef}
+            type="text"
+            value={query}
+            onChange={(e) => setQuery(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === 'Escape') {
+                if (query) setQuery('')
+                else setSearchOpen(false)
+              }
+            }}
+            placeholder="Search title or #tag…"
+            aria-label="Search tasks by title or tag"
+            className="w-full rounded-full border border-zinc-800 bg-zinc-900/50 px-4 py-2 pr-9 font-mono text-sm text-zinc-100 outline-none placeholder:text-zinc-600 focus:border-zinc-600"
+          />
+          {query ? (
+            <button
+              type="button"
+              onClick={() => {
+                setQuery('')
+                searchRef.current?.focus()
+              }}
+              aria-label="Clear search"
+              className="absolute top-1/2 right-8 -translate-y-1/2 px-1 font-mono text-sm text-zinc-500 hover:text-zinc-200 md:right-12"
+            >
+              ✕
+            </button>
+          ) : (
+            <kbd className="absolute top-1/2 right-8 -translate-y-1/2 rounded border border-zinc-800 bg-zinc-900 px-1 py-0.5 font-mono text-[10px] font-bold text-zinc-500 md:right-12">
+              /
+            </kbd>
+          )}
+        </div>
+      )}
 
       <div className="flex-1 overflow-y-auto px-5 pb-28 md:px-10 md:pb-24">
         {tasks.length === 0 && !isFetching && (
@@ -629,4 +622,3 @@ const Separator = ({ label }: { label: string }) => (
     <span className="mb-1 h-px flex-1 bg-zinc-900" />
   </div>
 )
-
