@@ -59,14 +59,21 @@ struct LockScreenView: View {
           .lineLimit(1)
           .foregroundStyle(.white)
         HStack(spacing: 6) {
-          if !state.running {
-            Image(systemName: "pause.fill")
-              .font(.caption2)
-              .foregroundStyle(.secondary)
+          // Fixed frame: the running Text(style: .timer) greedily reserves
+          // width, so without it the plan label shifts between states.
+          HStack(spacing: 4) {
+            if !state.running {
+              Image(systemName: "pause.fill")
+                .font(.caption2)
+                .foregroundStyle(.secondary)
+            }
+            TimerText(state: state)
+              .font(.system(.title3, design: .monospaced))
+              .foregroundStyle(state.running ? Color.green : Color.secondary)
+              .lineLimit(1)
+              .minimumScaleFactor(0.75)
           }
-          TimerText(state: state)
-            .font(.system(.title3, design: .monospaced))
-            .foregroundStyle(state.running ? Color.green : Color.secondary)
+          .frame(width: 84, alignment: .leading)
           if state.targetMinutes > 0 {
             Text("· \(Int(state.targetMinutes))m plan")
               .font(.caption)
