@@ -1,6 +1,6 @@
 import { createHash, randomBytes } from 'node:crypto'
 
-import { eq } from 'drizzle-orm'
+import { and, eq } from 'drizzle-orm'
 
 import { lockScreenDevices } from '@dtn/shared/schema'
 import { db } from '../../db'
@@ -31,12 +31,21 @@ export type DeviceAuth = { userId: string; deviceId: string }
 
 // Resolve a raw device token to its row id without touching lastSeenAt —
 // used to identify a request's originating device, not to authenticate it.
-export async function deviceIdForToken(token: string): Promise<string | null> {
+// Scoped to the authenticated user so a foreign token can never name a device.
+export async function deviceIdForToken(
+  userId: string,
+  token: string,
+): Promise<string | null> {
   if (!token.startsWith('dtnlst_')) return null
   const rows = await db
     .select({ id: lockScreenDevices.id })
     .from(lockScreenDevices)
-    .where(eq(lockScreenDevices.tokenHash, hash(token)))
+    .where(
+      and(
+        eq(lockScreenDevices.userId, userId),
+        eq(lockScreenDevices.tokenHash, hash(token)),
+      ),
+    )
     .limit(1)
   return rows[0]?.id ?? null
 }

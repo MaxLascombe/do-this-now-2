@@ -178,7 +178,7 @@ export async function syncLockScreen(
     origin?.deviceId
       ? Promise.resolve(origin.deviceId)
       : origin?.deviceToken
-        ? deviceIdForToken(origin.deviceToken)
+        ? deviceIdForToken(userId, origin.deviceToken)
         : Promise.resolve(null),
   ])
   const updates = tokens.filter((t) => t.kind === 'update')
