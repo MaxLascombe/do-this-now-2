@@ -180,7 +180,8 @@ export async function syncLockScreen(userId: string): Promise<void> {
           dismissalDate: new Date(),
         })
         // keep the token on transient failure so the next sync retries the end
-        if (outcome !== 'failed') await dropToken(row.id)
+        // ('pruned' already dropped it inside sendOrPrune)
+        if (outcome === 'sent') await dropToken(row.id)
       }),
     )
     return

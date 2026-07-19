@@ -1,7 +1,9 @@
 export const minutesToHours = (minutes: number): string => {
   const twoDigit = (n: number) => (n < 10 ? '0' : '') + n
-  const hours = Math.floor(minutes / 60)
-  const minutesLeft = minutes % 60
+  // fluid timeFrames carry EMA decimals — round before splitting
+  const rounded = Math.round(minutes)
+  const hours = Math.floor(rounded / 60)
+  const minutesLeft = rounded % 60
   return `${hours}h${minutesLeft > 0 ? twoDigit(minutesLeft) : ''}`
 }
 
