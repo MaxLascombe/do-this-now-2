@@ -34,6 +34,7 @@
       "package": "com.maxlascombe.dothisnow"
     },
     "plugins": [
+      "./plugins/with-silent-sound",
       ["@bacons/apple-targets", { "appleTeamId": "T9RBDYT983" }],
       "expo-router",
       "expo-secure-store",
