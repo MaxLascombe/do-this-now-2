@@ -1,0 +1,1 @@
+ALTER TYPE "public"."live_push_token_kind" ADD VALUE 'device';

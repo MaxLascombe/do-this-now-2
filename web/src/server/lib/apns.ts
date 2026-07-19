@@ -104,18 +104,18 @@ export class ApnsError extends Error {
   }
 }
 
-// Send one Live Activity push. Resolves on 200; throws ApnsError otherwise
-// (410/BadDeviceToken etc. — callers use it to prune dead tokens). One
-// short-lived h2 session per call: sends are rare (a few per user action)
-// and Vercel functions don't keep sockets warm anyway.
-export async function sendLiveActivityPush(
+// One short-lived h2 session per call: sends are rare (a few per user
+// action) and Vercel functions don't keep sockets warm anyway. Resolves on
+// 200; throws ApnsError otherwise (410/BadDeviceToken etc. — callers use it
+// to prune dead tokens).
+function postToApns(
   deviceToken: string,
-  push: LiveActivityPush,
+  headers: Record<string, string>,
+  payload: string,
 ): Promise<void> {
   const host = process.env.APNS_SANDBOX
     ? 'https://api.sandbox.push.apple.com'
     : 'https://api.push.apple.com'
-  const payload = JSON.stringify(buildLiveActivityPayload(push))
 
   return new Promise((resolve, reject) => {
     const session = connect(host)
@@ -124,10 +124,8 @@ export async function sendLiveActivityPush(
       ':method': 'POST',
       ':path': `/3/device/${deviceToken}`,
       authorization: `bearer ${providerJwt()}`,
-      'apns-topic': `${BUNDLE_ID}.push-type.liveactivity`,
-      'apns-push-type': 'liveactivity',
-      'apns-priority': '10',
       'content-type': 'application/json',
+      ...headers,
     })
     let status = 0
     let body = ''
@@ -155,6 +153,37 @@ export async function sendLiveActivityPush(
     })
     req.end(payload)
   })
+}
+
+export async function sendLiveActivityPush(
+  deviceToken: string,
+  push: LiveActivityPush,
+): Promise<void> {
+  return postToApns(
+    deviceToken,
+    {
+      'apns-topic': `${BUNDLE_ID}.push-type.liveactivity`,
+      'apns-push-type': 'liveactivity',
+      'apns-priority': '10',
+    },
+    JSON.stringify(buildLiveActivityPayload(push)),
+  )
+}
+
+// Silent content-available wake: iOS gives the backgrounded app a few
+// seconds so it can refresh the progress widget. Background pushes MUST use
+// priority 5 and the bare bundle-id topic; iOS throttles delivery, which is
+// fine for a refresh hint (the widget keeps its 20-minute floor).
+export async function sendBackgroundPush(deviceToken: string): Promise<void> {
+  return postToApns(
+    deviceToken,
+    {
+      'apns-topic': BUNDLE_ID,
+      'apns-push-type': 'background',
+      'apns-priority': '5',
+    },
+    JSON.stringify({ aps: { 'content-available': 1 } }),
+  )
 }
 
 // Stable hash for logging tokens without leaking them.

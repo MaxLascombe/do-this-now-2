@@ -6,6 +6,7 @@ import { db } from '../../db'
 import {
   ApnsError,
   apnsConfigured,
+  sendBackgroundPush,
   sendLiveActivityPush,
   tokenDigest,
 } from './apns'
@@ -119,6 +120,29 @@ async function sendOrPrune(
   }
 }
 
+// Background wake for the progress widget; dead tokens are pruned like the
+// activity ones, other failures only logged (it's a hint, not state).
+async function sendWakeOrPrune(row: {
+  id: string
+  token: string
+}): Promise<void> {
+  try {
+    await sendBackgroundPush(row.token)
+  } catch (err) {
+    if (
+      err instanceof ApnsError &&
+      (err.status === 410 || err.reason === 'BadDeviceToken')
+    ) {
+      await dropToken(row.id)
+      return
+    }
+    console.error(
+      `lockscreen wake push failed (token ${tokenDigest(row.token)})`,
+      err,
+    )
+  }
+}
+
 // Atomic claim: only the sync whose UPDATE actually flips the stamp sends.
 // Two concurrent syncs both see a stale SELECT; the conditional write makes
 // the loser skip instead of double-starting.
@@ -183,6 +207,15 @@ export async function syncLockScreen(
   ])
   const updates = tokens.filter((t) => t.kind === 'update')
 
+  // Every sync means something changed — nudge other devices' backgrounded
+  // apps to refresh the progress widget. The origin device's app is in the
+  // foreground and reloads its own timeline.
+  const wakes = Promise.all(
+    tokens
+      .filter((t) => t.kind === 'device' && t.deviceId !== originDeviceId)
+      .map(sendWakeOrPrune),
+  )
+
   if (state === null) {
     await Promise.all(
       updates.map(async (row) => {
@@ -196,6 +229,7 @@ export async function syncLockScreen(
         if (outcome === 'sent') await dropToken(row.id)
       }),
     )
+    await wakes
     return
   }
 
@@ -231,4 +265,5 @@ export async function syncLockScreen(
       })
     }),
   )
+  await wakes
 }

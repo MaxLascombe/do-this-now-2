@@ -5,15 +5,11 @@ import { z } from 'zod'
 
 import { livePushTokens } from '@dtn/shared/schema'
 import { db } from '../../db'
-import {
-  invalid,
-  readJsonBody,
-  unauthenticated,
-} from '../../server/lib/http'
+import { invalid, readJsonBody, unauthenticated } from '../../server/lib/http'
 import { authenticateDeviceToken } from '../../server/lib/lockscreen-auth'
 
 const bodySchema = z.object({
-  kind: z.enum(['start', 'update']),
+  kind: z.enum(['start', 'update', 'device']),
   // APNs device tokens are hex; be lenient on length (Apple varies it).
   token: z.string().regex(/^[0-9a-fA-F]{16,512}$/),
 })
