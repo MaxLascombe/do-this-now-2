@@ -28,7 +28,7 @@ describe('buildLiveActivityPayload', () => {
     })
     expect(aps['attributes-type']).toBe('LockScreenTimerAttributes')
     expect(aps.attributes).toEqual({})
-    expect(aps.alert).toBeTruthy()
+    expect(aps.alert).toMatchObject({ sound: 'silence.caf' })
   })
 
   it('end carries a dismissal-date in epoch seconds', () => {

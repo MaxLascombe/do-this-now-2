@@ -18,7 +18,11 @@ export function apnsConfigured(): boolean {
 }
 
 const b64url = (buf: Buffer): string =>
-  buf.toString('base64').replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '')
+  buf
+    .toString('base64')
+    .replace(/\+/g, '-')
+    .replace(/\//g, '_')
+    .replace(/=+$/, '')
 
 // Provider token cache: Apple wants tokens refreshed between 20 and 60
 // minutes; re-signing every request gets throttled (TooManyProviderTokenUpdates).
@@ -81,7 +85,8 @@ export function buildLiveActivityPayload(push: LiveActivityPush): {
     aps.attributes = push.attributes ?? {}
     // Push-to-start requires an alert object; it isn't shown as a banner
     // for live activities but APNs rejects the payload without one.
-    aps.alert = { title: 'Do This Now', body: 'Timer' }
+    // The bundled silent sound suppresses the otherwise-forced system chime.
+    aps.alert = { title: 'Do This Now', body: 'Timer', sound: 'silence.caf' }
   }
   if (push.event === 'end' && push.dismissalDate) {
     aps['dismissal-date'] = Math.floor(push.dismissalDate.getTime() / 1000)
