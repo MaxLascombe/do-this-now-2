@@ -9,6 +9,7 @@ import {
   unauthenticated,
 } from '../../server/lib/http'
 import { authenticateDeviceToken } from '../../server/lib/lockscreen-auth'
+import { runWithLockScreenOrigin } from '../../server/lib/lockscreen-origin'
 import { applyLockScreenTimerAction } from '../../server/lib/lockscreen-timer'
 
 const bodySchema = z.object({
@@ -30,10 +31,14 @@ export const Route = createFileRoute('/api/lockscreen/timer')({
           return invalid({ formErrors: ['Body must be JSON.'] })
         const parsed = bodySchema.safeParse(candidate)
         if (!parsed.success) return invalid(parsed.error.flatten())
-        const state = await applyLockScreenTimerAction(
-          device.userId,
-          parsed.data,
-          getTzFromRequest(request),
+        const state = await runWithLockScreenOrigin(
+          { deviceId: device.deviceId },
+          () =>
+            applyLockScreenTimerAction(
+              device.userId,
+              parsed.data,
+              getTzFromRequest(request),
+            ),
         )
         return json({ state })
       },

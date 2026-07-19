@@ -9,6 +9,8 @@ import {
   sendLiveActivityPush,
   tokenDigest,
 } from './apns'
+import { deviceIdForToken } from './lockscreen-auth'
+import { getLockScreenOrigin, type LockScreenOrigin } from './lockscreen-origin'
 import { getSelection } from './selection'
 import type { Task } from '@dtn/shared/schema'
 
@@ -146,8 +148,10 @@ async function claimStart(rowId: string, now: Date): Promise<boolean> {
 // connections in prod) — waitUntil keeps the instance alive until the sync
 // settles. Outside Vercel it's a no-op and the promise just floats.
 export const syncLockScreenSoon = (userId: string): void => {
+  // Read the ALS synchronously — the store is gone once the handler returns.
+  const origin = getLockScreenOrigin()
   waitUntil(
-    syncLockScreen(userId).catch((err) =>
+    syncLockScreen(userId, origin).catch((err) =>
       console.error('syncLockScreen failed', err),
     ),
   )
@@ -163,11 +167,19 @@ export const syncLockScreenSoon = (userId: string): void => {
 // push-to-start, gated by the ack/cooldown claim. When nothing is Selected,
 // end every live activity and forget its update token (a fresh one arrives
 // when the next activity starts).
-export async function syncLockScreen(userId: string): Promise<void> {
+export async function syncLockScreen(
+  userId: string,
+  origin: LockScreenOrigin | null = null,
+): Promise<void> {
   if (!apnsConfigured()) return
-  const [state, tokens] = await Promise.all([
+  const [state, tokens, originDeviceId] = await Promise.all([
     buildLockScreenState(userId),
     db.select().from(livePushTokens).where(eq(livePushTokens.userId, userId)),
+    origin?.deviceId
+      ? Promise.resolve(origin.deviceId)
+      : origin?.deviceToken
+        ? deviceIdForToken(userId, origin.deviceToken)
+        : Promise.resolve(null),
   ])
   const updates = tokens.filter((t) => t.kind === 'update')
 
@@ -204,7 +216,12 @@ export async function syncLockScreen(userId: string): Promise<void> {
         (t) => t.deviceId === deviceId && t.kind === 'start',
       )
       if (!start) return
-      if (!shouldSendStart(start, new Set(), now)) return
+      // The origin device mirrors state onto its activity locally — a
+      // push-to-start would duplicate it (updates/ends still flow).
+      const withActivity = originDeviceId
+        ? new Set([originDeviceId])
+        : new Set<string>()
+      if (!shouldSendStart(start, withActivity, now)) return
       if (!(await claimStart(start.id, now))) return
       await sendOrPrune(start, {
         event: 'start',

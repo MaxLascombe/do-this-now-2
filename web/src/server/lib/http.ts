@@ -1,6 +1,7 @@
 import { auth } from '@clerk/tanstack-react-start/server'
 import { json } from '@tanstack/react-start'
 
+import { runWithLockScreenOrigin } from './lockscreen-origin'
 import { MAX_TZ_OFFSET_MIN } from './validate'
 
 // Uniform error envelope for REST routes.
@@ -36,7 +37,11 @@ export function withAuth<TParams = Record<string, never>>(
   return async (ctx: RouteCtx<TParams>) => {
     const { userId } = await auth()
     if (!userId) return unauthenticated()
-    return handler({ userId, ...ctx })
+    const originToken = ctx.request.headers.get('x-lockscreen-device')
+    return runWithLockScreenOrigin(
+      originToken ? { deviceToken: originToken } : null,
+      () => handler({ userId, ...ctx }),
+    )
   }
 }
 
