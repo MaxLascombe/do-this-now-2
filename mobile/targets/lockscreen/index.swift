@@ -16,32 +16,36 @@ struct TimerText: View {
   let state: LockScreenTimerAttributes.ContentState
 
   var body: some View {
-    if state.running {
-      Text(state.timerBaseline, style: .timer)
-    } else {
-      Text(state.pausedText)
+    Group {
+      if state.running {
+        Text(state.timerBaseline, style: .timer)
+      } else {
+        Text(state.pausedText)
+      }
     }
+    .contentTransition(.identity)
   }
 }
 
+// No spinner and no transitions: the optimistic flip already shows the
+// target state, so the icon hard-swaps and just dims while the request is
+// in flight. Fixed content size — a swapped-in spinner used to resize the
+// bordered button and bounce the whole activity bubble.
 struct PauseResumeButton: View {
   let running: Bool
   let pending: Bool
 
   var body: some View {
     Button(intent: PauseResumeIntent(resume: !running)) {
-      if pending {
-        ProgressView()
-          .tint(.white)
-      } else {
-        Image(systemName: running ? "pause.fill" : "play.fill")
-          .font(.title3)
-      }
+      Image(systemName: running ? "pause.fill" : "play.fill")
+        .font(.title3)
+        .contentTransition(.identity)
+        .frame(width: 22, height: 22)
     }
     .buttonStyle(.bordered)
     .tint(running ? .white : .green)
     .disabled(pending)
-    .opacity(pending ? 0.5 : 1)
+    .opacity(pending ? 0.6 : 1)
   }
 }
 
@@ -93,6 +97,7 @@ struct LockScreenTimerLiveActivity: Widget {
   var body: some WidgetConfiguration {
     ActivityConfiguration(for: LockScreenTimerAttributes.self) { context in
       LockScreenView(state: context.state)
+        .transaction { $0.animation = nil }
         .activityBackgroundTint(Color.black.opacity(0.85))
         .activitySystemActionForegroundColor(.white)
     } dynamicIsland: { context in
