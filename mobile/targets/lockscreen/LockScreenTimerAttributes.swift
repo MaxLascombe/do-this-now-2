@@ -48,3 +48,16 @@ extension LockScreenTimerAttributes.ContentState {
       : String(format: "%02d:%02d", m, s)
   }
 }
+
+extension LockScreenTimerAttributes.ContentState {
+  // "Same state" for animation purposes — epochs within a few seconds,
+  // `pending` ignored (local-only). Used to skip re-applying updates that
+  // would only replay the system's update animation as a visible stutter.
+  func isRoughlyEqual(to other: Self) -> Bool {
+    taskId == other.taskId && title == other.title && emoji == other.emoji
+      && running == other.running
+      && abs((startedAtEpoch ?? -1) - (other.startedAtEpoch ?? -1)) < 3
+      && abs(accumulatedSeconds - other.accumulatedSeconds) < 3
+      && targetMinutes == other.targetMinutes
+  }
+}

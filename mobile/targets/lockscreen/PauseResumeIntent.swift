@@ -98,7 +98,19 @@ struct PauseResumeIntent: LiveActivityIntent {
       for activity in Activity<LockScreenTimerAttributes>.activities {
         if let state = response.state, kept == nil {
           kept = activity
-          await activity.update(ActivityContent(state: state, staleDate: nil))
+          // The click time travels as `at`, so the server state usually
+          // matches the optimistic one to the second — re-applying it would
+          // replay the update animation as a stutter. Keep the local
+          // baseline and only clear `pending` when they roughly agree.
+          var current = activity.content.state
+          if current.isRoughlyEqual(to: state) {
+            current.pending = nil
+            await activity.update(
+              ActivityContent(state: current, staleDate: nil))
+          } else {
+            await activity.update(
+              ActivityContent(state: state, staleDate: nil))
+          }
         } else {
           await activity.end(nil, dismissalPolicy: .immediate)
         }

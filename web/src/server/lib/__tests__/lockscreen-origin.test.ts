@@ -123,6 +123,21 @@ describe.skipIf(!process.env.DATABASE_URL)(
       expect(tokens).toEqual(['aa11', 'bb22'])
     })
 
+    it('sends no activity pushes at all to the origin device', async () => {
+      await seedSelectedTask()
+      const originId = await seedDeviceWithToken(
+        'hash-origin',
+        'aa11',
+        'update',
+      )
+      await seedDeviceWithToken('hash-other', 'bb22', 'update')
+
+      await syncLockScreen(TEST_USER, { deviceId: originId })
+
+      const sent = vi.mocked(sendLiveActivityPush).mock.calls.map(([t]) => t)
+      expect(sent).toEqual(['bb22'])
+    })
+
     it('wakes other devices but never the origin', async () => {
       await seedSelectedTask()
       const originId = await seedDeviceWithToken(

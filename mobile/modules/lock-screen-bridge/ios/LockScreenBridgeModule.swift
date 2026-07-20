@@ -65,6 +65,10 @@ actor LocalActivitySync {
       for extra in activities.dropFirst() {
         await extra.end(nil, dismissalPolicy: .immediate)
       }
+      // Refetch-churned cache states that agree with what's shown would
+      // only replay the update animation — skip them.
+      let shown = current.content.state
+      if shown.pending == nil, shown.isRoughlyEqual(to: state) { return }
       await current.update(ActivityContent(state: state, staleDate: nil))
       return
     }
