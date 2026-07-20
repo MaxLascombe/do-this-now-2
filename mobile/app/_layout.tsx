@@ -1,4 +1,4 @@
-import { ClerkProvider, useAuth } from '@clerk/clerk-expo'
+import { ClerkProvider, useAuth, useClerk } from '@clerk/clerk-expo'
 import {
   InstrumentSerif_400Regular,
   InstrumentSerif_400Regular_Italic,
@@ -41,15 +41,28 @@ function LockScreenSync() {
 // persists, so an authenticated session never flashes the login page.
 function SignedOutOverlay() {
   const { isLoaded, isSignedIn } = useAuth()
+  const clerk = useClerk()
   const [show, setShow] = useState(false)
   useEffect(() => {
     if (!isLoaded || isSignedIn) {
       setShow(false)
       return
     }
-    const t = setTimeout(() => setShow(true), 600)
+    const t = setTimeout(() => {
+      // Signed-out with a session still in the client happens on app
+      // resume: the active-session pointer drops but the session survives
+      // (the sign-in buttons would just error "already signed in").
+      // Reactivate it instead of showing the login page.
+      const session =
+        clerk.client?.activeSessions?.[0] ?? clerk.client?.sessions?.[0]
+      if (session) {
+        void clerk.setActive({ session: session.id }).catch(() => setShow(true))
+        return
+      }
+      setShow(true)
+    }, 900)
     return () => clearTimeout(t)
-  }, [isLoaded, isSignedIn])
+  }, [isLoaded, isSignedIn, clerk])
   if (!show) return null
   return <SignInScreen />
 }

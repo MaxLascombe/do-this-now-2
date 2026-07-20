@@ -501,20 +501,22 @@ function DayOfWeek({ data }: { data: StatsResult }) {
         accessible
         accessibilityRole="image"
         accessibilityLabel={`Completions by day of week. Busiest day ${labels[data.dayOfWeek.indexOf(max)]} with ${max} completion${max === 1 ? '' : 's'}.`}
-        style={{
-          height: 80,
-          flexDirection: 'row',
-          alignItems: 'flex-end',
-          gap: 6,
-        }}
       >
-        {data.dayOfWeek.map((c, i) => {
-          const pct = Math.min(100, (c / scaleMax) * 100)
-          return (
-            <View key={i} style={{ flex: 1, alignItems: 'center', gap: 4 }}>
+        <View
+          style={{
+            height: 80,
+            flexDirection: 'row',
+            alignItems: 'flex-end',
+            gap: 6,
+          }}
+        >
+          {data.dayOfWeek.map((c, i) => {
+            const pct = Math.min(100, (c / scaleMax) * 100)
+            return (
               <View
+                key={i}
                 style={{
-                  width: '100%',
+                  flex: 1,
                   borderRadius: 2,
                   height: c === 0 ? 4 : `${Math.max(8, pct)}%`,
                   backgroundColor: c === 0 ? 'rgba(255,255,255,0.06)' : STREAK,
@@ -522,10 +524,16 @@ function DayOfWeek({ data }: { data: StatsResult }) {
                     c === 0 ? 1 : 0.55 + Math.min(1, c / scaleMax) * 0.45,
                 }}
               />
-              <Text style={axisText}>{labels[i][0]}</Text>
-            </View>
-          )
-        })}
+            )
+          })}
+        </View>
+        <View style={{ marginTop: 4, flexDirection: 'row', gap: 6 }}>
+          {labels.map((l) => (
+            <Text key={l} style={[axisText, { flex: 1, textAlign: 'center' }]}>
+              {l[0]}
+            </Text>
+          ))}
+        </View>
       </View>
     </Section>
   )
