@@ -303,10 +303,7 @@ export function TaskRow({
             }}
           >
             {dueLabel ? (
-              <Meta color={task.strictDeadline ? OVERDUE : undefined}>
-                {isOverdue ? <Text style={{ color: OVERDUE }}>‼ </Text> : null}
-                {dueLabel}
-              </Meta>
+              <Meta color={isOverdue ? OVERDUE : undefined}>{dueLabel}</Meta>
             ) : null}
             {task.timeFrame ? (
               <Meta>{minutesToHours(task.timeFrame)}</Meta>

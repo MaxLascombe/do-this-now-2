@@ -217,13 +217,9 @@ const TaskRowBase = ({
           <div className="mt-1 flex flex-wrap items-center gap-x-4 gap-y-0.5 text-xs text-zinc-500">
             {dueLabel && (
               <span
-                style={task.strictDeadline ? { color: OVERDUE } : undefined}
+                title={isOverdue ? 'Overdue' : undefined}
+                style={isOverdue ? { color: OVERDUE } : undefined}
               >
-                {isOverdue && (
-                  <span aria-label="Overdue" style={{ color: OVERDUE }}>
-                    ‼{' '}
-                  </span>
-                )}
                 {dueLabel}
               </span>
             )}
