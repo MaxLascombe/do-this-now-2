@@ -138,6 +138,33 @@ describe.skipIf(!process.env.DATABASE_URL)(
       expect(sent).toEqual(['bb22'])
     })
 
+    it('ends only non-origin activities when nothing is selected', async () => {
+      // No selected task seeded — the sync takes the end branch.
+      const originId = await seedDeviceWithToken(
+        'hash-origin',
+        'aa11',
+        'update',
+      )
+      const otherId = await seedDeviceWithToken('hash-other', 'bb22', 'update')
+
+      await syncLockScreen(TEST_USER, { deviceId: originId })
+
+      const sent = vi.mocked(sendLiveActivityPush).mock.calls
+      expect(sent).toHaveLength(1)
+      expect(sent[0][0]).toBe('bb22')
+      expect(sent[0][1].event).toBe('end')
+
+      // The delivered end drops the other device's token; the origin keeps
+      // its row (its local mirror already ended the activity — the token
+      // prunes via 410 on the next real push).
+      const rows = await db
+        .select()
+        .from(livePushTokens)
+        .where(eq(livePushTokens.userId, TEST_USER))
+      expect(rows.map((r) => r.deviceId)).toEqual([originId])
+      expect(rows.map((r) => r.deviceId)).not.toContain(otherId)
+    })
+
     it('wakes other devices but never the origin', async () => {
       await seedSelectedTask()
       const originId = await seedDeviceWithToken(
