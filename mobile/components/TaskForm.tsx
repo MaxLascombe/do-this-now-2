@@ -20,6 +20,7 @@ import {
   Modal,
   Platform,
   Pressable,
+  KeyboardAvoidingView,
   ScrollView,
   Switch as RNSwitch,
   Text,
@@ -265,11 +266,17 @@ export function TaskForm({
   }
 
   return (
-    <View style={{ flex: 1 }}>
+    <KeyboardAvoidingView
+      behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+      style={{ flex: 1 }}
+    >
       <ScrollView
+        style={{ flex: 1 }}
+        keyboardShouldPersistTaps="handled"
         contentContainerStyle={{
           paddingHorizontal: 20,
-          paddingBottom: 140,
+          paddingTop: 16,
+          paddingBottom: 32,
           gap: 20,
         }}
       >
@@ -935,10 +942,6 @@ export function TaskForm({
 
       <View
         style={{
-          position: 'absolute',
-          left: 0,
-          right: 0,
-          bottom: 0,
           paddingHorizontal: 20,
           paddingTop: 12,
           paddingBottom: 24,
@@ -1232,7 +1235,7 @@ export function TaskForm({
           )}
         </View>
       </Sheet>
-    </View>
+    </KeyboardAvoidingView>
   )
 }
 

@@ -32,10 +32,13 @@ export type RowMenuItem = {
 
 export function RowAction({
   label,
+  icon,
   onPress,
   disabled,
 }: {
+  // The label survives as the accessibility name when an icon renders.
   label: string
+  icon?: ReactNode
   onPress: () => void
   disabled?: boolean
 }) {
@@ -47,24 +50,29 @@ export function RowAction({
       accessibilityLabel={label}
       accessibilityState={{ disabled: !!disabled }}
       style={({ pressed }) => ({
-        paddingHorizontal: 16,
+        paddingHorizontal: icon ? 13 : 16,
         paddingVertical: 9,
+        minHeight: 38,
         borderRadius: 999,
         borderWidth: 1,
+        alignItems: 'center',
+        justifyContent: 'center',
         opacity: disabled ? 0.4 : 1,
         borderColor: '#27272a',
         backgroundColor: pressed ? 'rgba(255,255,255,0.06)' : 'transparent',
       })}
     >
-      <Text
-        style={{
-          fontFamily: 'JetBrainsMono_400Regular',
-          fontSize: 13,
-          color: '#a1a1aa',
-        }}
-      >
-        {label}
-      </Text>
+      {icon ?? (
+        <Text
+          style={{
+            fontFamily: 'JetBrainsMono_400Regular',
+            fontSize: 13,
+            color: '#a1a1aa',
+          }}
+        >
+          {label}
+        </Text>
+      )}
     </Pressable>
   )
 }
@@ -214,7 +222,6 @@ export function TaskRow({
       ? `${doneCount} of ${subtaskCount} ${subtaskCount === 1 ? 'subtask' : 'subtasks'} done`
       : null,
     task.strictDeadline ? 'strict deadline' : null,
-    task.canDoEarly === false ? 'not before due' : null,
     task.timerStartedAt ? 'timer running' : null,
     task.tags.length ? `tags ${task.tags.join(', ')}` : null,
   ]
@@ -296,7 +303,7 @@ export function TaskRow({
             }}
           >
             {dueLabel ? (
-              <Meta>
+              <Meta color={task.strictDeadline ? OVERDUE : undefined}>
                 {isOverdue ? <Text style={{ color: OVERDUE }}>‼ </Text> : null}
                 {dueLabel}
               </Meta>
@@ -310,8 +317,6 @@ export function TaskRow({
                 ☐ {doneCount}/{subtaskCount}
               </Meta>
             ) : null}
-            {task.strictDeadline ? <Meta color={OVERDUE}>strict</Meta> : null}
-            {task.canDoEarly === false ? <Meta>not before due</Meta> : null}
             {task.tags.map((t) => (
               <Meta key={t}>#{t}</Meta>
             ))}

@@ -7,12 +7,11 @@ import {
 } from '@dtn/shared/queries'
 import { taskToInput } from '@dtn/shared/task-input'
 import { Stack, useLocalSearchParams, useRouter } from 'expo-router'
-import { Alert, ScrollView, View } from 'react-native'
+import { Alert, View } from 'react-native'
 
 import { ErrorState } from '../../../components/ErrorState'
 import { Skeleton } from '../../../components/Skeleton'
 import { TaskForm } from '../../../components/TaskForm'
-import { TimerWidget } from '../../../components/TimerWidget'
 import { useToast } from '../../../components/ToastProvider'
 
 export default function EditTask() {
@@ -23,11 +22,6 @@ export default function EditTask() {
   const deleteMutation = useDeleteTask()
   const createMutation = useCreateTask()
   const toast = useToast()
-  // 0-time-frame children show their keeper's timer.
-  const keeperQuery = useTask(taskQuery.data?.timekeeperId ?? '')
-  const timerTask = taskQuery.data?.timekeeperId
-    ? keeperQuery.data
-    : taskQuery.data
 
   if (taskQuery.isPending || !taskQuery.data) {
     return (
@@ -99,20 +93,6 @@ export default function EditTask() {
           title: `Edit: ${task.title}`,
         }}
       />
-      {timerTask && (
-        <ScrollView
-          horizontal={false}
-          contentContainerStyle={{ paddingHorizontal: 20, paddingTop: 16 }}
-          style={{ maxHeight: 280 }}
-        >
-          <TimerWidget
-            task={timerTask}
-            actionId={id ?? ''}
-            plannedMinutes={timerTask.timeFrame}
-            compact
-          />
-        </ScrollView>
-      )}
       <TaskForm
         initial={{
           title: task.title,
