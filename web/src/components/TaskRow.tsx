@@ -94,11 +94,14 @@ export const RowMenu = ({ items }: { items: Array<RowMenuItem> }) => {
 // Shared so Home's Top Tasks and the Tasks list render identical buttons.
 export const RowAction = ({
   label,
+  icon,
   onClick,
   disabled,
   title,
 }: {
+  // The label survives as the accessible name when an icon renders.
   label: string
+  icon?: ReactNode
   onClick: () => void
   disabled?: boolean
   title?: string
@@ -106,11 +109,15 @@ export const RowAction = ({
   <button
     type="button"
     disabled={disabled}
-    title={title}
+    title={title ?? (icon ? label : undefined)}
+    aria-label={label}
     onClick={onClick}
-    className="shrink-0 rounded-full border border-zinc-800 px-3 py-1.5 font-mono text-xs text-zinc-400 transition-colors hover:border-zinc-600 hover:text-zinc-100 disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:border-zinc-800 disabled:hover:text-zinc-400"
+    className={
+      'flex shrink-0 items-center justify-center rounded-full border border-zinc-800 font-mono text-xs text-zinc-400 transition-colors hover:border-zinc-600 hover:text-zinc-100 disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:border-zinc-800 disabled:hover:text-zinc-400 ' +
+      (icon ? 'px-2.5 py-2' : 'px-3 py-1.5')
+    }
   >
-    {label}
+    {icon ?? label}
   </button>
 )
 
@@ -209,7 +216,9 @@ const TaskRowBase = ({
           </div>
           <div className="mt-1 flex flex-wrap items-center gap-x-4 gap-y-0.5 text-xs text-zinc-500">
             {dueLabel && (
-              <span>
+              <span
+                style={task.strictDeadline ? { color: OVERDUE } : undefined}
+              >
                 {isOverdue && (
                   <span aria-label="Overdue" style={{ color: OVERDUE }}>
                     ‼{' '}
@@ -235,10 +244,6 @@ const TaskRowBase = ({
                 ☐ {doneCount}/{subtaskCount}
               </span>
             )}
-            {task.strictDeadline && (
-              <span style={{ color: OVERDUE }}>strict</span>
-            )}
-            {task.canDoEarly === false && <span>not before due</span>}
             {task.tags.map((t) => (
               <span key={t}>#{t}</span>
             ))}

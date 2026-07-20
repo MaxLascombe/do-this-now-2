@@ -42,6 +42,13 @@ import {
 import { EmptyTasks } from '../../components/EmptyTasks'
 import { ErrorState } from '../../components/ErrorState'
 import { Skeleton, TaskRowSkeleton } from '../../components/Skeleton'
+import {
+  PencilIcon,
+  PlayIcon,
+  ReturnIcon,
+  TrashIcon,
+  ZzIcon,
+} from '../../components/icons'
 import { RowAction, RowMenu, TaskRow } from '../../components/TaskRow'
 import { TimerWidget } from '../../components/TimerWidget'
 import { useToast } from '../../components/ToastProvider'
@@ -309,10 +316,12 @@ export default function Home() {
                         <>
                           <RowAction
                             label="Start"
+                            icon={<PlayIcon color="#a1a1aa" size={14} />}
                             onPress={() => startFor(t)}
                           />
                           <RowAction
                             label="Snooze"
+                            icon={<ZzIcon size={14} />}
                             onPress={() => snoozeFor(t, true)}
                           />
                           <RowMenu
@@ -533,10 +542,22 @@ function Hero({
           rowGap: 8,
         }}
       >
-        <Ghost label="Return" onPress={onReturn} />
-        <Ghost label="Snooze" onPress={onSnooze} />
-        <Ghost label="Edit" onPress={onEdit} />
-        <Ghost label="Delete" onPress={onDelete} />
+        <Ghost
+          label="Return"
+          icon={<ReturnIcon color="#a1a1aa" size={17} />}
+          onPress={onReturn}
+        />
+        <Ghost label="Snooze" icon={<ZzIcon size={17} />} onPress={onSnooze} />
+        <Ghost
+          label="Edit"
+          icon={<PencilIcon color="#a1a1aa" size={17} />}
+          onPress={onEdit}
+        />
+        <Ghost
+          label="Delete"
+          icon={<TrashIcon size={17} />}
+          onPress={onDelete}
+        />
       </View>
 
       <View style={{ marginTop: 24 }}>
@@ -655,41 +676,34 @@ function Chip({ children }: { children: React.ReactNode }) {
   )
 }
 
-function Ghost({ label, onPress }: { label: string; onPress: () => void }) {
-  // Web's SecondaryAction, minus its leading Kbd chip — those are keyboard
-  // hints, meaningless on touch. Borderless, muted zinc-500 (Delete included,
-  // as on web), background only on press. One cell of the three-up grid
-  // (flexBasis ~1/3 leaves room for the two 8px column gaps).
+function Ghost({
+  label,
+  icon,
+  onPress,
+}: {
+  label: string
+  icon: React.ReactNode
+  onPress: () => void
+}) {
+  // Icon-only pill (grill 2026-07-20): compact bordered circle; the label
+  // survives as the accessibility name.
   return (
     <Pressable
       onPress={onPress}
       accessibilityRole="button"
       accessibilityLabel={label}
       style={({ pressed }) => ({
-        flexBasis: '31%',
-        flexGrow: 0,
+        width: 46,
+        height: 46,
         alignItems: 'center',
         justifyContent: 'center',
-        paddingHorizontal: 8,
-        paddingVertical: 10,
         borderRadius: 999,
         borderWidth: 1,
         borderColor: pressed ? '#52525b' : '#27272a',
         backgroundColor: pressed ? '#18181b' : 'rgba(24,24,27,0.6)',
       })}
     >
-      {({ pressed }) => (
-        <Text
-          style={{
-            fontFamily: 'JetBrainsMono_400Regular',
-            fontSize: 15,
-            color: pressed ? '#f4f4f5' : '#71717a',
-            textAlign: 'center',
-          }}
-        >
-          {label}
-        </Text>
-      )}
+      {icon}
     </Pressable>
   )
 }

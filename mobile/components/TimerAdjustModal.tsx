@@ -33,7 +33,9 @@ export function TimerAdjustModal({
       animationType="fade"
       onRequestClose={onClose}
     >
-      <View
+      <Pressable
+        onPress={onClose}
+        accessibilityLabel="Close"
         style={{
           flex: 1,
           backgroundColor: 'rgba(0,0,0,0.7)',
@@ -42,7 +44,8 @@ export function TimerAdjustModal({
           padding: 16,
         }}
       >
-        <View
+        <Pressable
+          onPress={() => {}}
           accessibilityViewIsModal
           style={{
             width: '100%',
@@ -149,8 +152,8 @@ export function TimerAdjustModal({
               Clear timer
             </Text>
           </Pressable>
-        </View>
-      </View>
+        </Pressable>
+      </Pressable>
     </Modal>
   )
 }

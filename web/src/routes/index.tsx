@@ -29,7 +29,8 @@ import {
   isCompletionGated,
 } from '@dtn/shared/timer-utils'
 import { createFileRoute, useNavigate } from '@tanstack/react-router'
-import { useEffect, useState } from 'react'
+import { Pencil, Play, Trash2, Undo2 } from 'lucide-react'
+import { useEffect, useState, type ReactNode } from 'react'
 
 import { useConfirm } from '../components/ConfirmProvider'
 import { CountConfirmModal } from '../components/CountConfirmModal'
@@ -78,23 +79,43 @@ const Chip = ({ children }: { children: React.ReactNode }) => (
   </span>
 )
 
+// Icon pill (grill 2026-07-20): the word is gone but the key hint stays —
+// the Focus View has no KeyHints strip, so the pill is where the shortcut
+// is discovered. The label survives as the accessible name and tooltip.
 const SecondaryAction = ({
   k,
   label,
+  icon,
   onClick,
 }: {
   k: string
   label: string
+  icon: ReactNode
   onClick: () => void
 }) => (
   <button
     type="button"
     onClick={onClick}
-    className="flex items-center justify-center gap-1.5 rounded-full border border-zinc-800 bg-zinc-900/60 px-3 py-1.5 text-sm text-zinc-400 transition-colors hover:border-zinc-600 hover:bg-zinc-900 hover:text-zinc-100"
+    aria-label={label}
+    title={label}
+    className="flex items-center justify-center gap-1.5 rounded-full border border-zinc-800 bg-zinc-900/60 px-3 py-2 text-sm text-zinc-400 transition-colors hover:border-zinc-600 hover:bg-zinc-900 hover:text-zinc-100"
   >
     <Kbd>{k}</Kbd>
-    <span>{label}</span>
+    {icon}
   </button>
+)
+
+// Snooze reads best as type, not a drawing — shared look with mobile.
+const ZzGlyph = ({ large }: { large?: boolean }) => (
+  <span
+    aria-hidden="true"
+    className={
+      'font-mono leading-none font-bold ' +
+      (large ? 'text-[13px]' : 'text-[11px]')
+    }
+  >
+    Zz
+  </span>
 )
 
 const EmptyNow = ({
@@ -462,10 +483,12 @@ function Home() {
                       <>
                         <RowAction
                           label="Start"
+                          icon={<Play className="h-3.5 w-3.5" />}
                           onClick={() => selectTaskAction(t)}
                         />
                         <RowAction
                           label="Snooze"
+                          icon={<ZzGlyph />}
                           onClick={() => snoozeTaskFor(t, true)}
                         />
                         <RowMenu
@@ -665,10 +688,30 @@ function Hero({
       </button>
 
       <div className="mt-3 flex w-full max-w-[320px] flex-wrap justify-center gap-2 md:mt-4 md:max-w-none md:w-auto md:items-center md:gap-3">
-        <SecondaryAction k="Esc" label="Return" onClick={onReturn} />
-        <SecondaryAction k="s" label="Snooze" onClick={onSnooze} />
-        <SecondaryAction k="e" label="Edit" onClick={onEdit} />
-        <SecondaryAction k="⌫" label="Delete" onClick={onDelete} />
+        <SecondaryAction
+          k="Esc"
+          label="Return"
+          icon={<Undo2 className="h-4 w-4" />}
+          onClick={onReturn}
+        />
+        <SecondaryAction
+          k="s"
+          label="Snooze"
+          icon={<ZzGlyph large />}
+          onClick={onSnooze}
+        />
+        <SecondaryAction
+          k="e"
+          label="Edit"
+          icon={<Pencil className="h-4 w-4" />}
+          onClick={onEdit}
+        />
+        <SecondaryAction
+          k="⌫"
+          label="Delete"
+          icon={<Trash2 className="h-4 w-4 text-rose-400" />}
+          onClick={onDelete}
+        />
       </div>
 
       <HeroTimer task={task} />

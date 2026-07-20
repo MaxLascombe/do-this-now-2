@@ -22,7 +22,7 @@ import {
 } from '@dtn/shared/timer-utils'
 
 import { createFileRoute, Link, useNavigate } from '@tanstack/react-router'
-import { Search } from 'lucide-react'
+import { Play, Search, Sun } from 'lucide-react'
 import {
   Fragment,
   useCallback,
@@ -217,11 +217,30 @@ function TasksList() {
     const gated = isCompletionGated(t, new Date())
     return (
       <>
-        <RowAction label="Start" onClick={() => selectFor(t)} />
+        <RowAction
+          label="Start"
+          icon={<Play className="h-3.5 w-3.5" />}
+          onClick={() => selectFor(t)}
+        />
         {isSnoozed(t) ? (
-          <RowAction label="Wake" onClick={() => wakeFor(t)} />
+          <RowAction
+            label="Wake"
+            icon={<Sun className="h-3.5 w-3.5" />}
+            onClick={() => wakeFor(t)}
+          />
         ) : (
-          <RowAction label="Snooze" onClick={() => snoozeFor(t)} />
+          <RowAction
+            label="Snooze"
+            icon={
+              <span
+                aria-hidden="true"
+                className="font-mono text-[11px] leading-none font-bold"
+              >
+                Zz
+              </span>
+            }
+            onClick={() => snoozeFor(t)}
+          />
         )}
         <RowMenu
           items={[
@@ -465,26 +484,25 @@ function TasksList() {
               const g = dueGroupLabel(key)
               return (
                 <div key={key}>
-                  <div className="mb-2 flex items-baseline gap-3">
-                    <span className="font-mono text-[10px] tracking-[0.3em] text-zinc-400 uppercase">
-                      {g.eyebrow}
-                      {g.overdueSuffix && (
-                        <>
-                          {' · '}
-                          <span style={{ color: OVERDUE }}>
-                            {g.overdueSuffix}
-                          </span>
-                        </>
-                      )}
-                    </span>
+                  {/* One line (grill 2026-07-20): relative label leads,
+                      date beside it, overdue = red count. */}
+                  <div className="mb-2 flex items-center gap-3">
                     <span
                       className="dtn-heading text-zinc-100 uppercase"
                       style={{ fontSize: '0.95rem', letterSpacing: '0.15em' }}
                     >
                       {g.label}
                     </span>
-                    <span className="mb-1 h-px flex-1 bg-zinc-900" />
-                    <span className="font-mono text-xs text-zinc-600 tabular-nums">
+                    <span className="font-mono text-[11px] text-zinc-500 lowercase">
+                      {g.eyebrow}
+                    </span>
+                    <span className="h-px flex-1 bg-zinc-900" />
+                    <span
+                      className="font-mono text-xs tabular-nums"
+                      style={{
+                        color: g.overdueSuffix ? OVERDUE : '#52525b',
+                      }}
+                    >
                       {gTasks.length}
                     </span>
                   </div>

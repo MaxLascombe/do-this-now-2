@@ -37,7 +37,7 @@ import { ErrorState } from '../../components/ErrorState'
 import { Loading } from '../../components/Loading'
 import { TaskListSkeleton } from '../../components/Skeleton'
 import { PageHeading } from '../../components/PageHeading'
-import { SearchIcon } from '../../components/icons'
+import { PlayIcon, SearchIcon, SunIcon, ZzIcon } from '../../components/icons'
 import { RowAction, RowMenu, TaskRow } from '../../components/TaskRow'
 import { useToast } from '../../components/ToastProvider'
 import { usePersistedState } from '../../hooks/usePersistedState'
@@ -271,11 +271,23 @@ export default function TasksList() {
             task={item}
             actions={
               <>
-                <RowAction label="Start" onPress={() => onStart(item)} />
+                <RowAction
+                  label="Start"
+                  icon={<PlayIcon color="#a1a1aa" size={14} />}
+                  onPress={() => onStart(item)}
+                />
                 {isSnoozed(item) ? (
-                  <RowAction label="Wake" onPress={() => onWake(item.id)} />
+                  <RowAction
+                    label="Wake"
+                    icon={<SunIcon size={14} />}
+                    onPress={() => onWake(item.id)}
+                  />
                 ) : (
-                  <RowAction label="Snooze" onPress={() => onSnooze(item.id)} />
+                  <RowAction
+                    label="Snooze"
+                    icon={<ZzIcon size={14} />}
+                    onPress={() => onSnooze(item.id)}
+                  />
                 )}
                 <RowMenu
                   items={[
@@ -538,6 +550,9 @@ function GroupHeader({ group }: { group: Group }) {
       </View>
     )
   }
+  // One line (grill 2026-07-20): relative label leads, the calendar date is
+  // small grey text beside it, and overdue shows as a red count instead of
+  // its own wrapping eyebrow line.
   return (
     <View
       style={{
@@ -545,56 +560,41 @@ function GroupHeader({ group }: { group: Group }) {
         paddingTop: 16,
         paddingBottom: 8,
         flexDirection: 'row',
-        alignItems: 'flex-end',
+        alignItems: 'center',
         gap: 10,
       }}
     >
-      <View style={{ flex: 1 }}>
-        {group.eyebrow !== '' && (
-          <Text
-            style={{
-              fontFamily: 'JetBrainsMono_400Regular',
-              fontSize: 11,
-              letterSpacing: 2.5,
-              textTransform: 'uppercase',
-              color: '#a1a1aa',
-            }}
-          >
-            {group.eyebrow}
-            {group.overdueSuffix && (
-              <>
-                <Text style={{ color: '#a1a1aa' }}> · </Text>
-                <Text style={{ color: OVERDUE }}>{group.overdueSuffix}</Text>
-              </>
-            )}
-          </Text>
-        )}
+      <Text
+        numberOfLines={1}
+        style={{
+          flexShrink: 1,
+          fontFamily: 'JetBrainsMono_700Bold',
+          fontSize: 15,
+          color: '#fafafa',
+          letterSpacing: 2,
+          textTransform: 'uppercase',
+        }}
+      >
+        {group.label}
+      </Text>
+      {group.eyebrow !== '' && (
         <Text
+          numberOfLines={1}
           style={{
-            fontFamily: 'JetBrainsMono_700Bold',
-            fontSize: 15,
-            color: '#fafafa',
-            letterSpacing: 2,
-            textTransform: 'uppercase',
-            marginTop: 2,
+            fontFamily: 'JetBrainsMono_400Regular',
+            fontSize: 11,
+            color: '#71717a',
           }}
         >
-          {group.label}
+          {group.eyebrow.toLowerCase()}
         </Text>
-      </View>
-      <View
-        style={{
-          flex: 1,
-          height: 1,
-          backgroundColor: '#18181b',
-          marginBottom: 6,
-        }}
-      />
+      )}
+      <View style={{ flex: 1, height: 1, backgroundColor: '#18181b' }} />
       <Text
         style={{
           fontFamily: 'JetBrainsMono_400Regular',
           fontSize: 12,
-          color: '#52525b',
+          color: group.overdueSuffix ? OVERDUE : '#52525b',
         }}
       >
         {group.data.length}

@@ -1,4 +1,4 @@
-import { View } from 'react-native'
+import { Text, View } from 'react-native'
 
 // Hand-drawn vector-ish icons (plain Views — no SVG dependency, which
 // would need a native rebuild). Shapes match web's lucide icons closely
@@ -166,5 +166,201 @@ export function SearchIcon({ color = '#a1a1aa', size = 16 }) {
         }}
       />
     </View>
+  )
+}
+
+export function ReturnIcon({ color = '#a1a1aa', size = 16 }) {
+  const t = Math.max(1.5, size * 0.1)
+  return (
+    <View style={{ width: size, height: size }}>
+      <View
+        style={{
+          position: 'absolute',
+          left: 0,
+          right: size * 0.08,
+          top: size * 0.5 - t / 2,
+          height: t,
+          borderRadius: t,
+          backgroundColor: color,
+        }}
+      />
+      <View
+        style={{
+          position: 'absolute',
+          left: 0,
+          top: size * 0.31,
+          width: size * 0.42,
+          height: t,
+          borderRadius: t,
+          backgroundColor: color,
+          transform: [{ rotate: '-45deg' }],
+        }}
+      />
+      <View
+        style={{
+          position: 'absolute',
+          left: 0,
+          top: size * 0.69 - t,
+          width: size * 0.42,
+          height: t,
+          borderRadius: t,
+          backgroundColor: color,
+          transform: [{ rotate: '45deg' }],
+        }}
+      />
+    </View>
+  )
+}
+
+export function SunIcon({ color = '#a1a1aa', size = 16 }) {
+  const t = Math.max(1.5, size * 0.1)
+  const ray = size * 0.22
+  return (
+    <View
+      style={{
+        width: size,
+        height: size,
+        alignItems: 'center',
+        justifyContent: 'center',
+      }}
+    >
+      <View
+        style={{
+          width: size * 0.42,
+          height: size * 0.42,
+          borderRadius: size,
+          borderWidth: t,
+          borderColor: color,
+        }}
+      />
+      <View
+        style={{
+          position: 'absolute',
+          top: 0,
+          left: size / 2 - t / 2,
+          width: t,
+          height: ray,
+          borderRadius: t,
+          backgroundColor: color,
+        }}
+      />
+      <View
+        style={{
+          position: 'absolute',
+          bottom: 0,
+          left: size / 2 - t / 2,
+          width: t,
+          height: ray,
+          borderRadius: t,
+          backgroundColor: color,
+        }}
+      />
+      <View
+        style={{
+          position: 'absolute',
+          left: 0,
+          top: size / 2 - t / 2,
+          width: ray,
+          height: t,
+          borderRadius: t,
+          backgroundColor: color,
+        }}
+      />
+      <View
+        style={{
+          position: 'absolute',
+          right: 0,
+          top: size / 2 - t / 2,
+          width: ray,
+          height: t,
+          borderRadius: t,
+          backgroundColor: color,
+        }}
+      />
+    </View>
+  )
+}
+
+export function PencilIcon({ color = '#a1a1aa', size = 16 }) {
+  const w = size * 0.18
+  return (
+    <View style={{ width: size, height: size }}>
+      <View
+        style={{
+          position: 'absolute',
+          left: size * 0.41,
+          top: -size * 0.02,
+          width: w,
+          height: size * 0.82,
+          borderRadius: w / 2,
+          backgroundColor: color,
+          transform: [{ rotate: '45deg' }],
+        }}
+      />
+      <View
+        style={{
+          position: 'absolute',
+          left: size * 0.06,
+          bottom: size * 0.04,
+          width: w * 0.85,
+          height: w * 0.85,
+          borderRadius: 1,
+          backgroundColor: color,
+          transform: [{ rotate: '45deg' }],
+        }}
+      />
+    </View>
+  )
+}
+
+export function TrashIcon({ color = '#fb7185', size = 16 }) {
+  return (
+    <View style={{ width: size, height: size, alignItems: 'center' }}>
+      <View
+        style={{
+          width: size * 0.34,
+          height: size * 0.12,
+          borderTopLeftRadius: 2,
+          borderTopRightRadius: 2,
+          backgroundColor: color,
+        }}
+      />
+      <View
+        style={{
+          marginTop: size * 0.02,
+          width: size * 0.8,
+          height: size * 0.1,
+          borderRadius: 2,
+          backgroundColor: color,
+        }}
+      />
+      <View
+        style={{
+          marginTop: size * 0.06,
+          width: size * 0.58,
+          height: size * 0.56,
+          borderBottomLeftRadius: 3,
+          borderBottomRightRadius: 3,
+          borderWidth: 1.5,
+          borderColor: color,
+        }}
+      />
+    </View>
+  )
+}
+
+// Snooze reads best as type, not a drawing — matches web's Zz glyph.
+export function ZzIcon({ color = '#a1a1aa', size = 16 }) {
+  return (
+    <Text
+      style={{
+        fontFamily: 'JetBrainsMono_700Bold',
+        fontSize: size * 0.82,
+        lineHeight: size,
+        color,
+      }}
+    >
+      Zz
+    </Text>
   )
 }

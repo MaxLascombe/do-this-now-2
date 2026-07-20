@@ -83,17 +83,10 @@ export default function Stats() {
             <StreakSummary data={data} />
             <Heatmap data={data} />
             <DailyBars data={data} />
-            <View style={{ flexDirection: 'row', gap: 24 }}>
-              <View style={{ flex: 1 }}>
-                <HourOfDay data={data} />
-              </View>
-              <View style={{ flex: 1 }}>
-                <DayOfWeek data={data} />
-              </View>
-            </View>
+            <HourOfDay data={data} />
+            <DayOfWeek data={data} />
             <TopTasks data={data} />
             <TagTime data={data} />
-            <EmojiMix data={data} />
             <Discipline data={data} />
           </ScrollView>
         </>
@@ -175,10 +168,14 @@ function Counter({
         {label}
       </Text>
       <Text
+        numberOfLines={1}
+        adjustsFontSizeToFit
+        minimumFontScale={0.6}
         style={{
           fontFamily: 'JetBrainsMono_700Bold',
           fontSize: size,
-          lineHeight: size,
+          // lineHeight == fontSize clips mono-bold ascenders; give it air.
+          lineHeight: Math.round(size * 1.25),
           color: color ?? '#fafafa',
           marginTop: 4,
           fontVariant: ['tabular-nums'],
@@ -651,27 +648,6 @@ function TagTime({ data }: { data: StatsResult }) {
             count={minutesToHours(t.minutes)}
             color={ACCENT}
             countWidth={48}
-          />
-        ))}
-      </View>
-    </Section>
-  )
-}
-
-function EmojiMix({ data }: { data: StatsResult }) {
-  if (data.emojiFreq.length === 0) return null
-  const max = Math.max(1, ...data.emojiFreq.map((e) => e.count))
-  return (
-    <Section title="Your task mix">
-      <View style={{ gap: 8 }}>
-        {data.emojiFreq.map((e) => (
-          <BarRow
-            key={e.emoji}
-            lead={e.emoji}
-            title=""
-            fraction={e.count / max}
-            count={String(e.count)}
-            color={STREAK}
           />
         ))}
       </View>
