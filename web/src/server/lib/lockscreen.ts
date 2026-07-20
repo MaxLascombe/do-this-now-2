@@ -218,16 +218,18 @@ export async function syncLockScreen(
 
   if (state === null) {
     await Promise.all(
-      updates.map(async (row) => {
-        const outcome = await sendOrPrune(row, {
-          event: 'end',
-          contentState: {},
-          dismissalDate: new Date(),
-        })
-        // keep the token on transient failure so the next sync retries the end
-        // ('pruned' already dropped it inside sendOrPrune)
-        if (outcome === 'sent') await dropToken(row.id)
-      }),
+      updates
+        .filter((row) => row.deviceId !== originDeviceId)
+        .map(async (row) => {
+          const outcome = await sendOrPrune(row, {
+            event: 'end',
+            contentState: {},
+            dismissalDate: new Date(),
+          })
+          // keep the token on transient failure so the next sync retries
+          // the end ('pruned' already dropped it inside sendOrPrune)
+          if (outcome === 'sent') await dropToken(row.id)
+        }),
     )
     await wakes
     return
@@ -238,6 +240,9 @@ export async function syncLockScreen(
   const deviceIds = [...new Set(tokens.map((t) => t.deviceId))]
   await Promise.all(
     deviceIds.map(async (deviceId) => {
+      // The origin device mirrors every change locally (ADR-0006); a push
+      // at it would just replay the update animation as a stutter.
+      if (deviceId === originDeviceId) return
       const update = updates.find((t) => t.deviceId === deviceId)
       if (update) {
         const outcome = await sendOrPrune(update, {
