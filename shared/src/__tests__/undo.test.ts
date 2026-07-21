@@ -19,6 +19,15 @@ describe('undo stack', () => {
     expect(await createUndoStack().undoLast()).toBeNull()
   })
 
+  it('peeks the newest entry without popping', () => {
+    const stack = createUndoStack()
+    expect(stack.peek()).toBeNull()
+    stack.push({ label: 'a', run: async () => {} })
+    stack.push({ label: 'b', run: async () => {} })
+    expect(stack.peek()?.label).toBe('b')
+    expect(stack.size).toBe(2)
+  })
+
   it('is bounded to MAX_UNDO entries, dropping the oldest', async () => {
     const stack = createUndoStack()
     for (let i = 0; i < MAX_UNDO + 5; i++) {
