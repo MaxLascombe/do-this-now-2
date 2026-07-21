@@ -50,6 +50,37 @@ export function timerAtPlan(
   return plannedMinutes > 0 && currentTimerSeconds(task, now) >= plannedMinutes * 60
 }
 
+// Runaway-timer Guard (feature plan 2026-07-21): a timer is "runaway" once
+// its elapsed passes ~3× the planned time (or an absolute 4h when there is
+// no plan), or once it has been running since before today's local midnight.
+// The guard never pauses anything — UIs flag it and offer a reconcile.
+export const RUNAWAY_MULTIPLIER = 3
+const RUNAWAY_ABSOLUTE_MIN = 240
+
+export function runawayThresholdSeconds(plannedMinutes: number): number {
+  return plannedMinutes > 0
+    ? plannedMinutes * 60 * RUNAWAY_MULTIPLIER
+    : RUNAWAY_ABSOLUTE_MIN * 60
+}
+
+export function timerRunaway(
+  task: Task,
+  plannedMinutes: number,
+  now: Date,
+): boolean {
+  const started = task.timerStartedAt
+  if (started) {
+    const startedDate = started instanceof Date ? started : new Date(started)
+    const midnight = new Date(
+      now.getFullYear(),
+      now.getMonth(),
+      now.getDate(),
+    )
+    if (startedDate < midnight) return true
+  }
+  return currentTimerSeconds(task, now) >= runawayThresholdSeconds(plannedMinutes)
+}
+
 // "Is the Done button locked until the timer hits the target?" Yes when
 // the task is a *repeating* *fixed* *non-child* task — that's the case
 // where the timer's value is supposed to gate completion (a habit you're

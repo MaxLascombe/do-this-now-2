@@ -3,6 +3,7 @@ import {
   currentTimerSeconds,
   formatTimerSeconds,
   timerAtPlan,
+  timerRunaway,
 } from '@dtn/shared/timer-utils'
 import { Pause, Play, SlidersVertical } from 'lucide-react'
 import { useEffect, useRef, useState } from 'react'
@@ -82,7 +83,6 @@ export function TimerWidget({
   const seconds = currentTimerSeconds(task, now)
 
   const plannedSec = (plannedMinutes ?? task.timeFrame) * 60
-  const overrun = plannedSec > 0 && seconds > plannedSec * 1.5
   const pulsing = usePlanPulse(
     task.id,
     timerAtPlan(task, plannedMinutes ?? task.timeFrame, now),
@@ -97,6 +97,58 @@ export function TimerWidget({
     timer.mutate({ id, action: { kind: 'add', seconds: sec } })
 
   const [adjustOpen, setAdjustOpen] = useState(false)
+
+  // Runaway-timer Guard: flag (never auto-pause) once elapsed passes ~3× the
+  // plan or the timer crossed midnight; reconcile with keep / trim / custom
+  // before the overrun poisons credit and fluid estimates. Keep latches until
+  // the timer drops back under the threshold.
+  const [runawayKept, setRunawayKept] = useState(false)
+  const isRunaway = timerRunaway(task, plannedMinutes ?? task.timeFrame, now)
+  useEffect(() => {
+    if (!isRunaway) setRunawayKept(false)
+  }, [isRunaway])
+  const runaway = isRunaway && !runawayKept
+  const runawayBanner = runaway ? (
+    <div
+      className="mt-3 rounded-xl border px-3 py-2.5 font-mono text-xs"
+      style={{
+        borderColor: 'rgba(245,158,11,0.4)',
+        background: 'rgba(245,158,11,0.08)',
+        color: STREAK,
+      }}
+    >
+      <div>
+        Runaway timer — {formatTimerSeconds(seconds)}
+        {plannedSec > 0 ? ` on a ${Math.ceil(plannedSec / 60)} min plan` : ''}.
+        Still working?
+      </div>
+      <div className="mt-2 flex gap-2">
+        {plannedSec > 0 && (
+          <button
+            type="button"
+            onClick={() => add(plannedSec - seconds)}
+            className="rounded-full border border-amber-500/40 px-3 py-1 hover:bg-amber-500/10"
+          >
+            Trim to plan
+          </button>
+        )}
+        <button
+          type="button"
+          onClick={() => setAdjustOpen(true)}
+          className="rounded-full border border-amber-500/40 px-3 py-1 hover:bg-amber-500/10"
+        >
+          Custom…
+        </button>
+        <button
+          type="button"
+          onClick={() => setRunawayKept(true)}
+          className="rounded-full border border-zinc-700 px-3 py-1 text-zinc-400 hover:bg-zinc-800"
+        >
+          Keep it
+        </button>
+      </div>
+    </div>
+  ) : null
 
   if (compact) {
     return (
@@ -160,6 +212,7 @@ export function TimerWidget({
             </button>
           </div>
         </div>
+        {runawayBanner}
         <TimerAdjustModal
           open={adjustOpen}
           seconds={seconds}
@@ -215,19 +268,7 @@ export function TimerWidget({
       </div>
       {pulsing && PULSE_STYLE}
 
-      {overrun && (
-        <div
-          className="mt-3 rounded-lg border px-3 py-2 text-xs"
-          style={{
-            borderColor: 'rgba(245,158,11,0.4)',
-            background: 'rgba(245,158,11,0.08)',
-            color: STREAK,
-          }}
-        >
-          Timer is &gt;1.5× the planned {Math.ceil(plannedSec / 60)} min —
-          forgot to pause?
-        </div>
-      )}
+      {runawayBanner}
 
       <div className="mt-4 flex items-center gap-3">
         <button

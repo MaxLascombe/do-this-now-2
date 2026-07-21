@@ -1,6 +1,10 @@
 import AsyncStorage from '@react-native-async-storage/async-storage'
 import { newSafeDateTime } from '@dtn/shared/helpers'
 import { minutesToHours } from '@dtn/shared/time'
+import {
+  currentTimerSeconds,
+  runawayThresholdSeconds,
+} from '@dtn/shared/timer-utils'
 import type { ProgressTodayResult } from '@dtn/shared/api-client'
 import type { UserSettings } from '@dtn/shared/settings'
 import type { Task } from '@dtn/shared/types'
@@ -21,6 +25,7 @@ export type NotificationToggles = {
   snoozeWake: boolean
   streakRisk: boolean
   morningBrief: boolean
+  runawayTimer: boolean
 }
 
 export const DEFAULT_TOGGLES: NotificationToggles = {
@@ -28,6 +33,7 @@ export const DEFAULT_TOGGLES: NotificationToggles = {
   snoozeWake: false,
   streakRisk: false,
   morningBrief: false,
+  runawayTimer: false,
 }
 
 const TOGGLES_KEY = 'dtn-notification-toggles'
@@ -139,6 +145,37 @@ export async function replanNotifications(args: {
           trigger: at(risk),
         })
       }
+    }
+  }
+
+  if (toggles.runawayTimer) {
+    // The Runaway Guard's "flag and notify": alert at the earlier of the
+    // 3×-plan moment and local midnight for whatever timer is running now.
+    for (const t of tasks) {
+      if (!t.timerStartedAt) continue
+      const elapsed = currentTimerSeconds(t, now)
+      const threshold = runawayThresholdSeconds(t.timeFrame)
+      const candidates: Array<Date> = []
+      if (elapsed < threshold) {
+        candidates.push(new Date(now.getTime() + (threshold - elapsed) * 1000))
+      }
+      const midnight = new Date(
+        now.getFullYear(),
+        now.getMonth(),
+        now.getDate() + 1,
+      )
+      candidates.push(midnight)
+      const when = new Date(
+        Math.min(...candidates.map((d) => d.getTime())),
+      )
+      if (when <= now) continue
+      await Notifications.scheduleNotificationAsync({
+        content: {
+          title: `⏱ ${t.emoji} ${t.title}`,
+          body: 'Timer is running away — still working?',
+        },
+        trigger: at(when),
+      })
     }
   }
 
