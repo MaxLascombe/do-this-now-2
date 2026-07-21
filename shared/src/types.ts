@@ -91,6 +91,19 @@ export type DailyProgress = {
   lives: number
 }
 
+// One settled past day as the Day Recap tells it. The verdict of day D is
+// carried by the daily_progress row for D+1 (its start state); days whose
+// D+1 row doesn't exist (pre-feature, unsettled) are simply absent.
+export type RecapDay = {
+  date: string
+  won: boolean
+  done: number
+  livesBefore: number
+  livesAfter: number
+  streakBefore: number
+  streakAfter: number
+}
+
 export type NewDailyProgress = DailyProgress
 
 // Shape returned by GET /api/stats. Mirrors the lib's StatsResult — kept

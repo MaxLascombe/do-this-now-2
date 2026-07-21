@@ -63,6 +63,10 @@ export const webApiClient: ApiClient = {
       progressFns.getProgressToday({
         data: { tzOffsetMin: getTzOffsetMin() },
       }),
+    recap: () =>
+      progressFns.getProgressRecap({
+        data: { tzOffsetMin: getTzOffsetMin() },
+      }),
   },
   settings: {
     get: () => settingsFns.getSettings(),

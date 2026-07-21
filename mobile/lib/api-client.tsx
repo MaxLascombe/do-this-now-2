@@ -103,6 +103,7 @@ function createMobileApi(getToken: () => Promise<string | null>): ApiClient {
     },
     progress: {
       today: () => call(`/api/progress/today`),
+      recap: () => call(`/api/progress/recap`),
     },
     settings: {
       get: () => call<UserSettings>('/api/settings'),

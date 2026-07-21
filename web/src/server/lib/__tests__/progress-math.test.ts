@@ -4,6 +4,7 @@ import { DEFAULT_SETTINGS } from '@dtn/shared/settings'
 import { describe, expect, it } from 'vitest'
 
 import {
+  buildRecap,
   computeProgress,
   findMinutesOnTargetDay,
   settleChain,
@@ -144,6 +145,61 @@ describe('computeProgress', () => {
       }),
     )
     expect(result.todo).toBe(15) // ceil(100 / 7)
+  })
+})
+
+describe('buildRecap', () => {
+  const row = (date: string, streakBeforeToday: number, lives: number) => ({
+    date,
+    streakBeforeToday,
+    lives,
+  })
+
+  it('reads a won day from its next-day rollover row', () => {
+    // today 5-3; day 5-2 verdict lives in the 5-3 row
+    const days = buildRecap(
+      newSafeDate('2026-5-3'),
+      [row('2026-5-2', 4, 30), row('2026-5-3', 5, 45)],
+      new Map([['2026-5-2', 75]]),
+      14,
+    )
+    expect(days[0]).toEqual({
+      date: '2026-5-2',
+      won: true,
+      done: 75,
+      livesBefore: 30,
+      livesAfter: 45,
+      streakBefore: 4,
+      streakAfter: 5,
+    })
+  })
+
+  it('reads a lost day from a {0,0} settlement row', () => {
+    const days = buildRecap(
+      newSafeDate('2026-5-3'),
+      [row('2026-5-2', 9, 120), row('2026-5-3', 0, 0)],
+      new Map([['2026-5-2', 40]]),
+      14,
+    )
+    expect(days[0]).toEqual({
+      date: '2026-5-2',
+      won: false,
+      done: 40,
+      livesBefore: 120,
+      livesAfter: 0,
+      streakBefore: 9,
+      streakAfter: 0,
+    })
+  })
+
+  it('skips days with no next-day row (unsettled / pre-feature)', () => {
+    const days = buildRecap(
+      newSafeDate('2026-5-10'),
+      [row('2026-5-3', 2, 10)], // only day 5-2's verdict exists
+      new Map(),
+      14,
+    )
+    expect(days.map((d) => d.date)).toEqual(['2026-5-2'])
   })
 })
 

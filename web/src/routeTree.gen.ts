@@ -26,6 +26,7 @@ import { Route as ApiTasksSuggestEmojisRouteImport } from './routes/api/tasks.su
 import { Route as ApiTasksSnoozeManyRouteImport } from './routes/api/tasks.snooze-many'
 import { Route as ApiTasksIdRouteImport } from './routes/api/tasks.$id'
 import { Route as ApiProgressTodayRouteImport } from './routes/api/progress.today'
+import { Route as ApiProgressRecapRouteImport } from './routes/api/progress.recap'
 import { Route as ApiLockscreenTimerRouteImport } from './routes/api/lockscreen.timer'
 import { Route as ApiLockscreenPushTokenRouteImport } from './routes/api/lockscreen.push-token'
 import { Route as ApiLockscreenProgressRouteImport } from './routes/api/lockscreen.progress'
@@ -122,6 +123,11 @@ const ApiProgressTodayRoute = ApiProgressTodayRouteImport.update({
   path: '/api/progress/today',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiProgressRecapRoute = ApiProgressRecapRouteImport.update({
+  id: '/api/progress/recap',
+  path: '/api/progress/recap',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ApiLockscreenTimerRoute = ApiLockscreenTimerRouteImport.update({
   id: '/api/lockscreen/timer',
   path: '/api/lockscreen/timer',
@@ -191,6 +197,7 @@ export interface FileRoutesByFullPath {
   '/api/lockscreen/progress': typeof ApiLockscreenProgressRoute
   '/api/lockscreen/push-token': typeof ApiLockscreenPushTokenRoute
   '/api/lockscreen/timer': typeof ApiLockscreenTimerRoute
+  '/api/progress/recap': typeof ApiProgressRecapRoute
   '/api/progress/today': typeof ApiProgressTodayRoute
   '/api/tasks/$id': typeof ApiTasksIdRouteWithChildren
   '/api/tasks/snooze-many': typeof ApiTasksSnoozeManyRoute
@@ -219,6 +226,7 @@ export interface FileRoutesByTo {
   '/api/lockscreen/progress': typeof ApiLockscreenProgressRoute
   '/api/lockscreen/push-token': typeof ApiLockscreenPushTokenRoute
   '/api/lockscreen/timer': typeof ApiLockscreenTimerRoute
+  '/api/progress/recap': typeof ApiProgressRecapRoute
   '/api/progress/today': typeof ApiProgressTodayRoute
   '/api/tasks/$id': typeof ApiTasksIdRouteWithChildren
   '/api/tasks/snooze-many': typeof ApiTasksSnoozeManyRoute
@@ -249,6 +257,7 @@ export interface FileRoutesById {
   '/api/lockscreen/progress': typeof ApiLockscreenProgressRoute
   '/api/lockscreen/push-token': typeof ApiLockscreenPushTokenRoute
   '/api/lockscreen/timer': typeof ApiLockscreenTimerRoute
+  '/api/progress/recap': typeof ApiProgressRecapRoute
   '/api/progress/today': typeof ApiProgressTodayRoute
   '/api/tasks/$id': typeof ApiTasksIdRouteWithChildren
   '/api/tasks/snooze-many': typeof ApiTasksSnoozeManyRoute
@@ -280,6 +289,7 @@ export interface FileRouteTypes {
     | '/api/lockscreen/progress'
     | '/api/lockscreen/push-token'
     | '/api/lockscreen/timer'
+    | '/api/progress/recap'
     | '/api/progress/today'
     | '/api/tasks/$id'
     | '/api/tasks/snooze-many'
@@ -308,6 +318,7 @@ export interface FileRouteTypes {
     | '/api/lockscreen/progress'
     | '/api/lockscreen/push-token'
     | '/api/lockscreen/timer'
+    | '/api/progress/recap'
     | '/api/progress/today'
     | '/api/tasks/$id'
     | '/api/tasks/snooze-many'
@@ -337,6 +348,7 @@ export interface FileRouteTypes {
     | '/api/lockscreen/progress'
     | '/api/lockscreen/push-token'
     | '/api/lockscreen/timer'
+    | '/api/progress/recap'
     | '/api/progress/today'
     | '/api/tasks/$id'
     | '/api/tasks/snooze-many'
@@ -367,6 +379,7 @@ export interface RootRouteChildren {
   ApiLockscreenProgressRoute: typeof ApiLockscreenProgressRoute
   ApiLockscreenPushTokenRoute: typeof ApiLockscreenPushTokenRoute
   ApiLockscreenTimerRoute: typeof ApiLockscreenTimerRoute
+  ApiProgressRecapRoute: typeof ApiProgressRecapRoute
   ApiProgressTodayRoute: typeof ApiProgressTodayRoute
 }
 
@@ -489,6 +502,13 @@ declare module '@tanstack/react-router' {
       path: '/api/progress/today'
       fullPath: '/api/progress/today'
       preLoaderRoute: typeof ApiProgressTodayRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/progress/recap': {
+      id: '/api/progress/recap'
+      path: '/api/progress/recap'
+      fullPath: '/api/progress/recap'
+      preLoaderRoute: typeof ApiProgressRecapRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/api/lockscreen/timer': {
@@ -629,6 +649,7 @@ const rootRouteChildren: RootRouteChildren = {
   ApiLockscreenProgressRoute: ApiLockscreenProgressRoute,
   ApiLockscreenPushTokenRoute: ApiLockscreenPushTokenRoute,
   ApiLockscreenTimerRoute: ApiLockscreenTimerRoute,
+  ApiProgressRecapRoute: ApiProgressRecapRoute,
   ApiProgressTodayRoute: ApiProgressTodayRoute,
 }
 export const routeTree = rootRouteImport

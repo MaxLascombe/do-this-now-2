@@ -8,6 +8,7 @@ import { db } from '../../db'
 import { rowCreditMinutes } from './history-credit'
 import { getUserSettings } from './settings'
 import {
+  buildRecap,
   computeDayTarget,
   computeProgress,
   MAX_SETTLE_DAYS,
@@ -15,8 +16,51 @@ import {
   type ProgressInputs,
   type ProgressTodayResult,
 } from './progress-math'
+import type { RecapDay } from '@dtn/shared/types'
 
 export type { ProgressTodayResult }
+
+const RECAP_DAYS = 14
+
+// The Day Recap payload: verdicts for the last settled days, newest first.
+// Settles first so yesterday's verdict exists even on the first read of a
+// new day.
+export async function getProgressRecap(
+  userId: string,
+  tzOffsetMin: number,
+): Promise<Array<RecapDay>> {
+  try {
+    await settlePastDays(userId, tzOffsetMin)
+  } catch (err) {
+    console.error('settlePastDays failed in getProgressRecap', err)
+  }
+  const { todayDate, todayUtcStart } = getUserToday(tzOffsetMin)
+  const rangeUtcStart = new Date(
+    todayUtcStart.getTime() - RECAP_DAYS * 24 * 60 * 60 * 1000,
+  )
+  const [rows, hist] = await Promise.all([
+    db
+      .select()
+      .from(dailyProgress)
+      .where(eq(dailyProgress.userId, userId)),
+    db
+      .select()
+      .from(history)
+      .where(
+        and(
+          eq(history.userId, userId),
+          gte(history.completedAt, rangeUtcStart),
+          lt(history.completedAt, todayUtcStart),
+        ),
+      ),
+  ])
+  const doneByDay = new Map<string, number>()
+  for (const row of hist) {
+    const key = getUserToday(tzOffsetMin, row.completedAt).todayKey
+    doneByDay.set(key, (doneByDay.get(key) ?? 0) + rowCreditMinutes(row))
+  }
+  return buildRecap(todayDate, rows, doneByDay, RECAP_DAYS)
+}
 
 // --- internal helpers -------------------------------------------------
 

@@ -1,4 +1,5 @@
-import { MINUTES_IN_DAY } from './time'
+import { MINUTES_IN_DAY, minutesToHours } from './time'
+import type { RecapDay } from './types'
 
 // The one fill model behind every Progress Bar rendering (desktop blocks,
 // popover, web-mobile strip/sheet, RN mini bar/sheet). Done Minutes fill from
@@ -76,6 +77,33 @@ export const STREAK_MILESTONES = [7, 30, 100, 365] as const
 
 export const streakMilestone = (streak: number): number | null =>
   (STREAK_MILESTONES as readonly number[]).includes(streak) ? streak : null
+
+// One Recap line, equal weight for wins and losses — losses stated honestly
+// ("bank 3h wiped · streak 12 → 0"), never softened. Titles (Yesterday /
+// dates) are the caller's job.
+export function describeRecapDay(day: RecapDay): {
+  headline: 'Won' | 'Lost'
+  detail: string
+} {
+  const doneLabel = `${minutesToHours(day.done)} done`
+  if (day.won) {
+    const delta = day.livesAfter - day.livesBefore
+    const livesPart =
+      delta >= 0
+        ? `+${minutesToHours(delta)} banked`
+        : `won on ${minutesToHours(-delta)} of Lives`
+    return {
+      headline: 'Won',
+      detail: `${doneLabel} · ${livesPart} · streak ${day.streakAfter}`,
+    }
+  }
+  const wipe =
+    day.livesBefore > 0 ? `bank ${minutesToHours(day.livesBefore)} wiped · ` : ''
+  return {
+    headline: 'Lost',
+    detail: `${doneLabel} · ${wipe}streak ${day.streakBefore} → 0`,
+  }
+}
 
 export type WinEta = { kind: 'won' } | { kind: 'eta'; minutesOfDay: number }
 

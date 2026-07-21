@@ -41,6 +41,7 @@ import {
 
 import { EmptyTasks } from '../../components/EmptyTasks'
 import { ErrorState } from '../../components/ErrorState'
+import { RecapCard } from '../../components/RecapCard'
 import { Skeleton, TaskRowSkeleton } from '../../components/Skeleton'
 import {
   PencilIcon,
@@ -291,6 +292,7 @@ export default function Home() {
                 paddingTop: 16,
               }}
             >
+              <RecapCard />
               <Text
                 style={{
                   fontFamily: 'JetBrainsMono_400Regular',

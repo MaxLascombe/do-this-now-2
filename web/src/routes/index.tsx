@@ -35,6 +35,7 @@ import { useEffect, useState, type ReactNode } from 'react'
 import { useConfirm } from '../components/ConfirmProvider'
 import { CountConfirmModal } from '../components/CountConfirmModal'
 import { ErrorState } from '../components/ErrorState'
+import { RecapCard } from '../components/RecapCard'
 import { KeyHints } from '../components/KeyHints'
 import { Loading } from '../components/Loading'
 import { MobileChrome } from '../components/MobileChrome'
@@ -463,6 +464,7 @@ function Home() {
         // inline so a row can be cleared without committing to it.
         <div className="flex flex-1 flex-col items-center justify-center px-5 pb-20 md:px-16">
           <div className="w-full max-w-xl">
+            <RecapCard />
             <div className="mb-4 px-1 font-mono text-[10px] tracking-[0.25em] text-zinc-600 uppercase">
               what's next
             </div>
