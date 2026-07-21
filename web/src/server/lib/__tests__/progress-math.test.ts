@@ -1,10 +1,12 @@
 import { newSafeDate } from '@dtn/shared/helpers'
 import { type Task } from '@dtn/shared/schema'
+import { DEFAULT_SETTINGS } from '@dtn/shared/settings'
 import { describe, expect, it } from 'vitest'
 
 import {
   computeProgress,
   findMinutesOnTargetDay,
+  settleChain,
   type ProgressInputs,
 } from '../progress-math'
 
@@ -39,7 +41,9 @@ const inputs = (over: Partial<ProgressInputs> = {}): ProgressInputs => ({
   completedTodayMin: 0,
   streakBeforeToday: 0,
   lives: 0,
+  bestStreakBefore: 0,
   allTasks: [],
+  settings: DEFAULT_SETTINGS,
   ...over,
 })
 
@@ -95,6 +99,92 @@ describe('computeProgress', () => {
     expect(result.todo).toBe(0)
     expect(result.daysUntilAllDone).toBe(14)
     expect(result.streakIsActive).toBe(true) // 0 done >= 0 todo
+  })
+
+  it('echoes the workday settings and tracks the best streak', () => {
+    const task = makeTask({ repeat: 'No Repeat', timeFrame: 100 })
+    const c = computeProgress(
+      today,
+      inputs({
+        allTasks: [task],
+        completedTodayMin: 120,
+        streakBeforeToday: 3,
+        bestStreakBefore: 10,
+      }),
+    )
+    expect(c.result.workdayStartMin).toBe(DEFAULT_SETTINGS.workdayStartMin)
+    expect(c.result.workdayEndMin).toBe(DEFAULT_SETTINGS.workdayEndMin)
+    expect(c.result.bestStreak).toBe(10) // past best still ahead of streak 4
+  })
+
+  it('caps the target at the workday length, not a fixed constant', () => {
+    // raw ceil(10000 / 14) = 715 far exceeds the 4h (240-min) workday
+    const task = makeTask({ repeat: 'No Repeat', timeFrame: 10000 })
+    const { result } = computeProgress(
+      today,
+      inputs({
+        allTasks: [task],
+        settings: {
+          workdayStartMin: 8 * 60,
+          workdayEndMin: 12 * 60,
+          horizonDays: 14,
+        },
+      }),
+    )
+    expect(result.todo).toBe(240) // capped at the 4h workday
+  })
+
+  it('shrinks the horizon the target averages over', () => {
+    const task = makeTask({ repeat: 'No Repeat', timeFrame: 100 })
+    const { result } = computeProgress(
+      today,
+      inputs({
+        allTasks: [task],
+        settings: { ...DEFAULT_SETTINGS, horizonDays: 7 },
+      }),
+    )
+    expect(result.todo).toBe(15) // ceil(100 / 7)
+  })
+})
+
+describe('settleChain', () => {
+  it('banks the surplus and extends the streak on a won day', () => {
+    const rows = settleChain({ streakBeforeToday: 3, lives: 20 }, [
+      { done: 100, todo: 60 },
+    ])
+    expect(rows).toEqual([{ streakBeforeToday: 4, lives: 60 }])
+  })
+
+  it('lets the bank alone win absent days until it runs dry', () => {
+    // 130 lives vs three 60-min targets: two rest days won, then a wipe.
+    const rows = settleChain({ streakBeforeToday: 5, lives: 130 }, [
+      { done: 0, todo: 60 },
+      { done: 0, todo: 60 },
+      { done: 0, todo: 60 },
+    ])
+    expect(rows).toEqual([
+      { streakBeforeToday: 6, lives: 70 },
+      { streakBeforeToday: 7, lives: 10 },
+      { streakBeforeToday: 0, lives: 0 },
+    ])
+  })
+
+  it('wipes everything on a loss — done minutes carry nothing', () => {
+    const rows = settleChain({ streakBeforeToday: 9, lives: 30 }, [
+      { done: 400, todo: 500 },
+    ])
+    expect(rows).toEqual([{ streakBeforeToday: 0, lives: 0 }])
+  })
+
+  it('can rebuild a streak after a mid-gap wipe', () => {
+    const rows = settleChain({ streakBeforeToday: 2, lives: 0 }, [
+      { done: 10, todo: 60 }, // loss
+      { done: 80, todo: 60 }, // win from zero
+    ])
+    expect(rows).toEqual([
+      { streakBeforeToday: 0, lives: 0 },
+      { streakBeforeToday: 1, lives: 20 },
+    ])
   })
 })
 

@@ -1,17 +1,19 @@
-import { useProgressToday } from '@dtn/shared/queries'
-import { computePoints } from '@dtn/shared/scoring'
+import { progressCells, splitBarUnits } from '@dtn/shared/progress-display'
+import { minutesOfDayToHHMM } from '@dtn/shared/settings'
 import { minutesToHours } from '@dtn/shared/time'
 import { Link, useLocation } from '@tanstack/react-router'
 import { User } from 'lucide-react'
 import { useEffect } from 'react'
 import { activeNavFromPath, type NavId } from '../lib/nav'
-import { cells } from '../lib/progress-cells'
-import { useComputedProgress } from './ProgressBar'
+import {
+  ACCENT,
+  LIVES,
+  STREAK,
+  cellColor,
+  useComputedProgress,
+} from './ProgressBar'
 import { FocusReturnBar } from './FocusReturnBar'
 import type { ReactNode } from 'react'
-
-const ACCENT = '#34d399'
-const STREAK = '#f59e0b'
 
 type ActiveTab = NavId
 
@@ -19,46 +21,23 @@ const MINI_CELLS = 14
 
 export const MobileTopBar = ({ onOpenSheet }: { onOpenSheet: () => void }) => {
   const p = useComputedProgress()
-  const progress = useProgressToday()
-  // todo is 0 on a no-tasks day; guard so the bar reads empty (0%) rather
-  // than a NaN width. Only read fully complete once the target is actually
-  // met — rounding would fill the bar a hair early (same rule as
-  // ProgressBlocks and the mobile app).
-  const hitTodo =
-    !!progress.data &&
-    progress.data.todo > 0 &&
-    progress.data.done >= progress.data.todo
-  const pct =
-    progress.data && progress.data.todo > 0
-      ? hitTodo
-        ? 100
-        : Math.min(
-            99,
-            Math.round((progress.data.done / progress.data.todo) * 100),
-          )
-      : 0
-
-  let points = 0
-  if (progress.data) {
-    const { done, todo, lives } = progress.data
-    points = computePoints(done, todo, lives)
-  }
-
-  const filledCount =
-    p && p.todo > 0
-      ? p.done >= p.todo
-        ? MINI_CELLS
-        : Math.min(MINI_CELLS - 1, Math.round((p.done / p.todo) * MINI_CELLS))
-      : 0
-  const tickAt =
-    p && p.todo > 0 ? Math.round((p.shouldBeDone / p.todo) * MINI_CELLS) : 0
+  const { doneUnits: donePct, livesUnits: livesPct } = splitBarUnits({
+    done: p?.done ?? 0,
+    lives: p?.lives ?? 0,
+    todo: p?.todo ?? 0,
+    count: 100,
+  })
 
   return (
     <div className="md:hidden">
-      <div className="absolute top-0 right-0 left-0 z-10 h-[2px] bg-zinc-900">
+      <div className="absolute top-0 right-0 left-0 z-10 flex h-[2px] bg-zinc-900">
         <div
           className="h-full transition-[width] duration-300"
-          style={{ width: pct + '%', background: ACCENT }}
+          style={{ width: donePct + '%', background: ACCENT }}
+        />
+        <div
+          className="h-full transition-[width] duration-300"
+          style={{ width: livesPct + '%', background: LIVES }}
         />
       </div>
       <div className="flex items-center">
@@ -70,40 +49,50 @@ export const MobileTopBar = ({ onOpenSheet }: { onOpenSheet: () => void }) => {
           className="relative flex flex-1 items-center justify-between px-5 py-3 text-left font-mono text-[13px] active:bg-zinc-900/40"
         >
           <div className="flex items-center gap-3 text-zinc-400">
-            {progress.data && (
+            {p && (
               <>
-                <span className="flex items-center gap-1">
-                  <span className="text-zinc-100">★</span>
-                  <span className="tabular-nums">{points}</span>
-                </span>
                 <span
                   className="flex items-center gap-1"
                   style={{ color: STREAK }}
                 >
                   <span>▲</span>
-                  <span className="tabular-nums">{progress.data.streak}</span>
+                  <span className="tabular-nums">{p.streak}</span>
                 </span>
-                <span style={{ color: ACCENT }}>{p?.scheduleShort}</span>
+                <span
+                  className="flex items-center gap-1"
+                  style={{ color: LIVES }}
+                >
+                  <span>♥</span>
+                  <span className="tabular-nums">
+                    {minutesToHours(p.lives)}
+                  </span>
+                </span>
+                <span style={{ color: ACCENT }}>{p.scheduleShort}</span>
               </>
             )}
           </div>
           <span className="inline-flex items-center gap-[2px]">
-            {cells(MINI_CELLS, filledCount, tickAt).map(
-              ({ key, filled, isTick }) => (
+            {p &&
+              progressCells({
+                count: MINI_CELLS,
+                done: p.done,
+                lives: p.lives,
+                todo: p.todo,
+                shouldBeDone: p.shouldBeDone,
+              }).map(({ key, fill, isTick }) => (
                 <span
                   key={key}
                   style={{
                     width: 5,
                     height: 12,
-                    background: filled ? ACCENT : 'rgba(255,255,255,0.12)',
+                    background: cellColor(fill),
                     outline: isTick
                       ? '1px solid rgba(255,255,255,0.9)'
                       : undefined,
                     outlineOffset: isTick ? -1 : undefined,
                   }}
                 />
-              ),
-            )}
+              ))}
           </span>
         </button>
         <Link
@@ -197,19 +186,26 @@ const SheetStat = ({
   label,
   value,
   unit,
+  dim,
+  active,
 }: {
   icon: string
   iconColor?: string
   label: string
   value: string | number
   unit: string
+  dim?: boolean
+  active?: boolean
 }) => (
-  <div>
+  <div className={dim ? 'opacity-60' : ''}>
     <div className="flex items-center gap-1.5 text-[10px] tracking-[0.25em] text-zinc-500 uppercase">
       <span aria-hidden="true" style={{ color: iconColor ?? '#fafafa' }}>
         {icon}
       </span>
       <span>{label}</span>
+      {active && (
+        <span className="ml-auto h-1.5 w-1.5 animate-pulse rounded-full bg-amber-400" />
+      )}
     </div>
     <div className="mt-1 flex items-baseline gap-1.5">
       <span
@@ -239,11 +235,7 @@ export const MobileProgressSheet = ({ onClose }: { onClose: () => void }) => {
   if (!p) return null
 
   const SHEET_CELLS = 28
-  const filledCount =
-    p.done >= p.todo
-      ? SHEET_CELLS
-      : Math.min(SHEET_CELLS - 1, Math.round((p.done / p.todo) * SHEET_CELLS))
-  const tickAt = Math.round((p.shouldBeDone / p.todo) * SHEET_CELLS)
+  const won = p.remainingToWin === 0 && p.todo > 0
 
   return (
     <div className="fixed inset-0 z-50 flex items-end md:hidden">
@@ -273,22 +265,24 @@ export const MobileProgressSheet = ({ onClose }: { onClose: () => void }) => {
           </span>
         </div>
         <div className="flex items-center gap-[2px]">
-          {cells(SHEET_CELLS, filledCount, tickAt).map(
-            ({ key, filled, isTick }) => (
-              <span
-                key={key}
-                style={{
-                  flex: 1,
-                  height: 18,
-                  background: filled ? ACCENT : 'rgba(255,255,255,0.10)',
-                  outline: isTick
-                    ? '1px solid rgba(255,255,255,0.9)'
-                    : undefined,
-                  outlineOffset: isTick ? -1 : undefined,
-                }}
-              />
-            ),
-          )}
+          {progressCells({
+            count: SHEET_CELLS,
+            done: p.done,
+            lives: p.lives,
+            todo: p.todo,
+            shouldBeDone: p.shouldBeDone,
+          }).map(({ key, fill, isTick }) => (
+            <span
+              key={key}
+              style={{
+                flex: 1,
+                height: 18,
+                background: cellColor(fill),
+                outline: isTick ? '1px solid rgba(255,255,255,0.9)' : undefined,
+                outlineOffset: isTick ? -1 : undefined,
+              }}
+            />
+          ))}
         </div>
         <div className="mt-3 flex items-baseline justify-between">
           <span
@@ -304,25 +298,41 @@ export const MobileProgressSheet = ({ onClose }: { onClose: () => void }) => {
           </span>
         </div>
         <div className="mt-5 grid grid-cols-2 gap-x-5 gap-y-4">
-          <SheetStat icon="★" label="Points" value={p.points} unit="today" />
           <SheetStat
             icon="▲"
             iconColor={STREAK}
             label="Streak"
             value={p.streak}
-            unit={p.streak === 1 ? 'day' : 'days'}
+            unit={`${p.streak === 1 ? 'day' : 'days'} · best ${p.bestStreak}`}
+            active={p.streakIsActive}
           />
           <SheetStat
             icon="♥"
+            iconColor={LIVES}
             label="Lives"
-            value={minutesToHours(p.livesLeft)}
-            unit="left"
+            value={minutesToHours(p.lives)}
+            unit="banked"
           />
           <SheetStat
             icon="⏳"
             label="Remaining"
-            value={minutesToHours(p.remaining)}
-            unit="to target"
+            value={minutesToHours(p.remainingToWin)}
+            unit="to win"
+            dim={won}
+          />
+          <SheetStat
+            icon="◔"
+            label="Win ETA"
+            value={p.winEtaLabel}
+            unit={won ? 'day won' : 'projected'}
+          />
+          <SheetStat
+            icon="↥"
+            iconColor={LIVES}
+            label="Banking"
+            value={`+${minutesToHours(p.banking)}`}
+            unit="tomorrow's lives"
+            dim={p.banking === 0}
           />
           <SheetStat
             icon="∞"
@@ -330,7 +340,18 @@ export const MobileProgressSheet = ({ onClose }: { onClose: () => void }) => {
             value={`~${p.daysUntilAllDone}d`}
             unit={p.clearByLabel}
           />
-          <SheetStat icon="◷" label="Workday" value="08:30" unit="– 24:00" />
+          <SheetStat
+            icon="↻"
+            label="Baseline"
+            value={minutesToHours(p.theoreticalMinimum)}
+            unit="recurring / day"
+          />
+          <SheetStat
+            icon="◷"
+            label="Workday"
+            value={minutesOfDayToHHMM(p.workdayStartMin)}
+            unit={`– ${minutesOfDayToHHMM(p.workdayEndMin)}`}
+          />
         </div>
       </div>
     </div>

@@ -9,8 +9,8 @@ export const minutesToHours = (minutes: number): string => {
 
 export const getTzOffsetMin = (): number => new Date().getTimezoneOffset()
 
-// Day-of-the-day-bar starting point used by Progress to compute "where in
-// the day are we" for the ahead/behind-schedule indicator. 8:30am local.
+// Default Workday start (8:30am local). The live value is a user setting
+// (see ./settings DEFAULT_SETTINGS); this constant only seeds the default.
 export const START_OF_DAY_MINUTES = 8 * 60 + 30
 export const MINUTES_IN_DAY = 24 * 60
 

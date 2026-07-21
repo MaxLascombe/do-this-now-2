@@ -86,10 +86,13 @@ export async function getStats(
   const nowMs = Date.now()
   const todayKey = localDateKey(nowMs, tzOffsetMin)
 
-  // Build a Set of "hit" date keys: a day d is hit iff a daily_progress
-  // row exists for d+1 (the rollover-write is the persisted hit signal).
+  // Build a Set of "hit" date keys: a day d is hit iff the daily_progress
+  // row for d+1 carries a streak (win rollovers always have
+  // streakBeforeToday >= 1). Lazy settlement also writes {0,0} rows for lost
+  // days, so mere row existence stopped meaning "hit".
   const hitDates = new Set<string>()
   for (const row of dailyRows) {
+    if (row.streakBeforeToday <= 0) continue
     // row.date is the "tomorrow" key from the day that hit; subtract 1.
     const [y, m, d] = row.date.split('-').map((p) => parseInt(p))
     const dayBefore = new Date(y, m - 1, d - 1)

@@ -36,6 +36,38 @@ _Avoid_: blocked, locked, deferred, hidden task
 A native mechanic (system alert, bottom sheet, haptic, pull-to-refresh, swipe, native modal) used on mobile where web uses a styled in-page equivalent. Idioms are parity, not drift: the mechanic may differ, but the copy, colors, sizes, and content inside it must match the web design. Keyboard-only affordances are not idioms — they are omitted on touch entirely.
 _Avoid_: inconsistency, deviation (when describing an idiom), mobile-only feature
 
+**Done Minutes**:
+Today's completion-credited work: each completed task credits its planned time or its actual time, whichever is larger. Only completions count — a running Timer contributes nothing to the Progress Bar, readouts, or projections until its task is done.
+_Avoid_: elapsed, time worked, in-flight time
+
+**Daily Target**:
+The minutes of work the day asks for. It is the Progress Bar's max — displayed unchanged regardless of Lives — and the line at which the day is won. It is derived, never set directly: upcoming due work (overdue included) averaged over a rolling window (user-tunable, 14 days by default), capped so it never exceeds the Workday unless recurring load alone demands more.
+_Avoid_: todo, goal, quota, lives target
+
+**Workday**:
+The user-set window of the day (08:30–24:00 by default) that pacing spreads the Daily Target across. Only pacing reads it — minutes done outside the Workday still count.
+_Avoid_: business hours, working hours
+
+**Won Day**:
+A day whose done minutes plus Lives reached the Daily Target by day's end. A win banks the surplus as Lives and extends the Streak; anything short is a lost day.
+_Avoid_: hit target, target met, completed day
+
+**Streak**:
+The count of consecutive Won Days. It shows yesterday's count until the moment today is won, then ticks up immediately; a lost day resets it to 0 — Lives are the only mercy mechanic.
+_Avoid_: chain, run
+
+**Progress Bar**:
+The bar tracking today's minutes toward the Daily Target. Done minutes fill from the start; banked Lives extend the fill beyond them in a distinct color, so cushion is visible but never mistaken for work. A full bar (done + Lives) always means the day is won, and the bar is never shown full before then.
+_Avoid_: streak bar
+
+**Pacing Tick**:
+The marker on the Progress Bar showing where done minutes alone should be by now, pacing linearly across the workday toward the Daily Target — never past it. Ahead/behind compares done minutes to the Pacing Tick; Lives never count as pace, so Lives-colored fill may sit beyond the tick while the label still reads behind.
+_Avoid_: should-be marker, schedule marker
+
+**Lives**:
+Surplus minutes banked by finishing past a won day's Daily Target. They extend today's fill on the Progress Bar, shrinking the real work left to win today without changing the displayed Daily Target. The bank is deliberately uncapped: a bank exceeding the Daily Target wins the day outright — banked rest days are a feature. A lost day forfeits the entire bank and the day's done minutes carry nothing forward — a played bank does not survive a loss.
+_Avoid_: hearts, cushion, credit
+
 **Subtask**:
 A step within a task. Seen and worked through in the Focus View — the Tasks list shows only a done/total count, never the subtasks themselves. There is no freeform notes field on a task; subtasks are the only sub-detail.
 _Avoid_: step, checklist item, note

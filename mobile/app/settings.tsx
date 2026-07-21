@@ -1,4 +1,7 @@
 import { useClerk, useUser } from '@clerk/clerk-expo'
+import { useSettings, useUpdateSettings } from '@dtn/shared/queries'
+import { minutesOfDayToHHMM, type UserSettings } from '@dtn/shared/settings'
+import { MINUTES_IN_DAY } from '@dtn/shared/time'
 import * as Haptics from 'expo-haptics'
 import { Stack } from 'expo-router'
 import * as Updates from 'expo-updates'
@@ -8,6 +11,160 @@ import { SafeAreaView } from 'react-native-safe-area-context'
 import { PageHeading } from '../components/PageHeading'
 
 const OVERDUE = '#fb7185'
+
+const StepButton = ({
+  glyph,
+  disabled,
+  onPress,
+}: {
+  glyph: string
+  disabled: boolean
+  onPress: () => void
+}) => (
+  <Pressable
+    onPress={() => {
+      void Haptics.selectionAsync()
+      onPress()
+    }}
+    disabled={disabled}
+    accessibilityRole="button"
+    accessibilityLabel={glyph === '−' ? 'Decrease' : 'Increase'}
+    hitSlop={8}
+    style={({ pressed }) => ({
+      width: 34,
+      height: 34,
+      borderRadius: 17,
+      borderWidth: 1,
+      borderColor: '#27272a',
+      alignItems: 'center',
+      justifyContent: 'center',
+      opacity: disabled ? 0.3 : pressed ? 0.6 : 1,
+    })}
+  >
+    <Text style={{ color: '#fafafa', fontSize: 16 }}>{glyph}</Text>
+  </Pressable>
+)
+
+const StepperRow = ({
+  label,
+  display,
+  canDec,
+  canInc,
+  onDec,
+  onInc,
+}: {
+  label: string
+  display: string
+  canDec: boolean
+  canInc: boolean
+  onDec: () => void
+  onInc: () => void
+}) => (
+  <View
+    style={{
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+    }}
+  >
+    <Text
+      style={{
+        fontFamily: 'JetBrainsMono_400Regular',
+        fontSize: 14,
+        color: '#a1a1aa',
+      }}
+    >
+      {label}
+    </Text>
+    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
+      <StepButton glyph="−" disabled={!canDec} onPress={onDec} />
+      <Text
+        style={{
+          fontFamily: 'JetBrainsMono_700Bold',
+          fontSize: 15,
+          color: '#fafafa',
+          minWidth: 64,
+          textAlign: 'center',
+          fontVariant: ['tabular-nums'],
+        }}
+      >
+        {display}
+      </Text>
+      <StepButton glyph="＋" disabled={!canInc} onPress={onInc} />
+    </View>
+  </View>
+)
+
+// Workday window + target horizon. Saves on every change — no ceremony.
+function ProgressSettings() {
+  const q = useSettings()
+  const update = useUpdateSettings()
+  if (!q.data) return null
+  const s = q.data
+  const save = (patch: Partial<UserSettings>) =>
+    update.mutate({ ...s, ...patch })
+
+  return (
+    <View
+      style={{
+        borderWidth: 1,
+        borderColor: '#27272a',
+        borderRadius: 16,
+        backgroundColor: 'rgba(24,24,27,0.6)',
+        paddingHorizontal: 20,
+        paddingVertical: 18,
+        gap: 16,
+      }}
+    >
+      <Text
+        style={{
+          fontFamily: 'JetBrainsMono_400Regular',
+          fontSize: 11,
+          letterSpacing: 3,
+          color: '#71717a',
+          textTransform: 'uppercase',
+        }}
+      >
+        Progress
+      </Text>
+      <StepperRow
+        label="Workday starts"
+        display={minutesOfDayToHHMM(s.workdayStartMin)}
+        canDec={s.workdayStartMin >= 30}
+        canInc={s.workdayStartMin + 30 <= s.workdayEndMin - 30}
+        onDec={() => save({ workdayStartMin: s.workdayStartMin - 30 })}
+        onInc={() => save({ workdayStartMin: s.workdayStartMin + 30 })}
+      />
+      <StepperRow
+        label="Workday ends"
+        display={minutesOfDayToHHMM(s.workdayEndMin)}
+        canDec={s.workdayEndMin - 30 >= s.workdayStartMin + 30}
+        canInc={s.workdayEndMin + 30 <= MINUTES_IN_DAY}
+        onDec={() => save({ workdayEndMin: s.workdayEndMin - 30 })}
+        onInc={() => save({ workdayEndMin: s.workdayEndMin + 30 })}
+      />
+      <StepperRow
+        label="Target horizon"
+        display={`${s.horizonDays}d`}
+        canDec={s.horizonDays > 1}
+        canInc={s.horizonDays < 60}
+        onDec={() => save({ horizonDays: s.horizonDays - 1 })}
+        onInc={() => save({ horizonDays: s.horizonDays + 1 })}
+      />
+      <Text
+        style={{
+          fontFamily: 'JetBrainsMono_400Regular',
+          fontSize: 12,
+          lineHeight: 18,
+          color: '#71717a',
+        }}
+      >
+        The daily target averages the next {s.horizonDays} days of due work;
+        pacing spreads it across the workday.
+      </Text>
+    </View>
+  )
+}
 
 export default function Settings() {
   const { signOut } = useClerk()
@@ -109,6 +266,8 @@ export default function Settings() {
               : 'embedded bundle (no OTA applied)'}
           </Text>
         </View>
+
+        <ProgressSettings />
 
         <Pressable
           onPress={onSignOut}

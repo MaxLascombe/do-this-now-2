@@ -6,6 +6,7 @@ import {
   type SelectionResult,
 } from '@dtn/shared/api-client'
 import { getTzOffsetMin } from '@dtn/shared/time'
+import type { UserSettings } from '@dtn/shared/settings'
 import type { HistoryEntry, StatsResult, Task } from '@dtn/shared/types'
 import { type ReactNode, useMemo } from 'react'
 
@@ -102,6 +103,11 @@ function createMobileApi(getToken: () => Promise<string | null>): ApiClient {
     },
     progress: {
       today: () => call(`/api/progress/today`),
+    },
+    settings: {
+      get: () => call<UserSettings>('/api/settings'),
+      update: (input) =>
+        call<UserSettings>('/api/settings', { method: 'PUT', body: input }),
     },
     stats: {
       get: () => call<StatsResult>(`/api/stats`),

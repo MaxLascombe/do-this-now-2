@@ -72,7 +72,8 @@ Mobile's API client converts non-2xx responses into a typed `ApiError`
 | `tasks`          | Live tasks. Indexed by `user_id`.                                                                                                      |
 | `history`        | Append-only log of completions. `task_id` FK on `tasks` with `ON DELETE SET NULL` so history survives task deletion via `taskSnapshot`. |
 | `task_events`    | `'snoozed' \| 'deleted'` events that the live `tasks` row doesn't preserve. Used for the Stats page (snooze count, abandonment rate).   |
-| `daily_progress` | One row per (user, day) recording streak + lives. Written by `finalizeTodayProgress` on completion, NOT on every GET.                  |
+| `daily_progress` | One row per (user, day) recording streak + lives. Today's rollover is written by `finalizeTodayProgress` on completion; the GET path only backfills verdicts for unsettled PAST days (lazy settlement, ADR-0004). |
+| `user_settings`  | Per-user Workday window + target horizon. Absent row = defaults (08:30–24:00, 14 days).                                                |
 
 ## Transactions
 

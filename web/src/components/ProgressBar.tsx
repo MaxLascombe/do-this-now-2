@@ -1,35 +1,47 @@
 import { formatScheduleStatus } from '@dtn/shared/format'
 import { computeSchedule } from '@dtn/shared/pacing'
+import {
+  computeWinEta,
+  formatWinEta,
+  progressCells,
+  type ProgressCellFill,
+} from '@dtn/shared/progress-display'
 import { useProgressToday } from '@dtn/shared/queries'
-import { computePoints } from '@dtn/shared/scoring'
+import { minutesOfDayToHHMM } from '@dtn/shared/settings'
 import { minutesToHours } from '@dtn/shared/time'
 import { useRef } from 'react'
 
 import { useDate } from '../hooks/useDate'
-import { cells } from '../lib/progress-cells'
 
 const CELLS = 24
 const CELL_W = 6
 const CELL_H = 12
 
-const ACCENT = '#34d399'
-const STREAK = '#f59e0b'
+export const ACCENT = '#34d399'
+export const STREAK = '#f59e0b'
+export const LIVES = '#38bdf8'
+
+export const cellColor = (fill: ProgressCellFill): string =>
+  fill === 'done' ? ACCENT : fill === 'lives' ? LIVES : 'rgba(255,255,255,0.10)'
 
 type Computed = {
   done: number
   todo: number
+  lives: number
   shouldBeDone: number
-  isBeforeWorkday: number
   scheduleShort: string
-  points: number
   streak: number
+  bestStreak: number
   streakIsActive: boolean
-  livesLeft: number
-  livesUsed: number
-  remaining: number
+  remainingToWin: number
+  banking: number
+  winEtaLabel: string
   reduceTomorrow: number
+  theoreticalMinimum: number
   daysUntilAllDone: number
   clearByLabel: string
+  workdayStartMin: number
+  workdayEndMin: number
 }
 
 export const useComputedProgress = (): Computed | null => {
@@ -41,20 +53,20 @@ export const useComputedProgress = (): Computed | null => {
     lives,
     streak,
     streakIsActive,
+    bestStreak,
     todo,
+    theoreticalMinimum,
     daysUntilAllDone,
     minutesToReduceTomorrowDays,
+    workdayStartMin,
+    workdayEndMin,
   } = q.data
   const { shouldBeDone, isBeforeWorkday } = computeSchedule(
     now,
     todo,
-    minutesToReduceTomorrowDays,
+    workdayStartMin,
+    workdayEndMin,
   )
-
-  const livesUsed = Math.min(lives, Math.max(0, todo - done))
-  const livesLeft = lives - livesUsed
-
-  const points = computePoints(done, todo, lives)
 
   const clearByDate = new Date(
     new Date().setDate(now.getDate() + daysUntilAllDone),
@@ -63,40 +75,37 @@ export const useComputedProgress = (): Computed | null => {
   return {
     done,
     todo,
+    lives,
     shouldBeDone,
-    isBeforeWorkday: isBeforeWorkday ? 1 : 0,
     scheduleShort: formatScheduleStatus({
       done,
       shouldBeDone,
       isBeforeWorkday,
       short: true,
     }),
-    points,
     streak,
+    bestStreak,
     streakIsActive,
-    livesLeft,
-    livesUsed,
-    remaining: Math.max(0, todo - done),
+    remainingToWin: Math.max(0, todo - done - lives),
+    banking: Math.max(0, done + lives - todo),
+    winEtaLabel: formatWinEta(
+      computeWinEta({ now, done, lives, todo, workdayStartMin, workdayEndMin }),
+    ),
     reduceTomorrow: Math.max(0, minutesToReduceTomorrowDays - done),
+    theoreticalMinimum,
     daysUntilAllDone,
     clearByLabel: clearByDate.toLocaleDateString('en-US', {
       month: 'short',
       day: 'numeric',
     }),
+    workdayStartMin,
+    workdayEndMin,
   }
 }
 
 export const ProgressBlocks = () => {
   const p = useComputedProgress()
   if (!p) return null
-  // Only show the bar completely full once the target is actually met —
-  // rounding would otherwise fill the last cell a hair early, reading as
-  // "done" (and "you went over") while you're still short of the lives target.
-  const filledCount =
-    p.done >= p.todo
-      ? CELLS
-      : Math.min(CELLS - 1, Math.round((p.done / p.todo) * CELLS))
-  const tickAt = Math.round((p.shouldBeDone / p.todo) * CELLS)
 
   return (
     <span
@@ -105,16 +114,22 @@ export const ProgressBlocks = () => {
       role="progressbar"
       aria-valuemin={0}
       aria-valuemax={p.todo}
-      aria-valuenow={Math.min(p.done, p.todo)}
-      aria-valuetext={`${minutesToHours(p.done)} of ${minutesToHours(p.todo)} done today`}
+      aria-valuenow={Math.min(p.done + p.lives, p.todo)}
+      aria-valuetext={`${minutesToHours(p.done)} of ${minutesToHours(p.todo)} done today, ${minutesToHours(p.lives)} banked`}
     >
-      {cells(CELLS, filledCount, tickAt).map(({ key, filled, isTick }) => (
+      {progressCells({
+        count: CELLS,
+        done: p.done,
+        lives: p.lives,
+        todo: p.todo,
+        shouldBeDone: p.shouldBeDone,
+      }).map(({ key, fill, isTick }) => (
         <span
           key={key}
           style={{
             width: CELL_W,
             height: CELL_H,
-            background: filled ? ACCENT : 'rgba(255,255,255,0.10)',
+            background: cellColor(fill),
             outline: isTick ? '1px solid rgba(255,255,255,0.85)' : undefined,
             outlineOffset: isTick ? -1 : undefined,
           }}
@@ -174,17 +189,13 @@ export const ProgressPopover = () => {
   const ref = useRef<HTMLDivElement | null>(null)
   if (!p) return null
 
-  const filledCount =
-    p.done >= p.todo
-      ? POPOVER_CELLS
-      : Math.min(POPOVER_CELLS - 1, Math.round((p.done / p.todo) * POPOVER_CELLS))
-  const tickAt = Math.round((p.shouldBeDone / p.todo) * POPOVER_CELLS)
   const now = new Date()
   const nowLabel = now.toLocaleTimeString('en-US', {
     hour: '2-digit',
     minute: '2-digit',
     hour12: false,
   })
+  const won = p.remainingToWin === 0 && p.todo > 0
 
   return (
     <div
@@ -203,23 +214,27 @@ export const ProgressPopover = () => {
         role="progressbar"
         aria-valuemin={0}
         aria-valuemax={p.todo}
-        aria-valuenow={Math.min(p.done, p.todo)}
-        aria-valuetext={`${minutesToHours(p.done)} of ${minutesToHours(p.todo)} done today`}
+        aria-valuenow={Math.min(p.done + p.lives, p.todo)}
+        aria-valuetext={`${minutesToHours(p.done)} of ${minutesToHours(p.todo)} done today, ${minutesToHours(p.lives)} banked`}
       >
-        {cells(POPOVER_CELLS, filledCount, tickAt).map(
-          ({ key, filled, isTick }) => (
-            <span
-              key={key}
-              style={{
-                flex: 1,
-                height: 16,
-                background: filled ? ACCENT : 'rgba(255,255,255,0.10)',
-                outline: isTick ? '1px solid rgba(255,255,255,0.9)' : undefined,
-                outlineOffset: isTick ? -1 : undefined,
-              }}
-            />
-          ),
-        )}
+        {progressCells({
+          count: POPOVER_CELLS,
+          done: p.done,
+          lives: p.lives,
+          todo: p.todo,
+          shouldBeDone: p.shouldBeDone,
+        }).map(({ key, fill, isTick }) => (
+          <span
+            key={key}
+            style={{
+              flex: 1,
+              height: 16,
+              background: cellColor(fill),
+              outline: isTick ? '1px solid rgba(255,255,255,0.9)' : undefined,
+              outlineOffset: isTick ? -1 : undefined,
+            }}
+          />
+        ))}
       </div>
 
       <div className="mt-2 flex items-baseline justify-between">
@@ -237,26 +252,41 @@ export const ProgressPopover = () => {
       </div>
 
       <div className="mt-5 grid grid-cols-2 gap-x-6 gap-y-4">
-        <DetailRow icon="★" label="Points" value={p.points} unit="today" />
         <DetailRow
           icon="▲"
           iconColor={STREAK}
           label="Streak"
           value={p.streak}
-          unit={p.streak === 1 ? 'day' : 'days'}
+          unit={`${p.streak === 1 ? 'day' : 'days'} · best ${p.bestStreak}`}
           active={p.streakIsActive}
         />
         <DetailRow
           icon="♥"
+          iconColor={LIVES}
           label="Lives"
-          value={minutesToHours(p.livesLeft)}
-          unit="cushion left"
+          value={minutesToHours(p.lives)}
+          unit="banked"
         />
         <DetailRow
           icon="⏳"
           label="Remaining"
-          value={minutesToHours(p.remaining)}
-          unit="to target"
+          value={minutesToHours(p.remainingToWin)}
+          unit="to win"
+          dim={won}
+        />
+        <DetailRow
+          icon="◔"
+          label="Win ETA"
+          value={p.winEtaLabel}
+          unit={won ? 'day won' : 'projected'}
+        />
+        <DetailRow
+          icon="↥"
+          iconColor={LIVES}
+          label="Banking"
+          value={`+${minutesToHours(p.banking)}`}
+          unit="tomorrow's lives"
+          dim={p.banking === 0}
         />
         <DetailRow
           icon="↓"
@@ -271,10 +301,19 @@ export const ProgressPopover = () => {
           value={`~${p.daysUntilAllDone}d`}
           unit={p.clearByLabel}
         />
+        <DetailRow
+          icon="↻"
+          label="Baseline"
+          value={minutesToHours(p.theoreticalMinimum)}
+          unit="recurring / day"
+        />
       </div>
 
       <div className="mt-5 flex items-center justify-between border-t border-zinc-900 pt-4 text-[10px] tracking-[0.25em] text-zinc-600 uppercase">
-        <span>workday 08:30 – 24:00</span>
+        <span>
+          workday {minutesOfDayToHHMM(p.workdayStartMin)} –{' '}
+          {minutesOfDayToHHMM(p.workdayEndMin)}
+        </span>
         <span>tick = should-be-here</span>
       </div>
     </div>
