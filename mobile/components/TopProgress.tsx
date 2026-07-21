@@ -7,7 +7,11 @@ import {
   splitBarUnits,
   type ProgressCellFill,
 } from '@dtn/shared/progress-display'
-import { useProgressToday } from '@dtn/shared/queries'
+import {
+  useOnlineStatus,
+  usePendingMutationCount,
+  useProgressToday,
+} from '@dtn/shared/queries'
 import { minutesOfDayToHHMM } from '@dtn/shared/settings'
 import { minutesToHours } from '@dtn/shared/time'
 import { useRouter } from 'expo-router'
@@ -33,6 +37,10 @@ export function TopProgress() {
   const [open, setOpen] = useState(false)
   const now = useDate()
   const { data } = useProgressToday()
+  // Offline marker + queue count: actions look done immediately; this is the
+  // only bookkeeping the queue shows (spec: marker + pending count).
+  const online = useOnlineStatus()
+  const pending = usePendingMutationCount()
 
   if (!data) {
     return <View style={{ height: 2, backgroundColor: '#18181b' }} />
@@ -121,12 +129,14 @@ export function TopProgress() {
             </View>
             <Text
               style={{
-                color: ACCENT,
+                color: online ? ACCENT : '#fb7185',
                 fontSize: 14,
                 fontFamily: 'JetBrainsMono_400Regular',
               }}
             >
-              {scheduleShort}
+              {online
+                ? scheduleShort
+                : `offline${pending > 0 ? ` · ${pending} pending` : ''}`}
             </Text>
           </View>
           <View style={{ flexDirection: 'row', alignItems: 'center', gap: 2 }}>
