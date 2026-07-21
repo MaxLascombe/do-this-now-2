@@ -22,6 +22,7 @@ import { SafeAreaProvider } from 'react-native-safe-area-context'
 import { ErrorScreen } from '../components/ErrorScreen'
 import { SignInScreen } from '../components/SignInScreen'
 import { ToastProvider } from '../components/ToastProvider'
+import { UndoAffordances } from '../components/UndoAffordances'
 import { MobileApiAndQuery } from '../lib/api-client'
 import { useLockScreenSync } from '../lib/lockscreen'
 import { tokenCache } from '../lib/token-cache'
@@ -161,6 +162,7 @@ export default function RootLayout() {
                 />
                 <Stack.Screen name="settings" options={{ title: 'Settings' }} />
               </Stack>
+              <UndoAffordances />
               {/* Overlay the sign-in screen on top when signed out. */}
               <SignedOutOverlay />
             </ToastProvider>

@@ -23,6 +23,9 @@ export type UndoEntry = {
 export type UndoStack = {
   readonly size: number
   push: (entry: UndoEntry) => void
+  // The newest entry without popping it — for confirm affordances
+  // ("Undo 'Done X'?" on shake) that name the action before running it.
+  peek: () => UndoEntry | null
   // Pops and runs the newest entry; resolves with it (for "Undone: …"
   // feedback) or null when the stack is empty. A failing run re-throws
   // after dropping the entry — retrying a broken inverse loops forever.
@@ -40,6 +43,7 @@ export function createUndoStack(notify?: (size: number) => void): UndoStack {
       entries = [...entries.slice(-(MAX_UNDO - 1)), entry]
       notify?.(entries.length)
     },
+    peek: () => entries[entries.length - 1] ?? null,
     undoLast: async () => {
       const entry = entries.pop()
       notify?.(entries.length)
