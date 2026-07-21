@@ -16,7 +16,9 @@
         "ITSAppUsesNonExemptEncryption": false,
         "NSSupportsLiveActivities": true,
         "NSSupportsLiveActivitiesFrequentUpdates": true,
-        "UIBackgroundModes": ["remote-notification"]
+        "UIBackgroundModes": [
+          "remote-notification"
+        ]
       },
       "entitlements": {
         "aps-environment": "production",
@@ -36,8 +38,14 @@
     },
     "plugins": [
       "./plugins/with-silent-sound",
-      ["@bacons/apple-targets", { "appleTeamId": "T9RBDYT983" }],
+      [
+        "@bacons/apple-targets",
+        {
+          "appleTeamId": "T9RBDYT983"
+        }
+      ],
       "expo-router",
+      "expo-notifications",
       "expo-secure-store",
       "expo-web-browser",
       "@react-native-community/datetimepicker",
