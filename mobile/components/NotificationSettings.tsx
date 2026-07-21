@@ -28,6 +28,11 @@ const ROWS: Array<{ key: keyof NotificationToggles; label: string; hint: string 
     label: 'Morning brief',
     hint: 'the day’s terms at workday start',
   },
+  {
+    key: 'runawayTimer',
+    label: 'Runaway timer',
+    hint: 'when a timer passes 3× its plan or midnight',
+  },
 ]
 
 // Per-trigger notification opt-ins. First enable asks for iOS permission;

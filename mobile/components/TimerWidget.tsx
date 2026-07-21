@@ -3,6 +3,7 @@ import {
   currentTimerSeconds,
   formatTimerSeconds,
   timerAtPlan,
+  timerRunaway,
 } from '@dtn/shared/timer-utils'
 import { type Task } from '@dtn/shared/types'
 import * as Haptics from 'expo-haptics'
@@ -49,6 +50,42 @@ function usePlanPulse(taskId: string, atPlan: boolean): Animated.Value {
   return scale
 }
 
+function GuardButton({
+  label,
+  dim,
+  onPress,
+}: {
+  label: string
+  dim?: boolean
+  onPress: () => void
+}) {
+  return (
+    <Pressable
+      onPress={onPress}
+      accessibilityRole="button"
+      accessibilityLabel={label}
+      style={({ pressed }) => ({
+        paddingHorizontal: 12,
+        paddingVertical: 6,
+        borderRadius: 999,
+        borderWidth: 1,
+        borderColor: dim ? '#3f3f46' : 'rgba(245,158,11,0.4)',
+        opacity: pressed ? 0.6 : 1,
+      })}
+    >
+      <Text
+        style={{
+          fontFamily: 'JetBrainsMono_400Regular',
+          fontSize: 12,
+          color: dim ? '#a1a1aa' : STREAK,
+        }}
+      >
+        {label}
+      </Text>
+    </Pressable>
+  )
+}
+
 export function TimerWidget({
   task,
   actionId,
@@ -73,7 +110,6 @@ export function TimerWidget({
   const seconds = currentTimerSeconds(task, now)
 
   const plannedSec = (plannedMinutes ?? task.timeFrame) * 60
-  const overrun = plannedSec > 0 && seconds > plannedSec * 1.5
   const pulseScale = usePlanPulse(
     task.id,
     timerAtPlan(task, plannedMinutes ?? task.timeFrame, now),
@@ -83,6 +119,49 @@ export function TimerWidget({
     timer.mutate({ id, action: { kind } })
   const add = (sec: number) =>
     timer.mutate({ id, action: { kind: 'add', seconds: sec } })
+
+  // Runaway-timer Guard: flag (never auto-pause) once elapsed passes ~3× the
+  // plan or the timer crossed midnight; reconcile keep / trim / custom before
+  // the overrun poisons credit and fluid estimates.
+  const [runawayKept, setRunawayKept] = useState(false)
+  const isRunaway = timerRunaway(task, plannedMinutes ?? task.timeFrame, now)
+  useEffect(() => {
+    if (!isRunaway) setRunawayKept(false)
+  }, [isRunaway])
+  const runaway = isRunaway && !runawayKept
+  const runawayBanner = runaway ? (
+    <View
+      style={{
+        marginTop: 12,
+        paddingHorizontal: 12,
+        paddingVertical: 10,
+        borderRadius: 12,
+        borderWidth: 1,
+        borderColor: 'rgba(245,158,11,0.4)',
+        backgroundColor: 'rgba(245,158,11,0.08)',
+        gap: 8,
+      }}
+    >
+      <Text
+        style={{
+          fontFamily: 'JetBrainsMono_400Regular',
+          color: STREAK,
+          fontSize: 12,
+        }}
+      >
+        Runaway timer — {formatTimerSeconds(seconds)}
+        {plannedSec > 0 ? ` on a ${Math.ceil(plannedSec / 60)} min plan` : ''}.
+        Still working?
+      </Text>
+      <View style={{ flexDirection: 'row', gap: 8, flexWrap: 'wrap' }}>
+        {plannedSec > 0 && (
+          <GuardButton label="Trim to plan" onPress={() => add(plannedSec - seconds)} />
+        )}
+        <GuardButton label="Custom…" onPress={() => setAdjustOpen(true)} />
+        <GuardButton label="Keep it" dim onPress={() => setRunawayKept(true)} />
+      </View>
+    </View>
+  ) : null
 
   const confirmReset = () => {
     if (seconds === 0) return
@@ -173,6 +252,7 @@ export function TimerWidget({
             </Pressable>
           </View>
         </View>
+        {runawayBanner}
         <TimerAdjustModal
           open={adjustOpen}
           seconds={seconds}
@@ -255,30 +335,7 @@ export function TimerWidget({
         {formatTimerSeconds(seconds)}
       </Animated.Text>
 
-      {overrun && (
-        <View
-          style={{
-            marginTop: 12,
-            paddingHorizontal: 12,
-            paddingVertical: 8,
-            borderRadius: 8,
-            borderWidth: 1,
-            borderColor: 'rgba(245,158,11,0.4)',
-            backgroundColor: 'rgba(245,158,11,0.08)',
-          }}
-        >
-          <Text
-            style={{
-              fontFamily: 'JetBrainsMono_400Regular',
-              color: STREAK,
-              fontSize: 12,
-            }}
-          >
-            Timer is &gt;1.5× the planned {Math.ceil(plannedSec / 60)} min —
-            forgot to pause?
-          </Text>
-        </View>
-      )}
+      {runawayBanner}
 
       <View style={{ marginTop: 16, flexDirection: 'row', gap: 10 }}>
         <Pressable
