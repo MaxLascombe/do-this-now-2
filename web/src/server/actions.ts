@@ -13,6 +13,7 @@ export const completeTask = createServerFn({ method: 'POST' })
         id: v.id,
         tzOffsetMin: v.tzOffsetMin,
         countMeasurement: z.boolean().optional(),
+        keepSelection: z.boolean().optional(),
       }),
     ),
   )
@@ -22,6 +23,7 @@ export const completeTask = createServerFn({ method: 'POST' })
       data.id,
       data.tzOffsetMin,
       data.countMeasurement ?? true,
+      data.keepSelection ?? false,
     ),
   )
 

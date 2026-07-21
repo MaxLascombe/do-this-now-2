@@ -72,7 +72,11 @@ export type ProgressTodayResult = {
 
 export type SelectionResult = { selectedTaskId: string | null }
 export type CompleteTaskResult = { advanced: boolean }
-export type CompleteTaskOptions = { countMeasurement?: boolean }
+export type CompleteTaskOptions = {
+  countMeasurement?: boolean
+  // Keep a surviving repeating row selected (the pause-at-target path).
+  keepSelection?: boolean
+}
 export type SnoozeTaskResult = { scope: 'subtask' | 'task' }
 export type SnoozeManyResult = { count: number }
 export type DeleteTaskResult = Record<string, never>
