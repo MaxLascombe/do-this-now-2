@@ -5,9 +5,10 @@ import { MINUTES_IN_DAY } from '@dtn/shared/time'
 import * as Haptics from 'expo-haptics'
 import { Stack } from 'expo-router'
 import * as Updates from 'expo-updates'
-import { Alert, Pressable, Text, View } from 'react-native'
+import { Alert, Pressable, ScrollView, Text, View } from 'react-native'
 import { SafeAreaView } from 'react-native-safe-area-context'
 
+import { NotificationSettings } from '../components/NotificationSettings'
 import { PageHeading } from '../components/PageHeading'
 
 const OVERDUE = '#fb7185'
@@ -192,11 +193,11 @@ export default function Settings() {
     >
       <Stack.Screen options={{ headerShown: true, title: 'Settings' }} />
       <PageHeading eyebrow="account">Settings</PageHeading>
-      <View
-        style={{
-          flex: 1,
+      <ScrollView
+        contentContainerStyle={{
           paddingHorizontal: 20,
           paddingTop: 8,
+          paddingBottom: 32,
           gap: 24,
         }}
       >
@@ -269,6 +270,8 @@ export default function Settings() {
 
         <ProgressSettings />
 
+        <NotificationSettings />
+
         <Pressable
           onPress={onSignOut}
           accessibilityRole="button"
@@ -296,7 +299,7 @@ export default function Settings() {
             Sign out
           </Text>
         </Pressable>
-      </View>
+      </ScrollView>
     </SafeAreaView>
   )
 }

@@ -23,6 +23,7 @@ import { ErrorScreen } from '../components/ErrorScreen'
 import { SignInScreen } from '../components/SignInScreen'
 import { ToastProvider } from '../components/ToastProvider'
 import { MobileApiAndQuery } from '../lib/api-client'
+import { NotificationPlanner } from '../components/NotificationPlanner'
 import { useLockScreenSync } from '../lib/lockscreen'
 import { tokenCache } from '../lib/token-cache'
 
@@ -140,6 +141,7 @@ export default function RootLayout() {
           <MobileApiAndQuery>
             <ToastProvider>
               <LockScreenSync />
+              <NotificationPlanner />
               <StatusBar style="light" />
               <Stack
                 screenOptions={{
