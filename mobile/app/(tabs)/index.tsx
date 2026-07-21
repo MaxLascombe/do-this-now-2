@@ -439,10 +439,9 @@ function Hero({
       <Text
         style={{
           textAlign: 'center',
-          fontFamily: 'InstrumentSerif_400Regular_Italic',
-          fontSize: 42,
-          lineHeight: 44,
-          letterSpacing: -0.6,
+          fontFamily: 'Caveat_500Medium',
+          fontSize: 52,
+          lineHeight: 56,
           maxWidth: 320,
           alignSelf: 'center',
           color: '#fafafa',
@@ -461,15 +460,7 @@ function Hero({
             color: '#a1a1aa',
           }}
         >
-          part of{' '}
-          <Text
-            style={{
-              fontFamily: 'InstrumentSerif_400Regular_Italic',
-              fontSize: 18,
-            }}
-          >
-            {task.title}
-          </Text>{' '}
+          part of <Text style={{ color: '#e4e4e7' }}>{task.title}</Text>{' '}
           <Text style={{ color: '#52525b' }}>·</Text>{' '}
           <Text style={{ color: '#fafafa' }}>
             {doneCount}/{task.subtasks.length}

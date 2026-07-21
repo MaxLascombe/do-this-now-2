@@ -648,9 +648,7 @@ function Hero({
       {nextSub && (
         <div className="mt-3 font-mono text-xs text-zinc-400 md:mt-5 md:text-base">
           part of{' '}
-          <span className="dtn-task-title" style={{ fontSize: '1.05rem' }}>
-            {task.title}
-          </span>{' '}
+          <span className="text-zinc-200">{task.title}</span>{' '}
           <span className="text-zinc-600">·</span>{' '}
           <span className="text-zinc-50 tabular-nums">
             {doneCount}/{task.subtasks.length}
