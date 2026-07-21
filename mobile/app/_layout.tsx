@@ -1,4 +1,5 @@
 import { ClerkProvider, useAuth, useClerk } from '@clerk/clerk-expo'
+import { Feather } from '@expo/vector-icons'
 import {
   InstrumentSerif_400Regular,
   InstrumentSerif_400Regular_Italic,
@@ -113,6 +114,7 @@ if (!PUBLISHABLE_KEY) {
 
 export default function RootLayout() {
   const [fontsLoaded] = useFonts({
+    ...Feather.font,
     InstrumentSerif_400Regular,
     InstrumentSerif_400Regular_Italic,
     JetBrainsMono_400Regular,

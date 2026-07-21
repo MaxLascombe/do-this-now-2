@@ -2,7 +2,7 @@ import { useProgressToday } from '@dtn/shared/queries'
 import { computePoints } from '@dtn/shared/scoring'
 import { minutesToHours } from '@dtn/shared/time'
 import { Link, useLocation } from '@tanstack/react-router'
-import { CircleUserRound } from 'lucide-react'
+import { User } from 'lucide-react'
 import { useEffect } from 'react'
 import { activeNavFromPath, type NavId } from '../lib/nav'
 import { cells } from '../lib/progress-cells'
@@ -111,7 +111,7 @@ export const MobileTopBar = ({ onOpenSheet }: { onOpenSheet: () => void }) => {
           aria-label="Profile & settings"
           className="px-4 py-3 text-base text-zinc-500 active:text-zinc-200"
         >
-          <CircleUserRound size={18} aria-hidden />
+          <User size={18} aria-hidden />
         </Link>
       </div>
       <div className="flex justify-center px-5 pb-2 empty:hidden">

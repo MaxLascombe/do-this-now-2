@@ -29,7 +29,7 @@ import {
   isCompletionGated,
 } from '@dtn/shared/timer-utils'
 import { createFileRoute, useNavigate } from '@tanstack/react-router'
-import { Pencil, Play, Trash2, Undo2 } from 'lucide-react'
+import { CornerUpLeft, Pencil, Play, Trash2 } from 'lucide-react'
 import { useEffect, useState, type ReactNode } from 'react'
 
 import { useConfirm } from '../components/ConfirmProvider'
@@ -691,7 +691,7 @@ function Hero({
         <SecondaryAction
           k="Esc"
           label="Return"
-          icon={<Undo2 className="h-4 w-4" />}
+          icon={<CornerUpLeft className="h-4 w-4" />}
           onClick={onReturn}
         />
         <SecondaryAction
