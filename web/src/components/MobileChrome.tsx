@@ -1,11 +1,9 @@
 import { progressCells, splitBarUnits } from '@dtn/shared/progress-display'
 import { minutesOfDayToHHMM } from '@dtn/shared/settings'
 import { minutesToHours } from '@dtn/shared/time'
-import { useUndo } from '@dtn/shared/undo'
 import { Link, useLocation } from '@tanstack/react-router'
-import { RotateCcw, User } from 'lucide-react'
+import { User } from 'lucide-react'
 import { useEffect } from 'react'
-import { useToast } from './ToastProvider'
 import { activeNavFromPath, type NavId } from '../lib/nav'
 import {
   ACCENT,
@@ -23,15 +21,6 @@ const MINI_CELLS = 14
 
 export const MobileTopBar = ({ onOpenSheet }: { onOpenSheet: () => void }) => {
   const p = useComputedProgress()
-  // Touch screens have no z key — surface the undo stack as a button that
-  // exists only while there's something to undo.
-  const undoStack = useUndo()
-  const toast = useToast()
-  const undoAction = () =>
-    void undoStack
-      .undoLast()
-      .then((entry) => entry && toast({ message: `Undone: ${entry.label}` }))
-      .catch(() => toast({ message: 'Undo failed' }))
   const { doneUnits: donePct, livesUnits: livesPct } = splitBarUnits({
     done: p?.done ?? 0,
     lives: p?.lives ?? 0,
@@ -114,16 +103,6 @@ export const MobileTopBar = ({ onOpenSheet }: { onOpenSheet: () => void }) => {
           <User size={18} aria-hidden />
         </Link>
       </div>
-      {undoStack.size > 0 && (
-        <button
-          type="button"
-          onClick={undoAction}
-          aria-label="Undo last action"
-          className="fixed right-4 bottom-24 z-30 flex h-11 w-11 items-center justify-center rounded-full border border-zinc-700 bg-zinc-950/90 text-zinc-300 shadow-lg shadow-black/40 backdrop-blur active:text-zinc-50"
-        >
-          <RotateCcw size={18} aria-hidden />
-        </button>
-      )}
       <div className="flex justify-center px-5 pb-2 empty:hidden">
         <FocusReturnBar />
       </div>

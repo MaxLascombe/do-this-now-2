@@ -1,17 +1,15 @@
 import { useUndo } from '@dtn/shared/undo'
-import { Feather } from '@expo/vector-icons'
 import { Accelerometer } from 'expo-sensors'
 import * as Haptics from 'expo-haptics'
 import { useEffect, useRef } from 'react'
-import { Alert, Pressable } from 'react-native'
+import { Alert } from 'react-native'
 
 import { useToast } from './ToastProvider'
 
-// Touch affordances for the global undo stack (follow-up to the batch):
-// 1. A floating undo button, bottom-right above the tab bar, that exists
-//    only while there is something to undo.
-// 2. iOS-style shake-to-undo: a shake pops a native confirm naming the
-//    action ("Undo 'Done X'?"), mirroring the system convention.
+// iOS-style shake-to-undo (the app's only undo affordance beyond the
+// per-action toasts — a floating button was tried and cut): a shake pops a
+// native confirm naming the action ("Undo 'Done X'?"), mirroring the
+// system convention.
 
 // Accelerometer readings are in g and include gravity (~1g at rest). A
 // shake is two 2.3g spikes within 600ms; a cooldown swallows the tail of
@@ -72,30 +70,5 @@ export function UndoAffordances() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [undoStack])
 
-  if (undoStack.size === 0) return null
-
-  return (
-    <Pressable
-      onPress={runUndo}
-      accessibilityRole="button"
-      accessibilityLabel="Undo last action"
-      style={({ pressed }) => ({
-        position: 'absolute',
-        right: 16,
-        bottom: 108,
-        width: 44,
-        height: 44,
-        borderRadius: 22,
-        borderWidth: 1,
-        borderColor: '#3f3f46',
-        backgroundColor: 'rgba(9,9,11,0.9)',
-        alignItems: 'center',
-        justifyContent: 'center',
-        zIndex: 30,
-        opacity: pressed ? 0.7 : 1,
-      })}
-    >
-      <Feather name="rotate-ccw" size={18} color="#d4d4d8" />
-    </Pressable>
-  )
+  return null
 }
