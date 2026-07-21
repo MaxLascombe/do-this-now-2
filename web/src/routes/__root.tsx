@@ -5,6 +5,7 @@ import { HeadContent, Scripts, createRootRoute } from '@tanstack/react-router'
 import { UndoProvider } from '@dtn/shared/undo'
 
 import { ConfirmProvider } from '../components/ConfirmProvider'
+import { LiveSync } from '../components/LiveSync'
 import { ShortcutsHelp } from '../components/ShortcutsHelp'
 import { WinCelebration } from '../components/WinCelebration'
 import { ToastProvider } from '../components/ToastProvider'
@@ -75,6 +76,7 @@ function RootDocument({ children }: { children: ReactNode }) {
                       <ShortcutsHelp />
                       <WinCelebration />
                       <UndoHotkey />
+                      <LiveSync />
                       {children}
                     </ToastProvider>
                   </ConfirmProvider>
