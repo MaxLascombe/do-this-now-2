@@ -27,8 +27,8 @@ export function ErrorScreen({ retry }: ErrorBoundaryProps) {
         </Text>
         <Text
           style={{
-            fontFamily: 'InstrumentSerif_400Regular_Italic',
-            fontSize: 40,
+            fontFamily: 'Caveat_500Medium',
+            fontSize: 50,
             color: '#fafafa',
             textAlign: 'center',
           }}

@@ -29,9 +29,9 @@ importers:
       '@dtn/shared':
         specifier: workspace:^
         version: link:../shared
-      '@expo-google-fonts/instrument-serif':
+      '@expo-google-fonts/caveat':
         specifier: ^0.4.1
-        version: 0.4.1
+        version: 0.4.2
       '@expo-google-fonts/jetbrains-mono':
         specifier: ^0.4.1
         version: 0.4.1
@@ -1602,8 +1602,8 @@ packages:
       '@noble/hashes':
         optional: true
 
-  '@expo-google-fonts/instrument-serif@0.4.1':
-    resolution: {integrity: sha512-1CgCrLbTSgE7RV8ZrTT7i06UAyNQDBrhxQuxkReNnfq5yvUhTmvpOK17grlEsXG5p04lJ1ZXGiIjPeHo6X0sXg==}
+  '@expo-google-fonts/caveat@0.4.2':
+    resolution: {integrity: sha512-kCG35tRUX8Wi+u0Jh5ck3K1u7vZkdLnwRTuKMrEnlVmikvxQFXN1KjF5cL2vqRG7Hwm7648Zl8xe1BWAoIsPCA==}
 
   '@expo-google-fonts/jetbrains-mono@0.4.1':
     resolution: {integrity: sha512-CslACrtMOcRwoWXCO7OMEI+9w3fukWSoBtvNz46OqPoogEuuoY0tkDY1O8sFumk8t0pC6Cx0Xr95O0TOQhpkug==}
@@ -8891,7 +8891,7 @@ snapshots:
     optionalDependencies:
       '@noble/hashes': 1.8.0
 
-  '@expo-google-fonts/instrument-serif@0.4.1': {}
+  '@expo-google-fonts/caveat@0.4.2': {}
 
   '@expo-google-fonts/jetbrains-mono@0.4.1': {}
 

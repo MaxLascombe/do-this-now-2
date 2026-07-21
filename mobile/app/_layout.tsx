@@ -1,9 +1,9 @@
 import { ClerkProvider, useAuth, useClerk } from '@clerk/clerk-expo'
 import { Feather } from '@expo/vector-icons'
 import {
-  InstrumentSerif_400Regular,
-  InstrumentSerif_400Regular_Italic,
-} from '@expo-google-fonts/instrument-serif'
+  Caveat_500Medium,
+  Caveat_600SemiBold,
+} from '@expo-google-fonts/caveat'
 import {
   JetBrainsMono_400Regular,
   JetBrainsMono_500Medium,
@@ -115,8 +115,8 @@ if (!PUBLISHABLE_KEY) {
 export default function RootLayout() {
   const [fontsLoaded] = useFonts({
     ...Feather.font,
-    InstrumentSerif_400Regular,
-    InstrumentSerif_400Regular_Italic,
+    Caveat_500Medium,
+    Caveat_600SemiBold,
     JetBrainsMono_400Regular,
     JetBrainsMono_500Medium,
     JetBrainsMono_600SemiBold,

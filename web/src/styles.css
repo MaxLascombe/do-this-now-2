@@ -5,7 +5,7 @@
   --font-mono:
     'JetBrains Mono', 'IBM Plex Mono', ui-monospace, SFMono-Regular, Menlo,
     monospace;
-  --font-serif: 'Instrument Serif', Georgia, serif;
+  --font-hand: 'Caveat', 'Segoe Print', cursive;
   --background-image-dtn-page: radial-gradient(
     ellipse at top,
     #1a1a1a 0%,
@@ -51,16 +51,16 @@ input[type='time'] {
   }
 }
 
-.dtn-task-title {
-  font-family: var(--font-serif);
-  font-style: italic;
-  font-weight: 400;
-}
-
+/* Caveat is naturally slanted (no italic face) and runs optically ~20%
+   smaller than the sizes these classes were tuned for — zoom compensates
+   without touching every font-size utility. Decision: font-lab prototype,
+   2026-07-21 — Caveat replaced Instrument Serif italic. */
+.dtn-task-title,
 .dtn-task-plain {
-  font-family: var(--font-serif);
+  font-family: var(--font-hand);
   font-style: normal;
-  font-weight: 400;
+  font-weight: 500;
+  zoom: 1.25;
 }
 
 .dtn-heading {
