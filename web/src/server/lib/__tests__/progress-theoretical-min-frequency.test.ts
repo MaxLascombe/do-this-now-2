@@ -1,5 +1,6 @@
 import { newSafeDate } from '@dtn/shared/helpers'
 import { type Task } from '@dtn/shared/schema'
+import { DEFAULT_SETTINGS } from '@dtn/shared/settings'
 import { describe, expect, it } from 'vitest'
 
 import { computeProgress, type ProgressInputs } from '../progress-math'
@@ -35,7 +36,9 @@ const inputs = (allTasks: Array<Task>): ProgressInputs => ({
   completedTodayMin: 0,
   streakBeforeToday: 0,
   lives: 0,
+  bestStreakBefore: 0,
   allTasks,
+  settings: DEFAULT_SETTINGS,
 })
 
 const today = newSafeDate('2026-5-1')

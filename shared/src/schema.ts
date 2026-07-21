@@ -185,6 +185,19 @@ export const dailyProgress = pgTable(
   (t) => [primaryKey({ columns: [t.userId, t.date] })],
 )
 
+// Per-user progress settings: the Workday window pacing spreads the Daily
+// Target across, and the rolling horizon the target averages due work over.
+// Absent row = defaults (08:30–24:00, 14 days) — see shared/settings.ts.
+export const userSettings = pgTable('user_settings', {
+  userId: text('user_id').primaryKey(),
+  workdayStartMin: integer('workday_start_min').notNull().default(510),
+  workdayEndMin: integer('workday_end_min').notNull().default(1440),
+  horizonDays: integer('horizon_days').notNull().default(14),
+  updatedAt: timestamp('updated_at', { withTimezone: true })
+    .notNull()
+    .defaultNow(),
+})
+
 // One row per user holding cross-device UI state. `selectedTaskId` is the
 // task the user has committed to focusing on right now — authoritative and
 // shared across devices. ON DELETE SET NULL so deleting the task clears the

@@ -7,6 +7,7 @@ import {
 
 import type { HistoryEntry, StatsResult, Task } from './types'
 import type { TaskInput } from './task-input'
+import type { UserSettings } from './settings'
 
 // Structured error thrown by both web and mobile API adapters when the
 // server returns a non-2xx. `code` matches the REST envelope shape from
@@ -59,9 +60,14 @@ export type ProgressTodayResult = {
   todo: number
   streak: number
   streakIsActive: boolean
+  bestStreak: number
   theoreticalMinimum: number
   daysUntilAllDone: number
   minutesToReduceTomorrowDays: number
+  // The user's Workday window, echoed so every client paces with the same
+  // settings the server targeted with — no separate settings fetch needed.
+  workdayStartMin: number
+  workdayEndMin: number
 }
 
 export type SelectionResult = { selectedTaskId: string | null }
@@ -106,6 +112,10 @@ export interface ApiClient {
   }
   progress: {
     today(): Promise<ProgressTodayResult>
+  }
+  settings: {
+    get(): Promise<UserSettings>
+    update(input: UserSettings): Promise<UserSettings>
   }
   stats: {
     get(): Promise<StatsResult>

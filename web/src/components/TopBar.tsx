@@ -1,18 +1,22 @@
 import { formatScheduleStatus } from '@dtn/shared/format'
 import { computeSchedule } from '@dtn/shared/pacing'
+import { splitBarUnits } from '@dtn/shared/progress-display'
 import { useProgressToday } from '@dtn/shared/queries'
-import { computePoints } from '@dtn/shared/scoring'
+import { minutesToHours } from '@dtn/shared/time'
 import { Link, useLocation } from '@tanstack/react-router'
 import { User } from 'lucide-react'
 import { useEffect, useRef, useState } from 'react'
 
 import { useDate } from '../hooks/useDate'
 import { activeNavFromPath, type NavId } from '../lib/nav'
-import { ProgressBlocks, ProgressPopover } from './ProgressBar'
+import {
+  ACCENT,
+  LIVES,
+  STREAK,
+  ProgressBlocks,
+  ProgressPopover,
+} from './ProgressBar'
 import { FocusReturnBar } from './FocusReturnBar'
-
-const ACCENT = '#34d399'
-const STREAK = '#f59e0b'
 
 type NavItem = {
   id: NavId
@@ -68,26 +72,24 @@ export const TopBar = () => {
     }
   }, [open])
 
-  // todo is 0 on a no-tasks day; guard so the bar reads empty (0%) not NaN%.
-  // Cap at 99% until the target is actually met — a full bar must MEAN done.
-  const pct =
-    progress.data && progress.data.todo > 0
-      ? progress.data.done >= progress.data.todo
-        ? 100
-        : Math.min(
-            99,
-            Math.round((progress.data.done / progress.data.todo) * 100),
-          )
-      : 0
+  // Done fills green from the left, banked Lives extend the fill in their own
+  // color; the shared split handles the no-tasks day and never reads 100%
+  // before the day is actually won.
+  const { doneUnits: donePct, livesUnits: livesPct } = splitBarUnits({
+    done: progress.data?.done ?? 0,
+    lives: progress.data?.lives ?? 0,
+    todo: progress.data?.todo ?? 0,
+    count: 100,
+  })
 
   let scheduleShort: string | null = null
-  let points = 0
   if (progress.data) {
-    const { done, todo, lives, minutesToReduceTomorrowDays } = progress.data
+    const { done, todo, workdayStartMin, workdayEndMin } = progress.data
     const { shouldBeDone, isBeforeWorkday } = computeSchedule(
       now,
       todo,
-      minutesToReduceTomorrowDays,
+      workdayStartMin,
+      workdayEndMin,
     )
     scheduleShort = formatScheduleStatus({
       done,
@@ -95,15 +97,18 @@ export const TopBar = () => {
       isBeforeWorkday,
       short: true,
     })
-    points = computePoints(done, todo, lives)
   }
 
   return (
     <div className="hidden md:block">
-      <div className="absolute top-0 right-0 left-0 z-10 h-[2px] bg-zinc-900">
+      <div className="absolute top-0 right-0 left-0 z-10 flex h-[2px] bg-zinc-900">
         <div
           className="h-full transition-[width] duration-300"
-          style={{ width: pct + '%', background: ACCENT }}
+          style={{ width: donePct + '%', background: ACCENT }}
+        />
+        <div
+          className="h-full transition-[width] duration-300"
+          style={{ width: livesPct + '%', background: LIVES }}
         />
       </div>
 
@@ -122,16 +127,21 @@ export const TopBar = () => {
           >
             {progress.data ? (
               <>
-                <span className="flex items-center gap-1.5 text-zinc-400">
-                  <span className="text-zinc-100">★</span>
-                  <span className="tabular-nums">{points}</span>
-                </span>
                 <span
                   className="flex items-center gap-1.5"
                   style={{ color: STREAK }}
                 >
                   <span>▲</span>
                   <span className="tabular-nums">{progress.data.streak}</span>
+                </span>
+                <span
+                  className="flex items-center gap-1.5"
+                  style={{ color: LIVES }}
+                >
+                  <span>♥</span>
+                  <span className="tabular-nums">
+                    {minutesToHours(progress.data.lives)}
+                  </span>
                 </span>
                 <span style={{ color: ACCENT }}>{scheduleShort}</span>
               </>

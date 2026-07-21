@@ -1,7 +1,14 @@
 import { formatScheduleStatus } from '@dtn/shared/format'
 import { computeSchedule } from '@dtn/shared/pacing'
+import {
+  computeWinEta,
+  formatWinEta,
+  progressCells,
+  splitBarUnits,
+  type ProgressCellFill,
+} from '@dtn/shared/progress-display'
 import { useProgressToday } from '@dtn/shared/queries'
-import { computePoints } from '@dtn/shared/scoring'
+import { minutesOfDayToHHMM } from '@dtn/shared/settings'
 import { minutesToHours } from '@dtn/shared/time'
 import { useRouter } from 'expo-router'
 import { useState } from 'react'
@@ -14,7 +21,11 @@ import { ProfileIcon } from './icons'
 
 const ACCENT = '#34d399'
 const STREAK = '#f59e0b'
+const LIVES = '#38bdf8'
 const MINI_CELLS = 14
+
+const cellColor = (fill: ProgressCellFill): string =>
+  fill === 'done' ? ACCENT : fill === 'lives' ? LIVES : 'rgba(255,255,255,0.12)'
 
 export function TopProgress() {
   const router = useRouter()
@@ -26,11 +37,12 @@ export function TopProgress() {
     return <View style={{ height: 2, backgroundColor: '#18181b' }} />
   }
 
-  const { done, todo, lives, streak, minutesToReduceTomorrowDays } = data
+  const { done, todo, lives, streak, workdayStartMin, workdayEndMin } = data
   const { shouldBeDone, isBeforeWorkday } = computeSchedule(
     now,
     todo,
-    minutesToReduceTomorrowDays,
+    workdayStartMin,
+    workdayEndMin,
   )
   const scheduleShort = formatScheduleStatus({
     done,
@@ -39,35 +51,27 @@ export function TopProgress() {
     short: true,
   })
 
-  const points = computePoints(done, todo, lives)
-
-  // todo is 0 on a no-tasks day; guard the divisions so the bar reads empty
-  // instead of rendering a NaN width. Only read fully complete once the
-  // target is actually met — rounding would fill the bar a hair early.
-  const hitTodo = todo > 0 && done >= todo
-  const pct =
-    todo > 0
-      ? hitTodo
-        ? 100
-        : Math.min(99, Math.round((done / todo) * 100))
-      : 0
-  const filledCount =
-    todo > 0
-      ? hitTodo
-        ? MINI_CELLS
-        : Math.min(MINI_CELLS - 1, Math.round((done / todo) * MINI_CELLS))
-      : 0
-  const tickAt = todo > 0 ? Math.round((shouldBeDone / todo) * MINI_CELLS) : 0
+  const { doneUnits: donePct, livesUnits: livesPct } = splitBarUnits({
+    done,
+    lives,
+    todo,
+    count: 100,
+  })
 
   return (
     <View>
-      <View style={{ height: 2, backgroundColor: '#18181b' }}>
+      <View
+        style={{
+          height: 2,
+          backgroundColor: '#18181b',
+          flexDirection: 'row',
+        }}
+      >
         <View
-          style={{
-            height: '100%',
-            width: `${pct}%`,
-            backgroundColor: ACCENT,
-          }}
+          style={{ height: '100%', width: `${donePct}%`, backgroundColor: ACCENT }}
+        />
+        <View
+          style={{ height: '100%', width: `${livesPct}%`, backgroundColor: LIVES }}
         />
       </View>
       <View style={{ flexDirection: 'row', alignItems: 'center' }}>
@@ -89,20 +93,6 @@ export function TopProgress() {
             <View
               style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}
             >
-              <Text style={{ color: '#fafafa', fontSize: 14 }}>★</Text>
-              <Text
-                style={{
-                  color: '#a1a1aa',
-                  fontSize: 14,
-                  fontFamily: 'JetBrainsMono_400Regular',
-                }}
-              >
-                {points}
-              </Text>
-            </View>
-            <View
-              style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}
-            >
               <Text style={{ color: STREAK, fontSize: 14 }}>▲</Text>
               <Text
                 style={{
@@ -112,6 +102,20 @@ export function TopProgress() {
                 }}
               >
                 {streak}
+              </Text>
+            </View>
+            <View
+              style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}
+            >
+              <Text style={{ color: LIVES, fontSize: 14 }}>♥</Text>
+              <Text
+                style={{
+                  color: LIVES,
+                  fontSize: 14,
+                  fontFamily: 'JetBrainsMono_400Regular',
+                }}
+              >
+                {minutesToHours(lives)}
               </Text>
             </View>
             <Text
@@ -125,24 +129,26 @@ export function TopProgress() {
             </Text>
           </View>
           <View style={{ flexDirection: 'row', alignItems: 'center', gap: 2 }}>
-            {Array.from({ length: MINI_CELLS }).map((_, i) => {
-              const filled = i < filledCount
-              const isTick = i === tickAt - 1 && !filled
-              return (
-                <View
-                  key={i}
-                  style={{
-                    width: 5,
-                    height: 12,
-                    backgroundColor: filled ? ACCENT : 'rgba(255,255,255,0.12)',
-                    borderWidth: isTick ? 1 : 0,
-                    borderColor: isTick
-                      ? 'rgba(255,255,255,0.9)'
-                      : 'transparent',
-                  }}
-                />
-              )
-            })}
+            {progressCells({
+              count: MINI_CELLS,
+              done,
+              lives,
+              todo,
+              shouldBeDone,
+            }).map(({ key, fill, isTick }) => (
+              <View
+                key={key}
+                style={{
+                  width: 5,
+                  height: 12,
+                  backgroundColor: cellColor(fill),
+                  borderWidth: isTick ? 1 : 0,
+                  borderColor: isTick
+                    ? 'rgba(255,255,255,0.9)'
+                    : 'transparent',
+                }}
+              />
+            ))}
           </View>
         </Pressable>
         <Pressable
@@ -183,13 +189,17 @@ function ProgressSheet({ onClose }: { onClose: () => void }) {
     lives,
     streak,
     streakIsActive,
+    bestStreak,
+    theoreticalMinimum,
     daysUntilAllDone,
-    minutesToReduceTomorrowDays,
+    workdayStartMin,
+    workdayEndMin,
   } = data
   const { shouldBeDone, isBeforeWorkday } = computeSchedule(
     now,
     todo,
-    minutesToReduceTomorrowDays,
+    workdayStartMin,
+    workdayEndMin,
   )
   const scheduleShort = formatScheduleStatus({
     done,
@@ -197,9 +207,12 @@ function ProgressSheet({ onClose }: { onClose: () => void }) {
     isBeforeWorkday,
     short: true,
   })
-  const livesUsed = Math.min(lives, Math.max(0, todo - done))
-  const livesLeft = lives - livesUsed
-  const points = computePoints(done, todo, lives)
+  const remainingToWin = Math.max(0, todo - done - lives)
+  const banking = Math.max(0, done + lives - todo)
+  const won = remainingToWin === 0 && todo > 0
+  const winEtaLabel = formatWinEta(
+    computeWinEta({ now, done, lives, todo, workdayStartMin, workdayEndMin }),
+  )
   const clearByDate = new Date(
     new Date().setDate(now.getDate() + daysUntilAllDone),
   )
@@ -209,10 +222,6 @@ function ProgressSheet({ onClose }: { onClose: () => void }) {
   })
 
   const cells = 28
-  // todo is 0 on a no-tasks day — guard like the mini-bar does, or these
-  // widths come out NaN.
-  const filled = todo > 0 ? Math.round((done / todo) * cells) : 0
-  const tick = todo > 0 ? Math.round((shouldBeDone / todo) * cells) : 0
 
   return (
     <SafeAreaView
@@ -276,22 +285,20 @@ function ProgressSheet({ onClose }: { onClose: () => void }) {
       </View>
       <View style={{ paddingHorizontal: 20 }}>
         <View style={{ flexDirection: 'row', gap: 2 }}>
-          {Array.from({ length: cells }).map((_, i) => {
-            const f = i < filled
-            const isTick = i === tick - 1 && !f
-            return (
+          {progressCells({ count: cells, done, lives, todo, shouldBeDone }).map(
+            ({ key, fill, isTick }) => (
               <View
-                key={i}
+                key={key}
                 style={{
                   flex: 1,
                   height: 18,
-                  backgroundColor: f ? ACCENT : 'rgba(255,255,255,0.1)',
+                  backgroundColor: cellColor(fill),
                   borderWidth: isTick ? 1 : 0,
                   borderColor: isTick ? 'rgba(255,255,255,0.9)' : 'transparent',
                 }}
               />
-            )
-          })}
+            ),
+          )}
         </View>
         <View
           style={{
@@ -329,25 +336,41 @@ function ProgressSheet({ onClose }: { onClose: () => void }) {
             flexWrap: 'wrap',
           }}
         >
-          <SheetStat icon="★" label="Points" value={points} unit="today" />
           <SheetStat
             icon="▲"
             iconColor={STREAK}
             label="Streak"
             value={streak}
-            unit={streak === 1 ? 'day' : 'days'}
+            unit={`${streak === 1 ? 'day' : 'days'} · best ${bestStreak}`}
+            active={streakIsActive}
           />
           <SheetStat
             icon="♥"
+            iconColor={LIVES}
             label="Lives"
-            value={minutesToHours(livesLeft)}
-            unit="left"
+            value={minutesToHours(lives)}
+            unit="banked"
           />
           <SheetStat
             icon="⏳"
             label="Remaining"
-            value={minutesToHours(Math.max(0, todo - done))}
-            unit="to target"
+            value={minutesToHours(remainingToWin)}
+            unit="to win"
+            dim={won}
+          />
+          <SheetStat
+            icon="◔"
+            label="Win ETA"
+            value={winEtaLabel}
+            unit={won ? 'day won' : 'projected'}
+          />
+          <SheetStat
+            icon="↥"
+            iconColor={LIVES}
+            label="Banking"
+            value={`+${minutesToHours(banking)}`}
+            unit="tomorrow's lives"
+            dim={banking === 0}
           />
           <SheetStat
             icon="∞"
@@ -355,7 +378,18 @@ function ProgressSheet({ onClose }: { onClose: () => void }) {
             value={`~${daysUntilAllDone}d`}
             unit={clearByLabel}
           />
-          <SheetStat icon="◷" label="Workday" value="08:30" unit="– 24:00" />
+          <SheetStat
+            icon="↻"
+            label="Baseline"
+            value={minutesToHours(theoreticalMinimum)}
+            unit="recurring / day"
+          />
+          <SheetStat
+            icon="◷"
+            label="Workday"
+            value={minutesOfDayToHHMM(workdayStartMin)}
+            unit={`– ${minutesOfDayToHHMM(workdayEndMin)}`}
+          />
         </View>
       </View>
     </SafeAreaView>
@@ -368,15 +402,19 @@ function SheetStat({
   label,
   value,
   unit,
+  dim,
+  active,
 }: {
   icon: string
   iconColor?: string
   label: string
   value: string | number
   unit: string
+  dim?: boolean
+  active?: boolean
 }) {
   return (
-    <View style={{ width: '50%', paddingVertical: 10 }}>
+    <View style={{ width: '50%', paddingVertical: 10, opacity: dim ? 0.6 : 1 }}>
       <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
         <Text style={{ color: iconColor ?? '#fafafa', fontSize: 14 }}>
           {icon}
@@ -392,6 +430,16 @@ function SheetStat({
         >
           {label}
         </Text>
+        {active && (
+          <View
+            style={{
+              width: 6,
+              height: 6,
+              borderRadius: 3,
+              backgroundColor: STREAK,
+            }}
+          />
+        )}
       </View>
       <View
         style={{

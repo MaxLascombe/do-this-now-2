@@ -4,6 +4,7 @@ import { getTzOffsetMin } from '@dtn/shared/time'
 import * as actionFns from '../server/actions'
 import * as progressFns from '../server/progress'
 import * as selectionFns from '../server/selection'
+import * as settingsFns from '../server/settings'
 import * as statsFns from '../server/stats'
 import * as taskFns from '../server/tasks'
 import type { ApiClient } from '@dtn/shared/api-client'
@@ -62,6 +63,10 @@ export const webApiClient: ApiClient = {
       progressFns.getProgressToday({
         data: { tzOffsetMin: getTzOffsetMin() },
       }),
+  },
+  settings: {
+    get: () => settingsFns.getSettings(),
+    update: (input) => settingsFns.updateSettings({ data: input }),
   },
   stats: {
     get: () => statsFns.getStats({ data: { tzOffsetMin: getTzOffsetMin() } }),

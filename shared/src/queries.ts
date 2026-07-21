@@ -20,6 +20,7 @@ import {
 import { currentTimerSeconds, shouldCompleteOnPause } from './timer-utils'
 import { HOUR_MS } from './time'
 import type { TaskInput } from './task-input'
+import type { UserSettings } from './settings'
 import type { Task } from './types'
 
 export const taskKeys = {
@@ -31,6 +32,7 @@ export const taskKeys = {
 export const selectionKey = ['selection'] as const
 export const historyKey = (date: string) => ['history', date] as const
 export const progressTodayKey = ['progresstoday'] as const
+export const settingsKey = ['settings'] as const
 export const statsKey = ['stats'] as const
 
 export const invalidateTaskCaches = (qc: QueryClient) => {
@@ -489,6 +491,27 @@ export function useProgressToday() {
   return useQuery({
     queryKey: progressTodayKey,
     queryFn: () => api.progress.today(),
+  })
+}
+
+export function useSettings() {
+  const api = useApi()
+  return useQuery({
+    queryKey: settingsKey,
+    queryFn: () => api.settings.get(),
+  })
+}
+
+export function useUpdateSettings() {
+  const api = useApi()
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: (input: UserSettings) => api.settings.update(input),
+    onSuccess: (saved) => {
+      qc.setQueryData(settingsKey, saved)
+      // The Daily Target and pacing both derive from settings.
+      void qc.invalidateQueries({ queryKey: progressTodayKey })
+    },
   })
 }
 

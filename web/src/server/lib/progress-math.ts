@@ -5,19 +5,20 @@ import {
   repeatFrequencyDays,
 } from '@dtn/shared/helpers'
 import type { Task } from '@dtn/shared/schema'
+import type { UserSettings } from '@dtn/shared/settings'
 
 // Pure scheduling/target math behind the progress bar. Kept free of any DB or
 // request access so it can be unit-tested; progress.ts loads the inputs and
 // persists the rollover around computeProgress().
 
-// "todo" target floor: never report less than this many minutes of work for
-// the day even if the actual due tasks total less — keeps the bar moving.
-const TODO_FLOOR_MIN = 15.5 * 60
-// Buffer subtracted from the rolling todo to smooth out a perfect-zero day.
+// Buffer added to the recurring steady-state when capping the target, so the
+// target always sits above steady-state and backlog keeps draining.
 const TODO_BUFFER_MIN = 60
-// Rolling-horizon window for the per-day todo target. Longer = smoother
-// daily target but slower to react to changes; shorter = reactive but noisy.
-const TODO_HORIZON_DAYS = 14
+
+// Lazy settlement walks at most this many absent days; a longer gap means the
+// chain is dead regardless (a bank that survives 400 unattended targets does
+// not happen) and gets seeded to zero instead of walked.
+export const MAX_SETTLE_DAYS = 400
 
 export type ProgressTodayResult = {
   done: number
@@ -25,21 +26,26 @@ export type ProgressTodayResult = {
   todo: number
   streak: number
   streakIsActive: boolean
+  bestStreak: number
   theoreticalMinimum: number
   daysUntilAllDone: number
   minutesToReduceTomorrowDays: number
+  workdayStartMin: number
+  workdayEndMin: number
 }
 
 export type ProgressInputs = {
   completedTodayMin: number
   streakBeforeToday: number
   lives: number
+  bestStreakBefore: number
   allTasks: Array<Task>
+  settings: UserSettings
 }
 
 export type ProgressComputation = {
   result: ProgressTodayResult
-  rolloverLives: number | null // not null = streak hit, persist for tomorrow
+  rolloverLives: number | null // not null = day won, persist for tomorrow
   rolloverStreak: number
 }
 
@@ -74,15 +80,39 @@ function calculateTodoForDays(
   return { todo, theoreticalMinimum: Math.ceil(theoreticalMinimum) }
 }
 
+// The Daily Target for one day: due work averaged over the horizon, capped so
+// it never exceeds the Workday's length unless recurring load alone demands
+// more (then steady-state + buffer, so backlog still drains).
+export function computeDayTarget(
+  day: Date,
+  allTasks: Array<Task>,
+  done: number,
+  settings: UserSettings,
+) {
+  const { todo, theoreticalMinimum } = calculateTodoForDays(
+    day,
+    settings.horizonDays,
+    allTasks,
+    done,
+  )
+  const workdayLen = Math.max(1, settings.workdayEndMin - settings.workdayStartMin)
+  const cappedTodo = Math.min(
+    todo,
+    Math.max(theoreticalMinimum + TODO_BUFFER_MIN, workdayLen),
+  )
+  return { cappedTodo, theoreticalMinimum }
+}
+
 function findMinimumDaysNeeded(
   today: Date,
   allTasks: Array<Task>,
   done: number,
   cappedTodo: number,
+  horizonDays: number,
 ): number {
-  let days = 14
+  let days = horizonDays
   let { todo } = calculateTodoForDays(today, days, allTasks, done)
-  if (todo <= cappedTodo) return 14
+  if (todo <= cappedTodo) return horizonDays
 
   while (todo > cappedTodo) {
     days *= 2
@@ -127,27 +157,57 @@ export function findMinutesOnTargetDay(
   return minutes
 }
 
+export type DayStart = { streakBeforeToday: number; lives: number }
+export type DayOutcome = { done: number; todo: number }
+
+// Settle a run of past days oldest-first: each day's verdict produces the
+// NEXT day's start state. A win banks the surplus and extends the streak; a
+// loss zeroes both (the bank was played covering the shortfall and still came
+// up short — full wipe by design).
+export function settleChain(
+  start: DayStart,
+  days: Array<DayOutcome>,
+): Array<DayStart> {
+  const rows: Array<DayStart> = []
+  let cur = start
+  for (const day of days) {
+    const hit = day.done + cur.lives >= day.todo
+    cur = hit
+      ? {
+          streakBeforeToday: cur.streakBeforeToday + 1,
+          lives: day.done + cur.lives - day.todo,
+        }
+      : { streakBeforeToday: 0, lives: 0 }
+    rows.push(cur)
+  }
+  return rows
+}
+
 export function computeProgress(
   today: Date,
   inputs: ProgressInputs,
 ): ProgressComputation {
-  const { completedTodayMin: done, streakBeforeToday, lives, allTasks } = inputs
+  const {
+    completedTodayMin: done,
+    streakBeforeToday,
+    lives,
+    bestStreakBefore,
+    allTasks,
+    settings,
+  } = inputs
 
-  const { todo, theoreticalMinimum } = calculateTodoForDays(
+  const { cappedTodo, theoreticalMinimum } = computeDayTarget(
     today,
-    TODO_HORIZON_DAYS,
     allTasks,
     done,
-  )
-  const cappedTodo = Math.min(
-    todo,
-    Math.max(theoreticalMinimum + TODO_BUFFER_MIN, TODO_FLOOR_MIN),
+    settings,
   )
   const daysUntilAllDone = findMinimumDaysNeeded(
     today,
     allTasks,
     done,
     cappedTodo,
+    settings.horizonDays,
   )
   const minutesOnTargetDay = findMinutesOnTargetDay(
     today,
@@ -166,9 +226,12 @@ export function computeProgress(
       todo: cappedTodo,
       streak,
       streakIsActive: hitTarget,
+      bestStreak: Math.max(bestStreakBefore, streak),
       theoreticalMinimum,
       daysUntilAllDone,
       minutesToReduceTomorrowDays: minutesOnTargetDay,
+      workdayStartMin: settings.workdayStartMin,
+      workdayEndMin: settings.workdayEndMin,
     },
     rolloverLives,
     rolloverStreak: streak,

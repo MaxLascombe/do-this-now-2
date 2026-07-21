@@ -13,7 +13,8 @@ struct ProgressEntry: TimelineEntry {
   let date: Date
   let done: Double
   let todo: Double
-  var minutesToReduceTomorrowDays: Double = 0
+  var workdayStartMin: Double = 8 * 60 + 30
+  var workdayEndMin: Double = 24 * 60
   // False only on the failed-fetch fallback — a real zero-task day is
   // loaded data and still gets its headline.
   var loaded: Bool = true
@@ -36,7 +37,8 @@ struct ProgressProvider: TimelineProvider {
         date: start.addingTimeInterval(Double(i) * 60),
         done: base.done,
         todo: base.todo,
-        minutesToReduceTomorrowDays: base.minutesToReduceTomorrowDays,
+        workdayStartMin: base.workdayStartMin,
+        workdayEndMin: base.workdayEndMin,
         loaded: base.loaded)
     }
   }
@@ -84,13 +86,15 @@ struct ProgressProvider: TimelineProvider {
     struct Body: Decodable {
       let done: Double
       let todo: Double
-      let minutesToReduceTomorrowDays: Double?
+      let workdayStartMin: Double?
+      let workdayEndMin: Double?
     }
     guard let body = try? JSONDecoder().decode(Body.self, from: data)
     else { return nil }
     return ProgressEntry(
       date: Date(), done: body.done, todo: body.todo,
-      minutesToReduceTomorrowDays: body.minutesToReduceTomorrowDays ?? 0)
+      workdayStartMin: body.workdayStartMin ?? 8 * 60 + 30,
+      workdayEndMin: body.workdayEndMin ?? 24 * 60)
   }
 }
 
@@ -104,17 +108,16 @@ private func hoursLabel(_ minutes: Double) -> String {
 }
 
 // Mirrors shared/src/pacing.ts computeSchedule + format.ts
-// formatScheduleStatus: the day's target ramps linearly from 8:30 to
-// midnight; the headline is done minus where that ramp says you should be.
+// formatScheduleStatus: the Daily Target ramps linearly across the user's
+// Workday; the headline is done minus where that ramp says you should be.
 private func scheduleHeadline(_ entry: ProgressEntry) -> String {
-  let startOfDay = 8.0 * 60 + 30
-  let minutesInDay = 24.0 * 60
+  let startOfDay = entry.workdayStartMin
+  let workdayLen = max(1, entry.workdayEndMin - entry.workdayStartMin)
   let comps = Calendar.current.dateComponents(
     [.hour, .minute], from: entry.date)
   let timeOfDay = Double((comps.hour ?? 0) * 60 + (comps.minute ?? 0))
-  let maxTodo = max(entry.todo, entry.minutesToReduceTomorrowDays)
-  let pct = max(0, min(1, (timeOfDay - startOfDay) / (minutesInDay - startOfDay)))
-  let diff = entry.done - maxTodo * pct
+  let pct = max(0, min(1, (timeOfDay - startOfDay) / workdayLen))
+  let diff = entry.done - entry.todo * pct
   if timeOfDay < startOfDay && diff == 0 { return "Ahead" }
   if diff > 0 { return "\(hoursLabel(diff.rounded(.down))) ahead" }
   if diff < 0 { return "\(hoursLabel((-diff).rounded(.up))) behind" }
