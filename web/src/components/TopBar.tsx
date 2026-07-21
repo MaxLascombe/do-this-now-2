@@ -3,7 +3,7 @@ import { computeSchedule } from '@dtn/shared/pacing'
 import { useProgressToday } from '@dtn/shared/queries'
 import { computePoints } from '@dtn/shared/scoring'
 import { Link, useLocation } from '@tanstack/react-router'
-import { CircleUserRound } from 'lucide-react'
+import { User } from 'lucide-react'
 import { useEffect, useRef, useState } from 'react'
 
 import { useDate } from '../hooks/useDate'
@@ -176,7 +176,7 @@ export const TopBar = () => {
                 : 'text-zinc-400 hover:bg-zinc-900 hover:text-zinc-100')
             }
           >
-            <CircleUserRound size={18} aria-hidden />
+            <User size={18} aria-hidden />
           </Link>
         </nav>
       </div>
