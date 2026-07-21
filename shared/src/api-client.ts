@@ -5,7 +5,7 @@ import {
   useContext,
 } from 'react'
 
-import type { HistoryEntry, StatsResult, Task } from './types'
+import type { HistoryEntry, RecapDay, StatsResult, Task } from './types'
 import type { TaskInput } from './task-input'
 import type { UserSettings } from './settings'
 
@@ -112,6 +112,7 @@ export interface ApiClient {
   }
   progress: {
     today(): Promise<ProgressTodayResult>
+    recap(): Promise<RecapDay[]>
   }
   settings: {
     get(): Promise<UserSettings>

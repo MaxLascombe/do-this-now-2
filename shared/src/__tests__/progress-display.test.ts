@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest'
 
 import {
   computeWinEta,
+  describeRecapDay,
   formatWinEta,
   isDayWon,
   progressCells,
@@ -95,6 +96,66 @@ describe('isDayWon / streakMilestone', () => {
     expect(streakMilestone(30)).toBe(30)
     expect(streakMilestone(8)).toBeNull()
     expect(streakMilestone(0)).toBeNull()
+  })
+})
+
+describe('describeRecapDay', () => {
+  const base = {
+    date: '2026-5-2',
+    done: 130,
+    livesBefore: 30,
+    livesAfter: 100,
+    streakBefore: 4,
+    streakAfter: 5,
+  }
+
+  it('describes a surplus win as banking', () => {
+    expect(describeRecapDay({ ...base, won: true })).toEqual({
+      headline: 'Won',
+      detail: '2h10 done · +1h10 banked · streak 5',
+    })
+  })
+
+  it('describes a lives-carried win as spending', () => {
+    expect(
+      describeRecapDay({ ...base, won: true, livesBefore: 120, livesAfter: 70 }),
+    ).toEqual({
+      headline: 'Won',
+      detail: '2h10 done · won on 0h50 of Lives · streak 5',
+    })
+  })
+
+  it('states a loss honestly — wipe and reset, no softening', () => {
+    expect(
+      describeRecapDay({
+        ...base,
+        won: false,
+        done: 40,
+        livesBefore: 180,
+        livesAfter: 0,
+        streakBefore: 9,
+        streakAfter: 0,
+      }),
+    ).toEqual({
+      headline: 'Lost',
+      detail: '0h40 done · bank 3h wiped · streak 9 → 0',
+    })
+  })
+
+  it('omits the wipe clause when nothing was banked', () => {
+    expect(
+      describeRecapDay({
+        ...base,
+        won: false,
+        livesBefore: 0,
+        livesAfter: 0,
+        streakBefore: 3,
+        streakAfter: 0,
+      }),
+    ).toEqual({
+      headline: 'Lost',
+      detail: '2h10 done · streak 3 → 0',
+    })
   })
 })
 

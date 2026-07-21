@@ -6,6 +6,7 @@ import {
 } from '@dtn/shared/helpers'
 import type { Task } from '@dtn/shared/schema'
 import type { UserSettings } from '@dtn/shared/settings'
+import type { RecapDay } from '@dtn/shared/types'
 
 // Pure scheduling/target math behind the progress bar. Kept free of any DB or
 // request access so it can be unit-tested; progress.ts loads the inputs and
@@ -159,6 +160,44 @@ export function findMinutesOnTargetDay(
 
 export type DayStart = { streakBeforeToday: number; lives: number }
 export type DayOutcome = { done: number; todo: number }
+
+// The Day Recap's raw material: for each of the last `maxDays` days before
+// today, the verdict encoded by its NEXT day's daily_progress row (win
+// rollovers always carry streakBeforeToday >= 1; settlement writes {0,0} on
+// losses). Days without a next-day row (pre-feature, unsettled) are skipped.
+export function buildRecap(
+  today: Date,
+  rows: Array<{ date: string; streakBeforeToday: number; lives: number }>,
+  doneByDay: Map<string, number>,
+  maxDays: number,
+): Array<RecapDay> {
+  const byKey = new Map(rows.map((r) => [r.date, r]))
+  const out: Array<RecapDay> = []
+  for (let i = 1; i <= maxDays; i++) {
+    const day = new Date(
+      today.getFullYear(),
+      today.getMonth(),
+      today.getDate() - i,
+    )
+    const dayKey = dateString(day)
+    const nextKey = dateString(
+      new Date(day.getFullYear(), day.getMonth(), day.getDate() + 1),
+    )
+    const next = byKey.get(nextKey)
+    if (!next) continue
+    const before = byKey.get(dayKey)
+    out.push({
+      date: dayKey,
+      won: next.streakBeforeToday > 0,
+      done: doneByDay.get(dayKey) ?? 0,
+      livesBefore: before?.lives ?? 0,
+      livesAfter: next.lives,
+      streakBefore: before?.streakBeforeToday ?? 0,
+      streakAfter: next.streakBeforeToday,
+    })
+  }
+  return out
+}
 
 // Settle a run of past days oldest-first: each day's verdict produces the
 // NEXT day's start state. A win banks the surplus and extends the streak; a

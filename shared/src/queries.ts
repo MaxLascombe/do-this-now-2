@@ -32,6 +32,7 @@ export const taskKeys = {
 export const selectionKey = ['selection'] as const
 export const historyKey = (date: string) => ['history', date] as const
 export const progressTodayKey = ['progresstoday'] as const
+export const progressRecapKey = ['progressrecap'] as const
 export const settingsKey = ['settings'] as const
 export const statsKey = ['stats'] as const
 
@@ -491,6 +492,16 @@ export function useProgressToday() {
   return useQuery({
     queryKey: progressTodayKey,
     queryFn: () => api.progress.today(),
+  })
+}
+
+export function useProgressRecap() {
+  const api = useApi()
+  return useQuery({
+    queryKey: progressRecapKey,
+    queryFn: () => api.progress.recap(),
+    // Verdicts only change at day boundaries; an hour of staleness is fine.
+    staleTime: HOUR_MS,
   })
 }
 
