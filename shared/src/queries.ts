@@ -19,6 +19,8 @@ import {
 } from './task-transitions'
 import { currentTimerSeconds, shouldCompleteOnPause } from './timer-utils'
 import { HOUR_MS } from './time'
+import { taskToInput } from './task-input'
+import { undoRef, useUndo } from './undo'
 import type { TaskInput } from './task-input'
 import type { UserSettings } from './settings'
 import type { Task } from './types'
@@ -554,11 +556,27 @@ export function useCreateTask() {
 export function useUpdateTask() {
   const api = useApi()
   const qc = useQueryClient()
+  const undo = useUndo()
   return useMutation({
     mutationFn: ({ id, input }: { id: string; input: TaskInput }) =>
       api.tasks.update(id, input),
-    onMutate: ({ id, input }) => optimisticUpdate(qc, id, input),
+    onMutate: async ({ id, input }) => {
+      const prevTask = findTaskInCaches(qc, id)
+      const snap = await optimisticUpdate(qc, id, input)
+      return { ...snap, prevTask }
+    },
     onError: (_e, _vars, ctx) => rollback(qc, ctx),
+    onSuccess: (_t, vars, ctx) => {
+      const prev = ctx?.prevTask
+      if (!prev) return
+      undo.push({
+        label: `Edited '${prev.title}'`,
+        run: async () => {
+          await api.tasks.update(vars.id, taskToInput(prev))
+          invalidateTaskCaches(qc)
+        },
+      })
+    },
     onSettled: () => invalidateTaskCaches(qc),
   })
 }
@@ -566,10 +584,26 @@ export function useUpdateTask() {
 export function useDeleteTask() {
   const api = useApi()
   const qc = useQueryClient()
+  const undo = useUndo()
   return useMutation({
     mutationFn: (id: string) => api.tasks.delete(id),
-    onMutate: (id) => optimisticRemove(qc, id),
+    onMutate: async (id) => {
+      const prevTask = findTaskInCaches(qc, id)
+      const snap = await optimisticRemove(qc, id)
+      return { ...snap, prevTask }
+    },
     onError: (_e, _id, ctx) => rollback(qc, ctx),
+    onSuccess: (_d, _id, ctx) => {
+      const prev = ctx?.prevTask
+      if (!prev) return
+      undo.push({
+        label: `Deleted '${prev.title}'`,
+        run: async () => {
+          await api.tasks.create(taskToInput(prev))
+          invalidateTaskCaches(qc)
+        },
+      })
+    },
     onSettled: () => invalidateTaskCaches(qc),
   })
 }
@@ -583,13 +617,33 @@ function normalizeComplete(v: CompleteVars): { id: string; countMeasurement?: bo
 export function useCompleteTask() {
   const api = useApi()
   const qc = useQueryClient()
+  const undo = useUndo()
   return useMutation({
     mutationFn: (vars: CompleteVars) => {
       const { id, countMeasurement } = normalizeComplete(vars)
       return api.tasks.complete(id, { countMeasurement })
     },
-    onMutate: (vars) => optimisticComplete(qc, normalizeComplete(vars).id),
+    onMutate: async (vars) => {
+      const { id } = normalizeComplete(vars)
+      const prevTask = findTaskInCaches(qc, id)
+      const snap = await optimisticComplete(qc, id)
+      return { ...snap, prevTask }
+    },
     onError: (_e, _vars, ctx) => rollback(qc, ctx),
+    onSuccess: (data, _vars, ctx) => {
+      // Global undo: a full completion reverses server-side through its
+      // history row — snapshot restored, row deleted, progress re-finalized.
+      // Subtask advances (historyId null) are covered by the edit path.
+      if (!data.historyId) return
+      const historyId = data.historyId
+      undo.push({
+        label: `Done '${ctx?.prevTask?.title ?? 'task'}'`,
+        run: async () => {
+          await api.history.undo(historyId)
+          invalidateTaskCaches(qc)
+        },
+      })
+    },
     onSettled: () => invalidateTaskCaches(qc),
   })
 }
@@ -597,11 +651,25 @@ export function useCompleteTask() {
 export function useSnoozeTask() {
   const api = useApi()
   const qc = useQueryClient()
+  const undo = useUndo()
   return useMutation({
     mutationFn: (vars: { id: string; allSubtasks?: boolean }) =>
       api.tasks.snooze(vars.id, vars.allSubtasks ?? false),
-    onMutate: (vars) => optimisticSnooze(qc, vars.id, vars.allSubtasks ?? false),
+    onMutate: async (vars) => {
+      const prevTask = findTaskInCaches(qc, vars.id)
+      const snap = await optimisticSnooze(qc, vars.id, vars.allSubtasks ?? false)
+      return { ...snap, prevTask }
+    },
     onError: (_e, _vars, ctx) => rollback(qc, ctx),
+    onSuccess: (_res, vars, ctx) => {
+      undo.push({
+        label: `Snoozed '${ctx?.prevTask?.title ?? 'task'}'`,
+        run: async () => {
+          await api.tasks.unsnooze(vars.id)
+          invalidateTaskCaches(qc)
+        },
+      })
+    },
     onSettled: () => invalidateTaskCaches(qc),
   })
 }
@@ -621,10 +689,26 @@ async function optimisticUnsnooze(
 export function useUnsnoozeTask() {
   const api = useApi()
   const qc = useQueryClient()
+  const undo = useUndo()
   return useMutation({
     mutationFn: (id: string) => api.tasks.unsnooze(id),
-    onMutate: (id) => optimisticUnsnooze(qc, id),
+    onMutate: async (id) => {
+      const prevTask = findTaskInCaches(qc, id)
+      const snap = await optimisticUnsnooze(qc, id)
+      return { ...snap, prevTask }
+    },
     onError: (_e, _id, ctx) => rollback(qc, ctx),
+    onSuccess: (_t, id, ctx) => {
+      const prev = ctx?.prevTask
+      if (!prev) return
+      undo.push({
+        label: `Woke '${prev.title}'`,
+        run: async () => {
+          await api.tasks.update(id, taskToInput(prev))
+          invalidateTaskCaches(qc)
+        },
+      })
+    },
     onSettled: () => invalidateTaskCaches(qc),
   })
 }
@@ -632,10 +716,20 @@ export function useUnsnoozeTask() {
 export function useSnoozeManyTasks() {
   const api = useApi()
   const qc = useQueryClient()
+  const undo = useUndo()
   return useMutation({
     mutationFn: (ids: string[]) => api.tasks.snoozeMany(ids),
     onMutate: (ids) => optimisticSnoozeMany(qc, ids),
     onError: (_e, _ids, ctx) => rollback(qc, ctx),
+    onSuccess: (res, ids) => {
+      undo.push({
+        label: `Snoozed ${res.count} task${res.count === 1 ? '' : 's'}`,
+        run: async () => {
+          await Promise.all(ids.map((id) => api.tasks.unsnooze(id)))
+          invalidateTaskCaches(qc)
+        },
+      })
+    },
     onSettled: () => invalidateTaskCaches(qc),
   })
 }
@@ -804,6 +898,33 @@ export function registerTimerMutationDefaults(qc: QueryClient, api: ApiClient) {
         qc.setQueryData<SelectionResult>(selectionKey, {
           selectedTaskId: vars.id,
         })
+      }
+
+      // Global undo for the destructive timer verbs. Start/pause are excluded
+      // by design — pressing the button again IS the undo, and un-pausing
+      // retroactively would falsify elapsed time.
+      if (vars.action.kind === 'add') {
+        const seconds = vars.action.seconds
+        const m = Math.round(Math.abs(seconds) / 60)
+        undoRef.current.push({
+          label: seconds >= 0 ? `Timer +${m}m` : `Timer −${m}m`,
+          run: async () => {
+            await api.tasks.timer(vars.id, { kind: 'add', seconds: -seconds })
+            invalidateTaskCaches(qc)
+          },
+        })
+      } else if (vars.action.kind === 'reset') {
+        const prev = ctx?.prevOne?.value
+        const seconds = prev ? Math.round(currentTimerSeconds(prev, new Date())) : 0
+        if (seconds > 0) {
+          undoRef.current.push({
+            label: 'Timer reset',
+            run: async () => {
+              await api.tasks.timer(vars.id, { kind: 'add', seconds })
+              invalidateTaskCaches(qc)
+            },
+          })
+        }
       }
 
       // Pausing a fixed-time-frame task once its timer has reached the target

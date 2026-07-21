@@ -37,6 +37,7 @@ import { Route as ApiTasksIdUnsnoozeRouteImport } from './routes/api/tasks.$id.u
 import { Route as ApiTasksIdTimerRouteImport } from './routes/api/tasks.$id.timer'
 import { Route as ApiTasksIdSnoozeRouteImport } from './routes/api/tasks.$id.snooze'
 import { Route as ApiTasksIdCompleteRouteImport } from './routes/api/tasks.$id.complete'
+import { Route as ApiHistoryIdUndoRouteImport } from './routes/api/history.$id.undo'
 
 const StatsRoute = StatsRouteImport.update({
   id: '/stats',
@@ -178,6 +179,11 @@ const ApiTasksIdCompleteRoute = ApiTasksIdCompleteRouteImport.update({
   path: '/complete',
   getParentRoute: () => ApiTasksIdRoute,
 } as any)
+const ApiHistoryIdUndoRoute = ApiHistoryIdUndoRouteImport.update({
+  id: '/api/history/$id/undo',
+  path: '/api/history/$id/undo',
+  getParentRoute: () => rootRouteImport,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -204,6 +210,7 @@ export interface FileRoutesByFullPath {
   '/api/tasks/suggest-emojis': typeof ApiTasksSuggestEmojisRoute
   '/tasks/$id/edit': typeof TasksIdEditRoute
   '/tasks/$id/': typeof TasksIdIndexRoute
+  '/api/history/$id/undo': typeof ApiHistoryIdUndoRoute
   '/api/tasks/$id/complete': typeof ApiTasksIdCompleteRoute
   '/api/tasks/$id/snooze': typeof ApiTasksIdSnoozeRoute
   '/api/tasks/$id/timer': typeof ApiTasksIdTimerRoute
@@ -233,6 +240,7 @@ export interface FileRoutesByTo {
   '/api/tasks/suggest-emojis': typeof ApiTasksSuggestEmojisRoute
   '/tasks/$id/edit': typeof TasksIdEditRoute
   '/tasks/$id': typeof TasksIdIndexRoute
+  '/api/history/$id/undo': typeof ApiHistoryIdUndoRoute
   '/api/tasks/$id/complete': typeof ApiTasksIdCompleteRoute
   '/api/tasks/$id/snooze': typeof ApiTasksIdSnoozeRoute
   '/api/tasks/$id/timer': typeof ApiTasksIdTimerRoute
@@ -264,6 +272,7 @@ export interface FileRoutesById {
   '/api/tasks/suggest-emojis': typeof ApiTasksSuggestEmojisRoute
   '/tasks/$id/edit': typeof TasksIdEditRoute
   '/tasks/$id/': typeof TasksIdIndexRoute
+  '/api/history/$id/undo': typeof ApiHistoryIdUndoRoute
   '/api/tasks/$id/complete': typeof ApiTasksIdCompleteRoute
   '/api/tasks/$id/snooze': typeof ApiTasksIdSnoozeRoute
   '/api/tasks/$id/timer': typeof ApiTasksIdTimerRoute
@@ -296,6 +305,7 @@ export interface FileRouteTypes {
     | '/api/tasks/suggest-emojis'
     | '/tasks/$id/edit'
     | '/tasks/$id/'
+    | '/api/history/$id/undo'
     | '/api/tasks/$id/complete'
     | '/api/tasks/$id/snooze'
     | '/api/tasks/$id/timer'
@@ -325,6 +335,7 @@ export interface FileRouteTypes {
     | '/api/tasks/suggest-emojis'
     | '/tasks/$id/edit'
     | '/tasks/$id'
+    | '/api/history/$id/undo'
     | '/api/tasks/$id/complete'
     | '/api/tasks/$id/snooze'
     | '/api/tasks/$id/timer'
@@ -355,6 +366,7 @@ export interface FileRouteTypes {
     | '/api/tasks/suggest-emojis'
     | '/tasks/$id/edit'
     | '/tasks/$id/'
+    | '/api/history/$id/undo'
     | '/api/tasks/$id/complete'
     | '/api/tasks/$id/snooze'
     | '/api/tasks/$id/timer'
@@ -381,6 +393,7 @@ export interface RootRouteChildren {
   ApiLockscreenTimerRoute: typeof ApiLockscreenTimerRoute
   ApiProgressRecapRoute: typeof ApiProgressRecapRoute
   ApiProgressTodayRoute: typeof ApiProgressTodayRoute
+  ApiHistoryIdUndoRoute: typeof ApiHistoryIdUndoRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -581,6 +594,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiTasksIdCompleteRouteImport
       parentRoute: typeof ApiTasksIdRoute
     }
+    '/api/history/$id/undo': {
+      id: '/api/history/$id/undo'
+      path: '/api/history/$id/undo'
+      fullPath: '/api/history/$id/undo'
+      preLoaderRoute: typeof ApiHistoryIdUndoRouteImport
+      parentRoute: typeof rootRouteImport
+    }
   }
 }
 
@@ -651,6 +671,7 @@ const rootRouteChildren: RootRouteChildren = {
   ApiLockscreenTimerRoute: ApiLockscreenTimerRoute,
   ApiProgressRecapRoute: ApiProgressRecapRoute,
   ApiProgressTodayRoute: ApiProgressTodayRoute,
+  ApiHistoryIdUndoRoute: ApiHistoryIdUndoRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

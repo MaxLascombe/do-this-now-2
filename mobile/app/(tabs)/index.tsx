@@ -5,7 +5,6 @@ import {
 } from '@dtn/shared/task-transitions'
 import {
   useCompleteTask,
-  useCreateTask,
   useDeleteTask,
   useExitFocus,
   useSelection,
@@ -15,10 +14,10 @@ import {
   useTaskTimer,
   useTopTasks,
   useUnselect,
-  useUnsnoozeTask,
   useUpdateTask,
 } from '@dtn/shared/queries'
 import { taskToInput } from '@dtn/shared/task-input'
+import { useUndo } from '@dtn/shared/undo'
 import { formatDueLabel, formatRepeat } from '@dtn/shared/format'
 import { minutesToHours } from '@dtn/shared/time'
 import {
@@ -82,9 +81,8 @@ export default function Home() {
   const deleteMutation = useDeleteTask()
   const snoozeMutation = useSnoozeTask()
   const snoozeManyMutation = useSnoozeManyTasks()
-  const unsnoozeMutation = useUnsnoozeTask()
-  const createMutation = useCreateTask()
   const toast = useToast()
+  const undoStack = useUndo()
 
   // True when `t` is the one currently held open in the Focus View — so a
   // terminal action on it should also step out of that view.
@@ -99,13 +97,22 @@ export default function Home() {
     // Auto-flow (ADR-0005): an explicit Done in the Focus View hands
     // selection straight to the next Top Task, timer running. Row-level
     // Done, subtask advances, and the pause-at-target auto-complete never
-    // reach this branch.
+    // reach this branch. The undo toast rides along either way.
     const next = flowing
       ? activeTasks.find((x) => x.id !== t.id)
       : undefined
     doneMutation.mutate(
       { id: t.id, countMeasurement },
-      { onSuccess: () => next && startFor(next) },
+      {
+        onSuccess: () => {
+          if (next) startFor(next)
+          toast({
+            message: `Done '${t.title}'`,
+            actionLabel: 'Undo',
+            onAction: () => void undoStack.undoLast(),
+          })
+        },
+      },
     )
   }
 
@@ -155,7 +162,7 @@ export default function Home() {
             message:
               res.scope === 'subtask' ? 'Subtask snoozed' : 'Task snoozed',
             actionLabel: 'Undo',
-            onAction: () => unsnoozeMutation.mutate(t.id),
+            onAction: () => void undoStack.undoLast(),
           }),
       },
     )
@@ -184,13 +191,12 @@ export default function Home() {
           text: 'Delete',
           style: 'destructive',
           onPress: () => {
-            const restore = taskToInput(t)
             deleteMutation.mutate(t.id, {
               onSuccess: () =>
                 toast({
                   message: `Deleted '${t.title}'`,
                   actionLabel: 'Undo',
-                  onAction: () => createMutation.mutate(restore),
+                  onAction: () => void undoStack.undoLast(),
                 }),
             })
           },

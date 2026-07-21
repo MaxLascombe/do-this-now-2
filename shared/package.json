@@ -25,6 +25,7 @@
     "./settings": "./src/settings.ts",
     "./heatmap": "./src/heatmap.ts",
     "./api-client": "./src/api-client.ts",
+    "./undo": "./src/undo.ts",
     "./queries": "./src/queries.ts",
     "./timer-utils": "./src/timer-utils.ts"
   },

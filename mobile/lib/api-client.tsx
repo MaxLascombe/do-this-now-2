@@ -1,11 +1,13 @@
 import { useAuth } from '@clerk/clerk-expo'
 import {
   apiErrorFromResponse,
+  type CompleteTaskResult,
   ApiProvider,
   type ApiClient,
   type SelectionResult,
 } from '@dtn/shared/api-client'
 import { getTzOffsetMin } from '@dtn/shared/time'
+import { UndoProvider } from '@dtn/shared/undo'
 import type { UserSettings } from '@dtn/shared/settings'
 import type { HistoryEntry, StatsResult, Task } from '@dtn/shared/types'
 import { type ReactNode, useMemo } from 'react'
@@ -66,7 +68,7 @@ function createMobileApi(getToken: () => Promise<string | null>): ApiClient {
       delete: (id) =>
         call<Record<string, never>>(`/api/tasks/${id}`, { method: 'DELETE' }),
       complete: (id, opts) =>
-        call<{ advanced: boolean }>(`/api/tasks/${id}/complete`, {
+        call<CompleteTaskResult>(`/api/tasks/${id}/complete`, {
           method: 'POST',
           body: {
             countMeasurement: opts?.countMeasurement ?? true,
@@ -103,6 +105,8 @@ function createMobileApi(getToken: () => Promise<string | null>): ApiClient {
     },
     history: {
       forDate: (date) => call<HistoryEntry[]>(`/api/history/${date}`),
+      undo: (historyId) =>
+        call<Task>(`/api/history/${historyId}/undo`, { method: 'POST' }),
     },
     progress: {
       today: () => call(`/api/progress/today`),
@@ -124,7 +128,9 @@ export function MobileApiAndQuery({ children }: { children: ReactNode }) {
   const api = useMemo(() => createMobileApi(getToken), [getToken])
   return (
     <QueryProvider api={api}>
-      <ApiProvider value={api}>{children}</ApiProvider>
+      <ApiProvider value={api}>
+        <UndoProvider>{children}</UndoProvider>
+      </ApiProvider>
     </QueryProvider>
   )
 }

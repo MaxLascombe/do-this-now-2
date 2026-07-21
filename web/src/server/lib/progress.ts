@@ -317,5 +317,15 @@ export async function finalizeTodayProgress(
       rolloverStreak,
       rolloverLives,
     )
+  } else {
+    // Not (or no longer) hit — an undone completion can revoke a win that
+    // already wrote tomorrow's rollover. Tomorrow's start state is a pure
+    // function of today, so deleting the stale row is always safe; the lazy
+    // settlement walk recreates it at the day boundary if today ends hit.
+    await db
+      .delete(dailyProgress)
+      .where(
+        and(eq(dailyProgress.userId, userId), eq(dailyProgress.date, tomorrowKey)),
+      )
   }
 }

@@ -50,7 +50,7 @@ export async function completeTask(
   // survives (advanced in place), so the Selected Task stays selected —
   // pausing never unselects (CONTEXT.md). Explicit Done keeps the default.
   keepSelection: boolean = false,
-): Promise<{ advanced: boolean }> {
+): Promise<{ advanced: boolean; historyId: string | null }> {
   // The history insert + task update/delete must be atomic — without a
   // transaction, a double-tap on "Done" can race: two history rows for
   // the same completion, or insert succeeds and the follow-up update is
@@ -86,7 +86,7 @@ export async function completeTask(
       if (isSnoozed(transition.nextTask)) {
         await clearSelectionIfTx(tx, userId, task.id, now)
       }
-      return { advanced: false }
+      return { advanced: false, historyId: null }
     }
 
     // Full completion: hand off to applyFullCompletion which figures out
@@ -111,7 +111,10 @@ export async function completeTask(
       actualSeconds: result.actualSecondsPerRow,
       completedAt: now,
     }))
-    await tx.insert(history).values(rows)
+    const inserted = await tx
+      .insert(history)
+      .values(rows)
+      .returning({ id: history.id })
 
     if (result.nextTask === null) {
       await tx
@@ -139,7 +142,7 @@ export async function completeTask(
     if (!(keepSelection && result.nextTask !== null)) {
       await clearSelectionIfTx(tx, userId, task.id, now)
     }
-    return { advanced: true }
+    return { advanced: true, historyId: inserted[0]?.id ?? null }
   })
 
   // Persist tomorrow's streak/lives rollover now that `done` has changed.
@@ -158,6 +161,80 @@ export async function completeTask(
   // mirror the change onto the Lock Screen Timer.
   syncLockScreenSoon(userId)
   return completionResult
+}
+
+// Reverse a completion (the global undo stack's inverse of Done): restore
+// the task from its history snapshot — paused, with the recorded time back
+// on the clock — delete the completion's history row(s), and re-finalize
+// today's progress. Restoring the snapshot also reverts a fluid task's EMA
+// and measurement count, since both were captured pre-completion. Legacy
+// snapshots may predate newer columns, hence the ?? defaults.
+export async function uncompleteTask(
+  userId: string,
+  historyId: string,
+  tzOffsetMin: number,
+): Promise<Task> {
+  const restoredId = await db.transaction(async (tx) => {
+    const rows = await tx
+      .select()
+      .from(history)
+      .where(and(eq(history.userId, userId), eq(history.id, historyId)))
+      .limit(1)
+    const row = rows[0]
+    if (!row) throw new TaskNotFoundError('Completion not found')
+    const snap = row.taskSnapshot
+    const now = new Date()
+    const values = {
+      id: snap.id,
+      userId,
+      title: snap.title,
+      emoji: snap.emoji ?? '📝',
+      due: snap.due,
+      dueTime: snap.dueTime ?? null,
+      strictDeadline: snap.strictDeadline ?? false,
+      canDoEarly: snap.canDoEarly ?? true,
+      repeat: snap.repeat ?? 'No Repeat',
+      repeatInterval: snap.repeatInterval ?? 1,
+      repeatUnit: snap.repeatUnit ?? 'day',
+      repeatWeekdays:
+        snap.repeatWeekdays ??
+        ([false, false, false, false, false, false, false] as const),
+      timeFrame: snap.timeFrame ?? 0,
+      timekeeperId: snap.timekeeperId ?? null,
+      timeframeType: snap.timeframeType ?? 'fixed',
+      timerStartedAt: null,
+      timerAccumulatedSeconds:
+        row.actualSeconds ?? snap.timerAccumulatedSeconds ?? 0,
+      measurementCount: snap.measurementCount ?? 0,
+      snooze: snap.snooze ?? null,
+      tags: snap.tags ?? [],
+      subtasks: snap.subtasks ?? [],
+      updatedAt: now,
+    }
+    await tx
+      .insert(tasks)
+      .values(values)
+      .onConflictDoUpdate({ target: tasks.id, set: values })
+    // A repeating-fixed completion may have written N sibling rows in one
+    // batch (same instant, same snapshot) — undo removes the whole batch.
+    await tx
+      .delete(history)
+      .where(
+        and(eq(history.userId, userId), eq(history.completedAt, row.completedAt)),
+      )
+    return snap.id
+  })
+
+  try {
+    await finalizeTodayProgress(userId, tzOffsetMin)
+  } catch (err) {
+    console.error('finalizeTodayProgress failed after uncompleteTask', err)
+  }
+  syncLockScreenSoon(userId)
+
+  const restored = await loadTask(db, userId, restoredId)
+  if (!restored) throw new TaskNotFoundError('Task not found after undo')
+  return restored
 }
 
 export async function snoozeTask(

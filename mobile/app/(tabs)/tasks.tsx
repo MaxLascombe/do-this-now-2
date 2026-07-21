@@ -4,15 +4,14 @@ import { newSafeDate } from '@dtn/shared/helpers'
 import {
   useAllTasks,
   useCompleteTask,
-  useCreateTask,
   useDeleteTask,
   useSnoozeTask,
   useTaskTimer,
   useTopTasks,
   useUnsnoozeTask,
 } from '@dtn/shared/queries'
+import { useUndo } from '@dtn/shared/undo'
 import { isSnoozed, sortTasks } from '@dtn/shared/task-sorting'
-import { taskToInput } from '@dtn/shared/task-input'
 import { willAdvanceSubtask } from '@dtn/shared/task-transitions'
 import {
   completionConfirmKind,
@@ -68,8 +67,8 @@ export default function TasksList() {
   const topTasks = useTopTasks({ enabled: sort === 'TOP' })
 
   const doneMutation = useCompleteTask()
-  const createMutation = useCreateTask()
   const toast = useToast()
+  const undoStack = useUndo()
   const deleteMutation = useDeleteTask()
   const snoozeMutation = useSnoozeTask()
   const unsnoozeMutation = useUnsnoozeTask()
@@ -124,11 +123,11 @@ export default function TasksList() {
             toast({
               message: 'Task snoozed',
               actionLabel: 'Undo',
-              onAction: () => unsnoozeMutation.mutate(id),
+              onAction: () => void undoStack.undoLast(),
             }),
         },
       ),
-    [snoozeMutation, unsnoozeMutation, toast],
+    [snoozeMutation, undoStack, toast],
   )
   const onWake = useCallback(
     (id: string) => unsnoozeMutation.mutate(id),
@@ -145,28 +144,20 @@ export default function TasksList() {
             text: 'Delete',
             style: 'destructive',
             onPress: () => {
-              // Snapshot for Undo — recreate restores content + subtasks (new id).
-              const task = [
-                ...(allTasks.data ?? []),
-                ...(topTasks.data ?? []),
-              ].find((x) => x.id === id)
-              const restore = task ? taskToInput(task) : null
               deleteMutation.mutate(id, {
-                onSuccess: () => {
-                  if (!restore) return
+                onSuccess: () =>
                   toast({
                     message: `Deleted '${title}'`,
                     actionLabel: 'Undo',
-                    onAction: () => createMutation.mutate(restore),
-                  })
-                },
+                    onAction: () => void undoStack.undoLast(),
+                  }),
               })
             },
           },
         ],
       )
     },
-    [deleteMutation, createMutation, toast, allTasks.data, topTasks.data],
+    [deleteMutation, undoStack, toast],
   )
 
   const sections: Group[] = useMemo(() => {

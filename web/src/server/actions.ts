@@ -27,6 +27,18 @@ export const completeTask = createServerFn({ method: 'POST' })
     ),
   )
 
+export const uncompleteTask = createServerFn({ method: 'POST' })
+  .inputValidator(
+    validate(z.object({ historyId: v.id, tzOffsetMin: v.tzOffsetMin })),
+  )
+  .handler(async ({ data }) =>
+    actionsLib.uncompleteTask(
+      await requireUserId(),
+      data.historyId,
+      data.tzOffsetMin,
+    ),
+  )
+
 export const snoozeTask = createServerFn({ method: 'POST' })
   .inputValidator(
     validate(z.object({ id: v.id, allSubtasks: z.boolean().optional() })),

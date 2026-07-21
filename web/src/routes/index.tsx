@@ -1,7 +1,6 @@
 import { formatDueLabel, formatRepeat } from '@dtn/shared/format'
 import {
   useCompleteTask,
-  useCreateTask,
   useDeleteTask,
   useExitFocus,
   usePrefetchTask,
@@ -13,9 +12,9 @@ import {
   useTaskTimer,
   useTopTasks,
   useUnselect,
-  useUnsnoozeTask,
   useUpdateTask,
 } from '@dtn/shared/queries'
+import { useUndo } from '@dtn/shared/undo'
 import { taskToInput } from '@dtn/shared/task-input'
 import { findNextActionableSubtask, isSnoozed } from '@dtn/shared/task-sorting'
 import {
@@ -183,15 +182,14 @@ function Home() {
   const doneMutation = useCompleteTask()
   const exitFocus = useExitFocus()
   const deleteMutation = useDeleteTask()
-  const createTask = useCreateTask()
   const snoozeMutation = useSnoozeTask()
   const snoozeManyMutation = useSnoozeManyTasks()
-  const unsnoozeMutation = useUnsnoozeTask()
   const updateTask = useUpdateTask()
   const prefetchTask = usePrefetchTask()
   const primeTaskCache = usePrimeTaskCache()
   const confirm = useConfirm()
   const toast = useToast()
+  const undoStack = useUndo()
 
   const [pendingComplete, setPendingComplete] = useState<{
     task: Task
@@ -270,7 +268,7 @@ function Home() {
             message:
               res.scope === 'subtask' ? 'Subtask snoozed' : 'Task snoozed',
             actionLabel: 'Undo',
-            onAction: () => unsnoozeMutation.mutate(id),
+            onAction: () => void undoStack.undoLast(),
           }),
       },
     )
@@ -285,13 +283,12 @@ function Home() {
     })
     if (!ok) return
     const title = task.title
-    const restore = taskToInput(task)
     deleteMutation.mutate(task.id, {
       onSuccess: () =>
         toast({
           message: `Deleted '${title}'`,
           actionLabel: 'Undo',
-          onAction: () => createTask.mutate(restore),
+          onAction: () => void undoStack.undoLast(),
         }),
     })
   }

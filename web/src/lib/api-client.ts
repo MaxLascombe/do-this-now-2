@@ -58,6 +58,10 @@ export const webApiClient: ApiClient = {
       actionFns.getHistory({
         data: { date, tzOffsetMin: getTzOffsetMin() },
       }),
+    undo: (historyId) =>
+      actionFns.uncompleteTask({
+        data: { historyId, tzOffsetMin: getTzOffsetMin() },
+      }),
   },
   progress: {
     today: () =>

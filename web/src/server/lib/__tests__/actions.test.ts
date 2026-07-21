@@ -10,7 +10,12 @@ import {
 } from '@dtn/shared/schema'
 
 import { db } from '../../../db'
-import { completeTask, snoozeManyTasks, snoozeTask } from '../actions'
+import {
+  completeTask,
+  snoozeManyTasks,
+  snoozeTask,
+  uncompleteTask,
+} from '../actions'
 import { applyTimerAction } from '../timer'
 
 // Integration tests that hit a real Neon Postgres via the neon-serverless
@@ -96,7 +101,8 @@ describe.skipIf(!process.env.DATABASE_URL)('actions (integration)', () => {
     it('inserts a history row and deletes a one-shot task', async () => {
       const task = await makeTask({ repeat: 'No Repeat' })
       const result = await completeTask(TEST_USER, task.id, 300)
-      expect(result).toEqual({ advanced: true })
+      expect(result).toMatchObject({ advanced: true })
+      expect(result.historyId).toBeTruthy()
 
       const remaining = await db
         .select()
@@ -122,7 +128,8 @@ describe.skipIf(!process.env.DATABASE_URL)('actions (integration)', () => {
         due: '2026-5-12',
       })
       const result = await completeTask(TEST_USER, task.id, 300)
-      expect(result).toEqual({ advanced: true })
+      expect(result).toMatchObject({ advanced: true })
+      expect(result.historyId).toBeTruthy()
 
       const [updated] = await db
         .select()
@@ -148,7 +155,7 @@ describe.skipIf(!process.env.DATABASE_URL)('actions (integration)', () => {
         ],
       })
       const result = await completeTask(TEST_USER, task.id, 300)
-      expect(result).toEqual({ advanced: false })
+      expect(result).toEqual({ advanced: false, historyId: null })
 
       const [updated] = await db
         .select()
@@ -173,7 +180,8 @@ describe.skipIf(!process.env.DATABASE_URL)('actions (integration)', () => {
         ],
       })
       const result = await completeTask(TEST_USER, task.id, 300)
-      expect(result).toEqual({ advanced: true })
+      expect(result).toMatchObject({ advanced: true })
+      expect(result.historyId).toBeTruthy()
 
       // Task is one-shot, so it should be gone.
       const remaining = await db
@@ -209,6 +217,28 @@ describe.skipIf(!process.env.DATABASE_URL)('actions (integration)', () => {
       expect(cleared.selectedTaskId).toBeNull()
     })
 
+    it('uncompleteTask round-trips: restores the deleted one-shot, removes history', async () => {
+      const task = await makeTask({ repeat: 'No Repeat', timeFrame: 30 })
+      const result = await completeTask(TEST_USER, task.id, 300)
+      expect(result.historyId).toBeTruthy()
+
+      const restored = await uncompleteTask(
+        TEST_USER,
+        result.historyId as string,
+        300,
+      )
+      // Same id, same content, paused with the recorded time on the clock.
+      expect(restored.id).toBe(task.id)
+      expect(restored.title).toBe('Integration test task')
+      expect(restored.timerStartedAt).toBeNull()
+
+      const hist = await db
+        .select()
+        .from(history)
+        .where(eq(history.userId, TEST_USER))
+      expect(hist).toHaveLength(0)
+    })
+
     it('pauses a running timer when completing the last actionable subtask leaves the task snoozed', async () => {
       const future = new Date(Date.now() + 60 * 60 * 1000).toISOString()
       const task = await makeTask({
@@ -229,7 +259,7 @@ describe.skipIf(!process.env.DATABASE_URL)('actions (integration)', () => {
       // with nothing actionable (s1 still snoozed) — so it should bank the
       // running timer, mirroring the snooze path.
       const result = await completeTask(TEST_USER, task.id, 300)
-      expect(result).toEqual({ advanced: false })
+      expect(result).toEqual({ advanced: false, historyId: null })
 
       const [updated] = await db
         .select()
@@ -256,7 +286,7 @@ describe.skipIf(!process.env.DATABASE_URL)('actions (integration)', () => {
         .where(eq(tasks.id, task.id))
 
       const result = await completeTask(TEST_USER, task.id, 300)
-      expect(result).toEqual({ advanced: false })
+      expect(result).toEqual({ advanced: false, historyId: null })
 
       const [updated] = await db
         .select()
