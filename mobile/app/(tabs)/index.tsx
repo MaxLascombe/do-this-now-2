@@ -311,7 +311,7 @@ export default function Home() {
                     <TaskRow
                       key={t.id}
                       task={t}
-                      rank={i + 1}
+                      centerActions
                       actions={
                         <>
                           <RowAction
