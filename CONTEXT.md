@@ -5,7 +5,7 @@ A single-user-per-account task app centered on "what should I do right now." Tas
 ## Language
 
 **Selected Task**:
-The one task the user has committed to focusing on right now, stored authoritatively per user (a `selectedTaskId` pointer) and shared across all their devices. At most one exists at a time; it may be absent (nothing selected). Any task is selectable regardless of rank, due date, or snooze state. Selecting a task starts its timer (for a Child, its Keeper's timer). A Selected Task may have its timer running or paused. It unselects only on the explicit "Return" action (Esc on desktop), the explicit "Done" button, or snoozing/deleting it. Pausing never unselects — even when pausing a fixed task at its target auto-completes it (which advances a repeating task in place); the sole exception is a one-off task whose completion deletes the row, which clears the pointer automatically.
+The one task the user has committed to focusing on right now, stored authoritatively per user (a `selectedTaskId` pointer) and shared across all their devices. At most one exists at a time; it may be absent (nothing selected). Any task is selectable regardless of rank, due date, or snooze state. Selecting a task starts its timer (for a Child, its Keeper's timer). A Selected Task may have its timer running or paused. It unselects on the explicit "Return" action (Esc on desktop) or snoozing/deleting it; the explicit "Done" button instead flows selection straight to the next Top Task with its timer running (no next task → nothing selected). Pausing never unselects and never flows — even when pausing a fixed task at its target auto-completes it (which advances a repeating task in place); the sole exception is a one-off task whose completion deletes the row, which clears the pointer automatically.
 _Avoid_: active task, current task, focused task, running task
 
 **Focus View**:
@@ -21,7 +21,7 @@ A Child is a zero-timeframe task whose time is banked onto another task — its 
 _Avoid_: timekeeper (the column name), parent, subtask (a Child is a full task, not a subtask)
 
 **Top Tasks**:
-The user's incomplete, non-snoozed tasks in ranked (priority) order, omitting tasks that Can't Do Early while their due date is still ahead. When no task is Selected, the Home page shows the top three as a decision surface. Choosing one is deliberate: tapping a row only focuses it; an explicit "Start" commits, selecting the task and starting its timer. Done and Snooze act on a row without committing to it.
+The user's incomplete, non-snoozed tasks in ranked (priority) order, omitting tasks that Can't Do Early while their due date is still ahead. When no task is Selected, the Home page shows the top three as a decision surface. Arriving without momentum, choosing is deliberate: tapping a row only focuses it; an explicit "Start" commits, selecting the task and starting its timer. Done and Snooze act on a row without committing to it. With momentum, commitment flows: an explicit Done in the Focus View hands selection to the next Top Task automatically (auto-flow).
 _Avoid_: up next, the list
 
 **Lock Screen Timer**:

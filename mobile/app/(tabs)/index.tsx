@@ -94,8 +94,19 @@ export default function Home() {
   // View pointer up front so the view exits the instant Done fires (the server
   // clears its own pointer in the same completion transaction).
   const runComplete = (t: Task, countMeasurement: boolean) => {
-    if (isFocusTask(t)) exitFocus()
-    doneMutation.mutate({ id: t.id, countMeasurement })
+    const flowing = isFocusTask(t)
+    if (flowing) exitFocus()
+    // Auto-flow (ADR-0005): an explicit Done in the Focus View hands
+    // selection straight to the next Top Task, timer running. Row-level
+    // Done, subtask advances, and the pause-at-target auto-complete never
+    // reach this branch.
+    const next = flowing
+      ? activeTasks.find((x) => x.id !== t.id)
+      : undefined
+    doneMutation.mutate(
+      { id: t.id, countMeasurement },
+      { onSuccess: () => next && startFor(next) },
+    )
   }
 
   const completeFor = (t: Task) => {
