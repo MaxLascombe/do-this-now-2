@@ -17,6 +17,7 @@ import { SafeAreaView } from 'react-native-safe-area-context'
 
 import { useDate } from '../hooks/useDate'
 import { FocusReturnBar } from './FocusReturnBar'
+import { WinCelebration } from './WinCelebration'
 import { ProfileIcon } from './icons'
 
 const ACCENT = '#34d399'
@@ -166,6 +167,7 @@ export function TopProgress() {
         </Pressable>
       </View>
       <FocusReturnBar />
+      <WinCelebration />
       <Modal
         visible={open}
         animationType="slide"

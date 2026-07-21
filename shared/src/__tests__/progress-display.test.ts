@@ -3,8 +3,10 @@ import { describe, expect, it } from 'vitest'
 import {
   computeWinEta,
   formatWinEta,
+  isDayWon,
   progressCells,
   splitBarUnits,
+  streakMilestone,
 } from '../progress-display'
 
 const at = (h: number, m: number) => new Date(2026, 4, 1, h, m)
@@ -75,6 +77,24 @@ describe('progressCells', () => {
       shouldBeDone: 0,
     })
     expect(cells.some((c) => c.isTick)).toBe(false)
+  })
+})
+
+describe('isDayWon / streakMilestone', () => {
+  it('wins when done + lives covers a positive target', () => {
+    expect(isDayWon({ done: 100, lives: 40, todo: 120 })).toBe(true)
+    expect(isDayWon({ done: 100, lives: 10, todo: 120 })).toBe(false)
+  })
+
+  it('never celebrates a no-tasks day', () => {
+    expect(isDayWon({ done: 0, lives: 0, todo: 0 })).toBe(false)
+  })
+
+  it('recognizes exactly the milestone streaks', () => {
+    expect(streakMilestone(7)).toBe(7)
+    expect(streakMilestone(30)).toBe(30)
+    expect(streakMilestone(8)).toBeNull()
+    expect(streakMilestone(0)).toBeNull()
   })
 })
 

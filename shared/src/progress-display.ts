@@ -63,6 +63,20 @@ export function progressCells(opts: {
   }))
 }
 
+// A Won Day the moment it happens: done + Lives covering the Daily Target.
+// todo must be positive — a no-tasks day is trivially "won" but never worth
+// celebrating.
+export const isDayWon = (p: {
+  done: number
+  lives: number
+  todo: number
+}): boolean => p.todo > 0 && p.done + p.lives >= p.todo
+
+export const STREAK_MILESTONES = [7, 30, 100, 365] as const
+
+export const streakMilestone = (streak: number): number | null =>
+  (STREAK_MILESTONES as readonly number[]).includes(streak) ? streak : null
+
 export type WinEta = { kind: 'won' } | { kind: 'eta'; minutesOfDay: number }
 
 // Projected clock time at which done + lives reaches the Daily Target, from
