@@ -20,6 +20,7 @@ import { Route as ApiTasksRouteImport } from './routes/api/tasks'
 import { Route as ApiStatsRouteImport } from './routes/api/stats'
 import { Route as ApiSettingsRouteImport } from './routes/api/settings'
 import { Route as ApiSelectionRouteImport } from './routes/api/selection'
+import { Route as ApiEventsRouteImport } from './routes/api/events'
 import { Route as TasksIdIndexRouteImport } from './routes/tasks.$id.index'
 import { Route as TasksIdEditRouteImport } from './routes/tasks.$id.edit'
 import { Route as ApiTasksSuggestEmojisRouteImport } from './routes/api/tasks.suggest-emojis'
@@ -92,6 +93,11 @@ const ApiSettingsRoute = ApiSettingsRouteImport.update({
 const ApiSelectionRoute = ApiSelectionRouteImport.update({
   id: '/api/selection',
   path: '/api/selection',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiEventsRoute = ApiEventsRouteImport.update({
+  id: '/api/events',
+  path: '/api/events',
   getParentRoute: () => rootRouteImport,
 } as any)
 const TasksIdIndexRoute = TasksIdIndexRouteImport.update({
@@ -191,6 +197,7 @@ export interface FileRoutesByFullPath {
   '/new-task': typeof NewTaskRoute
   '/settings': typeof SettingsRoute
   '/stats': typeof StatsRoute
+  '/api/events': typeof ApiEventsRoute
   '/api/selection': typeof ApiSelectionRoute
   '/api/settings': typeof ApiSettingsRoute
   '/api/stats': typeof ApiStatsRoute
@@ -222,6 +229,7 @@ export interface FileRoutesByTo {
   '/new-task': typeof NewTaskRoute
   '/settings': typeof SettingsRoute
   '/stats': typeof StatsRoute
+  '/api/events': typeof ApiEventsRoute
   '/api/selection': typeof ApiSelectionRoute
   '/api/settings': typeof ApiSettingsRoute
   '/api/stats': typeof ApiStatsRoute
@@ -253,6 +261,7 @@ export interface FileRoutesById {
   '/new-task': typeof NewTaskRoute
   '/settings': typeof SettingsRoute
   '/stats': typeof StatsRoute
+  '/api/events': typeof ApiEventsRoute
   '/api/selection': typeof ApiSelectionRoute
   '/api/settings': typeof ApiSettingsRoute
   '/api/stats': typeof ApiStatsRoute
@@ -286,6 +295,7 @@ export interface FileRouteTypes {
     | '/new-task'
     | '/settings'
     | '/stats'
+    | '/api/events'
     | '/api/selection'
     | '/api/settings'
     | '/api/stats'
@@ -317,6 +327,7 @@ export interface FileRouteTypes {
     | '/new-task'
     | '/settings'
     | '/stats'
+    | '/api/events'
     | '/api/selection'
     | '/api/settings'
     | '/api/stats'
@@ -347,6 +358,7 @@ export interface FileRouteTypes {
     | '/new-task'
     | '/settings'
     | '/stats'
+    | '/api/events'
     | '/api/selection'
     | '/api/settings'
     | '/api/stats'
@@ -379,6 +391,7 @@ export interface RootRouteChildren {
   NewTaskRoute: typeof NewTaskRoute
   SettingsRoute: typeof SettingsRoute
   StatsRoute: typeof StatsRoute
+  ApiEventsRoute: typeof ApiEventsRoute
   ApiSelectionRoute: typeof ApiSelectionRoute
   ApiSettingsRoute: typeof ApiSettingsRoute
   ApiStatsRoute: typeof ApiStatsRoute
@@ -473,6 +486,13 @@ declare module '@tanstack/react-router' {
       path: '/api/selection'
       fullPath: '/api/selection'
       preLoaderRoute: typeof ApiSelectionRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/events': {
+      id: '/api/events'
+      path: '/api/events'
+      fullPath: '/api/events'
+      preLoaderRoute: typeof ApiEventsRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/tasks/$id/': {
@@ -657,6 +677,7 @@ const rootRouteChildren: RootRouteChildren = {
   NewTaskRoute: NewTaskRoute,
   SettingsRoute: SettingsRoute,
   StatsRoute: StatsRoute,
+  ApiEventsRoute: ApiEventsRoute,
   ApiSelectionRoute: ApiSelectionRoute,
   ApiSettingsRoute: ApiSettingsRoute,
   ApiStatsRoute: ApiStatsRoute,
