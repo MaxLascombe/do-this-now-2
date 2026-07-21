@@ -131,6 +131,7 @@ const TaskRowBase = ({
   dim = false,
   kbd,
   rank,
+  centerActions = false,
   actions,
   onClick,
   onMouseEnter,
@@ -140,6 +141,9 @@ const TaskRowBase = ({
   dim?: boolean
   kbd?: string
   rank?: number
+  // Home's top-three on small screens: centered action pills (md+ keeps
+  // the side-by-side right-aligned cluster).
+  centerActions?: boolean
   actions?: ReactNode
   onClick?: () => void
   onMouseEnter?: () => void
@@ -185,7 +189,7 @@ const TaskRowBase = ({
       >
         {rank != null && (
           <span
-            className="w-4 shrink-0 text-center text-sm tabular-nums text-zinc-600"
+            className="hidden w-4 shrink-0 text-center text-sm tabular-nums text-zinc-600 md:inline-block"
             aria-hidden="true"
           >
             {rank}
@@ -252,7 +256,12 @@ const TaskRowBase = ({
         )}
       </button>
       {actions && (
-        <div className="flex shrink-0 items-center gap-2 px-4 pb-3 md:px-0 md:pb-0">
+        <div
+          className={
+            'flex shrink-0 items-center gap-2 px-4 pb-3 md:justify-start md:px-0 md:pb-0 ' +
+            (centerActions ? 'justify-center' : '')
+          }
+        >
           {actions}
         </div>
       )}

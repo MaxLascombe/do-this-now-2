@@ -476,6 +476,7 @@ function Home() {
                     key={t.id}
                     task={t}
                     rank={i + 1}
+                    centerActions
                     selected={i === safeFocus}
                     onClick={() => focusRow(i)}
                     onMouseEnter={() => prefetchTask(t.id)}

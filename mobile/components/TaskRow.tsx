@@ -181,6 +181,7 @@ export function RowMenu({ items }: { items: Array<RowMenuItem> }) {
 export function TaskRow({
   task,
   rank,
+  centerActions = false,
   selected = false,
   actions,
   onPress,
@@ -188,6 +189,8 @@ export function TaskRow({
 }: {
   task: Task
   rank?: number
+  // Home's top-three (phones are all small screens): centered action pills.
+  centerActions?: boolean
   selected?: boolean
   actions?: ReactNode
   onPress?: () => void
@@ -326,6 +329,7 @@ export function TaskRow({
           style={{
             flexDirection: 'row',
             alignItems: 'center',
+            justifyContent: centerActions ? 'center' : 'flex-start',
             gap: 8,
             paddingHorizontal: 16,
             paddingBottom: 12,
