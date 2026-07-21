@@ -4,6 +4,7 @@ import { HeadContent, Scripts, createRootRoute } from '@tanstack/react-router'
 
 import { ConfirmProvider } from '../components/ConfirmProvider'
 import { ShortcutsHelp } from '../components/ShortcutsHelp'
+import { WinCelebration } from '../components/WinCelebration'
 import { ToastProvider } from '../components/ToastProvider'
 import { webApiClient } from '../lib/api-client'
 import { QueryProvider } from '../lib/query-client'
@@ -68,6 +69,7 @@ function RootDocument({ children }: { children: ReactNode }) {
                 <ConfirmProvider>
                   <ToastProvider>
                     <ShortcutsHelp />
+                    <WinCelebration />
                     {children}
                   </ToastProvider>
                 </ConfirmProvider>
