@@ -1,9 +1,12 @@
 import {
+  onlineManager,
   useMutation,
+  useMutationState,
   useQuery,
   useQueryClient,
   type QueryClient,
 } from '@tanstack/react-query'
+import { useSyncExternalStore } from 'react'
 
 import type {
   ApiClient,
@@ -37,6 +40,81 @@ export const progressTodayKey = ['progresstoday'] as const
 export const progressRecapKey = ['progressrecap'] as const
 export const settingsKey = ['settings'] as const
 export const statsKey = ['stats'] as const
+
+// Offline support (feature 10, 2026-07-21 plan): every task mutation gets a
+// stable key so mutations paused while offline — and persisted across a cold
+// start — can replay through defaults registered at client construction.
+export const taskMutationKeys = {
+  complete: ['tasks', 'complete'] as const,
+  snooze: ['tasks', 'snooze'] as const,
+  unsnooze: ['tasks', 'unsnooze'] as const,
+  snoozeMany: ['tasks', 'snooze-many'] as const,
+  update: ['tasks', 'update'] as const,
+  create: ['tasks', 'create'] as const,
+  delete: ['tasks', 'delete'] as const,
+}
+
+// True while the runtime believes the network is reachable. Web wires this
+// to the browser events automatically; mobile feeds it from NetInfo.
+export function useOnlineStatus(): boolean {
+  return useSyncExternalStore(
+    (cb) => onlineManager.subscribe(cb),
+    () => onlineManager.isOnline(),
+    () => true,
+  )
+}
+
+// How many mutations are queued waiting for the network to come back.
+export function usePendingMutationCount(): number {
+  const paused = useMutationState({
+    filters: { status: 'pending' },
+    select: (m) => m.state.isPaused,
+  })
+  return paused.filter(Boolean).length
+}
+
+// Register replayable mutationFns for the offline queue (mirrors the timer's
+// registration). Only rehydrated/paused mutations use these — live calls
+// carry their own fn from the hook.
+export function registerOfflineMutationDefaults(
+  qc: QueryClient,
+  api: ApiClient,
+) {
+  const settle = { onSettled: () => invalidateTaskCaches(qc) }
+  qc.setMutationDefaults(taskMutationKeys.complete, {
+    mutationFn: (vars: CompleteVars) => {
+      const { id, countMeasurement } = normalizeComplete(vars)
+      return api.tasks.complete(id, { countMeasurement })
+    },
+    ...settle,
+  })
+  qc.setMutationDefaults(taskMutationKeys.snooze, {
+    mutationFn: (vars: { id: string; allSubtasks?: boolean }) =>
+      api.tasks.snooze(vars.id, vars.allSubtasks ?? false),
+    ...settle,
+  })
+  qc.setMutationDefaults(taskMutationKeys.unsnooze, {
+    mutationFn: (id: string) => api.tasks.unsnooze(id),
+    ...settle,
+  })
+  qc.setMutationDefaults(taskMutationKeys.snoozeMany, {
+    mutationFn: (ids: string[]) => api.tasks.snoozeMany(ids),
+    ...settle,
+  })
+  qc.setMutationDefaults(taskMutationKeys.update, {
+    mutationFn: ({ id, input }: { id: string; input: TaskInput }) =>
+      api.tasks.update(id, input),
+    ...settle,
+  })
+  qc.setMutationDefaults(taskMutationKeys.create, {
+    mutationFn: (input: TaskInput) => api.tasks.create(input),
+    ...settle,
+  })
+  qc.setMutationDefaults(taskMutationKeys.delete, {
+    mutationFn: (id: string) => api.tasks.delete(id),
+    ...settle,
+  })
+}
 
 export const invalidateTaskCaches = (qc: QueryClient) => {
   // Prefix-match: invalidates taskKeys.top, taskKeys.list, and every
@@ -546,6 +624,7 @@ export function useCreateTask() {
   const api = useApi()
   const qc = useQueryClient()
   return useMutation({
+    mutationKey: taskMutationKeys.create,
     mutationFn: (input: TaskInput) => api.tasks.create(input),
     onMutate: (input) => optimisticCreate(qc, input),
     onError: (_e, _input, ctx) => rollback(qc, ctx),
@@ -558,6 +637,7 @@ export function useUpdateTask() {
   const qc = useQueryClient()
   const undo = useUndo()
   return useMutation({
+    mutationKey: taskMutationKeys.update,
     mutationFn: ({ id, input }: { id: string; input: TaskInput }) =>
       api.tasks.update(id, input),
     onMutate: async ({ id, input }) => {
@@ -586,6 +666,7 @@ export function useDeleteTask() {
   const qc = useQueryClient()
   const undo = useUndo()
   return useMutation({
+    mutationKey: taskMutationKeys.delete,
     mutationFn: (id: string) => api.tasks.delete(id),
     onMutate: async (id) => {
       const prevTask = findTaskInCaches(qc, id)
@@ -619,6 +700,7 @@ export function useCompleteTask() {
   const qc = useQueryClient()
   const undo = useUndo()
   return useMutation({
+    mutationKey: taskMutationKeys.complete,
     mutationFn: (vars: CompleteVars) => {
       const { id, countMeasurement } = normalizeComplete(vars)
       return api.tasks.complete(id, { countMeasurement })
@@ -653,6 +735,7 @@ export function useSnoozeTask() {
   const qc = useQueryClient()
   const undo = useUndo()
   return useMutation({
+    mutationKey: taskMutationKeys.snooze,
     mutationFn: (vars: { id: string; allSubtasks?: boolean }) =>
       api.tasks.snooze(vars.id, vars.allSubtasks ?? false),
     onMutate: async (vars) => {
@@ -691,6 +774,7 @@ export function useUnsnoozeTask() {
   const qc = useQueryClient()
   const undo = useUndo()
   return useMutation({
+    mutationKey: taskMutationKeys.unsnooze,
     mutationFn: (id: string) => api.tasks.unsnooze(id),
     onMutate: async (id) => {
       const prevTask = findTaskInCaches(qc, id)
@@ -718,6 +802,7 @@ export function useSnoozeManyTasks() {
   const qc = useQueryClient()
   const undo = useUndo()
   return useMutation({
+    mutationKey: taskMutationKeys.snoozeMany,
     mutationFn: (ids: string[]) => api.tasks.snoozeMany(ids),
     onMutate: (ids) => optimisticSnoozeMany(qc, ids),
     onError: (_e, _ids, ctx) => rollback(qc, ctx),
