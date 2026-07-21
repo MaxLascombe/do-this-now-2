@@ -2,10 +2,13 @@ import { ClerkProvider, Show, SignIn } from '@clerk/tanstack-react-start'
 import { ApiProvider } from '@dtn/shared/api-client'
 import { HeadContent, Scripts, createRootRoute } from '@tanstack/react-router'
 
+import { UndoProvider } from '@dtn/shared/undo'
+
 import { ConfirmProvider } from '../components/ConfirmProvider'
 import { ShortcutsHelp } from '../components/ShortcutsHelp'
 import { WinCelebration } from '../components/WinCelebration'
 import { ToastProvider } from '../components/ToastProvider'
+import { UndoHotkey } from '../components/UndoHotkey'
 import { webApiClient } from '../lib/api-client'
 import { QueryProvider } from '../lib/query-client'
 
@@ -66,13 +69,16 @@ function RootDocument({ children }: { children: ReactNode }) {
                 >
                   Skip to content
                 </a>
-                <ConfirmProvider>
-                  <ToastProvider>
-                    <ShortcutsHelp />
-                    <WinCelebration />
-                    {children}
-                  </ToastProvider>
-                </ConfirmProvider>
+                <UndoProvider>
+                  <ConfirmProvider>
+                    <ToastProvider>
+                      <ShortcutsHelp />
+                      <WinCelebration />
+                      <UndoHotkey />
+                      {children}
+                    </ToastProvider>
+                  </ConfirmProvider>
+                </UndoProvider>
               </Show>
               <Show when="signed-out">
                 <SignedOutScreen />

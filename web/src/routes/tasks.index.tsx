@@ -4,7 +4,6 @@ import { newSafeDate } from '@dtn/shared/helpers'
 import {
   useAllTasks,
   useCompleteTask,
-  useCreateTask,
   useDeleteTask,
   usePrefetchTask,
   usePrimeTaskCache,
@@ -13,7 +12,7 @@ import {
   useTopTasks,
   useUnsnoozeTask,
 } from '@dtn/shared/queries'
-import { taskToInput } from '@dtn/shared/task-input'
+import { useUndo } from '@dtn/shared/undo'
 import { isSnoozed, sortTasks } from '@dtn/shared/task-sorting'
 import { willAdvanceSubtask } from '@dtn/shared/task-transitions'
 import {
@@ -114,7 +113,7 @@ function TasksList() {
   const unsnoozeMutation = useUnsnoozeTask()
   const timer = useTaskTimer()
   const toast = useToast()
-  const createMutation = useCreateTask()
+  const undoStack = useUndo()
   const prefetchTask = usePrefetchTask()
   const primeTaskCache = usePrimeTaskCache()
   const confirm = useConfirm()
@@ -172,13 +171,12 @@ function TasksList() {
       confirmLabel: 'Delete',
     })
     if (!ok) return
-    const restore = taskToInput(t)
     deleteMutation.mutate(t.id, {
       onSuccess: () =>
         toast({
           message: `Deleted '${t.title}'`,
           actionLabel: 'Undo',
-          onAction: () => createMutation.mutate(restore),
+          onAction: () => void undoStack.undoLast(),
         }),
     })
   }
@@ -197,7 +195,7 @@ function TasksList() {
           toast({
             message: 'Task snoozed',
             actionLabel: 'Undo',
-            onAction: () => unsnoozeMutation.mutate(id),
+            onAction: () => void undoStack.undoLast(),
           }),
       },
     )

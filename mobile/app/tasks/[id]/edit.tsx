@@ -1,11 +1,6 @@
 import { newSafeDate } from '@dtn/shared/helpers'
-import {
-  useCreateTask,
-  useDeleteTask,
-  useTask,
-  useUpdateTask,
-} from '@dtn/shared/queries'
-import { taskToInput } from '@dtn/shared/task-input'
+import { useDeleteTask, useTask, useUpdateTask } from '@dtn/shared/queries'
+import { useUndo } from '@dtn/shared/undo'
 import { Stack, useLocalSearchParams, useRouter } from 'expo-router'
 import { Alert, View } from 'react-native'
 
@@ -20,7 +15,7 @@ export default function EditTask() {
   const taskQuery = useTask(id ?? '')
   const mutation = useUpdateTask()
   const deleteMutation = useDeleteTask()
-  const createMutation = useCreateTask()
+  const undoStack = useUndo()
   const toast = useToast()
 
   if (taskQuery.isPending || !taskQuery.data) {
@@ -69,15 +64,13 @@ export default function EditTask() {
         text: 'Delete',
         style: 'destructive',
         onPress: () => {
-          // Snapshot for Undo — recreate restores content + subtasks (new id).
-          const restore = taskToInput(task)
           deleteMutation.mutate(task.id, {
             onSuccess: () => {
               router.back()
               toast({
                 message: `Deleted '${task.title}'`,
                 actionLabel: 'Undo',
-                onAction: () => createMutation.mutate(restore),
+                onAction: () => void undoStack.undoLast(),
               })
             },
           })

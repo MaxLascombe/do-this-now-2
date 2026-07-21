@@ -71,7 +71,9 @@ export type ProgressTodayResult = {
 }
 
 export type SelectionResult = { selectedTaskId: string | null }
-export type CompleteTaskResult = { advanced: boolean }
+// historyId: the completion's history row (null on a subtask advance) — the
+// global undo stack reverses a Done through it.
+export type CompleteTaskResult = { advanced: boolean; historyId: string | null }
 export type CompleteTaskOptions = {
   countMeasurement?: boolean
   // Keep a surviving repeating row selected (the pause-at-target path).
@@ -113,6 +115,9 @@ export interface ApiClient {
   }
   history: {
     forDate(date: string): Promise<HistoryEntry[]>
+    // Reverses a completion: restores the task from its snapshot (paused,
+    // recorded time on the clock), deletes the row(s), re-finalizes progress.
+    undo(historyId: string): Promise<Task>
   }
   progress: {
     today(): Promise<ProgressTodayResult>
