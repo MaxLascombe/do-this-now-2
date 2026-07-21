@@ -2,9 +2,10 @@ import { useTaskTimer } from '@dtn/shared/queries'
 import {
   currentTimerSeconds,
   formatTimerSeconds,
+  timerAtPlan,
 } from '@dtn/shared/timer-utils'
 import { Pause, Play, SlidersVertical } from 'lucide-react'
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 
 import { useConfirm } from './ConfirmProvider'
 import { TimerAdjustModal } from './TimerAdjustModal'
@@ -12,6 +13,37 @@ import type { Task } from '@dtn/shared/types'
 
 const ACCENT = '#34d399'
 const STREAK = '#f59e0b'
+const PULSE_MS = 1400
+
+// Focus Pulse: one visual beat on the rising edge of "elapsed reached the
+// planned time" — never on mount (opening the app past plan is not the
+// moment), never twice for the same task.
+function usePlanPulse(taskId: string, atPlan: boolean): boolean {
+  const prev = useRef<boolean | null>(null)
+  const lastTask = useRef(taskId)
+  const [pulsing, setPulsing] = useState(false)
+  useEffect(() => {
+    if (lastTask.current !== taskId) {
+      lastTask.current = taskId
+      prev.current = null
+    }
+    const rising = prev.current === false && atPlan
+    prev.current = atPlan
+    if (!rising) return
+    setPulsing(true)
+    const t = setTimeout(() => setPulsing(false), PULSE_MS)
+    return () => clearTimeout(t)
+  }, [taskId, atPlan])
+  return pulsing
+}
+
+const PULSE_STYLE = (
+  <style>{`@keyframes dtn-plan-pulse {
+    0% { transform: scale(1); }
+    25% { transform: scale(1.12); text-shadow: 0 0 24px rgba(52,211,153,0.9); }
+    100% { transform: scale(1); }
+  }`}</style>
+)
 
 /**
  * The timer widget for a single task. If `task` is a 0-time-frame child,
@@ -51,6 +83,13 @@ export function TimerWidget({
 
   const plannedSec = (plannedMinutes ?? task.timeFrame) * 60
   const overrun = plannedSec > 0 && seconds > plannedSec * 1.5
+  const pulsing = usePlanPulse(
+    task.id,
+    timerAtPlan(task, plannedMinutes ?? task.timeFrame, now),
+  )
+  const pulseAnim = pulsing
+    ? { animation: `dtn-plan-pulse ${PULSE_MS}ms ease-out` }
+    : undefined
 
   const dispatch = (kind: 'start' | 'pause' | 'reset') =>
     timer.mutate({ id, action: { kind } })
@@ -83,10 +122,13 @@ export function TimerWidget({
                 fontWeight: 700,
                 color: running ? ACCENT : '#fafafa',
                 lineHeight: 1,
+                display: 'inline-block',
+                ...pulseAnim,
               }}
             >
               {formatTimerSeconds(seconds)}
             </span>
+            {pulsing && PULSE_STYLE}
           </div>
           <div className="flex items-center gap-2">
             <button
@@ -165,10 +207,13 @@ export function TimerWidget({
           fontSize: '3rem',
           color: running ? ACCENT : '#fafafa',
           lineHeight: 1,
+          width: 'fit-content',
+          ...pulseAnim,
         }}
       >
         {formatTimerSeconds(seconds)}
       </div>
+      {pulsing && PULSE_STYLE}
 
       {overrun && (
         <div

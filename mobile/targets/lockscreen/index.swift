@@ -49,6 +49,32 @@ struct PauseResumeButton: View {
   }
 }
 
+// Focus Pulse's lock-screen mirror: a hairline bar that the SYSTEM animates
+// to full exactly at the planned-time instant (timerBaseline + target) — no
+// pushes. Full bar = the task is paid for. Hidden while paused (the interval
+// would keep advancing against a frozen timer) and once already past plan.
+struct PlanProgressLine: View {
+  let state: LockScreenTimerAttributes.ContentState
+
+  var body: some View {
+    if state.running, state.targetMinutes > 0 {
+      let planEnd = state.timerBaseline.addingTimeInterval(state.targetMinutes * 60)
+      if planEnd > Date() {
+        ProgressView(timerInterval: state.timerBaseline...planEnd, countsDown: false)
+          .progressViewStyle(.linear)
+          .labelsHidden()
+          .tint(.green)
+          .scaleEffect(x: 1, y: 0.5, anchor: .center)
+      } else {
+        Rectangle()
+          .fill(Color.green)
+          .frame(height: 2)
+          .clipShape(Capsule())
+      }
+    }
+  }
+}
+
 // Matches the app's dark zinc look: black card, white title, green accent
 // on the live timer.
 struct LockScreenView: View {
@@ -85,6 +111,8 @@ struct LockScreenView: View {
               .foregroundStyle(.secondary)
           }
         }
+        PlanProgressLine(state: state)
+          .padding(.top, 4)
       }
       Spacer()
       PauseResumeButton(running: state.running, pending: state.pending ?? false)

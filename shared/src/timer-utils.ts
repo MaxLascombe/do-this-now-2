@@ -38,6 +38,18 @@ export function currentTimerSeconds(task: Task, now: Date): number {
   return task.timerAccumulatedSeconds
 }
 
+// The Focus Pulse moment: the elapsed timer has reached the planned time —
+// the task is "paid for". Fixed tasks: the instant Done unlocks; fluid: the
+// instant you pass the usual (EMA) time. One boolean; the UIs beat on its
+// rising edge only.
+export function timerAtPlan(
+  task: Task,
+  plannedMinutes: number,
+  now: Date,
+): boolean {
+  return plannedMinutes > 0 && currentTimerSeconds(task, now) >= plannedMinutes * 60
+}
+
 // "Is the Done button locked until the timer hits the target?" Yes when
 // the task is a *repeating* *fixed* *non-child* task — that's the case
 // where the timer's value is supposed to gate completion (a habit you're

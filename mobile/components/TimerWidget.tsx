@@ -2,10 +2,12 @@ import { useTaskTimer } from '@dtn/shared/queries'
 import {
   currentTimerSeconds,
   formatTimerSeconds,
+  timerAtPlan,
 } from '@dtn/shared/timer-utils'
 import { type Task } from '@dtn/shared/types'
-import { useEffect, useState } from 'react'
-import { Alert, Pressable, Text, View } from 'react-native'
+import * as Haptics from 'expo-haptics'
+import { useEffect, useRef, useState } from 'react'
+import { Alert, Animated, Easing, Pressable, Text, View } from 'react-native'
 
 import { PauseIcon, PlayIcon, SlidersIcon } from './icons'
 import { PulseDot } from './PulseDot'
@@ -13,6 +15,39 @@ import { TimerAdjustModal } from './TimerAdjustModal'
 
 const ACCENT = '#34d399'
 const STREAK = '#f59e0b'
+
+// Focus Pulse: one haptic + scale beat on the rising edge of "elapsed
+// reached the planned time". Never on mount, never twice for a task.
+function usePlanPulse(taskId: string, atPlan: boolean): Animated.Value {
+  const prev = useRef<boolean | null>(null)
+  const lastTask = useRef(taskId)
+  const scale = useRef(new Animated.Value(1)).current
+  useEffect(() => {
+    if (lastTask.current !== taskId) {
+      lastTask.current = taskId
+      prev.current = null
+    }
+    const rising = prev.current === false && atPlan
+    prev.current = atPlan
+    if (!rising) return
+    void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Heavy)
+    Animated.sequence([
+      Animated.timing(scale, {
+        toValue: 1.12,
+        duration: 260,
+        easing: Easing.out(Easing.quad),
+        useNativeDriver: true,
+      }),
+      Animated.timing(scale, {
+        toValue: 1,
+        duration: 640,
+        easing: Easing.out(Easing.quad),
+        useNativeDriver: true,
+      }),
+    ]).start()
+  }, [taskId, atPlan, scale])
+  return scale
+}
 
 export function TimerWidget({
   task,
@@ -39,6 +74,10 @@ export function TimerWidget({
 
   const plannedSec = (plannedMinutes ?? task.timeFrame) * 60
   const overrun = plannedSec > 0 && seconds > plannedSec * 1.5
+  const pulseScale = usePlanPulse(
+    task.id,
+    timerAtPlan(task, plannedMinutes ?? task.timeFrame, now),
+  )
 
   const dispatch = (kind: 'start' | 'pause' | 'reset') =>
     timer.mutate({ id, action: { kind } })
@@ -77,7 +116,7 @@ export function TimerWidget({
         >
           <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
             {running && <PulseDot color={ACCENT} />}
-            <Text
+            <Animated.Text
               style={{
                 fontFamily: 'JetBrainsMono_700Bold',
                 color: running ? ACCENT : '#fafafa',
@@ -86,10 +125,11 @@ export function TimerWidget({
                 includeFontPadding: false,
                 textAlignVertical: 'center',
                 marginTop: 2,
+                transform: [{ scale: pulseScale }],
               }}
             >
               {formatTimerSeconds(seconds)}
-            </Text>
+            </Animated.Text>
           </View>
           <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
             <Pressable
@@ -201,17 +241,19 @@ export function TimerWidget({
         )}
       </View>
 
-      <Text
+      <Animated.Text
         style={{
           fontFamily: 'JetBrainsMono_700Bold',
           color: running ? ACCENT : '#fafafa',
           fontSize: 44,
           marginTop: 8,
           lineHeight: 48,
+          alignSelf: 'flex-start',
+          transform: [{ scale: pulseScale }],
         }}
       >
         {formatTimerSeconds(seconds)}
-      </Text>
+      </Animated.Text>
 
       {overrun && (
         <View
