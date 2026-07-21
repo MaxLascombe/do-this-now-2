@@ -818,20 +818,23 @@ export function registerTimerMutationDefaults(qc: QueryClient, api: ApiClient) {
         // optimistically, so the bar moves the instant the timer auto-completes
         // rather than lagging the invalidate refetch below.
         await optimisticComplete(qc, server.id)
-        // The task just left the active list, so it also leaves the Focus View
-        // — clear the pointer if it was aimed here (the server clears its own
-        // in the completion below). Without this the view lingers on the
-        // finished task until the ~3s selection poll catches up.
-        const selected =
-          qc.getQueryData<SelectionResult>(selectionKey)?.selectedTaskId
-        if (selected === vars.id || selected === server.id) {
-          qc.setQueryData<SelectionResult>(selectionKey, {
-            selectedTaskId: null,
-          })
-          void qc.cancelQueries({ queryKey: selectionKey }, { revert: false })
+        // Pausing never unselects (CONTEXT.md): a repeating task advances in
+        // place and STAYS selected, so the Focus View keeps showing it,
+        // paused. Only a one-off — whose row the completion deletes — drops
+        // the pointer (the server's FK clears its own).
+        const repeats = server.repeat !== 'No Repeat'
+        if (!repeats) {
+          const selected =
+            qc.getQueryData<SelectionResult>(selectionKey)?.selectedTaskId
+          if (selected === vars.id || selected === server.id) {
+            qc.setQueryData<SelectionResult>(selectionKey, {
+              selectedTaskId: null,
+            })
+            void qc.cancelQueries({ queryKey: selectionKey }, { revert: false })
+          }
         }
         try {
-          await api.tasks.complete(server.id)
+          await api.tasks.complete(server.id, { keepSelection: repeats })
         } finally {
           invalidateTaskCaches(qc)
         }

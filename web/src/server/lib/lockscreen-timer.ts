@@ -51,7 +51,7 @@ export async function applyLockScreenTimerAction(
       // may auto-complete; a no-op re-pause must not re-fire completion.
       const wasRunning = timerTask.timerStartedAt !== null
       if (wasRunning && shouldCompleteOnPause(timerTask, new Date())) {
-        await completeTask(userId, timerTask.id, tzOffsetMin)
+        await completeTask(userId, timerTask.id, tzOffsetMin, true, true)
       } else {
         await applyTimerAction(userId, selected.id, { kind: 'pause', at })
       }

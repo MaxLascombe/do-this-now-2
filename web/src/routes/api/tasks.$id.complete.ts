@@ -16,7 +16,10 @@ type Params = { id: string }
 const idSchema = z.string().uuid()
 
 const completeBodySchema = z
-  .object({ countMeasurement: z.boolean().optional() })
+  .object({
+    countMeasurement: z.boolean().optional(),
+    keepSelection: z.boolean().optional(),
+  })
   .optional()
   .default({})
 
@@ -38,6 +41,7 @@ export const Route = createFileRoute('/api/tasks/$id/complete')({
               params.id,
               getTzFromRequest(request),
               parsed.data.countMeasurement ?? true,
+              parsed.data.keepSelection ?? false,
             ),
           )
         } catch (e) {

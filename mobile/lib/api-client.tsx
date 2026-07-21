@@ -68,7 +68,10 @@ function createMobileApi(getToken: () => Promise<string | null>): ApiClient {
       complete: (id, opts) =>
         call<{ advanced: boolean }>(`/api/tasks/${id}/complete`, {
           method: 'POST',
-          body: { countMeasurement: opts?.countMeasurement ?? true },
+          body: {
+            countMeasurement: opts?.countMeasurement ?? true,
+            keepSelection: opts?.keepSelection ?? false,
+          },
         }),
       snooze: (id, allSubtasks = false) =>
         call<{ scope: 'subtask' | 'task' }>(`/api/tasks/${id}/snooze`, {

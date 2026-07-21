@@ -46,6 +46,10 @@ export async function completeTask(
   id: string,
   tzOffsetMin: number,
   countMeasurement: boolean = true,
+  // Pause-at-target auto-complete of a repeating task passes true: the row
+  // survives (advanced in place), so the Selected Task stays selected —
+  // pausing never unselects (CONTEXT.md). Explicit Done keeps the default.
+  keepSelection: boolean = false,
 ): Promise<{ advanced: boolean }> {
   // The history insert + task update/delete must be atomic — without a
   // transaction, a double-tap on "Done" can race: two history rows for
@@ -130,8 +134,11 @@ export async function completeTask(
 
     // A full completion takes the task out of the active list (deleted or
     // rescheduled to a later occurrence) — drop the Focus View pointer if it
-    // was aimed here.
-    await clearSelectionIfTx(tx, userId, task.id, now)
+    // was aimed here, unless the caller asked to keep a surviving repeating
+    // row selected (a one-off's delete clears the pointer via the FK anyway).
+    if (!(keepSelection && result.nextTask !== null)) {
+      await clearSelectionIfTx(tx, userId, task.id, now)
+    }
     return { advanced: true }
   })
 

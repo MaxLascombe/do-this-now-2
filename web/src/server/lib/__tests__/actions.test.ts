@@ -183,6 +183,32 @@ describe.skipIf(!process.env.DATABASE_URL)('actions (integration)', () => {
       expect(remaining).toHaveLength(0)
     })
 
+    it('keepSelection preserves the pointer when a repeating task completes (pause-at-target path)', async () => {
+      const task = await makeTask({ repeat: 'Daily' })
+      await db
+        .insert(userState)
+        .values({ userId: TEST_USER, selectedTaskId: task.id })
+        .onConflictDoUpdate({
+          target: userState.userId,
+          set: { selectedTaskId: task.id },
+        })
+
+      await completeTask(TEST_USER, task.id, 300, true, true)
+      const [kept] = await db
+        .select()
+        .from(userState)
+        .where(eq(userState.userId, TEST_USER))
+      expect(kept.selectedTaskId).toBe(task.id)
+
+      // The default (explicit Done) still clears the pointer.
+      await completeTask(TEST_USER, task.id, 300)
+      const [cleared] = await db
+        .select()
+        .from(userState)
+        .where(eq(userState.userId, TEST_USER))
+      expect(cleared.selectedTaskId).toBeNull()
+    })
+
     it('pauses a running timer when completing the last actionable subtask leaves the task snoozed', async () => {
       const future = new Date(Date.now() + 60 * 60 * 1000).toISOString()
       const task = await makeTask({

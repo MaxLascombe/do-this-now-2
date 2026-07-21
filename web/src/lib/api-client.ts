@@ -39,6 +39,7 @@ export const webApiClient: ApiClient = {
           id,
           tzOffsetMin: getTzOffsetMin(),
           countMeasurement: opts?.countMeasurement,
+          keepSelection: opts?.keepSelection,
         },
       }),
     snooze: (id, allSubtasks = false) =>
