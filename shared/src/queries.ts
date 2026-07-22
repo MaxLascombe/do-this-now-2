@@ -166,9 +166,13 @@ async function optimisticRemove(
 // due date past today (e.g. completing a repeating task), so the row
 // vanishes now instead of on the next refetch.
 const dropHiddenFromTop =
-  (write: (xs: Task[] | undefined) => Task[] | undefined, today: Date) =>
+  (
+    write: (xs: Task[] | undefined) => Task[] | undefined,
+    today: Date,
+    horizonDays: number,
+  ) =>
   (xs: Task[] | undefined) =>
-    write(xs)?.filter((t) => showsInTopTasks(t, today))
+    write(xs)?.filter((t) => showsInTopTasks(t, today, horizonDays))
 
 async function replaceTaskInCaches(
   qc: QueryClient,
@@ -187,7 +191,12 @@ async function replaceTaskInCaches(
     if (reSort) sortTasks(out, today)
     return out
   }
-  qc.setQueryData<Task[]>(taskKeys.top, dropHiddenFromTop(replace, today))
+  const horizonDays =
+    qc.getQueryData<ProgressTodayResult>(progressTodayKey)?.horizonDays ?? 14
+  qc.setQueryData<Task[]>(
+    taskKeys.top,
+    dropHiddenFromTop(replace, today, horizonDays),
+  )
   qc.setQueryData<Task[]>(taskKeys.list, replace)
   return { prevTop, prevList }
 }
@@ -363,7 +372,12 @@ async function optimisticCreate(
     sortTasks(next, today)
     return next
   }
-  qc.setQueryData<Task[]>(taskKeys.top, dropHiddenFromTop(insertSorted, today))
+  const horizonDays =
+    qc.getQueryData<ProgressTodayResult>(progressTodayKey)?.horizonDays ?? 14
+  qc.setQueryData<Task[]>(
+    taskKeys.top,
+    dropHiddenFromTop(insertSorted, today, horizonDays),
+  )
   qc.setQueryData<Task[]>(taskKeys.list, insertSorted)
 
   return { prevTop, prevList }
@@ -395,7 +409,12 @@ async function optimisticUpdate(
     sortTasks(out, today)
     return out
   }
-  qc.setQueryData<Task[]>(taskKeys.top, dropHiddenFromTop(replaceSorted, today))
+  const horizonDays =
+    qc.getQueryData<ProgressTodayResult>(progressTodayKey)?.horizonDays ?? 14
+  qc.setQueryData<Task[]>(
+    taskKeys.top,
+    dropHiddenFromTop(replaceSorted, today, horizonDays),
+  )
   qc.setQueryData<Task[]>(taskKeys.list, replaceSorted)
   qc.setQueryData<Task>(taskKeys.one(id), next)
 

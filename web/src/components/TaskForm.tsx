@@ -73,6 +73,7 @@ const TaskForm = ({
   errorMessage,
   strictDeadline: initialStrictDeadline,
   canDoEarly: initialCanDoEarly,
+  surface: initialSurface,
   repeat: initialRepeat,
   repeatInterval: initialRepeatInterval,
   repeatUnit: initialRepeatUnit,
@@ -117,7 +118,9 @@ const TaskForm = ({
   const [strictDeadline, setStrictDeadline] = useState(
     initialStrictDeadline ?? false,
   )
-  const [canDoEarly, setCanDoEarly] = useState(initialCanDoEarly ?? true)
+  const [surface, setSurface] = useState<'anytime' | 'counting' | 'due'>(
+    initialSurface ?? (initialCanDoEarly === false ? 'due' : 'anytime'),
+  )
   const [repeat, setRepeat] = useState<RepeatOption>(
     initialRepeat ?? 'No Repeat',
   )
@@ -221,7 +224,8 @@ const TaskForm = ({
       due,
       dueTime,
       strictDeadline,
-      canDoEarly,
+      canDoEarly: surface !== 'due',
+      surface,
       repeat,
       repeatInterval,
       repeatUnit,
@@ -711,16 +715,37 @@ const TaskForm = ({
             </div>
           </Field>
 
-          <Field label="Can be done early?">
-            <div className="flex items-center gap-3 font-mono">
-              <Toggle
-                label="Can be done early"
-                on={canDoEarly}
-                onChange={setCanDoEarly}
-              />
-              {!canDoEarly && (
+          <Field label="Surfaces">
+            <div className="flex flex-col gap-2 font-mono">
+              <div className="flex gap-2">
+                {(
+                  [
+                    ['anytime', 'Anytime'],
+                    ['counting', 'Once it counts'],
+                    ['due', 'Once due'],
+                  ] as const
+                ).map(([value, label]) => (
+                  <button
+                    key={value}
+                    type="button"
+                    onClick={() => setSurface(value)}
+                    aria-pressed={surface === value}
+                    className={
+                      'rounded-full border px-3 py-1.5 text-sm transition-colors ' +
+                      (surface === value
+                        ? 'border-zinc-300 bg-zinc-50 text-zinc-900'
+                        : 'border-zinc-800 text-zinc-400 hover:border-zinc-600')
+                    }
+                  >
+                    {label}
+                  </button>
+                ))}
+              </div>
+              {surface !== 'anytime' && (
                 <span className="text-xs text-zinc-500">
-                  stays out of Top Tasks until its due date
+                  {surface === 'counting'
+                    ? 'stays out of Top Tasks until it counts toward the daily target'
+                    : 'stays out of Top Tasks until its due date'}
                 </span>
               )}
             </div>

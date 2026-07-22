@@ -127,6 +127,13 @@
       "when": 1784638935417,
       "tag": "0017_clean_morph",
       "breakpoints": true
+    },
+    {
+      "idx": 18,
+      "version": "7",
+      "when": 1784721639713,
+      "tag": "0018_bored_grandmaster",
+      "breakpoints": true
     }
   ]
 }

@@ -3,6 +3,7 @@ import { and, eq } from 'drizzle-orm'
 import { getUserLocalNow, getUserToday } from '@dtn/shared/helpers'
 import { taskEvents, tasks } from '@dtn/shared/schema'
 import { showsInTopTasks, sortTasks } from '@dtn/shared/task-sorting'
+import { getUserSettings } from './settings'
 import { ceilTaskTime } from '@dtn/shared/timer-utils'
 import { db } from '../../db'
 import { syncLockScreenSoon } from './lockscreen'
@@ -71,7 +72,8 @@ export async function listTopTasks(
 ): Promise<Array<Task>> {
   const all = await listTasks(userId)
   const { todayDate } = getUserToday(tzOffsetMin)
-  const visible = all.filter((t) => showsInTopTasks(t, todayDate))
+  const { horizonDays } = await getUserSettings(userId)
+  const visible = all.filter((t) => showsInTopTasks(t, todayDate, horizonDays))
   sortTasks(visible, todayDate, getUserLocalNow(tzOffsetMin))
   return visible
 }
@@ -88,10 +90,20 @@ export async function getTask(
   return rows[0] ? ceilTaskTime(rows[0]) : null
 }
 
+
+// Keep the Surface gate and its legacy canDoEarly shadow consistent no
+// matter which one the client sent (older clients send only canDoEarly).
+function normalizeSurface(input: TaskInput): TaskInput {
+  const surface =
+    input.surface ?? (input.canDoEarly === false ? 'due' : 'anytime')
+  return { ...input, surface, canDoEarly: surface !== 'due' }
+}
+
 export async function createTask(
   userId: string,
-  input: TaskInput,
+  rawInput: TaskInput,
 ): Promise<Task> {
+  const input = normalizeSurface(rawInput)
   return db.transaction(async (tx) => {
     if (input.timekeeperId) {
       await assertKeeperEligible(userId, input.timekeeperId, tx)
@@ -107,8 +119,9 @@ export async function createTask(
 export async function updateTask(
   userId: string,
   id: string,
-  input: TaskInput,
+  rawInput: TaskInput,
 ): Promise<Task | null> {
+  const input = normalizeSurface(rawInput)
   const result = await db.transaction(async (tx) => {
     if (input.timekeeperId) {
       // Self-reference is also blocked by the CHECK constraint, but check

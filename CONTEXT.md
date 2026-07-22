@@ -21,16 +21,20 @@ A Child is a zero-timeframe task whose time is banked onto another task — its 
 _Avoid_: timekeeper (the column name), parent, subtask (a Child is a full task, not a subtask)
 
 **Top Tasks**:
-The user's incomplete, non-snoozed tasks in ranked (priority) order, omitting tasks that Can't Do Early while their due date is still ahead. When no task is Selected, the Home page shows the top three as a decision surface. Arriving without momentum, choosing is deliberate: tapping a row only focuses it; an explicit "Start" commits, selecting the task and starting its timer. Done and Snooze act on a row without committing to it. With momentum, commitment flows: an explicit Done in the Focus View hands selection to the next Top Task automatically (auto-flow).
+The user's incomplete, non-snoozed tasks in ranked (priority) order, omitting tasks whose Surface gate hasn't opened yet (Once-it-counts tasks outside the horizon, Once-due tasks before their due date). When no task is Selected, the Home page shows the top three as a decision surface. Arriving without momentum, choosing is deliberate: tapping a row only focuses it; an explicit "Start" commits, selecting the task and starting its timer. Done and Snooze act on a row without committing to it. With momentum, commitment flows: an explicit Done in the Focus View hands selection to the next Top Task automatically (auto-flow).
 _Avoid_: up next, the list
 
 **Lock Screen Timer**:
 The phone's always-visible face of the Selected Task (an iOS Live Activity on the lock screen and Dynamic Island). It exists exactly while a task is Selected — appearing, updating, and ending in step with selection and timer changes made on any device — and shows the Selected Task (a Child shows its own title over its Keeper's ticking timer) with elapsed time counting up beside the plan. Its single control pauses or resumes the Timer with the same meaning as in the app, including "pausing a fixed task at its target auto-completes it". While paused it stays visible, dimmed, so the Timer can be resumed without unlocking; switching the Selected Task updates it in place.
 _Avoid_: widget (that's the in-app TimerWidget), notification, pill
 
-**Can Do Early**:
-Per-task property, on by default, saying the task may be worked ahead of its due date. When off, the task is a candidate only from its due date on: the Top Tasks omit it entirely while its due date is after the user's local today (calendar day only — a due-time never affects visibility), and a completion that reschedules a repeating task past today removes it from that surface immediately. Visibility is the whole story: the task stays in the all-tasks list (with a subtle marker), keeps normal rank rules once due, still counts toward progress targets, and remains selectable/startable from anywhere per the Selected Task rules.
-_Avoid_: blocked, locked, deferred, hidden task
+**Counting**:
+A task is Counting when its next due occurrence falls inside the target horizon window — the stretch of upcoming days the Daily Target averages over. Only Counting occurrences feed the Daily Target; a task due beyond the horizon contributes nothing to today's number.
+_Avoid_: in range, active, relevant
+
+**Surface**:
+Per-task, three nested levels controlling when the task may appear in the Top Tasks: **Anytime** (the default), **Once it counts** (hidden until Counting), **Once due** (hidden until its due date arrives — calendar day only; a due-time never affects visibility). Each level's gate is strictly earlier than the next. Visibility is the whole story: a gated task stays in the all-tasks list (with a subtle marker), keeps normal rank rules once surfaced, still credits done minutes when completed, and remains selectable/startable from anywhere per the Selected Task rules. A completion that reschedules a repeating task past its gate removes it from the Top Tasks immediately.
+_Avoid_: can do early (the retired boolean), blocked, locked, deferred, hidden task
 
 **Platform Idiom**:
 A native mechanic (system alert, bottom sheet, haptic, pull-to-refresh, swipe, native modal) used on mobile where web uses a styled in-page equivalent. Idioms are parity, not drift: the mechanic may differ, but the copy, colors, sizes, and content inside it must match the web design. Keyboard-only affordances are not idioms — they are omitted on touch entirely.

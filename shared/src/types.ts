@@ -23,6 +23,10 @@ export type RepeatWeekdays = [
 
 export type SubTask = { title: string; done: boolean; snooze?: string }
 
+// When a task may appear in the Top Tasks — nested gates, each strictly
+// earlier than the next: anytime ⊃ once-counting ⊃ once-due.
+export type TaskSurface = 'anytime' | 'counting' | 'due'
+
 // Fixed: timeFrame is the target; over/under-runs carry into the next instance.
 // Fluid: timeFrame is the latest estimate; on completion we update it via a
 // 14-period EMA bootstrap (see shared/queries / server completion logic).
@@ -40,6 +44,9 @@ export type Task = {
   // omits it while the due date is still ahead. Everything else (all-tasks
   // list, selection, progress) ignores this.
   canDoEarly: boolean
+  // The Surface gate; canDoEarly is its legacy shadow (surface !== 'due').
+  // Optional: cached/legacy rows predate the column — taskSurface() derives.
+  surface?: TaskSurface
   repeat: RepeatOption
   repeatInterval: number
   repeatUnit: RepeatUnit

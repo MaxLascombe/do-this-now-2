@@ -78,6 +78,9 @@ export const taskInputSchema = z
     dueTime: dueTimeSchema,
     strictDeadline: z.boolean(),
     canDoEarly: z.boolean().default(true),
+    // The Surface gate; optional for older clients — absent, it derives
+    // from canDoEarly (false → 'due').
+    surface: z.enum(['anytime', 'counting', 'due']).optional(),
     repeat: repeatOptionSchema,
     repeatInterval: z.number().int().positive(),
     repeatUnit: repeatUnitSchema,
@@ -147,6 +150,7 @@ export function taskToInput(task: Task): TaskInput {
     dueTime: task.dueTime,
     strictDeadline: task.strictDeadline,
     canDoEarly: task.canDoEarly,
+    surface: task.surface ?? (task.canDoEarly === false ? 'due' : 'anytime'),
     repeat: task.repeat,
     repeatInterval: task.repeatInterval,
     repeatUnit: task.repeatUnit,
