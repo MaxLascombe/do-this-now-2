@@ -61,23 +61,25 @@ export const isSnoozed = (t: Task): boolean => {
   return false
 }
 
-// The task's Surface gate, with legacy fallback: rows predating the
-// `surface` column derive it from canDoEarly (false → 'due').
-export const taskSurface = (t: Task): 'anytime' | 'counting' | 'due' =>
-  t.surface ?? (t.canDoEarly === false ? 'due' : 'anytime')
+// The one surviving per-task exception (CONTEXT.md "Surface"): Once-due
+// tasks wait for their due date. Legacy encodings both mean it: the old
+// canDoEarly=false boolean and the surface='due' enum value.
+export const waitsForDue = (t: Task): boolean =>
+  t.surface === 'due' || t.canDoEarly === false
 
-// Whether the Surface gate has opened (CONTEXT.md "Surface"): Anytime
-// always shows; Once-it-counts shows when the due date is inside the
-// target horizon (i.e. the task is Counting); Once-due shows from the due
-// date on. Calendar days only — a due-time never affects visibility.
+// Whether the task surfaces in the Top Tasks (CONTEXT.md "Top Tasks"):
+// counting-gated BY DEFAULT — a task appears only once its due date is
+// inside the target horizon, i.e. once it is Counting toward the Daily
+// Target ('anytime' rows behave identically; the level was retired
+// 2026-07-22 after proving either redundant or wrong on every real task).
+// Once-due tasks additionally wait for the due date itself. Calendar days
+// only — a due-time never affects visibility; overdue always shows.
 export const showsInTopTasks = (
   t: Task,
   today: Date,
   horizonDays = 14,
 ): boolean => {
-  const surface = taskSurface(t)
-  if (surface === 'anytime') return true
-  if (surface === 'due') return newSafeDate(t.due) <= today
+  if (waitsForDue(t)) return newSafeDate(t.due) <= today
   const horizonEdge = new Date(today)
   horizonEdge.setDate(horizonEdge.getDate() + horizonDays)
   return newSafeDate(t.due) <= horizonEdge

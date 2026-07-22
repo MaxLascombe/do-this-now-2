@@ -150,7 +150,8 @@ export function taskToInput(task: Task): TaskInput {
     dueTime: task.dueTime,
     strictDeadline: task.strictDeadline,
     canDoEarly: task.canDoEarly,
-    surface: task.surface ?? (task.canDoEarly === false ? 'due' : 'anytime'),
+    surface:
+      task.surface === 'due' || task.canDoEarly === false ? 'due' : 'counting',
     repeat: task.repeat,
     repeatInterval: task.repeatInterval,
     repeatUnit: task.repeatUnit,

@@ -21,7 +21,7 @@ A Child is a zero-timeframe task whose time is banked onto another task — its 
 _Avoid_: timekeeper (the column name), parent, subtask (a Child is a full task, not a subtask)
 
 **Top Tasks**:
-The user's incomplete, non-snoozed tasks in ranked (priority) order, omitting tasks whose Surface gate hasn't opened yet (Once-it-counts tasks outside the horizon, Once-due tasks before their due date). When no task is Selected, the Home page shows the top three as a decision surface. Arriving without momentum, choosing is deliberate: tapping a row only focuses it; an explicit "Start" commits, selecting the task and starting its timer. Done and Snooze act on a row without committing to it. With momentum, commitment flows: an explicit Done in the Focus View hands selection to the next Top Task automatically (auto-flow).
+The user's incomplete, non-snoozed, Counting tasks in ranked (priority) order — the suggestion surface and the Daily Target draw from the same window, so the app never suggests work that wouldn't move the bar. Once-due tasks additionally wait for their due date; overdue always shows. When no task is Selected, the Home page shows the top three as a decision surface. Arriving without momentum, choosing is deliberate: tapping a row only focuses it; an explicit "Start" commits, selecting the task and starting its timer. Done and Snooze act on a row without committing to it. With momentum, commitment flows: an explicit Done in the Focus View hands selection to the next Top Task automatically (auto-flow).
 _Avoid_: up next, the list
 
 **Lock Screen Timer**:
@@ -33,8 +33,8 @@ A task is Counting when its next due occurrence falls inside the target horizon 
 _Avoid_: in range, active, relevant
 
 **Surface**:
-Per-task, three nested levels controlling when the task may appear in the Top Tasks: **Anytime** (the default), **Once it counts** (hidden until Counting), **Once due** (hidden until its due date arrives — calendar day only; a due-time never affects visibility). Each level's gate is strictly earlier than the next. Visibility is the whole story: a gated task stays in the all-tasks list (with a subtle marker), keeps normal rank rules once surfaced, still credits done minutes when completed, and remains selectable/startable from anywhere per the Selected Task rules. A completion that reschedules a repeating task past its gate removes it from the Top Tasks immediately.
-_Avoid_: can do early (the retired boolean), blocked, locked, deferred, hidden task
+When a task may appear in the Top Tasks. The default is Counting-gated — every task waits until its due date enters the horizon (the short-lived "Anytime" level was retired 2026-07-22: on real data it was always either identical to Counting or wrongly showing non-counting work). The one per-task exception is **Once due**: the task additionally waits for its due date itself (calendar day only; a due-time never affects visibility). Visibility is the whole story: a gated task stays in the all-tasks list, keeps normal rank rules once surfaced, still credits done minutes when completed, and remains selectable/startable from anywhere per the Selected Task rules. A completion that reschedules a repeating task past its gate removes it from the Top Tasks immediately.
+_Avoid_: anytime (retired), can do early (the retired boolean), blocked, locked, deferred, hidden task
 
 **Platform Idiom**:
 A native mechanic (system alert, bottom sheet, haptic, pull-to-refresh, swipe, native modal) used on mobile where web uses a styled in-page equivalent. Idioms are parity, not drift: the mechanic may differ, but the copy, colors, sizes, and content inside it must match the web design. Keyboard-only affordances are not idioms — they are omitted on touch entirely.
