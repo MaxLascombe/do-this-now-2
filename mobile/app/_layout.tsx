@@ -23,7 +23,11 @@ import { ErrorScreen } from '../components/ErrorScreen'
 import { SignInScreen } from '../components/SignInScreen'
 import { ToastProvider } from '../components/ToastProvider'
 import { UndoAffordances } from '../components/UndoAffordances'
-import { MobileApiAndQuery } from '../lib/api-client'
+import {
+  getAuthFailureCount,
+  MobileApiAndQuery,
+  onAuthFailureCount,
+} from '../lib/api-client'
 import { NotificationPlanner } from '../components/NotificationPlanner'
 import { useLockScreenSync } from '../lib/lockscreen'
 import { tokenCache } from '../lib/token-cache'
@@ -39,42 +43,53 @@ function LockScreenSync() {
   return null
 }
 
-// Clerk can report signed-out for a beat during token refreshes or flaky
-// network; only overlay the sign-in screen when the signed-out state
-// persists, so an authenticated session never flashes the login page.
+// ADR-0007 (never sign-in on resume): the login screen has exactly two
+// triggers — a client holding NO session at all (first launch, after an
+// explicit sign-out), or the API answering unauthenticated repeatedly
+// while no session is recoverable. Everything else — token refreshes,
+// resume flickers, setActive retries — keeps the app rendered on cached
+// data, indefinitely, like offline. There is NO timeout that flips to
+// the login page: every previous incarnation of this overlay leaked
+// through its timeout on slow networks.
+const DEFINITIVE_AUTH_FAILURES = 3
+
 function SignedOutOverlay() {
   const { isLoaded, isSignedIn } = useAuth()
   const clerk = useClerk()
-  const [show, setShow] = useState(false)
+  const [authFailures, setAuthFailuresState] = useState(getAuthFailureCount())
+  useEffect(() => onAuthFailureCount(setAuthFailuresState), [])
+
+  // While signed-out-with-a-session (the resume state), keep reactivating
+  // in the background with backoff — quietly, forever.
   useEffect(() => {
-    if (!isLoaded || isSignedIn) {
-      setShow(false)
-      return
+    if (!isLoaded || isSignedIn) return
+    let cancelled = false
+    let delay = 800
+    let timer: ReturnType<typeof setTimeout>
+    const tryReactivate = () => {
+      if (cancelled) return
+      const session =
+        clerk.client?.activeSessions?.[0] ?? clerk.client?.sessions?.[0]
+      if (!session) return
+      void clerk.setActive({ session: session.id }).catch(() => {
+        delay = Math.min(delay * 2, 30_000)
+        timer = setTimeout(tryReactivate, delay)
+      })
     }
-    const timers: Array<ReturnType<typeof setTimeout>> = []
-    timers.push(
-      setTimeout(() => {
-        // Signed-out with a session still in the client happens on app
-        // resume: the active-session pointer drops but the session survives
-        // (the sign-in buttons would just error "already signed in").
-        // Reactivate it instead of showing the login page.
-        const session =
-          clerk.client?.activeSessions?.[0] ?? clerk.client?.sessions?.[0]
-        if (session) {
-          void clerk
-            .setActive({ session: session.id })
-            .catch(() => setShow(true))
-          // If setActive hangs without settling or flipping isSignedIn,
-          // fall back to the sign-in screen rather than hiding forever.
-          timers.push(setTimeout(() => setShow(true), 5000))
-          return
-        }
-        setShow(true)
-      }, 900),
-    )
-    return () => timers.forEach(clearTimeout)
+    timer = setTimeout(tryReactivate, delay)
+    return () => {
+      cancelled = true
+      clearTimeout(timer)
+    }
   }, [isLoaded, isSignedIn, clerk])
-  if (!show) return null
+
+  if (!isLoaded || isSignedIn) return null
+  const hasAnySession =
+    (clerk.client?.activeSessions?.length ?? 0) > 0 ||
+    (clerk.client?.sessions?.length ?? 0) > 0
+  const definitivelyOut =
+    !hasAnySession || authFailures >= DEFINITIVE_AUTH_FAILURES
+  if (!definitivelyOut) return null
   return <SignInScreen />
 }
 
