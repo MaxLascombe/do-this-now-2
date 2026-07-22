@@ -61,11 +61,27 @@ export const isSnoozed = (t: Task): boolean => {
   return false
 }
 
-// A task that can't be done early is a Top Tasks candidate only from its
-// due date on (calendar day; a due-time never affects visibility).
-// `!== false` keeps stale cached rows without the field visible.
-export const showsInTopTasks = (t: Task, today: Date): boolean =>
-  t.canDoEarly !== false || newSafeDate(t.due) <= today
+// The task's Surface gate, with legacy fallback: rows predating the
+// `surface` column derive it from canDoEarly (false → 'due').
+export const taskSurface = (t: Task): 'anytime' | 'counting' | 'due' =>
+  t.surface ?? (t.canDoEarly === false ? 'due' : 'anytime')
+
+// Whether the Surface gate has opened (CONTEXT.md "Surface"): Anytime
+// always shows; Once-it-counts shows when the due date is inside the
+// target horizon (i.e. the task is Counting); Once-due shows from the due
+// date on. Calendar days only — a due-time never affects visibility.
+export const showsInTopTasks = (
+  t: Task,
+  today: Date,
+  horizonDays = 14,
+): boolean => {
+  const surface = taskSurface(t)
+  if (surface === 'anytime') return true
+  if (surface === 'due') return newSafeDate(t.due) <= today
+  const horizonEdge = new Date(today)
+  horizonEdge.setDate(horizonEdge.getDate() + horizonDays)
+  return newSafeDate(t.due) <= horizonEdge
+}
 
 // A task with a due-time is only "actionable" once the local wall-clock
 // has passed that time. Without a due-time, plain calendar comparison.

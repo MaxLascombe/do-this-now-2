@@ -33,6 +33,7 @@ export type ProgressTodayResult = {
   minutesToReduceTomorrowDays: number
   workdayStartMin: number
   workdayEndMin: number
+  horizonDays: number
 }
 
 export type ProgressInputs = {
@@ -271,6 +272,7 @@ export function computeProgress(
       minutesToReduceTomorrowDays: minutesOnTargetDay,
       workdayStartMin: settings.workdayStartMin,
       workdayEndMin: settings.workdayEndMin,
+      horizonDays: settings.horizonDays,
     },
     rolloverLives,
     rolloverStreak: streak,

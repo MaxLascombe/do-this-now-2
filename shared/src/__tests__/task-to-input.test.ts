@@ -10,6 +10,7 @@ const INPUT_KEYS = [
   'dueTime',
   'strictDeadline',
   'canDoEarly',
+  'surface',
   'repeat',
   'repeatInterval',
   'repeatUnit',

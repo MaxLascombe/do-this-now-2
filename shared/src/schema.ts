@@ -42,6 +42,16 @@ export const taskEventKindEnum = pgEnum('task_event_kind', [
   'deleted',
 ])
 
+// Surface levels (CONTEXT.md): when a task may appear in the Top Tasks.
+// 'anytime' (default) | 'counting' (once inside the target horizon) |
+// 'due' (once its due date arrives). Supersedes the canDoEarly boolean,
+// which is kept in sync (surface !== 'due') until a later cleanup drop.
+export const taskSurfaceEnum = pgEnum('task_surface', [
+  'anytime',
+  'counting',
+  'due',
+])
+
 // Fixed: target time per repetition; over/under carries forward.
 // Fluid: actual time, self-tuning via 14-period EMA bootstrap.
 export const timeframeTypeEnum = pgEnum('timeframe_type', ['fixed', 'fluid'])
@@ -80,6 +90,7 @@ export const tasks = pgTable(
     // Off = keep the task out of the Top Tasks query until its due date
     // arrives. Default true so legacy rows keep today's behavior.
     canDoEarly: boolean('can_do_early').notNull().default(true),
+    surface: taskSurfaceEnum('surface').notNull().default('anytime'),
     repeat: repeatOptionEnum('repeat').notNull().default('No Repeat'),
     repeatInterval: integer('repeat_interval').notNull().default(1),
     repeatUnit: repeatUnitEnum('repeat_unit').notNull().default('day'),

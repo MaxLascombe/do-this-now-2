@@ -68,6 +68,10 @@ export type ProgressTodayResult = {
   // settings the server targeted with — no separate settings fetch needed.
   workdayStartMin: number
   workdayEndMin: number
+  // The horizon the Daily Target averages over — also the Counting window
+  // for Once-it-counts Surface gating, so clients filter with the same
+  // number the server targeted with.
+  horizonDays: number
 }
 
 export type SelectionResult = { selectedTaskId: string | null }

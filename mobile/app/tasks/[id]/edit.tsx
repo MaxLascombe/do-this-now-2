@@ -96,6 +96,7 @@ export default function EditTask() {
           dueTime: task.dueTime,
           strictDeadline: task.strictDeadline,
           canDoEarly: task.canDoEarly,
+          surface: task.surface,
           repeat: task.repeat,
           repeatInterval: task.repeatInterval,
           repeatUnit: task.repeatUnit,

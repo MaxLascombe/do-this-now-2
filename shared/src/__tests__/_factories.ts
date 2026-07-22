@@ -11,6 +11,7 @@ export const makeTask = (over: Partial<Task> = {}): Task => ({
   dueTime: over.dueTime ?? null,
   strictDeadline: over.strictDeadline ?? false,
   canDoEarly: over.canDoEarly ?? true,
+  surface: over.surface ?? (over.canDoEarly === false ? 'due' : 'anytime'),
   repeat: over.repeat ?? 'No Repeat',
   repeatInterval: over.repeatInterval ?? 1,
   repeatUnit: over.repeatUnit ?? 'day',
