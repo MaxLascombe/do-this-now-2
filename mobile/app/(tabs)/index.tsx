@@ -4,6 +4,7 @@ import {
   willAdvanceSubtask,
 } from '@dtn/shared/task-transitions'
 import {
+  useAllTasks,
   useCompleteTask,
   useDeleteTask,
   useExitFocus,
@@ -75,6 +76,13 @@ export default function Home() {
 
   const activeTasks = (topTasks.data ?? []).filter((t) => !isSnoozed(t))
   const topThree = activeTasks.slice(0, 3)
+  // Only needed for the empty state's "waiting beyond the horizon" line.
+  const allTasks = useAllTasks({ enabled: topThree.length === 0 })
+  const waitingBeyondHorizon = Math.max(
+    0,
+    (allTasks.data ?? []).filter((t) => !isSnoozed(t)).length -
+      activeTasks.length,
+  )
 
   const doneMutation = useCompleteTask()
   const exitFocus = useExitFocus()
@@ -268,7 +276,11 @@ export default function Home() {
           ) : (
             <EmptyTasks
               title="Nothing to do right now"
-              subtitle="You're all caught up. Add a task to line up what's next."
+              subtitle={
+                waitingBeyondHorizon > 0
+                  ? `All caught up — ${waitingBeyondHorizon} task${waitingBeyondHorizon === 1 ? '' : 's'} waiting beyond the horizon.`
+                  : "You're all caught up. Add a task to line up what's next."
+              }
               onNewTask={() => router.push('/new-task')}
               onViewAll={() => router.push('/tasks')}
             />

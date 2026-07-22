@@ -99,8 +99,8 @@ export function TaskForm({
   const [strictDeadline, setStrictDeadline] = useState(
     initial.strictDeadline ?? false,
   )
-  const [surface, setSurface] = useState<'anytime' | 'counting' | 'due'>(
-    initial.surface ?? (initial.canDoEarly === false ? 'due' : 'anytime'),
+  const [waitsForDue, setWaitsForDue] = useState(
+    initial.surface === 'due' || initial.canDoEarly === false,
   )
   const [repeat, setRepeat] = useState<RepeatOption>(
     initial.repeat ?? 'No Repeat',
@@ -244,8 +244,8 @@ export function TaskForm({
       due: dateString(dueDate),
       dueTime,
       strictDeadline,
-      canDoEarly: surface !== 'due',
-      surface,
+      canDoEarly: !waitsForDue,
+      surface: waitsForDue ? 'due' : 'counting',
       repeat,
       repeatInterval,
       repeatUnit,
@@ -733,56 +733,34 @@ export function TaskForm({
           </View>
         </Field>
 
-        <Field label="Surfaces">
-          <View style={{ gap: 8, paddingVertical: 4 }}>
-            <View style={{ flexDirection: 'row', gap: 8 }}>
-              {(
-                [
-                  ['anytime', 'Anytime'],
-                  ['counting', 'Once it counts'],
-                  ['due', 'Once due'],
-                ] as const
-              ).map(([value, label]) => (
-                <Pressable
-                  key={value}
-                  onPress={() => setSurface(value)}
-                  accessibilityRole="button"
-                  accessibilityState={{ selected: surface === value }}
-                  style={{
-                    paddingHorizontal: 12,
-                    paddingVertical: 7,
-                    borderRadius: 999,
-                    borderWidth: 1,
-                    borderColor: surface === value ? '#d4d4d8' : '#27272a',
-                    backgroundColor:
-                      surface === value ? '#fafafa' : 'transparent',
-                  }}
-                >
-                  <Text
-                    style={{
-                      fontFamily: 'JetBrainsMono_400Regular',
-                      fontSize: 13,
-                      color: surface === value ? '#0a0a0a' : '#a1a1aa',
-                    }}
-                  >
-                    {label}
-                  </Text>
-                </Pressable>
-              ))}
-            </View>
-            {surface !== 'anytime' && (
-              <Text
-                style={{
-                  fontFamily: 'JetBrainsMono_400Regular',
-                  fontSize: 13,
-                  color: '#71717a',
-                }}
-              >
-                {surface === 'counting'
-                  ? 'stays out of Top Tasks until it counts toward the daily target'
-                  : 'stays out of Top Tasks until its due date'}
-              </Text>
-            )}
+        <Field label="Waits until due?">
+          <View
+            style={{
+              flexDirection: 'row',
+              alignItems: 'center',
+              gap: 12,
+              paddingVertical: 4,
+            }}
+          >
+            <RNSwitch
+              accessibilityLabel="Waits until due"
+              value={waitsForDue}
+              onValueChange={setWaitsForDue}
+              trackColor={{ false: '#27272a', true: ACCENT }}
+              thumbColor="#fafafa"
+            />
+            <Text
+              style={{
+                fontFamily: 'JetBrainsMono_400Regular',
+                fontSize: 13,
+                color: '#71717a',
+                flexShrink: 1,
+              }}
+            >
+              {waitsForDue
+                ? 'stays out of Top Tasks until its due date'
+                : 'surfaces once it counts toward the daily target'}
+            </Text>
           </View>
         </Field>
 

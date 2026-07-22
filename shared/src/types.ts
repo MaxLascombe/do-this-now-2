@@ -45,7 +45,7 @@ export type Task = {
   // list, selection, progress) ignores this.
   canDoEarly: boolean
   // The Surface gate; canDoEarly is its legacy shadow (surface !== 'due').
-  // Optional: cached/legacy rows predate the column — taskSurface() derives.
+  // Optional: cached/legacy rows predate the column — waitsForDue() derives.
   surface?: TaskSurface
   repeat: RepeatOption
   repeatInterval: number

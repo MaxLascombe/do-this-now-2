@@ -1,5 +1,6 @@
 import { formatDueLabel, formatRepeat } from '@dtn/shared/format'
 import {
+  useAllTasks,
   useCompleteTask,
   useDeleteTask,
   useExitFocus,
@@ -121,9 +122,13 @@ const ZzGlyph = ({ large }: { large?: boolean }) => (
 const EmptyNow = ({
   onNewTask,
   onViewAll,
+  waitingCount = 0,
 }: {
   onNewTask: () => void
   onViewAll: () => void
+  // Tasks that exist but sit beyond the horizon — not Counting yet, so the
+  // Top Tasks rightly hide them; the empty state says where they went.
+  waitingCount?: number
 }) => (
   <div className="flex flex-col items-center gap-6 px-6 text-center">
     <span aria-hidden="true" className="text-5xl leading-none select-none">
@@ -132,7 +137,9 @@ const EmptyNow = ({
     <div className="space-y-1.5">
       <p className="font-mono text-lg text-zinc-200">Nothing to do right now</p>
       <p className="font-mono text-sm text-zinc-500">
-        You're all caught up. Add a task to line up what's next.
+        {waitingCount > 0
+          ? `All caught up — ${waitingCount} task${waitingCount === 1 ? '' : 's'} waiting beyond the horizon.`
+          : "You're all caught up. Add a task to line up what's next."}
       </p>
     </div>
     <div className="flex items-center gap-2">
@@ -162,6 +169,14 @@ function Home() {
   const unselectMutation = useUnselect()
 
   const tasks = (topTasksQuery.data ?? []).filter((t) => !isSnoozed(t))
+  // Everything active that the counting gate is holding back — only needed
+  // for the empty state's "waiting beyond the horizon" line.
+  const allTasksQuery = useAllTasks({ enabled: tasks.length === 0 })
+  const waitingBeyondHorizon = Math.max(
+    0,
+    (allTasksQuery.data ?? []).filter((t) => !isSnoozed(t)).length -
+      tasks.length,
+  )
 
   // The authoritative Selected Task turns Home into the single-task Focus
   // View. Selection is rank-independent, so the task may not be in the top
@@ -457,6 +472,7 @@ function Home() {
             />
           ) : (
             <EmptyNow
+              waitingCount={waitingBeyondHorizon}
               onNewTask={() => navigate({ to: '/new-task' })}
               onViewAll={() => navigate({ to: '/tasks' })}
             />
