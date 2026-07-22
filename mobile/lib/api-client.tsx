@@ -15,6 +15,22 @@ import { type ReactNode, useMemo } from 'react'
 import { getLockScreenDeviceToken } from './lockscreen'
 import { QueryProvider } from './query-client'
 
+// ADR-0007: the sign-in screen may only appear on a definitive revocation
+// signal. Track consecutive unauthenticated API responses; any success
+// resets the count. SignedOutOverlay subscribes.
+let consecutiveAuthFailures = 0
+const authFailureListeners = new Set<(n: number) => void>()
+const setAuthFailures = (n: number) => {
+  if (n === consecutiveAuthFailures) return
+  consecutiveAuthFailures = n
+  authFailureListeners.forEach((cb) => cb(n))
+}
+export const getAuthFailureCount = () => consecutiveAuthFailures
+export function onAuthFailureCount(cb: (n: number) => void): () => void {
+  authFailureListeners.add(cb)
+  return () => authFailureListeners.delete(cb)
+}
+
 const BASE_URL = process.env.EXPO_PUBLIC_API_URL!
 if (!BASE_URL) {
   console.warn('EXPO_PUBLIC_API_URL not set; API calls will fail')
@@ -45,8 +61,13 @@ async function jsonFetch<T>(
     body: init.body !== undefined ? JSON.stringify(init.body) : undefined,
   })
   if (!res.ok) {
-    throw apiErrorFromResponse(res.status, res.statusText, await res.text())
+    const err = apiErrorFromResponse(res.status, res.statusText, await res.text())
+    if (err.code === 'unauthenticated') {
+      setAuthFailures(consecutiveAuthFailures + 1)
+    }
+    throw err
   }
+  setAuthFailures(0)
   return res.json() as Promise<T>
 }
 
